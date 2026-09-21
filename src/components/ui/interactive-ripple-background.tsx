@@ -2,7 +2,9 @@
 // Creates interactive ripples that respond to user interaction
 
 import { cn } from "@/utils/cn";
-import { useState, useEffect, useRef } from "react";
+// `useEffect` ya no hace falta: lo unico que lo usaba era el intervalo de las
+// ondas automaticas, retirado en el lote 173.
+import { useState, useRef } from "react";
 
 interface Ripple {
   x: number;
@@ -18,6 +20,11 @@ export const RippleBackground = ({ children }: { children?: React.ReactNode }) =
 
   const createRipple = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!containerRef.current) return;
+    // Lote 173: quien tiene activado "reducir movimiento" en su sistema lo
+    // tiene activado por algo -- mareo, vertigo, migrañas --, y una onda que
+    // se expande 400px por la pantalla es justo lo que evita. No se le crea.
+    if (typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
 
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -38,31 +45,16 @@ export const RippleBackground = ({ children }: { children?: React.ReactNode }) =
     }, 2000);
   };
 
-  // Auto-generate ambient ripples
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!containerRef.current) return;
-
-      const rect = containerRef.current.getBoundingClientRect();
-      const x = Math.random() * rect.width;
-      const y = Math.random() * rect.height;
-
-      const newRipple: Ripple = {
-        x,
-        y,
-        id: rippleIdRef.current++,
-        timestamp: Date.now()
-      };
-
-      setRipples(prev => [...prev, newRipple]);
-
-      setTimeout(() => {
-        setRipples(prev => prev.filter(r => r.id !== newRipple.id));
-      }, 2000);
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, []);
+  // LAS ONDAS AUTOMATICAS SE RETIRARON (lote 173).
+  //
+  // Aqui habia un `setInterval` de 3 segundos que creaba una onda al azar,
+  // PARA SIEMPRE, con su `setTimeout` para retirarla: veinte renders de React
+  // por minuto en una pantalla donde solo se escriben dos campos, mientras la
+  // pestaña este abierta. En el movil de un cajero eso es bateria.
+  //
+  // Las ondas al hacer clic se quedan: son las que dan la gracia, duran dos
+  // segundos y las pide la persona. Lo que se va es la animacion perpetua que
+  // nadie pidio.
 
   return (
     <div

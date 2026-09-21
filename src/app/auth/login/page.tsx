@@ -5,25 +5,24 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Mail, Lock, Loader2, Sparkles, Eye, EyeOff } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Toaster, toast } from 'sonner';
+import { Mail, Lock, Loader2, LogIn, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 import { RippleBackground } from '@/components/ui/interactive-ripple-background';
 import { PageLoader } from '@/components/ui/PageLoader';
+import { esquemaAcceso, motivoDelFallo, type DatosDeAcceso } from '@/services/auth/accesoDelUsuario';
 
-const loginSchema = z.object({
-  email: z.string().email('Formato de correo electrónico inválido'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
+type LoginFormValues = DatosDeAcceso;
 
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  // Lote 173: el motivo del fallo se enseña EN el formulario, no en un aviso
+  // efimero en la otra punta de la pantalla. Quien no puede entrar esta
+  // mirando los dos campos, no la esquina superior derecha.
+  const [motivoDelError, setMotivoDelError] = useState<string | null>(null);
 
   // Company logo screen transition state
   const [showCompanyLoader, setShowCompanyLoader] = useState(false);
@@ -76,11 +75,12 @@ export default function LoginPage() {
     handleSubmit,
     formState: { errors },
   } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(esquemaAcceso),
   });
 
   const onSubmit = async (values: LoginFormValues) => {
     setLoading(true);
+    setMotivoDelError(null);
     try {
       const response = await fetch('/api/v1/auth/login', {
         method: 'POST',
@@ -106,9 +106,9 @@ export default function LoginPage() {
       const configuredLogo = data.data?.companyLogo || data.data?.logoUrl || null;
       const configuredName = data.data?.companyName || null;
 
-      toast.success('¡Acceso concedido!', {
-        description: 'Redireccionando al panel principal...',
-      });
+      // Lote 173: aqui habia un `toast.success('¡Acceso concedido!')` justo
+      // antes de navegar: aparecia y se iba en el mismo instante. La senal de
+      // que el acceso salio bien es que se entra.
 
       // ONLY execute company logo loader transition if company has logo configured in DB
       if (configuredLogo && typeof configuredLogo === 'string' && configuredLogo.trim() !== '') {
@@ -127,20 +127,13 @@ export default function LoginPage() {
         // Otherwise, standard behavior continues as normal
         router.push('/dashboard');
       }
-    } catch (err: any) {
-      let errorMessage = err.message;
-      if (
-        errorMessage === 'Failed to fetch' ||
-        errorMessage?.toLowerCase().includes('failed to fetch') ||
-        errorMessage?.toLowerCase().includes('networkerror') ||
-        errorMessage?.toLowerCase().includes('load resource')
-      ) {
-        errorMessage = 'No hay conexión a internet.';
-      }
-
-      toast.error('Error de autenticación', {
-        description: errorMessage,
-      });
+    } catch (err: unknown) {
+      // La cadena de `includes()` que habia aqui vive en
+      // `services/auth/accesoDelUsuario.ts` desde el lote 173, donde se puede
+      // probar: distinguir "no hay red" de "contraseña incorrecta" importa,
+      // porque decirle lo segundo a quien se quedo sin wifi le hace dudar de
+      // su contraseña.
+      setMotivoDelError(motivoDelFallo(err instanceof Error ? err.message : err));
       setLoading(false);
     }
   };
@@ -160,7 +153,7 @@ export default function LoginPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#c5a059]" />
           <p className="text-on-surface-variant text-sm">Verificando estado del sistema...</p>
         </div>
       </div>
@@ -169,32 +162,52 @@ export default function LoginPage() {
 
   return (
     <RippleBackground>
-      <Toaster position="top-right" richColors />
-
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className="w-full max-w-4xl flex flex-col items-center justify-start min-h-screen z-10 px-4 sm:px-6 pt-4 pb-10"
+        // Lote 173: antes `justify-start min-h-screen` con `mt-20` y `mb-12`
+        // fijos. En un portatil de 768px de alto, el logo de 450px empujaba el
+        // boton fuera de la pantalla y habia que desplazarse para entrar. Ahora
+        // el bloque se centra (RippleBackground ya da el alto) y los margenes
+        // crecen con la pantalla en vez de estar clavados.
+        className="w-full max-w-4xl flex flex-col items-center justify-center z-10 px-4 sm:px-6 py-8"
       >
-        <div className="w-full text-center mb-12 mt-20">
+        <div className="w-full text-center mb-8 sm:mb-10">
           <motion.div
             initial={{ scale: 0.95, opacity: 0, y: 5 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             transition={{ duration: 0.4, type: 'spring', stiffness: 250, damping: 25 }}
           >
-            <img 
-              src="/Logo.svg" 
-              alt="ContFast Enterprise" 
-              className="mx-auto w-full max-w-[450px] object-contain drop-shadow-xl" 
+            {/* La pagina no tenia ningun titulo: el logo es una imagen, y para
+                un lector de pantalla eso no es un encabezado. */}
+            <h1 className="sr-only">ContFast Enterprise — Acceso al sistema</h1>
+            <img
+              src="/Logo.svg"
+              alt="ContFast Enterprise"
+              className="mx-auto w-full max-w-[260px] sm:max-w-[340px] lg:max-w-[420px] object-contain drop-shadow-xl"
             />
           </motion.div>
         </div>
 
         {/* Form Container with Glassmorphism */}
         <div className="w-full max-w-md bg-surface-container-low/60 backdrop-blur-xl border border-outline-variant/30 rounded-lg p-6 shadow-2xl relative z-10">
-          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-            
+          <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+
+            {/* Lote 173: el motivo del fallo, donde se esta mirando.
+                `role="alert"` para que un lector de pantalla lo anuncie: antes
+                era un toast en la esquina y quien no ve la pantalla no se
+                enteraba de por que no habia entrado. */}
+            {motivoDelError && (
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-md border border-red-300/60 bg-red-50 px-3 py-2 text-sm text-red-800"
+              >
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" aria-hidden="true" />
+                <span>{motivoDelError}</span>
+              </div>
+            )}
+
             {/* Email Field */}
             <div className="space-y-1">
               <label htmlFor="email" className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
@@ -208,14 +221,21 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   autoComplete="email"
-                  required
+                  autoFocus
+                  // Lote 173: sin `required`. Con el, el navegador disparaba su
+                  // aviso NATIVO -- en ingles y con otro estilo -- antes de que
+                  // zod llegara a hablar, asi que los mensajes en español que
+                  // hay escritos no se veian nunca. El `noValidate` del form
+                  // completa lo mismo.
+                  aria-invalid={!!errors.email}
+                  aria-describedby={errors.email ? 'error-email' : undefined}
                   {...register('email')}
-                  className="block w-full rounded-md border-0 bg-background py-2 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition duration-200 outline-none"
+                  className="block w-full rounded-md border-0 bg-background py-2 pl-10 pr-3 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-[#c5a059] sm:text-sm sm:leading-6 transition duration-200 outline-none"
                   placeholder="admin@empresa.com"
                 />
               </div>
               {errors.email && (
-                <p className="text-xs text-red-500 mt-1">{errors.email.message}</p>
+                <p id="error-email" className="text-xs text-red-600 mt-1">{errors.email.message}</p>
               )}
             </div>
 
@@ -232,26 +252,31 @@ export default function LoginPage() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
-                  required
+                  aria-invalid={!!errors.password}
+                  aria-describedby={errors.password ? 'error-password' : undefined}
                   {...register('password')}
-                  className="block w-full rounded-md border-0 bg-background py-2 pl-10 pr-10 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-amber-500 sm:text-sm sm:leading-6 transition duration-200 outline-none"
+                  className="block w-full rounded-md border-0 bg-background py-2 pl-10 pr-10 text-primary ring-1 ring-inset ring-outline-variant/30 placeholder:text-on-surface-variant/80 focus:ring-2 focus:ring-inset focus:ring-[#c5a059] sm:text-sm sm:leading-6 transition duration-200 outline-none"
                   placeholder="••••••••"
                 />
+                {/* Lote 173: el boton no decia nada y estaba fuera del tabulador.
+                    Un lector de pantalla leia "boton" a secas, y quien navega
+                    con teclado no podia usarlo. */}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-on-surface-variant/70 hover:text-primary transition-colors focus:outline-none"
-                  tabIndex={-1}
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  aria-pressed={showPassword}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-on-surface-variant/70 hover:text-primary transition-colors rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c5a059]"
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
+                    <EyeOff className="h-5 w-5" aria-hidden="true" />
                   ) : (
-                    <Eye className="h-5 w-5" />
+                    <Eye className="h-5 w-5" aria-hidden="true" />
                   )}
                 </button>
               </div>
               {errors.password && (
-                <p className="text-xs text-red-500 mt-1">{errors.password.message}</p>
+                <p id="error-password" className="text-xs text-red-600 mt-1">{errors.password.message}</p>
               )}
             </div>
 
@@ -259,16 +284,21 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="flex w-full justify-center items-center gap-2 rounded-md bg-amber-500 px-3 py-2.5 text-sm font-semibold text-slate-950 shadow-sm hover:bg-amber-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-[background-color,transform,box-shadow] duration-200 ease-out hover:scale-[1.02] active:scale-[0.98] active:duration-100"
+              // Lote 173: `amber-500` era otro dorado distinto del de la marca.
+              // El panel entero usa #c5a059 (458 sitios): se entraba con un
+              // color y se aterrizaba en otro.
+              className="flex w-full justify-center items-center gap-2 rounded-md bg-[#c5a059] px-3 py-2.5 text-sm font-semibold text-[#001e40] shadow-sm hover:bg-[#b18f4d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c5a059] disabled:opacity-50 disabled:cursor-not-allowed transition-[background-color,transform,box-shadow] duration-200 ease-out hover:scale-[1.02] active:scale-[0.98] active:duration-100 motion-reduce:transform-none motion-reduce:transition-none"
             >
               {loading ? (
                 <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
                   Verificando credenciales...
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-5 w-5" />
+                  {/* Chispas para entrar a un sistema contable desentonaba con
+                      la sobriedad del resto. */}
+                  <LogIn className="h-5 w-5" aria-hidden="true" />
                   Acceder al Sistema
                 </>
               )}
