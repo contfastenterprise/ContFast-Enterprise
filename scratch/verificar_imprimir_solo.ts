@@ -64,12 +64,16 @@ ok(
 );
 ok('la nota explica por que se imprime en el clic y no despues',
   s.includes('DENTRO DEL GESTO DEL USUARIO'));
-// Y lo que este lote añade: al llegar la aceptacion NO se imprime otra vez --
-// serian dos papeles del mismo comprobante, uno "Pendiente" y otro "Firma
-// Digital Valida" -- pero se ofrece reimprimirlo con la leyenda definitiva.
-ok('al aceptar no se reimprime sola, se ofrece',
+// Al llegar la aceptacion NO se imprime otra vez: serian dos papeles del mismo
+// comprobante, uno "Pendiente" y otro "Firma Digital Valida".
+//
+// LOTE 181: y tampoco se ofrece reimprimir, porque ya no hay aviso donde
+// ofrecerlo -- la aceptacion no se anuncia (decision del dueño, 2026-09-22): es
+// lo que tiene que pasar. Quien quiera el papel con la leyenda definitiva lo
+// reimprime desde el listado.
+ok('al aceptar no se reimprime sola',
   !sc.includes("const seAbrio = postAction === 'print' ? abrirImpresion() : true;")
-  && s.includes('Reimprimir con la firma'));
+  && !sc.includes('Reimprimir con la firma'));
 
 console.log(`\nTotal fallos: ${fallos}`);
 process.exit(fallos > 0 ? 1 : 0);

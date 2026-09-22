@@ -38,6 +38,19 @@ const leer = (p: string) => (existsSync(join(raiz, p)) ? readFileSync(join(raiz,
 const sinComentarios = (src: string) =>
   src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 
+/**
+ * El trozo de la rama de ACEPTADO, acotado.
+ *
+ * Un `[\s\S]*?` desde su `if` se cuela en la rama del rechazo y encuentra SU
+ * `loadInvoices()`: asi sobrevivio un mutante que quitaba la recarga del
+ * aceptado. Cortar el trozo es lo unico que lo caza.
+ */
+const ramaAceptado = (src: string) => {
+  const i = src.indexOf("if (est.data?.status === 'accepted') {");
+  const j = src.indexOf("} else if (est.data?.status === 'rejected')", i);
+  return i < 0 || j < 0 ? '' : src.slice(i, j);
+};
+
 let fallos = 0;
 const ok = (t: string, c: boolean, d = '') => { console.log(`${c ? '  OK  ' : ' FALLA'}  ${t}${d ? ` -- ${d}` : ''}`); if (!c) fallos++; };
 const falta = (t: string, motivo: string) => ok(t, false, motivo);
@@ -187,8 +200,13 @@ async function main() {
   // mismo comprobante: uno "Pendiente" y otro "Firma Digital Valida".
   ok('la consulta de los 5 s ya no imprime otra vez',
     !/postAction === 'print' \? abrirImpresion\(\) : true/.test(codigoPantalla));
-  ok('  ofrece reimprimir cuando llega la aceptacion',
-    /Reimprimir con la firma/.test(pantalla));
+  // LOTE 181: la aceptacion no se anuncia -- es lo que tiene que pasar, y el
+  // papel ya salio en el clic --, asi que tampoco hay donde ofrecer la
+  // reimpresion. Lo que se vigila es que al aceptar se RECARGUE el listado, que
+  // es el unico sitio donde consta el estado nuevo.
+  ok('  al aceptar no se anuncia nada, solo se recarga el listado',
+    !/toast\.success\('La DGII aceptó el comprobante'/.test(pantalla)
+    && ramaAceptado(pantalla).includes('loadInvoices();'));
   // Lo que se imprimio antes del veredicto puede acabar rechazado: ese papel
   // esta fuera y no vale. Callarlo seria dejarlo circular.
   ok('si la DGII rechaza despues de imprimir, se avisa de que el papel no vale',

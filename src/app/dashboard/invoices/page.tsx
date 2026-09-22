@@ -1453,18 +1453,19 @@ function InvoicesList() {
             if (!est.success) return;
 
             if (est.data?.status === 'accepted') {
-              // LOTE 180: aqui YA NO SE IMPRIME. El papel salio en el clic, con
-              // su timbre; volver a abrirlo daria dos copias del mismo
+              // LOTE 181: LA ACEPTACION NO SE ANUNCIA, a proposito (decision del
+              // dueño, 2026-09-22). Es lo que tiene que pasar: el comprobante
+              // salio bien y el papel ya esta impreso desde el clic (lote 180),
+              // asi que un aviso verde no le dice a nadie nada que no sepa. El
+              // listado se recarga y ahi consta.
+              //
+              // Lo que NO se calla es el rechazo: eso si es noticia, y mas ahora
+              // que el papel pudo salir antes del veredicto.
+              //
+              // Tampoco se imprime aqui (lote 180): serian dos copias del mismo
               // comprobante, una rotulada "Pendiente" y otra "Firma Digital
-              // Valida". Si alguien quiere el papel con la leyenda definitiva,
-              // lo reimprime desde el listado.
-              toast.success('La DGII aceptó el comprobante', {
-                description: `NCF: ${ncfEmitido} — ${est.data?.dgiiStatus || 'aceptado'}`,
-                duration: 12000,
-                ...(postAction === 'print'
-                  ? { action: { label: 'Reimprimir con la firma', onClick: () => { abrirImpresion(); } } }
-                  : {}),
-              });
+              // Valida". Quien quiera el papel con la leyenda definitiva lo
+              // reimprime desde el listado.
               loadInvoices();
             } else if (est.data?.status === 'rejected') {
               // Y aqui hay que decir algo mas que antes: si se imprimio, ese

@@ -553,6 +553,20 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 181: la aceptación de la DGII no se anuncia.** Decisión del dueño
+  (2026-09-22), y tiene razón: desde el 180 el papel sale en el clic, así que un
+  aviso verde cinco segundos después no dice nada que no se sepa — y un sistema
+  que celebra lo normal acostumbra a ignorar sus avisos. Se queda la **recarga
+  del listado** (único sitio donde consta el estado nuevo) y el **aviso de
+  rechazo**, con más motivo que antes. Se va el botón "Reimprimir con la firma":
+  sin aviso no hay dónde ofrecerlo, y se reimprime desde el listado.
+  **Un mutante sobrevivió y obligó a apretar dos bancos**: la comprobación de que
+  al aceptar se recarga el listado usaba
+  `/if \(...'accepted'\) \{[\s\S]*?loadInvoices\(\);/`, y ese `[\s\S]*?`
+  **se cuela en la rama del rechazo y encuentra SU `loadInvoices()`** — quitar la
+  recarga del aceptado no hacía fallar nada. Ahora el trozo se **acota** entre el
+  `if` de aceptado y el `} else if` del rechazo. **Regla general: un
+  `[\s\S]*?` entre dos ramas hermanas no comprueba la rama que crees.**
 - **Lote 180: la factura se imprime en el acto, con su timbre.** Había **dos
   creencias contrarias** en el código y las dos eran falsas a medias (medido el
   2026-09-22 contra PRODUCCIÓN):

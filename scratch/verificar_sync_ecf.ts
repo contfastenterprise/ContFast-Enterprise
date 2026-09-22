@@ -39,10 +39,23 @@ ok(
   'invoices: guarda el NCF antes de la espera (el formulario ya se reinicio)',
   s.includes('const ncfEmitido = data.data.ncf;')
 );
+//  ACOTADO A LA RAMA. Un `[\s\S]*?` desde el `if` de aceptado se cuela en la
+//  rama del rechazo y encuentra SU `loadInvoices()`: un mutante que quitaba la
+//  recarga del aceptado sobrevivio asi. Se corta el trozo y se mira dentro.
+const ramaAceptado = (() => {
+  const i = s.indexOf("if (est.data?.status === 'accepted') {");
+  const j = s.indexOf("} else if (est.data?.status === 'rejected')", i);
+  return i < 0 || j < 0 ? '' : s.slice(i, j);
+})();
+// LOTE 181: la aceptacion YA NO SE ANUNCIA (decision del dueño, 2026-09-22).
+// Es lo que tiene que pasar, y desde el lote 180 el papel ya salio en el clic:
+// un aviso verde no dice nada que no se sepa. Lo que sigue haciendo falta es
+// RECARGAR el listado, porque es ahi donde consta el estado nuevo.
 ok(
-  'invoices: avisa si la DGII acepto, y recarga el listado',
+  'invoices: al aceptar recarga el listado y NO molesta con un aviso',
   s.includes("if (est.data?.status === 'accepted') {") &&
-    s.includes("toast.success('La DGII aceptó el comprobante', {")
+    !s.includes("toast.success('La DGII aceptó el comprobante'") &&
+    ramaAceptado.includes('loadInvoices();')
 );
 // La PROPIEDAD es que dé tiempo a leerlo, no el numero exacto: en el lote 180
 // subio a 20 s porque ahora el aviso lleva ademas que el papel impreso no vale.
@@ -71,15 +84,18 @@ const bloqueVeredicto = (() => {
 ok(
   "invoices: si sigue pendiente NO dice nada (no repetir el aviso de la emision)",
   !/\}\s*else\s*\{/.test(bloqueVeredicto) &&
-    (bloqueVeredicto.match(/toast\.\w+\(/g) || []).length === 2
+    (bloqueVeredicto.match(/toast\.\w+\(/g) || []).length === 1
 );
 ok('invoices: un fallo de la consulta no molesta a quien ya termino', s.includes('no puede molestar a quien ya'));
 ok(
-  'invoices: recarga el listado en los dos veredictos',
+  'invoices: recarga el listado tambien cuando la DGII rechaza',
   //  La recarga del rechazo ya no va seguida del comentario, sino de la rama de
   //  imprimir pendiente (4a57361). Se ancla en los dos avisos. (Lote 116.)
-  /toast\.success\('La DGII aceptó el comprobante'[\s\S]*?\}\);\s*loadInvoices\(\);\s*\} else if \(est\.data\?\.status === 'rejected'\)/.test(bloqueVeredicto) &&
-    /toast\.error\('La DGII rechazó el comprobante'[\s\S]*?\}\);\s*loadInvoices\(\);/.test(bloqueVeredicto)
+  //  La rama de ACEPTADO la cubre la comprobacion de mas arriba (recarga y no
+  //  avisa). Aqui se vigila la del RECHAZO, que es la que nadie mas mira: sin su
+  //  recarga el listado seguiria diciendo "Enviado" para un comprobante que la
+  //  DGII ya rechazo.
+  /toast\.error\('La DGII rechazó el comprobante'[\s\S]*?\}\);\s*loadInvoices\(\);/.test(bloqueVeredicto)
 );
 ok(
   "invoices: la nota explica por que 'submitted' al emitir es correcto",
