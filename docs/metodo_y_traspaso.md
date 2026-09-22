@@ -553,6 +553,45 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 180: la factura se imprime en el acto, con su timbre.** Había **dos
+  creencias contrarias** en el código y las dos eran falsas a medias (medido el
+  2026-09-22 contra PRODUCCIÓN):
+  - `invoices/page.tsx` no imprimía hasta `accepted`, y su comentario decía que
+    el código de seguridad, la fecha de firma y el QR "los produce la DGII al
+    firmar y todavía no existen". **Falso: los produce mSELLER.** Las 12
+    respuestas de envío más recientes traen
+    `rnc, ecf, internalTrackId, securityCode, qr_url, signedDate`, y
+    `invoiceDbBooker` las guarda en la factura en la misma transacción.
+  - `documentTemplates` colgaba el QR de `accepted` porque un RECHAZADO trae esos
+    mismos datos. **Cierto**: E440000000001, E440000000002 (rechazados) y
+    E340000000002 (baja) recibieron una respuesta con **la misma forma** que una
+    exitosa; el motivo llegó después. La respuesta del envío significa "mSeller
+    lo firmó y lo transmitió", no "la DGII lo aceptó".
+  **Lo que resuelve las dos: el QR es el TIMBRE**, un dato del documento, no un
+  certificado de aprobación. Lo que no puede afirmarse sin veredicto es la
+  **leyenda** — el incidente del lote anterior no fue el QR, fue que dos
+  rechazados salieron rotulados "Firma Digital Válida". Timbre y leyenda se
+  deciden **por separado** en `services/invoice/timbreDelComprobante.ts` (puro).
+  **Decisión del dueño (2026-09-22): se imprime inmediatamente salvo que el envío
+  haya fallado.** Del envío al veredicto la **mediana es 20 s** (4% a los 2 s,
+  15% a los 5 s, 84% al minuto): esperar 2 segundos —la primera idea— habría
+  cubierto el 4% cobrándoselos a todas las ventas.
+  Se imprime **dentro del clic**, sin `setTimeout`, que es cuando el navegador no
+  bloquea la ventana; **sin timbre no se imprime** y se dice por qué (eso era lo
+  que hacía salir el comprobante provisional, no la falta de veredicto); un
+  rechazado o una baja no se imprimen solos; la consulta de cortesía de los 5 s
+  **ya no imprime** (serían dos papeles del mismo comprobante) y ofrece
+  "Reimprimir con la firma"; y si la DGII rechaza **después** de imprimir, el
+  aviso dice que ese papel no vale.
+  **Cuatro bancos y una prueba se pusieron en rojo y ninguno señalaba una
+  regresión**: los cinco anclaban la FORMA de la regla vieja
+  (`firmaComprobante.vitest.ts`, `verificar_impresion_estado.ts`,
+  `verificar_mseller.ts`, `verificar_impresion_tras_veredicto.ts`,
+  `verificar_imprimir_solo.ts`, `verificar_sync_ecf.ts`). Reescritos sobre la
+  PROPIEDAD, conservando el comentario del incidente. **Es la lección del lote
+  100 otra vez: cambiar una regla compartida obliga a correr TODOS los bancos.**
+  **Para el dueño**: si un comprobante se imprime y la DGII lo rechaza después,
+  ese papel no vale y hay que recuperarlo. Medido: 4 rechazados de 75.
 - **Lote 179: el aviso encaja en la plantilla aprobada.** El 178 mandaba el
   aviso como **un** parámetro suelto (no había plantilla cuando se escribió). La
   que creó el dueño el 2026-09-21 en el panel de Kapso, `aviso_administrativo`

@@ -39,7 +39,20 @@ const s = crudo('src/app/dashboard/invoices/page.tsx');
 const sc = sinComentarios(s);
 
 // ─────────── 1) Imprimir: solo lo aceptado ───────────
-ok('no se abre la impresion sin veredicto', sc.includes("if (postAction === 'print' && estadoEmitido === 'accepted') {"));
+// LOTE 180 -- ESTA COMPROBACION SE INVIRTIO, A PROPOSITO (decision del dueño,
+// 2026-09-22): la factura se imprime INMEDIATAMENTE salvo que el envio haya
+// fallado. El motivo por el que existia sigue siendo valido, pero estaba mal
+// atribuido: lo que hacia salir el comprobante PROVISIONAL no era la falta de
+// veredicto, era la falta de TIMBRE. Y el timbre lo da mSeller en la respuesta
+// del envio, no la DGII al dictar -- medido el 2026-09-22 sobre las 12 ultimas
+// respuestas de PRODUCCION, todas con `securityCode`, `qr_url` y `signedDate`.
+//
+// Asi que lo que se vigila ahora es lo que de verdad protege: sin timbre no se
+// imprime, y la decision la toma la regla, no esta pantalla.
+ok('no se imprime sin TIMBRE (que es lo que hacia salir el provisional)',
+  sc.includes('motivoParaNoImprimirYa(data.data)')
+  && s.includes("from '@/services/invoice/timbreDelComprobante'")
+  && !sc.includes("if (postAction === 'print' && estadoEmitido === 'accepted') {"));
 ok(
   'hay un solo sitio que abre la impresion',
   sc.includes('const abrirImpresion') && sc.split("/print`, '_blank')").length - 1 === 1
@@ -50,9 +63,13 @@ ok(
 // revirtio: ahora la ventana se intenta abrir sola y el boton es el respaldo
 // para cuando el navegador la bloquea. Eso lo comprueba, con mas detalle,
 // scratch/verificar_imprimir_solo.ts.
+// Antes decia "se imprime cuando la DGII conteste". Ya no hay que esperarla,
+// asi que lo que hay que decir es otra cosa -- pero hay que DECIRLA: callar
+// cuando el papel no sale deja a quien pulso imprimir mirando una ventana que
+// no llega. Eso no cambia.
 ok(
-  'si sigue pendiente y se pidio imprimir, se dice',
-  sc.includes("toast.info('El comprobante se imprime cuando la DGII conteste', {")
+  'si NO se puede imprimir, se dice por que',
+  s.includes('El comprobante no se imprime todavía') && sc.includes('description: motivo')
 );
 
 // ─────────── 2) El correo no se pide desde la pantalla ───────────

@@ -205,47 +205,72 @@ describe('DB-23 · la firma se lee de la factura', () => {
 
   // TENER LOS DATOS DE LA FIRMA NO ES ESTAR FIRMADO.
   //
-  // Esta prueba pedía `const hayFirma = !!inv.signatureDate;`, y esa condición
-  // resultó ser peligrosa: mSeller devuelve `securityCode`, `signatureDate` Y
-  // `qr_url` AUNQUE la DGII rechace el comprobante. Comprobado en los datos de
-  // producción del cliente:
+  // El incidente, que se conserva porque es la razon de ser de esto: mSeller
+  // devuelve `securityCode`, `signedDate` Y `qr_url` AUNQUE la DGII rechace el
+  // comprobante. Medido en produccion, y vuelto a medir el 2026-09-22:
   //
-  //     E440000000001   rejected   código JW0T3M
-  //     E440000000002   rejected   código CeCnNu
+  //     E440000000001   rejected   codigo JW0T3M
+  //     E440000000002   rejected   codigo CeCnNu
+  //     E340000000002   void       (XML invalido: 'MontoExento' en 'Totales')
   //
-  // Con la condición vieja, esos dos comprobantes RECHAZADOS se imprimían con
-  // la leyenda "Firma Digital Válida" y su QR apuntando a la consulta de la
-  // DGII. Un dato presente sólo significa que mSeller contestó.
+  // Los tres recibieron una respuesta de envio con LA MISMA forma que una
+  // exitosa. Con la condicion vieja (`!!inv.signatureDate`) salieron impresos
+  // rotulados "Firma Digital Valida".
   //
-  // La leyenda sale del ESTADO FISCAL, y de nada más.
+  // LO QUE ESTA PRUEBA PEDIA HASTA EL LOTE 180, y ya no pide: que el QR
+  // colgara de `accepted`. Eso cerraba el agujero, pero de paso dejaba sin
+  // timbre el caso NORMAL -- una factura recien emitida, sin veredicto todavia
+  // --, y por eso el papel no podia salir hasta que la DGII contestara (20
+  // segundos de mediana, con un cliente delante).
+  //
+  // El QR es el TIMBRE: un dato del documento, no un certificado de
+  // aprobacion. Lo que no puede afirmarse sin veredicto es la LEYENDA, y eso
+  // es lo que se vigila ahora. La propiedad, no la forma.
   it('la leyenda de firma sale del estado, no de que haya datos', () => {
-    const plantilla = leer('src/utils/templates/documentTemplates.ts');
+    const regla = leer('src/services/invoice/timbreDelComprobante.ts');
     expect(
-      plantilla,
-      'Un comprobante rechazado trae código y fecha de firma: colgar la validez de su presencia ' +
-        'imprime un rechazo como firmado válido.'
-    ).toContain("const hayFirma = inv.estadoFiscal === 'accepted'");
+      regla,
+      'Un comprobante rechazado trae codigo y fecha de firma: afirmar la validez por su presencia ' +
+        'imprime un rechazo como firmado valido.'
+    ).toContain("texto(inv.estadoFiscal) === 'accepted'");
     expect(
-      plantilla,
+      regla,
       'Y un rechazo tiene que distinguirse de un pendiente: no son lo mismo para quien recibe el papel.'
-    ).toContain("const rechazado = inv.estadoFiscal === 'rejected'");
-    expect(plantilla).toContain('RECHAZADO POR LA DGII');
+    ).toContain('RECHAZADO POR LA DGII');
+
+    // La plantilla no puede tener su propia copia de la regla.
+    const plantilla = leer('src/utils/templates/documentTemplates.ts');
+    expect(plantilla).toContain("from '@/services/invoice/timbreDelComprobante'");
     expect(
       plantilla.includes('const hayFirma = !!inv.signatureDate'),
-      'La condición vieja no puede volver.'
+      'La condicion vieja no puede volver.'
     ).toBe(false);
     expect(
       plantilla.includes('const hayFirma = !!inv.securityCode'),
-      'Ni su variante por código, que es el mismo error.'
+      'Ni su variante por codigo, que es el mismo error.'
     ).toBe(false);
   });
 
-  it('el QR tampoco se imprime sin firma válida', () => {
-    const plantilla = leer('src/utils/templates/documentTemplates.ts');
-    // Las dos plantillas que lo pintan: la de carta y la de rollo.
-    expect((plantilla.match(/hayFirma && qrBase64/g) || []).length).toBe(2);
-  });
+  // Esto es lo que antes garantizaba `hayFirma && qrBase64`, dicho como
+  // propiedad: la leyenda de validez EXIGE veredicto de aceptacion.
+  it('"Firma Digital Valida" no se rotula sin veredicto', async () => {
+    const { rotuloDelTimbre } = await import('@/services/invoice/timbreDelComprobante');
+    const timbre = { securityCode: 'fWCZCV', signatureDate: '14-05-2025 02:57:33', qrUrl: 'https://ecf.dgii.gov.do/testecf/consultatimbre?x=1' };
 
+    for (const estado of ['submitted', 'signed', 'rejected', 'void', null, undefined, '']) {
+      const r = rotuloDelTimbre({ ...timbre, estadoFiscal: estado });
+      expect(r.clase, `estado ${String(estado)}`).not.toBe('valida');
+      expect(r.titulo, `estado ${String(estado)}`).not.toContain('Válida');
+    }
+    expect(rotuloDelTimbre({ ...timbre, estadoFiscal: 'accepted' }).clase).toBe('valida');
+
+    // Y un rechazado no lleva timbre impreso: su QR no esta registrado.
+    for (const estado of ['rejected', 'void']) {
+      const r = rotuloDelTimbre({ ...timbre, estadoFiscal: estado });
+      expect(r.conQr, `estado ${estado}`).toBe(false);
+      expect(r.conCodigo, `estado ${estado}`).toBe(false);
+    }
+  });
   it('getById devuelve las dos columnas', () => {
     const repo = leer('src/repositories/invoiceRepository.ts');
     const desde = repo.indexOf('static async getById');

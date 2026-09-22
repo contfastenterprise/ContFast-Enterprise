@@ -44,11 +44,13 @@ ok(
   s.includes("if (est.data?.status === 'accepted') {") &&
     s.includes("toast.success('La DGII aceptó el comprobante', {")
 );
+// La PROPIEDAD es que dé tiempo a leerlo, no el numero exacto: en el lote 180
+// subio a 20 s porque ahora el aviso lleva ademas que el papel impreso no vale.
 ok(
   'invoices: avisa si la DGII rechazo, con tiempo para leerlo',
   s.includes("else if (est.data?.status === 'rejected') {") &&
     s.includes("toast.error('La DGII rechazó el comprobante', {") &&
-    s.includes('duration: 15000,')
+    (Number((/toast\.error\('La DGII rechazó el comprobante'[\s\S]*?duration: (\d+)/.exec(s) || [])[1]) || 0) >= 15000
 );
 //  4a57361 metio una tercera rama: quien pulso "emitir e imprimir" SI recibe un
 //  aviso si sigue pendiente (espera un papel que no llega). La regla de fondo no
@@ -61,11 +63,15 @@ const bloqueVeredicto = (() => {
   const j = s.indexOf('} catch {', i);
   return i < 0 || j < 0 ? '' : s.slice(i, j);
 })();
+// LOTE 180: la TERCERA rama se fue, y es correcto. Existia para decirle a quien
+// pulso "emitir e imprimir" por que no salia el papel; ahora el papel sale en el
+// clic, asi que no hay nada que explicar. La regla de fondo NO cambia y es la
+// que se sigue vigilando: un pendiente no genera ruido, y no hay `else` a secas
+// que avise a todo el mundo. Quedan DOS avisos: aceptado y rechazado.
 ok(
   "invoices: si sigue pendiente NO dice nada (no repetir el aviso de la emision)",
-  /\} else if \(postAction === 'print'\) \{[\s\S]*?toast\.info\(/.test(bloqueVeredicto) &&
-    !/\}\s*else\s*\{/.test(bloqueVeredicto) &&
-    (bloqueVeredicto.match(/toast\.\w+\(/g) || []).length === 3
+  !/\}\s*else\s*\{/.test(bloqueVeredicto) &&
+    (bloqueVeredicto.match(/toast\.\w+\(/g) || []).length === 2
 );
 ok('invoices: un fallo de la consulta no molesta a quien ya termino', s.includes('no puede molestar a quien ya'));
 ok(
@@ -73,7 +79,7 @@ ok(
   //  La recarga del rechazo ya no va seguida del comentario, sino de la rama de
   //  imprimir pendiente (4a57361). Se ancla en los dos avisos. (Lote 116.)
   /toast\.success\('La DGII aceptó el comprobante'[\s\S]*?\}\);\s*loadInvoices\(\);\s*\} else if \(est\.data\?\.status === 'rejected'\)/.test(bloqueVeredicto) &&
-    /toast\.error\('La DGII rechazó el comprobante'[\s\S]*?\}\);\s*loadInvoices\(\);\s*\} else if \(postAction === 'print'\)/.test(bloqueVeredicto)
+    /toast\.error\('La DGII rechazó el comprobante'[\s\S]*?\}\);\s*loadInvoices\(\);/.test(bloqueVeredicto)
 );
 ok(
   "invoices: la nota explica por que 'submitted' al emitir es correcto",

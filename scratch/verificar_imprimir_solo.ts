@@ -45,16 +45,31 @@ ok(
     sc.includes("const ventana = window.open(`/api/v1/invoices/${invoiceId}/print`, '_blank');") &&
     sc.includes('return !!ventana;')
 );
+// LOTE 180: EL PROBLEMA DE PARTIDA DESAPARECIO, no se resolvio mejor.
+//
+// Todo esto existia porque el papel salia a los cinco segundos, FUERA del gesto
+// del usuario, donde el navegador puede bloquear la ventana. Desde el lote 180
+// se imprime EN EL CLIC -- ya no hay que esperar el veredicto para tener el
+// timbre --, y dentro del gesto el navegador no bloquea. El respaldo se queda
+// igualmente, porque un bloqueo silencioso sigue siendo la queja de partida.
 ok(
-  'al llegar la aceptacion se intenta abrir sola',
-  sc.includes("const seAbrio = postAction === 'print' ? abrirImpresion() : true;")
+  'se intenta abrir sola, y en el CLIC (que es cuando el navegador no bloquea)',
+  sc.includes('} else if (!abrirImpresion()) {') && !sc.includes('setTimeout(abrirImpresion')
 );
-ok('el boton aparece SOLO si el navegador la bloqueo', sc.includes("...(postAction === 'print' && !seAbrio"));
+ok('el boton aparece SOLO si el navegador la bloqueo',
+  sc.includes("action: { label: 'Imprimir', onClick: () => { abrirImpresion(); } },"));
 ok(
   'y el aviso dice que la bloqueo, en vez de callarse',
-  sc.includes('El navegador bloqueó la ventana de impresión.')
+  s.includes('El navegador bloqueó la ventana de impresión')
 );
-ok('la nota explica por que se intenta en vez de renunciar', s.includes('No siempre lo hace, asi que se intenta'));
+ok('la nota explica por que se imprime en el clic y no despues',
+  s.includes('DENTRO DEL GESTO DEL USUARIO'));
+// Y lo que este lote añade: al llegar la aceptacion NO se imprime otra vez --
+// serian dos papeles del mismo comprobante, uno "Pendiente" y otro "Firma
+// Digital Valida" -- pero se ofrece reimprimirlo con la leyenda definitiva.
+ok('al aceptar no se reimprime sola, se ofrece',
+  !sc.includes("const seAbrio = postAction === 'print' ? abrirImpresion() : true;")
+  && s.includes('Reimprimir con la firma'));
 
 console.log(`\nTotal fallos: ${fallos}`);
 process.exit(fallos > 0 ? 1 : 0);

@@ -271,51 +271,45 @@ async function main() {
   // y remitiendo al portal de la DGII, donde no hay nada que consultar.
   {
     const tpl = fuente('src/utils/templates/documentTemplates.ts');
+    const regla = fuente('src/services/invoice/timbreDelComprobante.ts');
     const firma = 'Firma Digital V' + '\u00e1lida';
     const portal = 'Puede validar este e-CF en el portal';
 
+    //  LOTE 180: la leyenda ya no se escribe en la plantilla. Vive en
+    //  `services/invoice/timbreDelComprobante.ts`, que es quien DECIDE, y la
+    //  plantilla solo pinta `rotulo.titulo`. La propiedad vigilada es la misma y
+    //  mas fuerte: la leyenda de validez existe en UN solo sitio y solo se
+    //  concede con veredicto de aceptacion.
     ok('la leyenda de firma aparece UNA vez (no se cuenta un comentario)',
-      (tpl.match(new RegExp(firma, 'g')) || []).length === 1,
-      String((tpl.match(new RegExp(firma, 'g')) || []).length));
-    // La firma ya no cuelga de que EXISTA el codigo de seguridad, sino de
-    // `hayFirma`: aceptado por la DGII y con fecha de firma. mSeller devuelve
-    // codigo y QR tambien de comprobantes RECHAZADOS (E440000000001/2), y
-    // colgarla del codigo imprimia un rechazado como "Firma Digital Valida".
-    // La propiedad vigilada es la misma, mas estricta: la leyenda de firma solo
-    // en la rama de `hayFirma`, y `hayFirma` exige la aceptacion.
-    const iFirma = tpl.indexOf(firma);
-    const antes = tpl.slice(Math.max(0, iFirma - 120), iFirma);
+      (regla.match(new RegExp(firma, 'g')) || []).length === 1
+      && (tpl.match(new RegExp(firma, 'g')) || []).length === 0,
+      `regla=${(regla.match(new RegExp(firma, 'g')) || []).length} plantilla=${(tpl.match(new RegExp(firma, 'g')) || []).length}`);
+
+    //  Y va DENTRO de la rama que exige la aceptacion: la guarda
+    //  `firmaConfirmada(inv)` tiene que estar ANTES que la leyenda.
+    const iGuarda = regla.indexOf('if (firmaConfirmada(inv))');
+    const iFirma = regla.indexOf(firma);
     ok('va dentro de la rama que exige firma aceptada por la DGII',
-      /\$\{hayFirma\s*\n?\s*\?\s*`?\s*<strong>$/.test(antes.trimEnd()) || /hayFirma\s*\?\s*`\s*<strong>\s*$/.test(antes.replace(/\s+/g, ' ')),
-      antes.trim().slice(-60));
+      iGuarda > -1 && iFirma > iGuarda,
+      `guarda=${iGuarda} leyenda=${iFirma}`);
     ok('  y hayFirma exige que la DGII lo haya aceptado',
-      /const hayFirma = inv\.estadoFiscal === 'accepted' && !!inv\.signatureDate;/.test(tpl));
+      /texto\(inv\.estadoFiscal\) === 'accepted' && texto\(inv\.signatureDate\) !== ''/.test(regla));
     ok('sin codigo se dice que esta pendiente, no que esta firmado',
-      tpl.includes('Pendiente de confirmaci' + '\u00f3n de la DGII'));
+      regla.includes('Pendiente de confirmaci' + '\u00f3n de la DGII'));
     ok('el envio al portal va con la firma, no suelto',
-      (tpl.match(new RegExp(portal, 'g')) || []).length === 1 &&
-      tpl.indexOf(portal) > iFirma);
+      (regla.match(new RegExp(portal, 'g')) || []).length === 1 &&
+      regla.indexOf(portal) > iGuarda);
     ok('el pie repetido ya no imprime "N/A" como codigo',
       !/securityCode \|\| 'N\/A'/.test(tpl));
 
-    // Los DOS sitios (comprobante y pie repetido) tienen que colgar de que
-    // EXISTA el codigo. Comprobar solo el texto no basta: una mutacion que
-    // cambia `inv.securityCode ?` por `true ?` deja el texto intacto y vuelve a
-    // afirmar la firma siempre. Se exige la condicion justo antes de cada
-    // rama de "pendiente".
-    // El texto de "pendiente" ya no esta escrito dos veces: vive en
-    // `leyendaSinFirma` (que ademas distingue el RECHAZADO), y los dos sitios
-    // que imprimen firma -- el pie repetido y la seccion del QR -- la usan en
-    // su rama sin firma.
-    const pendiente = 'Pendiente de confirmaci' + '\u00f3n de la DGII';
+    //  Los DOS sitios que imprimen la firma -- el comprobante y el pie repetido
+    //  -- cuelgan del ROTULO. Se cuenta la CONDICION, no una ventana de texto:
+    //  cambiarla por `true` dejaria el texto intacto y volveria a afirmar la
+    //  firma siempre. Mismo criterio que antes, con el nombre nuevo.
+    const titulos = (tpl.match(/\$\{rotulo\.titulo\}/g) || []).length;
     ok('la rama "pendiente" aparece en los dos sitios que imprimen firma',
-      (tpl.match(/\$\{leyendaSinFirma\}/g) || []).length === 2
-      && new RegExp(`const leyendaSinFirma = rechazado\\s*\\?\\s*'RECHAZADO POR LA DGII'\\s*:\\s*'${pendiente}';`).test(tpl),
-      String((tpl.match(/\$\{leyendaSinFirma\}/g) || []).length));
-    // Se cuenta la CONDICION en si (`${hayFirma ?`), no una ventana de texto:
-    // cambiarla por `true ?` dejaria el texto intacto y volveria a afirmar la
-    // firma siempre.
-    const condicionales = (tpl.match(/\$\{hayFirma\s*\n\s*\?/g) || []).length;
+      titulos === 2, String(titulos));
+    const condicionales = (tpl.match(/\$\{rotulo\.conCodigo/g) || []).length;
     ok('y las dos cuelgan de que haya firma aceptada',
       condicionales === 2, `${condicionales} condicional(es)`);
   }

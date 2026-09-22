@@ -2,6 +2,7 @@ import { parseFraction } from '../calculos';
 import { etiquetaTipo, exigeVencimientoSecuencia } from '@/services/dgii/tiposComprobante';
 import { windowProfiles } from '../profilesRegistry';
 import { formatDateDisplay, formatDateTimeDisplay } from '@/utils/fechasLocales';
+import { rotuloDelTimbre, firmaConfirmada } from '@/services/invoice/timbreDelComprobante';
 
 function deepEscape<T>(obj: T): T {
   if (obj === null || obj === undefined) {
@@ -194,14 +195,17 @@ export class DocumentTemplates {
     //
     //  Sin estado (comprobantes anteriores a que se guardara) se cae del lado
     //  prudente: no se afirma la firma.
-    const hayFirma = inv.estadoFiscal === 'accepted' && !!inv.signatureDate;
-    const rechazado = inv.estadoFiscal === 'rejected';
+    //  LOTE 180: la regla vive en `services/invoice/timbreDelComprobante.ts`,
+    //  y aqui solo se pinta lo que decida. El timbre y la LEYENDA se deciden
+    //  por separado: el timbre es un dato del documento y se imprime en cuanto
+    //  consta, mientras la leyenda solo afirma "Firma Digital Valida" con
+    //  veredicto de aceptacion. Antes el QR colgaba de `accepted`, asi que una
+    //  factura recien emitida -- el caso normal -- salia sin el, aunque mSeller
+    //  ya hubiera devuelto codigo, fecha y QR en la respuesta del envio.
+    const rotulo = rotuloDelTimbre(inv);
+    const hayFirma = firmaConfirmada(inv);
+    const rechazado = rotulo.clase === 'rechazado';
     const estadoFirma = hayFirma ? 'Firmado' : (rechazado ? 'Rechazado' : 'Pendiente');
-    //  La leyenda completa, porque "${estadoFirma} de confirmacion de la DGII"
-    //  daba "Rechazado de confirmacion de la DGII", que no se dice.
-    const leyendaSinFirma = rechazado
-      ? 'RECHAZADO POR LA DGII'
-      : 'Pendiente de confirmación de la DGII';
 
     if (layout === 'carta') {
       const padDots = (label: string, length: number) => {
@@ -372,9 +376,15 @@ export class DocumentTemplates {
       `;
 
       // Formato de la fecha. `sigDate` es la de firma cuando consta, y la de
-      // emision cuando no: quien decide cual se rotula es `hayFirma`, no esta
+      // emision cuando no: quien decide cual se rotula es el ROTULO, no esta
       // variable.
-      let sigDate = new Date(hayFirma ? inv.signatureDate : inv.createdAt);
+      //
+      // LOTE 180: la condicion es `rotulo.conCodigo` y no `hayFirma`. Desde que
+      // una factura sin veredicto imprime su timbre, el papel rotula "Fecha
+      // Firma" tambien en ese caso -- y con `hayFirma` ahi saldria la fecha de
+      // EMISION bajo ese rotulo, que es exactamente el defecto que cerro la
+      // prueba `firmaComprobante.vitest.ts`.
+      let sigDate = new Date(rotulo.conCodigo ? inv.signatureDate : inv.createdAt);
       if (isNaN(sigDate.getTime()) && inv.signatureDate) {
         // Try parsing DD-MM-YYYY or DD/MM/YYYY or other common formats
         const match = String(inv.signatureDate).match(/^(\d{2})[-/](\d{2})[-/](\d{4})(?:\s+(.*))?$/);
@@ -522,13 +532,13 @@ export class DocumentTemplates {
 
           <div class="invoice-footer-repeated">
             <div style="display: flex; align-items: center; gap: 15px;">
-              ${hayFirma && qrBase64 ? `<img src="${qrBase64}" class="qr-img-repeated" alt="QR">` : ''}
+              ${rotulo.conQr && qrBase64 ? `<img src="${qrBase64}" class="qr-img-repeated" alt="QR">` : ''}
               <div style="font-family: monospace; font-size: 8pt; line-height: 1.4; text-align: left; border-left: 1px solid #cbd5e1; padding-left: 15px; color: #333;">
-                ${hayFirma
+                ${rotulo.titulo}<br>
+                ${rotulo.conCodigo
                   ? `Código de seguridad: ${inv.securityCode || 'No consta'}<br>
                 Fecha Firma: ${formattedSigDate}`
-                  : `${leyendaSinFirma}<br>
-                Emitido: ${formattedSigDate}`}
+                  : `Emitido: ${formattedSigDate}`}
               </div>
             </div>
 
@@ -797,16 +807,14 @@ export class DocumentTemplates {
         -->
         <div class="qr-section">
           <div class="qr-text">
-            ${hayFirma
-              ? `<strong>Firma Digital Válida</strong><br>
-            <strong>Código de Seguridad:</strong> ${inv.securityCode || 'No consta'}<br>
-            <strong>Fecha de Firma:</strong> ${formatDateTimeDisplay(inv.signatureDate)}<br>
-            Puede validar este e-CF en el portal de la DGII.`
-              : `<strong>${leyendaSinFirma}</strong><br>
-            <strong>Fecha de emisión:</strong> ${formatDateTimeDisplay(inv.createdAt)}<br>
-            ${rechazado ? 'La DGII rechazó este comprobante. NO tiene validez fiscal.' : 'Este comprobante aún no tiene la firma de la DGII.'}`}
+            <strong>${rotulo.titulo}</strong><br>
+            ${rotulo.conCodigo
+              ? `<strong>Código de Seguridad:</strong> ${inv.securityCode || 'No consta'}<br>
+            <strong>Fecha de Firma:</strong> ${formatDateTimeDisplay(inv.signatureDate)}<br>`
+              : `<strong>Fecha de emisión:</strong> ${formatDateTimeDisplay(inv.createdAt)}<br>`}
+            ${rotulo.detalle}
           </div>
-          ${hayFirma && qrBase64 ? `<img src="${qrBase64}" class="qr-code" alt="QR Code">` : ''}
+          ${rotulo.conQr && qrBase64 ? `<img src="${qrBase64}" class="qr-code" alt="QR Code">` : ''}
         </div>
 
         <div class="footer">

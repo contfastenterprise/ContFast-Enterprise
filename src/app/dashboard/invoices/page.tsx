@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { esquemaFactura } from '@/schemas/factura';
 import { formatDateDisplay, formatDateTimeDisplay } from '@/utils/fechasLocales';
+import { motivoParaNoImprimirYa } from '@/services/invoice/timbreDelComprobante';
 import { erroresPorCampo } from '@/schemas/errores';
 import { PASOS, campoDelPaso, primerPasoConFallo } from './pasos';
 import { useConfirm } from '@/providers/confirm-provider';
@@ -1409,10 +1410,18 @@ function InvoicesList() {
 
       const invoiceId = data.data.id;
 
-      // Solo se imprime lo ACEPTADO. Esta ruta arma el PDF al vuelo leyendo la
-      // factura: si se abre antes del veredicto sale el comprobante provisional,
-      // sin codigo de seguridad, sin fecha de firma y sin QR, porque esos tres
-      // datos los produce la DGII al firmar y todavia no existen.
+      // LOTE 180: ESTE COMENTARIO DECIA LO CONTRARIO Y ERA FALSO. Decia que el
+      // codigo de seguridad, la fecha de firma y el QR "los produce la DGII al
+      // firmar y todavia no existen", y de ahi venia el "solo se imprime lo
+      // ACEPTADO". Los produce mSELLER: vienen en la respuesta del envio (las 12
+      // ultimas traen `securityCode`, `qr_url` y `signedDate`) y
+      // `invoiceDbBooker` los guarda en la factura en la misma transaccion. El
+      // papel esta completo desde el segundo cero.
+      //
+      // Decision del dueño (2026-09-22): se imprime INMEDIATAMENTE salvo que el
+      // envio haya fallado. Lo que decide es `sePuedeImprimirYa`, no el
+      // veredicto -- que tarda una mediana de 20 segundos, medidos, con un
+      // cliente delante.
       //
       // Devuelve si PUDO abrirse. `window.open` da null cuando el navegador lo
       // impide, y eso pasa fuera de un gesto del usuario -- que es justo el caso
@@ -1444,39 +1453,30 @@ function InvoicesList() {
             if (!est.success) return;
 
             if (est.data?.status === 'accepted') {
-              // Aqui esta el papel: la factura ya tiene codigo de seguridad, fecha
-              // de firma y QR. Se abre sola.
-              //
-              // Con una salvedad: han pasado cinco segundos desde el clic, asi que
-              // ya no estamos dentro del gesto del usuario y el navegador PUEDE
-              // bloquear la ventana. No siempre lo hace, asi que se intenta; y
-              // cuando la bloquea, el aviso lo dice y ofrece el boton, cuyo clic si
-              // es un gesto y no se bloquea nunca.
-              const seAbrio = postAction === 'print' ? abrirImpresion() : true;
+              // LOTE 180: aqui YA NO SE IMPRIME. El papel salio en el clic, con
+              // su timbre; volver a abrirlo daria dos copias del mismo
+              // comprobante, una rotulada "Pendiente" y otra "Firma Digital
+              // Valida". Si alguien quiere el papel con la leyenda definitiva,
+              // lo reimprime desde el listado.
               toast.success('La DGII aceptó el comprobante', {
-                description: seAbrio
-                  ? `NCF: ${ncfEmitido} — ${est.data?.dgiiStatus || 'aceptado'}`
-                  : `NCF: ${ncfEmitido} — aceptado. El navegador bloqueó la ventana de impresión.`,
-                duration: 20000,
-                ...(postAction === 'print' && !seAbrio
-                  ? { action: { label: 'Imprimir', onClick: () => { abrirImpresion(); } } }
+                description: `NCF: ${ncfEmitido} — ${est.data?.dgiiStatus || 'aceptado'}`,
+                duration: 12000,
+                ...(postAction === 'print'
+                  ? { action: { label: 'Reimprimir con la firma', onClick: () => { abrirImpresion(); } } }
                   : {}),
               });
               loadInvoices();
             } else if (est.data?.status === 'rejected') {
+              // Y aqui hay que decir algo mas que antes: si se imprimio, ese
+              // papel ya esta fuera y NO vale. Callarlo seria dejar circulando un
+              // comprobante rechazado sin que nadie lo sepa.
               toast.error('La DGII rechazó el comprobante', {
-                description: `NCF: ${ncfEmitido} — ${est.data?.message || 'revisa el detalle en la pantalla de e-CF'}`,
-                duration: 15000,
+                description: postAction === 'print'
+                  ? `NCF: ${ncfEmitido} — ${est.data?.message || 'revisa el detalle en la pantalla de e-CF'}. El papel que se imprimió NO tiene validez fiscal: recupéralo.`
+                  : `NCF: ${ncfEmitido} — ${est.data?.message || 'revisa el detalle en la pantalla de e-CF'}`,
+                duration: 20000,
               });
               loadInvoices();
-            } else if (postAction === 'print') {
-              // Sigue pendiente. Quien pulso "emitir e imprimir" espera un papel,
-              // asi que hay que decirle por que no sale -- callar aqui es dejarle
-              // mirando una ventana que no llega.
-              toast.info('El comprobante se imprime cuando la DGII conteste', {
-                description: `NCF: ${ncfEmitido} — todavía sin veredicto. Se imprime desde el listado en cuanto lo dé.`,
-                duration: 12000,
-              });
             }
             // Si sigue en 'submitted' y no se pidio imprimir no se dice nada: el
             // aviso de la emision ya explico que queda pendiente, y repetirlo solo
@@ -1507,8 +1507,22 @@ function InvoicesList() {
       // QR. Si mSeller ya trae el veredicto, se imprime ya -- estamos todavia
       // dentro del gesto del usuario, asi que la ventana no la bloquea el
       // navegador. Si no, lo ofrece la consulta de mas arriba cuando conteste.
-      if (postAction === 'print' && estadoEmitido === 'accepted') {
-        setTimeout(abrirImpresion, 500);
+      //
+      // DENTRO DEL GESTO DEL USUARIO, sin `setTimeout`: el navegador solo deja
+      // abrir una ventana mientras dura el clic. Los 500 ms de antes ya eran un
+      // riesgo; esperar al veredicto lo garantizaba, y por eso el papel llegaba
+      // por un aviso con boton en vez de salir solo.
+      if (postAction === 'print') {
+        const motivo = motivoParaNoImprimirYa(data.data);
+        if (motivo) {
+          toast.warning('El comprobante no se imprime todavía', { description: motivo, duration: 12000 });
+        } else if (!abrirImpresion()) {
+          toast.warning('El navegador bloqueó la ventana de impresión', {
+            description: `NCF: ${data.data.ncf} — el comprobante está listo. Pulse Imprimir.`,
+            duration: 20000,
+            action: { label: 'Imprimir', onClick: () => { abrirImpresion(); } },
+          });
+        }
       }
 
       // Y aqui habia un POST a la ruta de REENVIAR el correo, que entra con
