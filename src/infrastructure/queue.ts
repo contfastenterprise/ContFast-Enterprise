@@ -124,13 +124,24 @@ export async function addJob<K extends keyof JobPayloads>(
   const attempts = opts.attempts ?? 3;
   const backoff = opts.backoff ?? 5000; // 5 seconds default backoff retry
 
-  // Safeguard: Timeout queue additions after 1500ms to prevent hanging if Redis is offline
-  const timeoutPromise = new Promise<null>((resolve) =>
-    setTimeout(() => {
-      console.warn(`[Queue] Timeout adding job to ${queueName} - Redis is likely offline or unresponsive.`);
-      resolve(null);
-    }, 1500)
-  );
+  //  EL RELOJ SE PONE SOLO CUANDO HAY A QUIEN ESPERAR (lote 185).
+  //
+  //  Antes el `setTimeout` del plazo se armaba SIEMPRE, nada mas entrar, aunque
+  //  no hubiera cola -- que es el caso normal desde que se retiro `REDIS_URL` de
+  //  Vercel. Como nadie lo cancelaba, 1,5 segundos despues escribia
+  //
+  //      [Queue] Timeout adding job to dgii-estado - Redis is likely offline
+  //
+  //  sin que nadie hubiera esperado nada. Y en serverless ese aviso sale dentro
+  //  de la peticion que este corriendo EN ESE MOMENTO: en los logs de produccion
+  //  del 2026-09-23 aparecia dentro de una impresion de factura, que no tiene
+  //  nada que ver. Un log que señala al sitio equivocado cuesta mas que no
+  //  tenerlo: mando a buscar el defecto donde no estaba.
+  //
+  //  Aqui arriba solo queda la variable, para poder cancelar el reloj en el
+  //  `finally`. El reloj se arma mas abajo, cuando ya se sabe que hay cola a la
+  //  que esperar.
+  let relojDelPlazo: ReturnType<typeof setTimeout> | null = null;
 
   try {
     let addPromise: Promise<any>;
@@ -158,7 +169,18 @@ export async function addJob<K extends keyof JobPayloads>(
       return await triggerFallback(queueName, name, data, opts.delay);
     }
 
-    const result = await Promise.race([addPromise, timeoutPromise]);
+    //  El plazo, ya con una cola de verdad a la que esperar.
+    const conPlazo = <T>(promesa: Promise<T>): Promise<T | null> => {
+      const espera = new Promise<null>((resolve) => {
+        relojDelPlazo = setTimeout(() => {
+          console.warn(`[Queue] Timeout adding job to ${queueName} - Redis is likely offline or unresponsive.`);
+          resolve(null);
+        }, 1500);
+      });
+      return Promise.race([promesa, espera]);
+    };
+
+    const result = await conPlazo(addPromise);
     if (result === null) {
       // Redis timed out
       return await triggerFallback(queueName, name, data, opts.delay);
@@ -167,5 +189,8 @@ export async function addJob<K extends keyof JobPayloads>(
   } catch (error: any) {
     console.error(`Failed to add job to queue ${queueName}:`, error.message);
     return await triggerFallback(queueName, name, data, opts.delay);
+  } finally {
+    //  Sin esto, el aviso saltaria igual cuando la cola SI respondio a tiempo.
+    if (relojDelPlazo) clearTimeout(relojDelPlazo);
   }
 }

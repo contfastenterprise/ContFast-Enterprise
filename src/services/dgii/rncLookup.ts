@@ -1,3 +1,5 @@
+import { Logger } from '@/utils/logger';
+
 export interface RncLookupResult {
   success: boolean;
   rnc: string;
@@ -78,7 +80,24 @@ export class DGIIService {
       };
 
     } catch (error: unknown) {
-      console.error('Error fetching RNC from dgiiapicloud:', error);
+      //  AVISO, NO ERROR (lote 185). Que la consulta de RNC no responda es un
+      //  caso PREVISTO y ya resuelto por quien llama: `EcfValidator` en modo no
+      //  estricto lo registra y sigue adelante, y en modo estricto devuelve un
+      //  error de validacion al usuario. En las dos ramas la decision ya esta
+      //  tomada aqui arriba.
+      //
+      //  Escribirlo con `console.error` lo convertia en un incidente: el
+      //  interceptor de `instrumentation.ts` manda todo `console.error` a
+      //  Sentry, asi que cada emision con la API caida abria un evento por algo
+      //  que el sistema habia decidido tolerar. Medido en PRODUCCION el
+      //  2026-09-23: salia como ERROR en una peticion que devolvio 201.
+      //
+      //  Solo el MENSAJE, no el error entero: la peticion lleva la clave de API
+      //  en una cabecera y un volcado completo podria arrastrarla al registro.
+      Logger.warn('[rncLookup] la consulta de RNC no respondio; quien llama decide', {
+        rnc,
+        motivo: (error as Error)?.message,
+      });
       return {
         success: false,
         rnc,

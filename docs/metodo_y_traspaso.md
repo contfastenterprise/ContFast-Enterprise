@@ -553,6 +553,24 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 185: dos logs que señalaban al sitio equivocado.** No es cosmética: el
+  ruido de los registros de PRODUCCIÓN mandó a buscar el defecto del recibo donde
+  no estaba.
+  - `[Queue] Timeout adding job to … Redis is likely offline` salía **sin que
+    nadie hubiera esperado nada**: `addJob` armaba su `setTimeout` de 1.500 ms
+    antes de comprobar si existe la cola y no lo cancelaba al salir por el camino
+    rápido — el normal desde que se retiró `REDIS_URL`. En serverless ese aviso
+    se atribuye a **la petición que esté corriendo en ese momento**: aparecía
+    dentro de una impresión de factura. Ahora el reloj se arma donde se usa y se
+    cancela en un `finally`; el texto no cambia, que es el que se busca.
+  - `Error fetching RNC…` se escribía con `console.error` en una petición que
+    devolvió **201**. Es un caso previsto que `EcfValidator` ya resuelve, pero
+    `instrumentation.ts` manda todo `console.error` a **Sentry** (lote 153), así
+    que abría un incidente por algo tolerado. Pasa a `Logger.warn`, y **solo con
+    el mensaje**: la petición lleva la clave de API en una cabecera.
+  **Regla que deja**: antes de bajar el nivel de un log, comprobar que quien
+  llama ya decide — si no, se convierte un fallo serio en algo que nadie ve. Las
+  tres guardas de eso son precondiciones del banco.
 - **Lote 184: la plantilla aprobada tiene SEIS huecos, no cinco.** Meta aprobó
   `aviso_administrativo` (es_MX) el 2026-09-23, y al leerla **con la API** salió
   que no es la que se escribió en el 179: `empresa` es un hueco **propio**. Con

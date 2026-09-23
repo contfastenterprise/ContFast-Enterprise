@@ -163,8 +163,20 @@ console.log('\n=== rncLookup.ts ===\n');
 
   ok("0 ocurrencias de ': any' (1 antes)", sinAny(crd) === 0, `quedan ${sinAny(crd)}`);
 
-  ok('el catch: error tipado unknown (se usa directo en console.error, sin acceder a .message: no hace falta cast)',
-    /\} catch \(error: unknown\) \{\s*\n\s*console\.error\('Error fetching RNC from dgiiapicloud:', error\);/.test(src));
+  //  LOTE 185: esto anclaba las DOS LINEAS literales del catch, incluido el
+  //  `console.error`. Ese `console.error` se retiro a proposito: el interceptor
+  //  de `instrumentation.ts` manda todo `console.error` a Sentry, y este fallo
+  //  es un caso previsto que `EcfValidator` ya resuelve -- abria un incidente
+  //  por algo tolerado. Ahora es `Logger.warn`.
+  //
+  //  La PROPIEDAD que este banco vigila (campaña P1-24) no ha cambiado y es la
+  //  que se ancla: el parametro del catch tipado `unknown`, y para leer
+  //  `.message` un cast PUNTUAL a `Error` -- exactamente el mismo criterio que
+  //  este banco ya bendice arriba para `sincronizarPendientes.ts`.
+  ok('el catch: error tipado unknown, con cast puntual a Error para leer .message',
+    /\} catch \(error: unknown\) \{/.test(src)
+    && /\(error as Error\)\?\.message/.test(src)
+    && !/error as any/.test(src));
 }
 
 // ═══════════════════ pdfGenerator.ts ═══════════════════
