@@ -11,110 +11,105 @@ import { Logger } from '@/utils/logger';
 import { vencimientoSecuenciaSiConsta } from '@/services/dgii/secuencia';
 
 async function getInvoicePdfBuffer(invoiceId: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA', isReprint: boolean = false) {
-  // 1. Fetch invoice from DB
-  const [invoiceRecordDb] = await db
-    .select()
-    .from(invoices)
-    .where(and(eq(invoices.id, invoiceId), eq(invoices.companyId, companyId), eq(invoices.modo, modo)))
-    .limit(1);
+  //  ── LAS CONSULTAS, EN DOS VIAJES EN VEZ DE NUEVE (lote 182) ─────────────
+  //
+  //  Aqui habia NUEVE `await` en fila, cada uno esperando al anterior. Medido
+  //  el 2026-09-22 contra la base de PRODUCCION: entre 85 y 140 ms cada una,
+  //  **1.073 ms en total**, y eso es casi todo tiempo de ida y vuelta, no de
+  //  trabajo de la base. Con el pool de produccion (`max: 2`, ver
+  //  `src/db/index.ts`) las mismas ocho en paralelo tardan **489 ms**.
+  //
+  //  Quien imprime ve una pestaña en blanco mientras esto pasa, asi que ese
+  //  medio segundo es medio segundo de "esta cargando" con un cliente delante.
+  //
+  //  QUE DEPENDE DE QUE, que es lo unico que limita el paralelismo:
+  //   · la empresa y sus ajustes van por `companyId`, que YA VIENE de la
+  //     sesion. No hace falta esperar a la factura para pedirlos: la consulta
+  //     de la factura filtra por ese mismo `companyId`, asi que
+  //     `invoiceRecordDb.companyId` y el parametro son el mismo valor por
+  //     construccion -- si no coincidieran, no habria factura que imprimir.
+  //   · las lineas, los impuestos, las retenciones y el envio van por
+  //     `invoiceId`, que tambien viene dado.
+  //   · solo DOS necesitan la fila de la factura: la secuencia (por su
+  //     `ecfType`) y el cliente (por su `customerId`). Esas dos son el segundo
+  //     viaje.
+  const [invoiceRecordDb, company, settings, lines, taxes, retentions, submission] = await Promise.all([
+    db.select().from(invoices)
+      .where(and(eq(invoices.id, invoiceId), eq(invoices.companyId, companyId), eq(invoices.modo, modo)))
+      .limit(1).then((r) => r[0]),
+    db.select().from(companies).where(eq(companies.id, companyId)).limit(1).then((r) => r[0]),
+    db.select().from(companySettings).where(eq(companySettings.companyId, companyId)).limit(1).then((r) => r[0]),
+    db
+      .select({
+        quantity: invoiceLines.quantity,
+        unitPrice: invoiceLines.unitPrice,
+        discount: invoiceLines.discount,
+        total: invoiceLines.total,
+        productName: products.name,
+        productSku: products.sku,
+        unitOfMeasure: products.unitOfMeasure,
+        categoryName: productCategories.name,
+        warehouseName: warehouses.name,
+      })
+      .from(invoiceLines)
+      .leftJoin(products, eq(invoiceLines.productId, products.id))
+      .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
+      .leftJoin(warehouses, eq(invoiceLines.warehouseId, warehouses.id))
+      .where(eq(invoiceLines.invoiceId, invoiceId)),
+    db.select().from(invoiceTaxes).where(eq(invoiceTaxes.invoiceId, invoiceId)),
+    db.select().from(invoiceRetentions).where(eq(invoiceRetentions.invoiceId, invoiceId)),
+    //  Una factura puede tener varios envios: uno por cada intento. Antes esto
+    //  cogia una fila cualquiera (`.limit(1)` sin ORDER BY), y de esa fila salen
+    //  el codigo de seguridad y el QR del comprobante. La eleccion vive en un
+    //  solo sitio: `envioVigente`.
+    envioVigente(invoiceId, companyId, modo),
+  ]);
 
+  //  EL ORDEN DE LOS ERRORES NO CAMBIA. Se comprueban despues de pedirlo todo,
+  //  pero se lanzan en el mismo orden que antes: primero la factura, luego la
+  //  empresa. Pedir de mas cuando la factura no existe cuesta dos consultas que
+  //  no se usan; esperar nueve veces cuando si existe cuesta medio segundo en
+  //  cada impresion.
   if (!invoiceRecordDb) {
     throw new Error('Invoice not found');
   }
 
-  // 2. Fetch company and settings
-  const [company] = await db
-    .select()
-    .from(companies)
-    .where(eq(companies.id, invoiceRecordDb.companyId))
-    .limit(1);
+  if (!company) {
+    throw new Error('Company profile not found');
+  }
 
-  const [settings] = await db
-    .select()
-    .from(companySettings)
-    .where(eq(companySettings.companyId, invoiceRecordDb.companyId))
-    .limit(1);
-
-  // Fetch NCF sequence details to get the expiration date
-  const [sequence] = await db
-    .select({
-      expiryDate: ecfSequences.expiryDate,
-      sequenceExpiry: ecfSequences.sequenceExpiry,
-    })
-    .from(ecfSequences)
-    .where(
-      and(
-        // `ecf_sequences` tiene indice unico (company_id, ecf_type, modo):
-        // hay DOS filas candidatas, una por entorno, y con `.limit(1)` sin
-        // orden salia la que quisiera el planificador. De esta fila sale
-        // la fecha de vencimiento del NCF que se IMPRIME en el
-        // comprobante fiscal: un documento real podia salir con la
-        // caducidad de la secuencia de pruebas.
-        eq(ecfSequences.companyId, invoiceRecordDb.companyId),
-        eq(ecfSequences.modo, modo),
-        eq(ecfSequences.ecfType, invoiceRecordDb.ecfType)
+  //  El segundo viaje: las dos que SI necesitan la fila de la factura.
+  const [sequence, customer] = await Promise.all([
+    db
+      .select({
+        expiryDate: ecfSequences.expiryDate,
+        sequenceExpiry: ecfSequences.sequenceExpiry,
+      })
+      .from(ecfSequences)
+      .where(
+        and(
+          // `ecf_sequences` tiene indice unico (company_id, ecf_type, modo):
+          // hay DOS filas candidatas, una por entorno, y con `.limit(1)` sin
+          // orden salia la que quisiera el planificador. De esta fila sale la
+          // fecha de vencimiento del NCF que se IMPRIME en el comprobante
+          // fiscal: un documento real podia salir con la caducidad de la
+          // secuencia de pruebas.
+          eq(ecfSequences.companyId, companyId),
+          eq(ecfSequences.modo, modo),
+          eq(ecfSequences.ecfType, invoiceRecordDb.ecfType)
+        )
       )
-    )
-    .limit(1);
+      .limit(1).then((r) => r[0]),
+    invoiceRecordDb.customerId
+      ? db.select().from(customers).where(eq(customers.id, invoiceRecordDb.customerId)).limit(1).then((r) => r[0] ?? null)
+      : Promise.resolve(null),
+  ]);
 
   // La misma regla que usa la emision, en el mismo sitio. Aqui habia una copia
   // escrita a mano que restaba un dia (`new Date` sobre una columna `date`) y
   // que ademas no rellenaba con ceros: daba "1-9-2026", que no es dd-MM-aaaa.
   // Sin fecha no se imprime la linea: la plantilla ya la omite cuando es null.
   const ncfExpiry = vencimientoSecuenciaSiConsta(sequence, invoiceRecordDb.ecfType);
-
-  if (!company) {
-    throw new Error('Company profile not found');
-  }
-
-  // 3. Fetch customer details if they exist
-  let customer = null;
-  if (invoiceRecordDb.customerId) {
-    const [cust] = await db
-      .select()
-      .from(customers)
-      .where(eq(customers.id, invoiceRecordDb.customerId))
-      .limit(1);
-    customer = cust;
-  }
-
-  // 4. Fetch lines and join with product details, categories and warehouses
-  const lines = await db
-    .select({
-      quantity: invoiceLines.quantity,
-      unitPrice: invoiceLines.unitPrice,
-      discount: invoiceLines.discount,
-      total: invoiceLines.total,
-      productName: products.name,
-      productSku: products.sku,
-      unitOfMeasure: products.unitOfMeasure,
-      categoryName: productCategories.name,
-      warehouseName: warehouses.name,
-    })
-    .from(invoiceLines)
-    .leftJoin(products, eq(invoiceLines.productId, products.id))
-    .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
-    .leftJoin(warehouses, eq(invoiceLines.warehouseId, warehouses.id))
-    .where(eq(invoiceLines.invoiceId, invoiceId));
-
-  // 5. Fetch taxes
-  const taxes = await db
-    .select()
-    .from(invoiceTaxes)
-    .where(eq(invoiceTaxes.invoiceId, invoiceId));
-
-  // 5.1. Fetch retentions
-  const retentions = await db
-    .select()
-    .from(invoiceRetentions)
-    .where(eq(invoiceRetentions.invoiceId, invoiceId));
-
-  // Fetch dgii submission to retrieve security code and QR code from mseller
-  // Una factura puede tener varios envios: uno por cada intento. Antes esto
-  // cogia una fila cualquiera (.limit(1) sin ORDER BY), y de esa fila salen
-  // el codigo de seguridad y el QR del comprobante. La eleccion vive ahora
-  // en un solo sitio: envioVigente.
-  const submission = await envioVigente(invoiceId, companyId, modo);
 
   // La lectura del codigo de seguridad, el QR y la fecha de firma vive en
   // firmaDelComprobante. Aqui habia treinta lineas repetidas en cuatro rutas

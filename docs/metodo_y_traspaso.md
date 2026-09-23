@@ -553,6 +553,31 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 182: imprimir deja de esperar nueve veces a la base.** El dueño dijo que
+  imprimir "dura mucho, cargando los datos". Medido el 2026-09-22 contra
+  PRODUCCIÓN: la ruta hacía **nueve consultas en fila**, `1.073 ms` en total
+  (ninguna pasa de 140 ms — es **ida y vuelta**, no trabajo de la base). Las ocho
+  independientes en paralelo, **con el pool que tiene producción (`max: 2`)**:
+  **489 ms**. Ahora van en **dos viajes**: las siete que solo necesitan
+  `companyId` (que ya viene de la sesión) o `invoiceId`, y luego las dos que
+  necesitan la fila de la factura (la secuencia por su `ecfType`, el cliente por
+  su `customerId`). Se conservan el **orden de los errores**, el acotado por
+  empresa **y modo**, el de la secuencia por **modo y tipo** (de ahí sale la
+  caducidad del NCF impreso) y el cliente `null` en vez de `undefined`.
+  **Lo que NO se tocó**, medido: el **arranque en frío de Chromium, 1.234 ms** —
+  solo en instancia nueva, dentro de una caliente el navegador se reutiliza — y
+  subir `DATABASE_POOL_MAX` a 5 daría otros ~290 ms (decisión de
+  infraestructura). **`PDF_SERVICE_URL` NO está en Vercel** (confirmado por el
+  dueño): era el sospechoso número uno, porque si estuviera **cada PDF
+  intentaría primero un servicio externo con plazo de 15 s**. En el `.env` local
+  sí está, apuntando a la propia aplicación, así que **en desarrollo cada
+  impresión paga un intento fallido**.
+  **La contraprueba cazó la trampa de la sección 3 otra vez**:
+  `iFactura > codigo.indexOf('await Promise.all([')` es verdadera **de balde**
+  cuando el mecanismo no existe, porque `indexOf` vale −1. Dos guardas previas
+  pasaron a precondición.
+  **El CLI de Vercel quedó instalado** (59.25.4) a petición del dueño;
+  `vercel whoami` no responde hasta que alguien haga `vercel login`.
 - **Lote 181: la aceptación de la DGII no se anuncia.** Decisión del dueño
   (2026-09-22), y tiene razón: desde el 180 el papel sale en el clic, así que un
   aviso verde cinco segundos después no dice nada que no se sepa — y un sistema
