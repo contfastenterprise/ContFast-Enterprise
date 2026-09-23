@@ -553,6 +553,57 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 183: el PDF temporal deja de vivir en el disco de la instancia.**
+  Reportado por el dueño: al registrar un recibo de cobro, la pantalla de
+  impresión da error. En los logs de PRODUCCIÓN (CLI de Vercel):
+  `201 POST /ar/receipts` → `200 POST /ar/receipts/{id}/print` →
+  **`404 GET /documents/{uuid}/download`**. **404 y no 403**, así que la firma era
+  válida: el fichero no estaba. **Dos causas**: (1) se escribía en el disco
+  **local** de la instancia y la descarga es otra petición que Vercel enruta por
+  su cuenta — intermitente, que es lo peor; (2) se **borraba un segundo después
+  de la primera descarga**, y los visores de PDF piden el documento dos veces (la
+  segunda con `Range`). **No era solo el recibo: OCHO rutas** usan
+  `saveTemporaryFile`. La cura cambia **un solo módulo** (el PDF va a un bucket;
+  `StorageService` ya sabía subir/bajar/borrar, se le añadió `listFiles`) y
+  **deja de borrar al descargar**: al guardar uno nuevo se barren los de más de
+  una hora, sin depender del cron de `reportQueue`, que necesita Redis.
+  **Trampa de medición que conviene recordar**: el ruido de Redis marcaba como
+  `level: error` peticiones que devolvieron **200** — el estado de verdad está en
+  `responseStatusCode`, no en el nivel de la línea. Sin filtrarlo, esto apuntaba
+  al sitio equivocado.
+  **Un mutante obligó a apretar el banco**: quitar la guarda de recorrido
+  (`..` en el identificador) **sobrevivía**, porque un id rechazado y uno que no
+  existe devuelven los dos `null`. El doble del almacén apunta ahora **cada ruta
+  pedida** y se exige que con un id malo **no se pida nada**.
+- **REDIS_URL retirada de Vercel — 2026-09-22, decisión del dueño.** Salió al
+  leer los logs de producción con el CLI recién instalado:
+  `Redis Connection Error: ERR max requests limit exceeded. Limit: 500000,
+  Usage: 500006`. **La cuota de Upstash estaba agotada**, así que la cola llevaba
+  quién sabe cuánto sin funcionar — y encima se autoalimentaba: `redis.ts:17`
+  tiene `retryStrategy: () => 5000`, o sea **un reintento cada 5 segundos
+  indefinidamente**, cada uno contando contra la cuota agotada y cada error
+  llegando a Sentry por el interceptor de `console.error`.
+  **Medido en el momento**: ninguna factura atascada (`submitted`/`signed`: cero),
+  3 emitidas en 24 h todas con veredicto, 1 correo enviado. **No se perdió nada**:
+  con ese volumen, la consulta manual y el cron iban resolviendo.
+  **Qué se pierde y qué no**: todo está guardado (`worker.ts:12`,
+  `reportQueue.ts:24`, `setupRecurringJobs`), así que la aplicación arranca sin
+  Redis y `addJob` cae en `triggerFallback`. Eso significa que **la escalera del
+  veredicto (lote 102) NO se ejecuta** — un `setTimeout` dentro de una función
+  serverless no sobrevive a la respuesta — y el veredicto llega por consulta
+  manual o por el cron de GitHub (mediana 204 min). **Ya era así antes de
+  retirarla.** El barrido de PDFs temporales tampoco corre; en Vercel es
+  inofensivo porque el disco es efímero.
+  **Ojo**: quitarla de Vercel **no revoca la credencial** (lo avisa el CLI); el
+  valor sigue vivo en Upstash y de ahí se recupera si algún día se sube el plan.
+  Y **no surte efecto hasta el próximo despliegue**, porque Vercel inyecta las
+  variables al construir.
+  **Si algún día se quiere la cola de verdad**: no basta con `REDIS_URL`. El
+  worker arranca dentro de cada instancia (`instrumentation.ts:98`) y una
+  instancia serverless no vive entre peticiones, así que **está sin medir si esa
+  cola llegó a procesar trabajos con retraso alguna vez**. Los veredictos rápidos
+  medidos (grupo de 4–7 s, que coincide con los peldaños acumulados de la
+  escalera) sugieren que sí, pero no se comprobó.
 - **Lote 182: imprimir deja de esperar nueve veces a la base.** El dueño dijo que
   imprimir "dura mucho, cargando los datos". Medido el 2026-09-22 contra
   PRODUCCIÓN: la ruta hacía **nueve consultas en fila**, `1.073 ms` en total

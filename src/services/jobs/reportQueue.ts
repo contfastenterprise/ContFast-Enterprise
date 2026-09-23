@@ -19,6 +19,17 @@ const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build' || proc
 // consumian, en vez de dejar un exito fabricado esperando a que alguien lo
 // enganche. Lo que queda en este archivo -- el barrido de PDF temporales --
 // si es codigo real, y ahora ademas se programa (ver instrumentation.ts).
+//
+// LOTE 183: ESTE BARRIDO YA NO BARRE NADA UTIL. Los PDF temporales viven en un
+// bucket desde que se descubrio que en el disco de la instancia no los
+// encontraba la peticion de descarga (404 al imprimir un recibo). El que barre
+// ahora es `DocumentService.barrerViejos()`, que se llama al guardar uno nuevo y
+// no necesita Redis -- retirado de Vercel el 2026-09-22 por cuota agotada, con
+// lo que esto no se programaba de todas formas.
+//
+// Se deja en pie y no se retira porque el directorio local SIGUE existiendo en
+// desarrollo por otros caminos, y borrar codigo de limpieza sin medir es como
+// empezo el problema de los temporales que no se borraban nunca.
 
 // Recurring Cleanup Job Setup
 export const cleanupQueue = (redis && !isBuildPhase) ? new Queue('cleanup', { connection: redis }) : null;

@@ -108,6 +108,29 @@ export class StorageService {
   }
 
   /**
+   * Lo que hay en una carpeta del bucket, con su fecha de creacion.
+   *
+   * Hace falta para BARRER lo viejo (lote 183): los PDF temporales viven en el
+   * bucket y ya no en el disco de la instancia, asi que el barrido no puede ser
+   * un `readdir`. Devuelve lista vacia -- nunca lanza -- porque quien barre lo
+   * hace de fondo y un fallo al limpiar no puede tumbar una impresion.
+   */
+  static async listFiles(bucketName: string, prefix = ''): Promise<{ name: string; createdAt: string | null }[]> {
+    if (!this.client) return [];
+    try {
+      const { data, error } = await this.client.storage.from(bucketName).list(prefix, { limit: 1000 });
+      if (error) {
+        Logger.warn(`[StorageService] no se pudo listar ${bucketName}/${prefix}`, { motivo: error.message });
+        return [];
+      }
+      return (data ?? []).map((f) => ({ name: f.name, createdAt: f.created_at ?? null }));
+    } catch (err: unknown) {
+      Logger.warn(`[StorageService] no se pudo listar ${bucketName}/${prefix}`, { motivo: (err as Error)?.message });
+      return [];
+    }
+  }
+
+  /**
    * Deletes a file from Supabase Storage.
    */
   static async deleteFile(bucketName: string, filePath: string): Promise<void> {

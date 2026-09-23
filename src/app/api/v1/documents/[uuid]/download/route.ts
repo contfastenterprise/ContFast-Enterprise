@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DocumentService } from '@/services/print/documentService';
-import fs from 'fs/promises';
 
 export async function GET(
   request: NextRequest,
@@ -23,16 +22,19 @@ export async function GET(
 
   const isExcel = searchParams.get('format') === 'xlsx';
   const extension = isExcel ? 'xlsx' : 'pdf';
-  const filePath = DocumentService.getFilePath(uuid, extension);
-
-  // Comprobar que existe
-  const exists = await DocumentService.fileExists(filePath);
-  if (!exists) {
-    return NextResponse.json({ error: 'File not found or already downloaded' }, { status: 404 });
+  //  LOTE 183: se lee del BUCKET, no del disco de esta instancia. El PDF lo
+  //  escribio otra peticion, y Vercel enruta cada una por su cuenta: leyendo del
+  //  disco local, la mitad de las veces el fichero no estaba aqui -- y eso era el
+  //  404 que veia quien imprimia un recibo.
+  const fileBuffer = await DocumentService.leerTemporal(uuid, extension);
+  if (!fileBuffer) {
+    //  Ya no dice "or already downloaded": desde el lote 183 descargar NO borra.
+    //  Si no esta, es que el enlace caduco (10 minutos) o el barrido se lo llevo
+    //  (una hora).
+    return NextResponse.json({ error: 'El documento ya no está disponible: vuelva a generarlo' }, { status: 404 });
   }
 
   try {
-    const fileBuffer = await fs.readFile(filePath);
     
     const customFilename = searchParams.get('filename');
 
@@ -48,17 +50,23 @@ export async function GET(
       headers.set('Content-Disposition', `inline; filename="${filenameStr}"`);
     }
 
-    const response = new NextResponse(fileBuffer, {
+    //  `new Uint8Array(...)`: `Buffer` no encaja en `BodyInit` con los tipos de
+    //  Node actuales. Es el mismo molde que ya usa la ruta de impresion de
+    //  facturas.
+    const response = new NextResponse(new Uint8Array(fileBuffer), {
       status: 200,
       headers
     });
 
-    // En Node puro podíamos borrar el archivo con on('finish'), aquí podemos borrarlo asíncronamente
-    // usando un timeout muy corto para asegurar que el buffer se envía.
-    setTimeout(async () => {
-      await DocumentService.deleteTemporaryFile(filePath);
-    }, 1000);
-
+    //  AQUI SE BORRABA EL FICHERO un segundo despues de servirlo, y era la
+    //  segunda causa del 404 (lote 183): los visores de PDF piden el documento
+    //  DOS veces -- la segunda con `Range` --, y la segunda llegaba cuando ya no
+    //  estaba. Recargar la pestaña, igual.
+    //
+    //  Ahora no se borra al descargar: el enlace caduca a los 10 minutos y
+    //  `DocumentService.barrerViejos()` se lleva lo de mas de una hora cada vez
+    //  que se guarda uno nuevo. Ademas ese `setTimeout` no era de fiar en
+    //  serverless: la funcion se congela al responder y puede no ejecutarse.
     return response;
   } catch (error) {
     console.error('Error serving document:', error);

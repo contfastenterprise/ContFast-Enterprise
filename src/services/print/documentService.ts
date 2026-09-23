@@ -1,15 +1,56 @@
 import crypto from 'crypto';
-import fs from 'fs/promises';
-import path from 'path';
-import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
+import { StorageService } from '@/services/storageService';
+import { Logger } from '@/utils/logger';
 
-const isProduction = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
-const PDF_TEMP_DIR = isProduction
-  ? path.join(os.tmpdir(), 'contfast-temp-docs')
-  : (process.env.PDF_TEMP_DIR || path.join(os.tmpdir(), 'contfast-temp-docs'));
-// Auditoria F0-04: sin valor por defecto. Con 'default_secret' cualquiera podia
-// forjar la firma y el vencimiento de una URL de descarga conociendo el UUID.
+/**
+ * LOS PDF TEMPORALES NO PUEDEN VIVIR EN EL DISCO DE LA INSTANCIA (lote 183)
+ * -------------------------------------------------------------------------
+ * Reportado por el dueño el 2026-09-22: al registrar un recibo de cobro, la
+ * pantalla de impresion daba error. Encontrado en los logs de PRODUCCION:
+ *
+ *     201  POST /api/v1/ar/receipts                  <- el recibo se registra
+ *     200  POST /api/v1/ar/receipts/{id}/print       <- el PDF se genera
+ *     404  GET  /api/v1/documents/{uuid}/download    <- aqui
+ *
+ * 404 y no 403, asi que la firma era valida: el fichero simplemente NO ESTABA.
+ *
+ * DOS CAUSAS, las dos del mismo sitio:
+ *
+ *  1. El PDF se escribia en el disco LOCAL de la instancia (`os.tmpdir()`), y la
+ *     descarga es una SEGUNDA peticion que Vercel enruta por su cuenta. Si cae
+ *     en otra instancia -- o en la misma despues de reciclarse -- el fichero no
+ *     existe. Es intermitente, que es lo peor: con poco trafico suele haber una
+ *     sola instancia caliente y entonces acierta.
+ *
+ *  2. El fichero se BORRABA un segundo despues de la primera descarga. Los
+ *     visores de PDF piden el fichero dos veces (la segunda con `Range`), y esa
+ *     segunda vez daba 404. Recargar la pestaña, igual. El propio mensaje lo
+ *     insinuaba: "File not found or already downloaded".
+ *
+ * NO ERA SOLO EL RECIBO: ocho rutas usan esto (ap, recibos, recibos por cliente,
+ * estados de cuenta de clientes y suplidores, facturas, cotizaciones y tools).
+ * Todas podian dar 404.
+ *
+ * LA CURA: el PDF va a un bucket que ve CUALQUIER instancia. Cambia solo este
+ * modulo -- las ocho rutas siguen llamando a `saveTemporaryFile` igual -- porque
+ * `StorageService` ya sabia subir, bajar, borrar y asegurar el bucket.
+ *
+ * Y DEJA DE BORRARSE AL DESCARGAR, que es la causa 2. En su lugar, al guardar
+ * uno nuevo se barren los de mas de una hora. Se limpia solo y no depende del
+ * cron de `reportQueue`, que necesita Redis -- retirado de Vercel el 2026-09-22
+ * por cuota agotada.
+ *
+ * UN SOLO CAMINO EN DESARROLLO Y EN PRODUCCION, a proposito. Antes el disco
+ * local funcionaba en un portatil y fallaba en Vercel: es exactamente la clase
+ * de diferencia que el lote 174 dejo escrita como trampa.
+ */
+
+/** El bucket de los temporales. Privado: se sirven por URL firmada. */
+export const BUCKET_TEMPORALES = 'documentos-temporales';
+
+/** Cuanto vive un temporal antes de que el barrido se lo lleve. */
+const VIDA_MS = 60 * 60 * 1000;
 const URL_SIGNATURE_SECRET_ENV = process.env.URL_SIGNATURE_SECRET;
 if (!URL_SIGNATURE_SECRET_ENV) {
   throw new Error('La variable de entorno URL_SIGNATURE_SECRET es obligatoria.');
@@ -64,50 +105,76 @@ export class DocumentService {
   }
 
   /**
-   * Save buffer to a temporary file and return its UUID
+   * Guarda el PDF en el bucket y devuelve su identificador.
+   *
+   * La firma no cambia: las ocho rutas que la llaman siguen igual.
    */
   static async saveTemporaryFile(buffer: Buffer, extension: 'pdf' | 'xlsx'): Promise<string> {
     const documentId = uuidv4();
-    const fileName = `${documentId}.${extension}`;
-    
-    // Ensure directory exists
-    await fs.mkdir(PDF_TEMP_DIR, { recursive: true });
-    
-    const filePath = path.join(/*turbopackIgnore: true*/ PDF_TEMP_DIR, fileName);
-    await fs.writeFile(filePath, buffer);
-    
+    const tipo = extension === 'pdf'
+      ? 'application/pdf'
+      : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+    await StorageService.uploadFile(BUCKET_TEMPORALES, `${documentId}.${extension}`, buffer, tipo);
+
+    //  El barrido va DETRAS y sin esperarlo: quien imprime no tiene por que
+    //  pagar la limpieza de lo que dejaron otros. Y nunca lanza.
+    void this.barrerViejos();
+
     return documentId;
   }
 
   /**
-   * Get file path for a document UUID
+   * Lee un temporal. `null` si no esta -- que es lo que responde 404.
+   *
+   * El identificador se limpia antes de usarlo: llega de la URL, y una barra o
+   * un `..` dentro convertirian esto en una lectura de otra carpeta del bucket.
    */
-  static getFilePath(documentId: string, extension: 'pdf' | 'xlsx'): string {
-    // Prevent path traversal
-    const safeDocId = path.basename(documentId);
-    return path.join(/*turbopackIgnore: true*/ PDF_TEMP_DIR, `${safeDocId}.${extension}`);
-  }
-
-  /**
-   * Checks if file exists
-   */
-  static async fileExists(filePath: string): Promise<boolean> {
+  static async leerTemporal(documentId: string, extension: 'pdf' | 'xlsx'): Promise<Buffer | null> {
+    const seguro = this.identificadorSeguro(documentId);
+    if (!seguro) return null;
     try {
-      await fs.access(filePath);
-      return true;
+      return await StorageService.downloadFile(BUCKET_TEMPORALES, `${seguro}.${extension}`);
     } catch {
-      return false;
+      //  Que no este es un caso NORMAL: el enlace caduca a los 10 minutos y el
+      //  barrido se lleva lo de mas de una hora. No es un error que registrar.
+      return null;
     }
   }
 
   /**
-   * Deletes a temporary file
+   * Solo lo que puede ser un UUID. Cualquier otra cosa se rechaza entera en vez
+   * de intentar sanearla: un identificador que no lo es no apunta a nada nuestro.
    */
-  static async deleteTemporaryFile(filePath: string): Promise<void> {
+  private static identificadorSeguro(documentId: string): string | null {
+    return /^[0-9a-fA-F-]{36}$/.test(documentId) ? documentId : null;
+  }
+
+  /**
+   * Se lleva los temporales de mas de una hora.
+   *
+   * NUNCA LANZA: limpiar es de fondo, y si falla lo unico que pasa es que queda
+   * un PDF de mas en el bucket. Tumbar una impresion por eso seria absurdo.
+   */
+  static async barrerViejos(): Promise<number> {
     try {
-      await fs.unlink(filePath);
-    } catch (error) {
-      console.error(`Failed to delete temporary file ${filePath}:`, error);
+      const ahora = Date.now();
+      const ficheros = await StorageService.listFiles(BUCKET_TEMPORALES);
+      const viejos = ficheros.filter((f) => {
+        if (!f.createdAt) return false; // sin fecha no se decide: no se borra
+        const t = Date.parse(f.createdAt);
+        return Number.isFinite(t) && ahora - t > VIDA_MS;
+      });
+      for (const f of viejos) {
+        try { await StorageService.deleteFile(BUCKET_TEMPORALES, f.name); } catch { /* ya no estaba */ }
+      }
+      if (viejos.length > 0) {
+        Logger.info('[documentos-temporales] barridos', { cuantos: viejos.length, de: ficheros.length });
+      }
+      return viejos.length;
+    } catch (err: unknown) {
+      Logger.warn('[documentos-temporales] no se pudo barrer', { motivo: (err as Error)?.message });
+      return 0;
     }
   }
 }
