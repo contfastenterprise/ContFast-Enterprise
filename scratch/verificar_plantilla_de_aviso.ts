@@ -46,7 +46,10 @@ const ORQUESTA = 'src/services/avisos/enviarAvisosPendientes.ts';
 // Los huecos de la plantilla aprobada. Escritos aqui a mano A PROPOSITO: si el
 // codigo y el banco los sacaran del mismo sitio, cambiar el codigo cambiaria la
 // comprobacion y no quedaria nadie vigilando el contrato con Meta.
-const HUECOS = ['administrador', 'tipo_aviso', 'cantidad', 'fecha', 'app_name'];
+// LOTE 184: eran CINCO. La plantilla APROBADA por Meta el 2026-09-23 lleva
+// SEIS: `empresa` es propia y no va dentro del saludo. Con cinco, Meta rechaza
+// el mensaje entero (132000) y no sale ni un aviso. Comprobado con un envio real.
+const HUECOS = ['administrador', 'empresa', 'tipo_aviso', 'cantidad', 'fecha', 'app_name'];
 
 async function main() {
   // Vale en los DOS estados: lo que el lote cambia es COMO se rellena la
@@ -74,11 +77,11 @@ async function main() {
   try { P = await import('../src/services/avisos/plantillaDeAviso'); } catch { P = null; }
 
   const ETIQUETAS = [
-    'salen los CINCO huecos que pide la plantilla, ni uno mas',
+    'salen los SEIS huecos que pide la plantilla, ni uno mas',
     'ninguno va vacio (Meta rechaza el mensaje entero)',
     'ninguno lleva salto de linea',
     'ni cuatro espacios seguidos',
-    'el saludo lleva la empresa, que es de quien es el aviso',
+    'la empresa va en su hueco, que es de quien es el aviso',
     'el importe sale del aviso cuando lo hay',
     'y dice "No aplica" cuando el aviso no habla de dinero',
     'un texto larguisimo se recorta',
@@ -99,6 +102,7 @@ async function main() {
 
     ok(ETIQUETAS[0], JSON.stringify(Object.keys(p).sort()) === JSON.stringify([...HUECOS].sort()),
       Object.keys(p).join(','));
+    ok('  y son SEIS, que es lo que Meta tiene aprobado', Object.keys(p).length === 6, String(Object.keys(p).length));
     ok('  y son los mismos que declara el modulo',
       JSON.stringify([...HUECOS_DE_LA_PLANTILLA].sort()) === JSON.stringify([...HUECOS].sort()));
 
@@ -107,7 +111,12 @@ async function main() {
     ok(ETIQUETAS[2], valores.every((v) => !/[\r\n]/.test(v)));
     ok(ETIQUETAS[3], valores.every((v) => !/ {4}/.test(v)) && valores.every((v) => !/\t/.test(v)));
 
-    ok(ETIQUETAS[4], p.administrador === 'Latin Doors S.R.L', p.administrador);
+    //  LOTE 184: la empresa tiene su propio hueco. En `administrador` va un
+    //  saludo generico: el destino se configura por empresa, no por persona, y
+    //  repetir la empresa en la misma frase se lee mal.
+    ok(ETIQUETAS[4], p.empresa === 'Latin Doors S.R.L', p.empresa);
+    ok('  y el saludo no repite la empresa ni inventa un nombre',
+      p.administrador === 'Administrador', p.administrador);
     ok('  la fecha es la que se le da, no la del reloj', p.fecha === '21/09/2026', p.fecha);
     ok('  y el nombre del sistema es el nuestro', p.app_name === 'ContFast', p.app_name);
     ok('el hueco del aviso dice QUE pasa y POR QUE',

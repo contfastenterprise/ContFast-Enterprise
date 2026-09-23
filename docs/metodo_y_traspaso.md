@@ -553,6 +553,38 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 184: la plantilla aprobada tiene SEIS huecos, no cinco.** Meta aprobó
+  `aviso_administrativo` (es_MX) el 2026-09-23, y al leerla **con la API** salió
+  que no es la que se escribió en el 179: `empresa` es un hueco **propio**. Con
+  cinco parámetros Meta rechaza el mensaje entero (**132000**) y, como nada
+  lanza, **no habría salido ni un aviso** — el mismo defecto que el 179 vino a
+  cerrar, reaparecido por el mismo motivo: dar por sabida la forma de la
+  plantilla. Comprobado con un **envío real** de seis parámetros
+  (`message_status: accepted`). `administrador` pasa a un saludo genérico: el
+  destino se configura por empresa, no por persona. **Regla**: la forma de la
+  plantilla se LEE de
+  `GET /meta/whatsapp/v24.0/{waba}/message_templates`, nunca se supone.
+  **Pendiente del dueño, no es código**: está aprobada como **MARKETING** y para
+  un aviso operativo corresponde **UTILITY** — una de marketing depende de que el
+  destinatario no la haya bloqueado y de los límites de Meta, así que un aviso de
+  caja descuadrada podría no entregarse. Se arregla recreándola como UTILITY.
+- **Lo que se midió sobre la impresión, y lo que NO se hizo por ello
+  (2026-09-23).** Con el CLI de Vercel, tras desplegar: `[tiempos-pdf] render`
+  sale tres veces y las tres con **`navegador: 'arrancado'`** y
+  **`total_ms` 3.134–3.316**. O sea: **el coste dominante de imprimir es el
+  arranque en frío de Chromium**, no los datos — el lote 182 quitó ~0,5 s de
+  consultas; esto son ~3,2 s por PDF. `motor: 'local'`, `externo_ms: 0`
+  (confirmado que `PDF_SERVICE_URL` no está en Vercel) e `imagenes_ms: 1` (el
+  lote 105 hizo su trabajo). **Queda cerrada la pregunta que este documento
+  arrastraba desde el lote 105**: la respuesta es un Gotenberg permanentemente
+  caliente (`PDF_SERVICE_URL` + `PDF_GENERATOR_MODE=external`), y es
+  infraestructura, no código.
+  **Se propuso un lote para no regenerar el PDF del correo y se DESCARTÓ al
+  medir**: esa regeneración es necesaria. El PDF subido al emitir lleva
+  "Pendiente de confirmación de la DGII" (regla del lote 180) y el que se manda
+  al cliente tiene que llevar "Firma Digital Válida", así que saltársela le
+  enviaría al cliente un comprobante rotulado como pendiente. Dos arranques de
+  Chromium por factura son, hoy, correctos.
 - **Lote 183: el PDF temporal deja de vivir en el disco de la instancia.**
   Reportado por el dueño: al registrar un recibo de cobro, la pantalla de
   impresión da error. En los logs de PRODUCCIÓN (CLI de Vercel):

@@ -1,22 +1,32 @@
 /**
- * Los cinco huecos de la plantilla de WhatsApp, rellenados desde un aviso.
+ * Los seis huecos de la plantilla de WhatsApp, rellenados desde un aviso.
  *
  * POR QUE ESTE FICHERO (lote 179)
  * -------------------------------
  * El lote 178 mandaba el aviso como UN parametro suelto, porque cuando se
- * escribio no habia plantilla. La que creo el dueño el 2026-09-21 en el panel
- * de Kapso, `aviso_administrativo`, tiene CINCO y CON NOMBRE:
+ * escribio no habia plantilla. La que Meta APROBO el 2026-09-23 --
+ * `aviso_administrativo`, es_MX -- tiene SEIS huecos y CON NOMBRE:
  *
- *     Hola {{administrador}}, se detectó el siguiente aviso: {{tipo_aviso}}.
+ *     [cabecera fija: Aviso administrativo]
+ *
+ *     Hola {{administrador}}, se detectó un aviso en {{empresa}}: {{tipo_aviso}}.
  *
  *     Cantidad pendiente: {{cantidad}}
  *     Fecha: {{fecha}}
  *
- *     Revisa la información en {{app_name}}.
+ *     Revisa la información en {{app_name}} cuando puedas.
  *
- * Meta rechaza el mensaje entero si el numero de parametros no coincide
- * (error 132000), asi que con el cuerpo del 178 NO habria salido ni un aviso --
- * y como nada lanza, solo se habria visto en el registro. De ahi este fichero.
+ *     [pie fijo: Notificación automática]
+ *
+ * LOTE 184: eran CINCO cuando se escribio el 179, porque es lo que el dueño
+ * dijo que habia creado. Al leer la plantilla aprobada con la API salio que
+ * llevaba una mas, `empresa`, asi que el cuerpo del 179 habria dado 132000
+ * -- descuadre de parametros -- y NO habria salido ni un aviso. Comprobado con
+ * un envio real de seis parametros: `message_status: accepted`.
+ *
+ * La leccion, y es la segunda vez en dos lotes: la forma de la plantilla se LEE
+ * de la API (`GET /meta/whatsapp/v24.0/{waba}/message_templates`), no se da por
+ * sabida. La cabecera y el pie son fijos, asi que no llevan parametros.
  *
  * LAS REGLAS DE META PARA UN PARAMETRO DE CUERPO, que no son opcionales:
  *   · no puede ir VACIO;
@@ -36,7 +46,7 @@ import type { AvisoDelPanel } from '@/services/avisos/avisoDelPanel';
  * Si algun dia la plantilla cambia, esto y `parametrosDelAviso` cambian juntos:
  * son el CONTRATO con lo que Meta tiene aprobado, no una preferencia nuestra.
  */
-export const HUECOS_DE_LA_PLANTILLA = ['administrador', 'tipo_aviso', 'cantidad', 'fecha', 'app_name'] as const;
+export const HUECOS_DE_LA_PLANTILLA = ['administrador', 'empresa', 'tipo_aviso', 'cantidad', 'fecha', 'app_name'] as const;
 
 export type HuecoDeLaPlantilla = (typeof HUECOS_DE_LA_PLANTILLA)[number];
 
@@ -88,12 +98,17 @@ export function montoDelAviso(...textos: (string | null | undefined)[]): string 
 }
 
 /**
- * Los cinco huecos, listos para mandar.
+ * Los seis huecos, listos para mandar.
  *
- * `administrador` lleva el nombre de la EMPRESA y no el de una persona: el
- * destino se configura por empresa y quien administra varias recibe los avisos
- * de todas en el mismo telefono. Saber de cual es el aviso importa mas que un
- * saludo con nombre propio, que ademas no tenemos.
+ * `administrador` va con un saludo GENERICO, no con un nombre. El destino se
+ * configura por empresa, no por persona: no sabemos quien lee ese telefono, y
+ * poner ahi el nombre de la empresa -- que es lo que hacia el lote 179, cuando
+ * no habia hueco propio para ella -- ahora seria repetirla dos veces en la
+ * misma frase. Inventarse un nombre propio seria peor.
+ *
+ * `empresa` es el hueco que el lote 184 vino a llenar, y es el que de verdad
+ * importa: quien administra varias empresas recibe los avisos de todas en el
+ * mismo telefono, y "Faltan RD$ 500 en el arqueo" sin decir de quien no sirve.
  */
 export function parametrosDelAviso(
   aviso: AvisoDelPanel,
@@ -101,11 +116,12 @@ export function parametrosDelAviso(
   fecha: string,
 ): Record<HuecoDeLaPlantilla, string> {
   const monto = montoDelAviso(aviso.description, aviso.title);
-  // El punto final lo pone la plantilla ("...el siguiente aviso: {{tipo_aviso}}."),
+  // El punto final lo pone la plantilla ("...un aviso en {{empresa}}: {{tipo_aviso}}."),
   // asi que el del aviso sobraria y saldrian dos seguidos.
   const queEs = `${aviso.title} · ${aviso.description}`.replace(/\.+$/, '');
   return {
-    administrador: limpiarParametro(empresa),
+    administrador: 'Administrador',
+    empresa: limpiarParametro(empresa),
     tipo_aviso: limpiarParametro(queEs),
     cantidad: limpiarParametro(monto),
     fecha: limpiarParametro(fecha),
