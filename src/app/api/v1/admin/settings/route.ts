@@ -9,6 +9,7 @@ import { encryptAsync } from '@/utils/encryption';
 import { enforcePermission } from '@/middleware/permissions';
 import { CompanyRepository } from '@/repositories/companyRepository';
 import { normalizarNumero } from '@/services/avisos/avisoPorWhatsApp';
+import { motivoParaNoMandar } from '@/services/avisos/whatsappKapso';
 
 const settingsSchema = z.object({
   name: z.string().min(1, 'El Nombre Comercial es requerido'),
@@ -82,6 +83,16 @@ export async function GET(req: NextRequest) {
       whatsappAvisos: companySettings.whatsappAvisos
     }).from(companySettings).where(eq(companySettings.companyId, session.companyId));
 
+    //  LOTE 187: LA PANTALLA TIENE QUE PODER DECIR SI EL SISTEMA PUEDE MANDAR.
+    //  El numero se configura aqui, pero para que un aviso salga hacen falta
+    //  ademas dos variables de entorno que se ponen en Vercel y que nadie ve
+    //  desde la aplicacion. Sin esto, alguien configura el numero, se queda
+    //  tranquilo, y los avisos no salen nunca -- el fallo se registra y no lo
+    //  mira nadie.
+    //
+    //  Se devuelve el MOTIVO, que nombra la variable que falta; nunca su valor.
+    const whatsappMotivo = motivoParaNoMandar();
+
     // Auditoria ISO-16: que ambientes tienen credenciales, para que la pantalla
     // lo pueda decir. Solo los nombres: aqui no sale ningun secreto.
     const entornosMseller = await entornosConCredenciales(session.companyId);
@@ -126,6 +137,10 @@ export async function GET(req: NextRequest) {
           hasMsellerPassword: !!settings.hasMsellerPassword,
           // Que ambientes tienen clave de API. Sin secretos: solo los nombres.
           entornosMseller,
+          //  Lote 187: si el sistema puede mandar avisos por WhatsApp, y si no,
+          //  QUE falta. Es el nombre de la variable, nunca su valor.
+          whatsappPuedeMandar: whatsappMotivo === null,
+          whatsappMotivo,
         },
         subscription: sub || null,
         availablePlans: activePlans

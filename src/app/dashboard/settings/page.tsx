@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, CheckCircle2, RefreshCw, Building, FileText, Lock, Truck, Printer, Zap, Image as ImageIcon, UploadCloud, Award, Users, Layers, Calendar, User, Eye, EyeOff, Copy, Plus, Trash2, Edit, X } from 'lucide-react';
+import { Settings as SettingsIcon, CheckCircle2, RefreshCw, Building, FileText, Lock, Truck, Printer, Zap, Image as ImageIcon, UploadCloud, Award, Users, Layers, Calendar, User, Eye, EyeOff, Copy, Plus, Trash2, Edit, X, MessageSquare, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import AvatarUploader from '@/components/ui/AvatarUploader';
 import { useConfirm } from '@/providers/confirm-provider';
@@ -42,6 +42,10 @@ export default function SettingsPage() {
   const [entornosMseller, setEntornosMseller] = useState<string[]>([]);
   const [credencialesEntorno, setCredencialesEntorno] = useState('TesteCF');
   const [hasMsellerPassword, setHasMsellerPassword] = useState(false);
+  //  Lote 187: por que el sistema NO puede mandar avisos, si es que no puede.
+  //  Lo dice el servidor (nombra la variable que falta, nunca su valor): desde
+  //  el navegador no se ve el entorno de Vercel.
+  const [whatsappMotivo, setWhatsappMotivo] = useState<string | null>(null);
   /** El ambiente elegido ya tiene su clave de API guardada. */
   const claveYaConfigurada = entornosMseller.includes(credencialesEntorno);
   const [showMsellerPassword, setShowMsellerPassword] = useState(false);
@@ -229,6 +233,7 @@ export default function SettingsPage() {
         });
         setEntornosMseller(data.data.settings.entornosMseller || []);
         setHasMsellerPassword(!!data.data.settings.hasMsellerPassword);
+        setWhatsappMotivo(data.data.settings.whatsappMotivo ?? null);
         setSubscription(data.data.subscription || null);
         setAvailablePlans(data.data.availablePlans || []);
         // Fetch accounts and mappings
@@ -298,6 +303,20 @@ export default function SettingsPage() {
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new Event('company-settings-updated'));
         }
+
+        //  LOTE 187: SE VUELVE A LEER DEL SERVIDOR (pedido del dueño).
+        //
+        //  Hasta aqui, guardar no releia nada: la pantalla se quedaba con lo que
+        //  se habia ESCRITO, no con lo que quedo GUARDADO. Y no son lo mismo --
+        //  el servidor recorta espacios, convierte un campo vacio en nulo y
+        //  puede rechazar un valor --, asi que lo que veias podia no ser lo que
+        //  habia en la base, sin ninguna señal.
+        //
+        //  Se recarga con `fetchSettings()` y no con `location.reload()`: trae
+        //  los mismos datos, sin perder la pestaña en la que estas ni parpadear,
+        //  y ademas refresca lo que NO se envio en el formulario -- como el
+        //  motivo por el que los avisos no pueden salir.
+        await fetchSettings();
       } else {
         toast.error(data.error?.message || 'Error al guardar');
       }
@@ -588,129 +607,70 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Bloque: Configuración Editable */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center gap-3">
-                <Building className="w-5 h-5 text-[#003366]" />
-                <h3 className="font-bold text-[#003366]">Parámetros Operativos</h3>
-              </div>
-              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Avisos por WhatsApp
+                    LOTE 187: vive DENTRO de Identidad Fiscal, debajo del logo
+                    (pedido del dueño). Antes estaba en la tarjeta de codigos de
+                    barra, donde nadie lo encontro: el lote 178 lo metio ahi
+                    porque aquella rejilla tenia un hueco libre, o sea por
+                    comodidad al escribir el codigo, no por criterio.
 
-                <div className="col-span-1 md:col-span-2">
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Actividad Económica</label>
-                  <input type="text" value={formData.businessActivity} onChange={e => setFormData({ ...formData, businessActivity: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50" />
-                </div>
+                    Va en un bloque propio con su borde y su `mt-6 p-4`: sin esa
+                    separacion queda pegado a la tarjeta padre y parece un campo
+                    mas de la identidad de la empresa, que es justo la confusion
+                    que se venia de arreglar. */}
+                <div className="col-span-1 md:col-span-2 mt-6">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <MessageSquare className="w-4 h-4 text-[#003366]" />
+                      <h4 className="text-sm font-bold text-[#003366]">Avisos por WhatsApp</h4>
+                    </div>
 
-                {/*
-                  ANTES esto era "Ambiente Sandbox/Produccion" y guardaba
-                  'test' | 'production'. Eran DOS interruptores para una sola
-                  decision -- este ajuste y el modo del sistema -- y podian
-                  contradecirse: modo PRODUCCION con ambiente 'test' daba datos
-                  reales con presentacion de ensayo, en silencio.
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Número de destino</label>
+                        <input
+                          type="tel"
+                          value={formData.whatsappAvisos || ''}
+                          onChange={e => setFormData({ ...formData, whatsappAvisos: e.target.value })}
+                          placeholder="809 555 1234"
+                          className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-white font-mono"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <p className="text-[11px] text-slate-600 leading-relaxed">
+                          Llegan a este número los avisos <strong>graves y de advertencia</strong> de esta empresa:
+                          un comprobante rechazado, un arqueo de caja descuadrado, una caja sin cerrar, un cheque
+                          en garantía que se cobra pronto y el 606/607 pendiente de presentar.
+                          Los informativos no se envían.
+                          <br />
+                          Déjelo <strong>vacío para no recibir ninguno</strong>. Cada aviso se manda una sola vez.
+                          El número es de esta empresa: los avisos de las demás no llegan aquí.
+                        </p>
+                      </div>
+                    </div>
 
-                  Ahora hay UNO: el modo. El ambiente de la DGII se deduce de
-                  el y se muestra debajo sin poder tocarse, porque no es una
-                  eleccion aparte sino una consecuencia.
-
-                  CERTIFICACION existe en la base (0046) pero no se ofrece
-                  todavia: el resto del sistema aun supone dos modos.
-                */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Zap className="w-3 h-3" /> Modo del sistema</label>
-                  <select
-                    disabled={!isSistemas}
-                    value={formData.dgiiEnv}
-                    onChange={e => setFormData({ ...formData, dgiiEnv: e.target.value })}
-                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-medium text-slate-900 bg-slate-50 disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed"
-                  >
-                    <option value="PRUEBA">Pruebas</option>
-                    <option value="PRODUCCION">Producción</option>
-                  </select>
-                  <p className={`mt-1.5 text-[11px] leading-relaxed ${formData.dgiiEnv === 'PRODUCCION' ? 'text-amber-700 font-semibold' : 'text-slate-600'}`}>
-                    Comprobantes a la DGII:{' '}
-                    <strong>
-                      {formData.dgiiEnv === 'PRODUCCION' ? 'eCF — ambiente REAL'
-                        : formData.dgiiEnv === 'CERTIFICACION' ? 'CerteCF — certificación'
-                        : 'TesteCF — pruebas'}
-                    </strong>
-                    {formData.dgiiEnv === 'PRODUCCION'
-                      ? '. Cada comprobante emitido es una presentación fiscal firme y consume tu secuencia autorizada.'
-                      : '. Nada de lo que se emita tiene validez fiscal.'}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Printer className="w-3 h-3" /> Formato de Impresión Predeterminado</label>
-                  <select value={formData.printLayout} onChange={e => setFormData({ ...formData, printLayout: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-medium uppercase text-slate-900 bg-slate-50">
-                    <option value="carta">Carta (8.5 x 11)</option>
-                    <option value="80mm">Ticket 80mm</option>
-                    <option value="58mm">Ticket 58mm</option>
-                  </select>
-                </div>
-
-                {formData.printLayout === 'carta' && (
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                      <Copy className="w-3 h-3" /> Cantidad de Copias (Solo Formato Carta)
-                    </label>
-                    <select
-                      value={formData.printCopies}
-                      onChange={e => setFormData({ ...formData, printCopies: parseInt(e.target.value) || 2 })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-medium text-slate-900 bg-slate-50"
-                    >
-                      <option value={1}>1 Copia (Solo Original)</option>
-                      <option value={2}>2 Copias (Original + Copia)</option>
-                      <option value={3}>3 Copias</option>
-                      <option value={4}>4 Copias</option>
-                      <option value={5}>5 Copias</option>
-                    </select>
-                    <p className="text-[10px] text-slate-500 mt-1">
-                      Las copias adicionales se rotularán automáticamente como "COPIA".
-                    </p>
-                  </div>
-                )}
-
-                <div className="col-span-1 md:col-span-2 border-t border-slate-100 pt-6 mt-2">
-                  <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><FileText className="w-4 h-4" /> Límites y Automatizaciones</h4>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Límite para Notas de Crédito Automáticas (DOP)</label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold">$</span>
-                    <input type="number" min="0" step="0.01" value={formData.maxCreditNoteApprovalAmount} onChange={e => setFormData({ ...formData, maxCreditNoteApprovalAmount: Number(e.target.value) })} className="w-full h-8 pl-8 pr-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-mono text-slate-900 bg-slate-50" />
+                    {/* Que el numero este puesto no basta: hacen falta variables de
+                        entorno que no se ven desde aqui. Sin esto, alguien lo configura,
+                        se queda tranquilo, y los avisos no salen nunca. */}
+                    {whatsappMotivo ? (
+                      <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 mt-3">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                        <p className="text-[11px] text-amber-800 leading-relaxed">
+                          <strong>El sistema no puede enviar todavía:</strong> {whatsappMotivo}.
+                          Hasta que se resuelva, el número se guarda pero no llega ningún aviso.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 mt-3">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                        <p className="text-[11px] text-emerald-800">
+                          El sistema está configurado para enviar por WhatsApp.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Límite para Retiro de Caja Chica (DOP)</label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold">$</span>
-                    <input type="number" min="0" step="0.01" value={formData.maxCashOutApprovalAmount} onChange={e => setFormData({ ...formData, maxCashOutApprovalAmount: Number(e.target.value) })} className="w-full h-8 pl-8 pr-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-mono text-slate-900 bg-slate-50" />
-                  </div>
-                </div>
-
-                <div className="col-span-1 md:col-span-2 flex items-center gap-3 bg-amber-50 p-4 rounded-lg border border-amber-100 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, autoDeliveryNotes: !formData.autoDeliveryNotes })}
-                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${formData.autoDeliveryNotes ? 'bg-amber-500' : 'bg-slate-300'
-                      }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.autoDeliveryNotes ? 'translate-x-5' : 'translate-x-0'
-                        }`}
-                    />
-                  </button>
-                  <div>
-                    <h4 className="text-sm font-bold text-amber-900 flex items-center gap-2"><Truck className="w-4 h-4" /> Conduces Automáticos</h4>
-                    <p className="text-xs text-amber-700/80">Generar un borrador de remisión automáticamente al facturar productos físicos.</p>
-                  </div>
-                </div>
-
               </div>
             </div>
 
@@ -847,67 +807,187 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Bloque: Configuración de Códigos de Barra */}
+            {/* Bloque: Configuración Editable */}
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center gap-3">
-                <Layers className="w-5 h-5 text-[#003366]" />
-                <h3 className="font-bold text-[#003366]">Configuración de Códigos de Barra</h3>
+                <Building className="w-5 h-5 text-[#003366]" />
+                <h3 className="font-bold text-[#003366]">Parámetros Operativos</h3>
               </div>
-              <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <div className="col-span-1 md:col-span-2">
+                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Actividad Económica</label>
+                  <input type="text" value={formData.businessActivity} onChange={e => setFormData({ ...formData, businessActivity: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50" />
+                </div>
+
+                {/*
+                  ANTES esto era "Ambiente Sandbox/Produccion" y guardaba
+                  'test' | 'production'. Eran DOS interruptores para una sola
+                  decision -- este ajuste y el modo del sistema -- y podian
+                  contradecirse: modo PRODUCCION con ambiente 'test' daba datos
+                  reales con presentacion de ensayo, en silencio.
+
+                  Ahora hay UNO: el modo. El ambiente de la DGII se deduce de
+                  el y se muestra debajo sin poder tocarse, porque no es una
+                  eleccion aparte sino una consecuencia.
+
+                  CERTIFICACION existe en la base (0046) pero no se ofrece
+                  todavia: el resto del sistema aun supone dos modos.
+                */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Tipo Predeterminado</label>
+                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Zap className="w-3 h-3" /> Modo del sistema</label>
                   <select
-                    value={formData.barcodeDefaultType}
-                    onChange={e => setFormData({ ...formData, barcodeDefaultType: e.target.value })}
-                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-medium text-slate-900 bg-slate-50"
+                    disabled={!isSistemas}
+                    value={formData.dgiiEnv}
+                    onChange={e => setFormData({ ...formData, dgiiEnv: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-medium text-slate-900 bg-slate-50 disabled:bg-slate-100 disabled:border-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed"
                   >
-                    <option value="code128">Code 128 (Predeterminado)</option>
-                    <option value="ean13">EAN-13</option>
-                    <option value="ean8">EAN-8</option>
-                    <option value="upca">UPC-A</option>
-                    <option value="qrcode">Código QR</option>
+                    <option value="PRUEBA">Pruebas</option>
+                    <option value="PRODUCCION">Producción</option>
+                  </select>
+                  <p className={`mt-1.5 text-[11px] leading-relaxed ${formData.dgiiEnv === 'PRODUCCION' ? 'text-amber-700 font-semibold' : 'text-slate-600'}`}>
+                    Comprobantes a la DGII:{' '}
+                    <strong>
+                      {formData.dgiiEnv === 'PRODUCCION' ? 'eCF — ambiente REAL'
+                        : formData.dgiiEnv === 'CERTIFICACION' ? 'CerteCF — certificación'
+                        : 'TesteCF — pruebas'}
+                    </strong>
+                    {formData.dgiiEnv === 'PRODUCCION'
+                      ? '. Cada comprobante emitido es una presentación fiscal firme y consume tu secuencia autorizada.'
+                      : '. Nada de lo que se emita tiene validez fiscal.'}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Printer className="w-3 h-3" /> Formato de Impresión Predeterminado</label>
+                  <select value={formData.printLayout} onChange={e => setFormData({ ...formData, printLayout: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-medium uppercase text-slate-900 bg-slate-50">
+                    <option value="carta">Carta (8.5 x 11)</option>
+                    <option value="80mm">Ticket 80mm</option>
+                    <option value="58mm">Ticket 58mm</option>
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Prefijo para Auto-Generación</label>
-                  <input
-                    type="text"
-                    value={formData.barcodePrefix}
-                    onChange={e => setFormData({ ...formData, barcodePrefix: e.target.value })}
-                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50 font-semibold"
-                    placeholder="COD"
-                  />
+                {formData.printLayout === 'carta' && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                      <Copy className="w-3 h-3" /> Cantidad de Copias (Solo Formato Carta)
+                    </label>
+                    <select
+                      value={formData.printCopies}
+                      onChange={e => setFormData({ ...formData, printCopies: parseInt(e.target.value) || 2 })}
+                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-medium text-slate-900 bg-slate-50"
+                    >
+                      <option value={1}>1 Copia (Solo Original)</option>
+                      <option value={2}>2 Copias (Original + Copia)</option>
+                      <option value={3}>3 Copias</option>
+                      <option value={4}>4 Copias</option>
+                      <option value={5}>5 Copias</option>
+                    </select>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Las copias adicionales se rotularán automáticamente como "COPIA".
+                    </p>
+                  </div>
+                )}
+
+                <div className="col-span-1 md:col-span-2 border-t border-slate-100 pt-6 mt-2">
+                  <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><FileText className="w-4 h-4" /> Límites y Automatizaciones</h4>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Longitud de Código Automático</label>
-                  <input
-                    type="number"
-                    min="4"
-                    max="20"
-                    value={formData.barcodeLength}
-                    onChange={e => setFormData({ ...formData, barcodeLength: parseInt(e.target.value) || 9 })}
-                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50 font-mono"
-                  />
+                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Límite para Notas de Crédito Automáticas (DOP)</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold">$</span>
+                    <input type="number" min="0" step="0.01" value={formData.maxCreditNoteApprovalAmount} onChange={e => setFormData({ ...formData, maxCreditNoteApprovalAmount: Number(e.target.value) })} className="w-full h-8 pl-8 pr-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-mono text-slate-900 bg-slate-50" />
+                  </div>
                 </div>
-                {/* Lote 178: va por EMPRESA, no en una variable de entorno: los
-                    avisos de una empresa no son asunto de quien administra otra. */}
+
                 <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">WhatsApp para avisos</label>
-                  <input
-                    type="tel"
-                    value={formData.whatsappAvisos || ''}
-                    onChange={e => setFormData({ ...formData, whatsappAvisos: e.target.value })}
-                    placeholder="809 555 1234"
-                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50 font-mono"
-                  />
-                  <p className="text-[10px] text-slate-500 mt-1 leading-tight">
-                    Los avisos graves y de advertencia llegan aquí. Déjelo vacío para no recibir ninguno.
-                  </p>
+                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Límite para Retiro de Caja Chica (DOP)</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold">$</span>
+                    <input type="number" min="0" step="0.01" value={formData.maxCashOutApprovalAmount} onChange={e => setFormData({ ...formData, maxCashOutApprovalAmount: Number(e.target.value) })} className="w-full h-8 pl-8 pr-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-mono text-slate-900 bg-slate-50" />
+                  </div>
+                </div>
+
+                <div className="col-span-1 md:col-span-2 flex items-center gap-3 bg-amber-50 p-4 rounded-lg border border-amber-100 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, autoDeliveryNotes: !formData.autoDeliveryNotes })}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${formData.autoDeliveryNotes ? 'bg-amber-500' : 'bg-slate-300'
+                      }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.autoDeliveryNotes ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                    />
+                  </button>
+                  <div>
+                    <h4 className="text-sm font-bold text-amber-900 flex items-center gap-2"><Truck className="w-4 h-4" /> Conduces Automáticos</h4>
+                    <p className="text-xs text-amber-700/80">Generar un borrador de remisión automáticamente al facturar productos físicos.</p>
+                  </div>
+                </div>
+
+                {/* Códigos de barra
+                    LOTE 188: era una tarjeta suelta al final de la pestaña, al
+                    mismo nivel que la identidad de la empresa y la integracion con
+                    mSeller -- y no lo es: es un parametro de los PRODUCTOS. Entra
+                    aqui dentro y lo dice, para que nadie lo confunda con un ajuste
+                    fiscal. Mismo criterio y misma separacion que el bloque de
+                    WhatsApp del lote 187. */}
+                <div className="col-span-1 md:col-span-2 mt-6">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Layers className="w-4 h-4 text-[#003366]" />
+                      <h4 className="text-sm font-bold text-[#003366]">Códigos de Barra</h4>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mb-3">
+                      Pertenece a la configuración de los <strong>productos</strong>: con esto se generan
+                      los códigos de barra al crear un producto que no trae el suyo.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Tipo Predeterminado</label>
+                      <select
+                        value={formData.barcodeDefaultType}
+                        onChange={e => setFormData({ ...formData, barcodeDefaultType: e.target.value })}
+                        className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-medium text-slate-900 bg-slate-50"
+                      >
+                        <option value="code128">Code 128 (Predeterminado)</option>
+                        <option value="ean13">EAN-13</option>
+                        <option value="ean8">EAN-8</option>
+                        <option value="upca">UPC-A</option>
+                        <option value="qrcode">Código QR</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Prefijo para Auto-Generación</label>
+                      <input
+                        type="text"
+                        value={formData.barcodePrefix}
+                        onChange={e => setFormData({ ...formData, barcodePrefix: e.target.value })}
+                        className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50 font-semibold"
+                        placeholder="COD"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Longitud de Código Automático</label>
+                      <input
+                        type="number"
+                        min="4"
+                        max="20"
+                        value={formData.barcodeLength}
+                        onChange={e => setFormData({ ...formData, barcodeLength: parseInt(e.target.value) || 9 })}
+                        className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50 font-mono"
+                      />
+                    </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
+
 
             <div className="flex justify-end pt-4">
               <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">

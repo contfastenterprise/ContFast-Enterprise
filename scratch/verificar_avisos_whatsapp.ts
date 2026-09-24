@@ -180,7 +180,12 @@ async function main() {
   console.log('\n4) Se puede configurar desde la pantalla\n');
   const ajustes = leer('src/app/dashboard/settings/page.tsx');
   ok('hay un campo para el numero', /formData\.whatsappAvisos/.test(ajustes));
-  ok('  que dice que pasa si se deja vacio', /Déjelo vacío para no recibir ninguno/.test(ajustes));
+  //  LOTE 187: esto anclaba la frase LITERAL, y al sacar el campo a su propia
+  //  tarjeta el texto gano un `<strong>` en medio -- la comprobacion se rompio
+  //  sin que faltara nada. Es la trampa de la seccion 7: copiar la forma en vez
+  //  de fijar la propiedad. Lo que importa es que la pantalla DIGA que pasa si
+  //  se deja vacio, no con que etiquetas lo diga.
+  ok('  que dice que pasa si se deja vacio', /vac[ií]o para no recibir ninguno/i.test(ajustes));
   const ruta = leer('src/app/api/v1/admin/settings/route.ts');
   ok('la ruta lo acepta y lo devuelve',
     /whatsappAvisos: z\.string\(\)\.max\(20\)/.test(ruta) && /whatsappAvisos: companySettings\.whatsappAvisos/.test(ruta));

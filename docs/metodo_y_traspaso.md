@@ -553,6 +553,33 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 187: el ajuste de los avisos estaba escondido, y guardar no reflejaba lo
+  guardado.** Dos cosas, las dos reportadas por el dueño.
+  - **"¿En qué parte se configura el número?"** Estaba dentro de la tarjeta
+    *Configuración de Códigos de Barra*: el lote 178 lo metió ahí porque aquella
+    rejilla de tres columnas tenía un hueco libre — por comodidad al escribir el
+    código, no por criterio. **Un ajuste que no se encuentra es un ajuste que no
+    existe.** Ahora vive en **Identidad Fiscal, debajo del logo**, en un bloque
+    propio con `mt-6` y borde: sin esa separación parece un campo más de la
+    identidad de la empresa.
+    Y la pantalla **dice si el sistema puede mandar**: el número se configura en
+    la aplicación, pero hacen falta `KAPSO_API_KEY` y `KAPSO_PHONE_NUMBER_ID`, que
+    se ponen en Vercel y no se ven desde aquí. El motivo lo calcula el servidor
+    con `motivoParaNoMandar()` y **nombra la variable, nunca su valor**. Ojo con
+    el límite de esa luz verde: comprueba que estén PUESTAS, no que sean
+    correctas.
+  - **Guardar no releía nada.** La pantalla se quedaba con lo ESCRITO, no con lo
+    GUARDADO — y no son lo mismo: el servidor recorta espacios, convierte vacío en
+    nulo y puede rechazar un valor. Ahora llama a `fetchSettings()` tras
+    confirmar el guardado; con eso y no con `location.reload()`, que perdería la
+    pestaña y parpadearía.
+  **La contraprueba cazó CINCO comprobaciones ciertas de balde**, todas del mismo
+  lote: `indexOf` de una tarjeta que aún no existe da −1 (así que "el campo va
+  después" se cumplía siempre), tres textos ya existían en la tarjeta equivocada y
+  se miraban en el fichero entero, y dos negativas son verdad antes de que el
+  mecanismo exista. **Cura: acotar al bloque, y atar cada negativa a una marca
+  positiva.** Y el `indexOf` volvió a morder: la rebanada de `handleSave` cazaba
+  `handleSaveType`.
 - **Lote 186: la plantilla definitiva tiene SIETE huecos y es UTILITY.** El dueño
   la recreó como **`notificacion_operativa`** (UTILITY, es_MX), que es la
   categoría que corresponde a un aviso operativo — la anterior era MARKETING y
