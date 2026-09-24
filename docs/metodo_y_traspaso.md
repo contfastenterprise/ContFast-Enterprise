@@ -553,6 +553,20 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 188: máscara al escribir el número de los avisos, y aviso en el momento.**
+  Antes un número mal puesto no se sabía hasta pulsar Guardar, y el servidor
+  contestaba un 400: el aviso llegaba tarde y lejos del campo.
+  **La regla no se escribe dos veces**: el diagnóstico usa `normalizarNumero`, la
+  misma con la que el servidor decide. El banco recorre diez casos y exige que
+  **nunca discrepen** — si discreparan, la pantalla diría "correcto" y el servidor
+  400, o peor, al contrario.
+  **La máscara se aparta cuando no sabe**: agrupa lo dominicano (809/829/849, con
+  o sin el 1) mientras se escribe, y deja tal cual un `+`, un área que no es de RD
+  o un número largo sin código de país. No conocemos el formato de los demás
+  países, y una máscara que adivina causa más errores de los que evita.
+  El aviso dice **cómo saldrá** el número (`Se enviará a +18095551234`), que es el
+  dato que nadie puede comprobar de otra forma. **Vacío no es un error** — es el
+  estado de las seis empresas. **No se bloquea Guardar**: el campo es opcional.
 - **Lote 187: el ajuste de los avisos estaba escondido, y guardar no reflejaba lo
   guardado.** Dos cosas, las dos reportadas por el dueño.
   - **"¿En qué parte se configura el número?"** Estaba dentro de la tarjeta

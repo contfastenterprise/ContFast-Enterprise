@@ -74,6 +74,96 @@ export function textoDelAviso(aviso: AvisoDelPanel, empresa: string): string {
   return `${marca} ${empresa}\n\n${aviso.title}\n\n${aviso.description}`;
 }
 
+/**
+ * Como se ESCRIBE el numero mientras se teclea (lote 188).
+ *
+ * POR QUE UNA MASCARA, Y POR QUE ESTA
+ * -----------------------------------
+ * Pedido del dueño: menos errores al escribir. Hasta ahora un numero mal puesto
+ * no se sabia hasta pulsar Guardar, y entonces el servidor devolvia un 400 -- el
+ * aviso llegaba tarde y en otro sitio.
+ *
+ * LA MASCARA SE APARTA CUANDO NO SABE. Solo agrupa lo que reconoce como
+ * dominicano: diez digitos que empiezan por 809, 829 o 849, o esos mismos con el
+ * 1 delante. Cualquier otra cosa -- un `+` al principio, un numero de otro pais,
+ * un area que no es de RD -- se deja TAL COMO SE ESCRIBIO.
+ *
+ * El motivo es que no sabemos el formato de los demas paises, y una mascara que
+ * adivina pelea con quien escribe: mete espacios donde no van, corta digitos, y
+ * acaba siendo mas facil equivocarse que sin ella. El `+` se admite desde el
+ * lote 178 justamente para el extranjero, y seria absurdo romperlo aqui.
+ */
+export function formatearNumeroMientrasEscribe(texto: string | null | undefined): string {
+  if (!texto) return '';
+  const masDelante = texto.trimStart().startsWith('+');
+  const digitos = texto.replace(/\D/g, '');
+
+  //  Con codigo de pais explicito no se toca la agrupacion: no la conocemos.
+  if (masDelante) return `+${digitos}`;
+
+  //  `1` + area dominicana: 1 809 555 1234.
+  if (digitos.startsWith('1') && AREAS_RD.includes(digitos.slice(1, 4))) {
+    const r = digitos.slice(0, 11);
+    return [r.slice(0, 1), r.slice(1, 4), r.slice(4, 7), r.slice(7, 11)].filter(Boolean).join(' ');
+  }
+
+  //  Area dominicana: 809 555 1234. Se agrupa MIENTRAS se escribe, asi que los
+  //  cortes se aplican solo a lo que ya hay.
+  if (AREAS_RD.includes(digitos.slice(0, 3)) && digitos.length <= 10) {
+    return [digitos.slice(0, 3), digitos.slice(3, 6), digitos.slice(6, 10)].filter(Boolean).join(' ');
+  }
+
+  //  No lo reconocemos: se devuelve lo escrito, sin inventar.
+  return texto;
+}
+
+/** Que se puede decir del numero que hay escrito, para decirlo EN EL MOMENTO. */
+export interface DiagnosticoNumero {
+  estado: 'vacio' | 'valido' | 'incompleto' | 'invalido';
+  /** El numero tal como saldra, ya normalizado. Solo cuando es valido. */
+  comoSaldra?: string;
+  /** Que le pasa, en una frase para quien lo esta escribiendo. */
+  mensaje?: string;
+}
+
+/**
+ * El aviso que ve quien escribe, ANTES de guardar (lote 188).
+ *
+ * Usa `normalizarNumero`, la MISMA funcion con la que el servidor decide si lo
+ * acepta. Escribir aqui una segunda regla es lo que hace que la pantalla diga
+ * "correcto" y el servidor responda 400 -- o al contrario, que es peor.
+ *
+ * VACIO NO ES UN ERROR: significa "esta empresa no recibe avisos", y es el
+ * estado de todas hasta que alguien lo configure. Avisar ahi seria regañar por
+ * lo normal.
+ */
+export function diagnosticoDelNumero(texto: string | null | undefined): DiagnosticoNumero {
+  const digitos = (texto ?? '').replace(/\D/g, '');
+  if (digitos === '') return { estado: 'vacio' };
+
+  const normalizado = normalizarNumero(texto);
+  if (normalizado) {
+    //  Se enseña como saldra de verdad, no como se escribio: es el dato que
+    //  importa y el que nadie puede comprobar de otra forma.
+    return { estado: 'valido', comoSaldra: `+${normalizado}` };
+  }
+
+  if (digitos.length < 10) {
+    return { estado: 'incompleto', mensaje: `Faltan dígitos: llevas ${digitos.length} de 10.` };
+  }
+  if (digitos.length === 10) {
+    return {
+      estado: 'invalido',
+      mensaje: `El área ${digitos.slice(0, 3)} no es de República Dominicana (809, 829 u 849). `
+        + 'Para otro país, escriba el número con su código de país delante: +34…',
+    };
+  }
+  return {
+    estado: 'invalido',
+    mensaje: 'Ese número no se puede marcar. Con código de país debe tener entre 11 y 15 dígitos.',
+  };
+}
+
 /** Lo que hay que mandar, ya decidido: a quien y que. */
 export interface EnvioDeAviso {
   numero: string;

@@ -8,6 +8,11 @@ import { useConfirm } from '@/providers/confirm-provider';
 import { esAdministracion, esSistemas } from '@/utils/rolMatch';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 import { GRUPOS_DE_PUENTES } from '@/services/accounting/cuentasDelSistema';
+//  LOTE 188: la mascara y el diagnostico salen del MISMO modulo puro que usa
+//  el servidor para decidir si acepta el numero. Una segunda regla en el
+//  navegador es lo que hace que la pantalla diga "correcto" y el servidor
+//  responda 400 -- o al contrario, que es peor.
+import { formatearNumeroMientrasEscribe, diagnosticoDelNumero } from '@/services/avisos/avisoPorWhatsApp';
 
 export default function SettingsPage() {
   const confirm = useConfirm();
@@ -84,6 +89,11 @@ export default function SettingsPage() {
     barcodeLength: 9,
     whatsappAvisos: ''
   });
+
+  //  LOTE 188: se recalcula en cada pintada, que es lo que hace que el aviso
+  //  aparezca MIENTRAS se escribe. No hace falta estado propio: sale del valor
+  //  del campo, y un estado duplicado solo podria desincronizarse.
+  const diagnosticoNumero = diagnosticoDelNumero(formData.whatsappAvisos);
 
   const isSistemas = esSistemas(userRole);
   const isAdministracion = esAdministracion(userRole);
@@ -632,10 +642,30 @@ export default function SettingsPage() {
                         <input
                           type="tel"
                           value={formData.whatsappAvisos || ''}
-                          onChange={e => setFormData({ ...formData, whatsappAvisos: e.target.value })}
+                          onChange={e => setFormData({ ...formData, whatsappAvisos: formatearNumeroMientrasEscribe(e.target.value) })}
                           placeholder="809 555 1234"
-                          className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-white font-mono"
+                          className={`w-full h-8 px-3 py-1.5 text-xs rounded-lg outline-none focus:ring-1 text-slate-900 bg-white font-mono ${
+                            diagnosticoNumero.estado === 'valido'
+                              ? 'border-emerald-300 focus:border-emerald-400 focus:ring-emerald-200'
+                              : diagnosticoNumero.estado === 'vacio'
+                                ? 'border-slate-200 focus:border-[#c5a059] focus:ring-[#c5a059]/20'
+                                : 'border-amber-300 focus:border-amber-400 focus:ring-amber-200'
+                          }`}
                         />
+                        {/* El aviso, EN EL MOMENTO y debajo del campo (lote 188).
+                            Antes un numero mal puesto no se sabia hasta pulsar
+                            Guardar, y el servidor contestaba un 400: el aviso
+                            llegaba tarde y en otro sitio. */}
+                        {diagnosticoNumero.estado === 'valido' && (
+                          <p className="text-[10px] text-emerald-700 mt-1 font-mono">
+                            Se enviará a {diagnosticoNumero.comoSaldra}
+                          </p>
+                        )}
+                        {(diagnosticoNumero.estado === 'incompleto' || diagnosticoNumero.estado === 'invalido') && (
+                          <p className="text-[10px] text-amber-700 mt-1 leading-tight">
+                            {diagnosticoNumero.mensaje}
+                          </p>
+                        )}
                       </div>
                       <div className="md:col-span-2">
                         <p className="text-[11px] text-slate-600 leading-relaxed">
