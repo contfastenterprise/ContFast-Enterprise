@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useRbac } from '@/components/providers/rbacContext';
 import { buildSidebar, getGroupIcon, getIconComponent, RouteMapping } from '@/utils/rbacHelpers';
+import { coincideEnAlguno } from '@/utils/buscarTexto';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -26,10 +27,73 @@ interface NavItemDef {
   roles?: string[];
 }
 
+/**
+ *  LOTE 189: el grupo viaja con el elemento. `getAllSearchableItems` lo tiraba
+ *  (`g.items.map` se quedaba solo con el item), y por eso el buscador tenia que
+ *  enseñar la URL cruda -- `/dashboard/ecf` -- en la columna derecha. Una URL no
+ *  le dice nada a quien busca; el grupo si: "Comprobantes · Ingresos".
+ */
+interface NavItemBuscable extends NavItemDef {
+  grupo: string;
+}
+
 interface NavGroupDef {
   title: string;
   items: NavItemDef[];
   icon: React.ElementType;
+}
+
+/**
+ *  DONDE SE GUARDA QUE GRUPOS ESTAN ABIERTOS (lote 189).
+ *
+ *  El dueño lo describio asi: "tiende a ocultarse y hay que hacer scroll para
+ *  buscar y seleccionar". Medido: 50 elementos de menu en 9 grupos, o sea 59
+ *  filas con todo abierto. Y `expandedGroups` era un `useState` sin persistencia
+ *  DENTRO de `SidebarContent`, del que hay DOS instancias -- escritorio y cajon
+ *  movil --, asi que:
+ *
+ *    · al recargar se plegaba todo menos el grupo de la pagina actual;
+ *    · el cajon del movil empezaba plegado CADA vez que se abria, porque es otra
+ *      instancia con su propio estado.
+ *
+ *  Decision del dueño (2026-09-24): se recuerda lo que dejo abierto. El estado
+ *  sube al padre -- una sola verdad para las dos instancias -- y se guarda en el
+ *  navegador.
+ */
+const CLAVE_GRUPOS = 'contfast:sidebar:grupos-abiertos';
+
+/**
+ *  Lo guardado, o `null` si no hay nada utilizable.
+ *
+ *  NUNCA LANZA: en una ventana privada, con las cookies bloqueadas o si alguien
+ *  dejo basura en esa clave, `localStorage` tira o devuelve algo que no es lo que
+ *  se espera. Un sidebar que no se pinta porque no pudo leer una preferencia es
+ *  peor que un sidebar que empieza plegado.
+ */
+function leerGruposGuardados(): Record<string, boolean> | null {
+  try {
+    const crudo = window.localStorage.getItem(CLAVE_GRUPOS);
+    if (!crudo) return null;
+    const leido: unknown = JSON.parse(crudo);
+    if (!leido || typeof leido !== 'object' || Array.isArray(leido)) return null;
+    //  Solo booleanos: si la forma no es la esperada, se ignora entera en vez de
+    //  colar valores raros en el estado.
+    const limpio: Record<string, boolean> = {};
+    for (const [k, v] of Object.entries(leido as Record<string, unknown>)) {
+      if (typeof v === 'boolean') limpio[k] = v;
+    }
+    return limpio;
+  } catch {
+    return null;
+  }
+}
+
+function guardarGrupos(grupos: Record<string, boolean>): void {
+  try {
+    window.localStorage.setItem(CLAVE_GRUPOS, JSON.stringify(grupos));
+  } catch {
+    //  Que no se pueda recordar la preferencia no puede romper la navegacion.
+  }
 }
 
 interface AppSidebarProps {
@@ -51,12 +115,13 @@ function getAllSearchableItems(
   routeMappings: RouteMapping[],
   hasPermission: (module: string, action: string) => boolean,
   userRole: string
-): NavItemDef[] {
+): NavItemBuscable[] {
   return buildSidebar(routeMappings, hasPermission, userRole).flatMap(g =>
     g.items.map(item => ({
       name: item.name,
       href: item.href,
       icon: getIconComponent(item.iconName),
+      grupo: g.title,
     }))
   );
 }
@@ -161,9 +226,13 @@ function WorkspaceSwitcher({
 // ─── NavItem (Clean, System-token light theme) ─────────────────────────────────
 
 function NavItem({
-  item, pathname, collapsed, onClick, isSubItem,
+  item, pathname, collapsed, onClick, isSubItem, refActivo,
 }: {
   item: NavItemDef; pathname: string; collapsed: boolean; onClick?: () => void; isSubItem?: boolean;
+  //  LOTE 189: el enlace ACTIVO se deja anotar para poder traerlo a la vista.
+  //  Con 59 filas posibles y el scrollbar que estaba oculto, la pantalla en la
+  //  que estas podia quedar debajo del pliegue y habia que buscarla a mano.
+  refActivo?: React.Ref<HTMLAnchorElement>;
 }) {
   const isActive =
     pathname === item.href ||
@@ -172,6 +241,7 @@ function NavItem({
   return (
     <Link
       href={item.href}
+      ref={isActive ? refActivo : undefined}
       onClick={onClick}
       title={collapsed ? item.name : undefined}
       className={clsx(
@@ -210,13 +280,51 @@ function SearchModal({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState('');
   const { hasPermission, routeMappings, user } = useRbac();
   const allItems = getAllSearchableItems(routeMappings, hasPermission, user?.role || '');
+
+  //  LOTE 189: SIN TILDES Y TAMBIEN POR GRUPO.
+  //
+  //  Antes filtraba con `name.toLowerCase().includes(query.toLowerCase())`, que
+  //  deja fuera lo que nadie escribe con acento: buscar "facturacion" no
+  //  encontraba "Facturacion" con tilde. La comparacion vive ahora en
+  //  `utils/buscarTexto`, porque el mismo problema lo tiene cualquier filtro por
+  //  nombre de la aplicacion.
+  //
+  //  Y se busca tambien por el GRUPO: quien escribe "finanzas" espera ver lo que
+  //  hay dentro de Finanzas, aunque ninguno de esos elementos se llame asi.
   const results = query.trim()
-    ? allItems.filter(i => i.name.toLowerCase().includes(query.toLowerCase()))
+    ? allItems.filter(i => coincideEnAlguno([i.name, i.grupo], query))
     : allItems.slice(0, 7);
+
+  //  EL TECLADO, QUE ERA LO QUE FALTABA. Solo se atendia `Escape`: escribias,
+  //  aparecian los resultados y habia que ir al raton. Un buscador que obliga a
+  //  soltar el teclado a mitad no es rapido.
+  const [seleccion, setSeleccion] = useState(0);
+
+  //  Al cambiar lo escrito, la seleccion vuelve al primero: si se quedara donde
+  //  estaba, Enter abriria algo que ya no es lo que se esta viendo.
+  useEffect(() => { setSeleccion(0); }, [query]);
 
   const handleSelect = (href: string) => {
     router.push(href);
     onClose();
+  };
+
+  const alTeclear = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') { onClose(); return; }
+    if (results.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      //  Da la vuelta: con nueve grupos y cincuenta elementos, llegar al final y
+      //  quedarse atascado obliga a subir a mano.
+      setSeleccion(i => (i + 1) % results.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSeleccion(i => (i - 1 + results.length) % results.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const elegido = results[seleccion];
+      if (elegido) handleSelect(elegido.href);
+    }
   };
 
   return (
@@ -229,10 +337,16 @@ function SearchModal({ onClose }: { onClose: () => void }) {
             autoFocus
             value={query}
             onChange={e => setQuery(e.target.value)}
-            onKeyDown={e => e.key === 'Escape' && onClose()}
+            onKeyDown={alTeclear}
             className="flex-1 bg-transparent py-4.5 outline-none text-[14px] text-on-surface placeholder:text-on-surface-variant/40"
             placeholder="Buscar módulo o acción..."
           />
+          <span className="hidden sm:flex items-center gap-1 mr-2 text-[10px] text-on-surface-variant/40">
+            <kbd className="px-1.5 py-0.5 bg-surface-container border border-outline-variant/30 rounded font-mono">&uarr;&darr;</kbd>
+            moverse
+            <kbd className="px-1.5 py-0.5 bg-surface-container border border-outline-variant/30 rounded font-mono ml-1">&crarr;</kbd>
+            abrir
+          </span>
           <kbd
             onClick={onClose}
             className="hidden sm:inline-flex items-center h-6 px-2 text-[10px] font-mono text-on-surface-variant/50 bg-surface-container border border-outline-variant/30 rounded-lg cursor-pointer hover:text-on-surface transition-colors"
@@ -243,19 +357,29 @@ function SearchModal({ onClose }: { onClose: () => void }) {
         <div className="max-h-72 overflow-y-auto custom-scrollbar">
           {results.length > 0 ? (
             <div className="p-2 flex flex-col gap-0.5">
-              {results.map(item => (
+              {results.map((item, i) => (
                 <button
                   key={item.href}
                   onClick={() => handleSelect(item.href)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-surface-container-low transition-colors group text-on-surface-variant hover:text-on-surface"
+                  onMouseEnter={() => setSeleccion(i)}
+                  ref={i === seleccion ? (el) => { el?.scrollIntoView({ block: 'nearest' }); } : undefined}
+                  className={[
+                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors group',
+                    i === seleccion
+                      ? 'bg-surface-container-low text-on-surface'
+                      : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface',
+                  ].join(' ')}
                 >
                   <item.icon
-                    className="w-4 h-4 text-on-surface-variant/40 shrink-0 group-hover:text-primary transition-colors"
+                    className={[
+                      'w-4 h-4 shrink-0 transition-colors',
+                      i === seleccion ? 'text-primary' : 'text-on-surface-variant/40 group-hover:text-primary',
+                    ].join(' ')}
                     strokeWidth={1.5}
                   />
                   <span className="text-[13px] flex-1">{item.name}</span>
-                  <span className="text-[10px] text-on-surface-variant/30 font-mono truncate max-w-[180px]">
-                    {item.href}
+                  <span className="text-[10px] text-on-surface-variant/40 truncate max-w-[160px]">
+                    {item.grupo}
                   </span>
                 </button>
               ))}
@@ -279,10 +403,17 @@ function SearchModal({ onClose }: { onClose: () => void }) {
 function SidebarContent({
   user, companies, companyName, entorno, onSwitchCompany, switching,
   collapsed, onLogout, onItemClick,
+  expandedGroups, toggleGroup, abrirGrupo,
 }: {
   user: any; companies: any[]; companyName: string; entorno: Entorno;
   onSwitchCompany: (id: string) => void; switching?: boolean;
   collapsed: boolean; onLogout: () => void; onItemClick?: () => void;
+  //  LOTE 189: el estado de los grupos viene de FUERA. Antes lo tenia cada
+  //  instancia, y hay dos -- escritorio y cajon movil --, asi que lo que abrias
+  //  en una no existia en la otra y el movil empezaba plegado cada vez.
+  expandedGroups: Record<string, boolean>;
+  toggleGroup: (title: string) => void;
+  abrirGrupo: (title: string) => void;
 }) {
   const pathname = usePathname();
   const { hasPermission, routeMappings, user: rbacUser } = useRbac();
@@ -317,31 +448,30 @@ function SidebarContent({
     };
   });
 
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = {};
-    dynamicGroups.forEach(g => {
-      const active = g.items.some(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)));
-      if (active) {
-        initial[g.title] = true;
-      }
-    });
-    return initial;
-  });
-
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
 
+  //  El grupo de la pagina actual se abre solo. Esto se queda: entrar a una
+  //  pantalla y no ver donde estas dentro del menu desorienta.
   useEffect(() => {
     dynamicGroups.forEach(g => {
       const active = g.items.some(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)));
-      if (active) {
-        setExpandedGroups(prev => ({ ...prev, [g.title]: true }));
-      }
+      if (active) abrirGrupo(g.title);
     });
   }, [pathname, routeMappings]);
 
-  const toggleGroup = (title: string) => {
-    setExpandedGroups(prev => ({ ...prev, [title]: !prev[title] }));
-  };
+  //  LOTE 189: EL ELEMENTO ACTIVO SE TRAE A LA VISTA.
+  //
+  //  No habia un solo `scrollIntoView` en este fichero. Con 59 filas posibles, la
+  //  pagina en la que estas puede caer debajo del pliegue -- y como el scrollbar
+  //  esta oculto, ni se ve que haya mas abajo. Habia que buscarla a mano en cada
+  //  navegacion.
+  //
+  //  `block: 'nearest'` a proposito: mueve lo justo para que se vea, sin
+  //  centrarla de un salto cada vez que cambias de pantalla.
+  const refActivo = React.useRef<HTMLAnchorElement | null>(null);
+  useEffect(() => {
+    refActivo.current?.scrollIntoView({ block: 'nearest' });
+  }, [pathname, expandedGroups]);
 
   return (
     <>
@@ -358,7 +488,14 @@ function SidebarContent({
       <div className="h-px bg-outline-variant/20 mx-4 mb-3" />
 
       {/* Nav Groups */}
-      <nav className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-3 pb-4 flex flex-col gap-2 mt-1 relative">
+      {/*  LOTE 189: LA BARRA DE SCROLL DEJA DE ESTAR OCULTA.
+           Aqui habia `[&::-webkit-scrollbar]:hidden` y `[scrollbar-width:none]`
+           en una lista de hasta 59 filas: habia scroll, pero nada te decia que
+           hubiera mas abajo ni donde estabas, y no habia barra que agarrar. Es la
+           mitad de "hay que hacer scroll para buscar" que reporto el dueño.
+           `custom-scrollbar` es la clase fina que ya usan el buscador y el
+           selector de empresa de este mismo fichero.  */}
+      <nav className="flex-1 overflow-y-auto custom-scrollbar px-3 pb-4 flex flex-col gap-2 mt-1 relative">
         {dynamicGroups.map(group => {
           const visible = group.items;
           if (visible.length === 0) return null;
@@ -376,6 +513,7 @@ function SidebarContent({
                     pathname={pathname}
                     collapsed={collapsed}
                     onClick={onItemClick}
+                    refActivo={refActivo}
                   />
                 ))}
               </div>
@@ -489,6 +627,7 @@ function SidebarContent({
                             collapsed={collapsed}
                             onClick={onItemClick}
                             isSubItem={true}
+                            refActivo={refActivo}
                           />
                         ))}
                       </motion.div>
@@ -543,6 +682,33 @@ export default function NewAppSidebar({
 }: AppSidebarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [diagExpanded, setDiagExpanded] = useState(false);
+
+  //  LOTE 189: QUE GRUPOS ESTAN ABIERTOS, AQUI Y NO EN CADA INSTANCIA.
+  //
+  //  Hay DOS `SidebarContent` -- escritorio y cajon movil --, y cada una tenia su
+  //  propio `useState`. Consecuencia: lo que abrias en el escritorio no existia
+  //  en el movil, y el cajon del movil empezaba plegado cada vez que se abria.
+  //  Con el estado aqui arriba hay UNA sola verdad para las dos.
+  //
+  //  Y se recuerda (decision del dueño, 2026-09-24): con 50 elementos en 9
+  //  grupos, volver a plegar todo en cada recarga obliga a rehacer el mismo
+  //  camino cada dia. `leerGruposGuardados` se llama en el inicializador para no
+  //  pintar primero lo plegado y corregirlo despues, que se veria como un salto.
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
+    () => (typeof window === 'undefined' ? {} : (leerGruposGuardados() ?? {})),
+  );
+
+  React.useEffect(() => { guardarGrupos(expandedGroups); }, [expandedGroups]);
+
+  const toggleGroup = React.useCallback((title: string) => {
+    setExpandedGroups(prev => ({ ...prev, [title]: !prev[title] }));
+  }, []);
+
+  //  Abrir NO es alternar: el grupo de la pagina actual se abre solo, y si eso
+  //  llamara a `toggleGroup` lo cerraria cuando ya estuviera abierto.
+  const abrirGrupo = React.useCallback((title: string) => {
+    setExpandedGroups(prev => (prev[title] ? prev : { ...prev, [title]: true }));
+  }, []);
   const { hasPermission, routeMappings, user: rbacUser } = useRbac();
 
   const activeUser = user || rbacUser;
@@ -610,6 +776,9 @@ export default function NewAppSidebar({
           switching={switching}
           collapsed={collapsed}
           onLogout={onLogout}
+          expandedGroups={expandedGroups}
+          toggleGroup={toggleGroup}
+          abrirGrupo={abrirGrupo}
         />
       </aside>
 
@@ -665,6 +834,9 @@ export default function NewAppSidebar({
                 collapsed={false}
                 onLogout={onLogout}
                 onItemClick={onMobileClose}
+                expandedGroups={expandedGroups}
+                toggleGroup={toggleGroup}
+                abrirGrupo={abrirGrupo}
               />
             </motion.aside>
           </div>

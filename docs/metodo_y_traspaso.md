@@ -553,6 +553,31 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 189: el sidebar deja de esconder lo que hay.** El dueño lo describió así:
+  *"tiende a ocultarse y hay que hacer scroll para buscar y seleccionar"*.
+  **Medido**: 50 elementos de menú en 9 grupos — 59 filas con todo abierto, así que
+  el scroll no se puede quitar. El problema era que estaba **a ciegas**:
+  - la **barra de scroll estaba oculta a propósito**
+    (`[&::-webkit-scrollbar]:hidden`): nada decía que hubiera más abajo ni había
+    barra que agarrar;
+  - **no había un solo `scrollIntoView`** en 725 líneas, así que la pantalla actual
+    podía quedar bajo el pliegue y había que buscarla a mano en cada navegación;
+  - `expandedGroups` era un `useState` **sin persistencia dentro de
+    `SidebarContent`, del que hay DOS instancias** (escritorio y cajón móvil): al
+    recargar se plegaba todo, y el móvil **empezaba plegado cada vez que se abría**.
+  El estado **sube al padre** (una sola verdad) y **se recuerda** — decisión del
+  dueño, frente a abrir todo o uno a la vez. Leer la preferencia nunca puede romper
+  el menú, y solo se aceptan booleanos.
+  **El buscador (Ctrl+K)**: flechas con vuelta en los extremos, Enter, y búsqueda
+  **sin tildes** (`name.toLowerCase().includes(...)` dejaba fuera lo que nadie
+  escribe con acento) y **por grupo**. La comparación vive en
+  `utils/buscarTexto.ts`, fuera del sidebar, porque **el mismo problema lo tiene
+  cualquier filtro por nombre**. La columna derecha pasa de la URL cruda al grupo.
+  **Un mutante obligó a apretar el banco**: quitar la **llamada** que guarda la
+  preferencia sobrevivió, porque la comprobación miraba que `guardarGrupos`
+  existiera — y seguía ahí con su `setItem`. **Mera presencia otra vez.** Y `tsc`
+  cazó lo que el banco no ve: al subir el estado, la segunda instancia se quedó sin
+  las propiedades nuevas.
 - **Lote 188: máscara al escribir el número de los avisos, y aviso en el momento.**
   Antes un número mal puesto no se sabía hasta pulsar Guardar, y el servidor
   contestaba un 400: el aviso llegaba tarde y lejos del campo.
