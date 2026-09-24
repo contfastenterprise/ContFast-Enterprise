@@ -1,32 +1,42 @@
 /**
- * Los seis huecos de la plantilla de WhatsApp, rellenados desde un aviso.
+ * Los siete huecos de la plantilla de WhatsApp, rellenados desde un aviso.
  *
  * POR QUE ESTE FICHERO (lote 179)
  * -------------------------------
  * El lote 178 mandaba el aviso como UN parametro suelto, porque cuando se
- * escribio no habia plantilla. La que Meta APROBO el 2026-09-23 --
- * `aviso_administrativo`, es_MX -- tiene SEIS huecos y CON NOMBRE:
+ * escribio no habia plantilla. La que se usa es `notificacion_operativa`
+ * (es_MX, categoria UTILITY, APPROVED el 2026-09-24), con SIETE huecos CON
+ * NOMBRE:
  *
- *     [cabecera fija: Aviso administrativo]
+ *     [cabecera fija: Notificación de cuenta]
  *
- *     Hola {{administrador}}, se detectó un aviso en {{empresa}}: {{tipo_aviso}}.
+ *     Hola {{administrador}}, se requiere atención en la cuenta de {{empresa}}
+ *     por el evento registrado como {{tipo_aviso}}.
  *
- *     Cantidad pendiente: {{cantidad}}
- *     Fecha: {{fecha}}
+ *     La cantidad afectada es {{cantidad}} y la fecha de detección fue
+ *     {{fecha}}. La referencia del evento es {{referencia}}.
  *
- *     Revisa la información en {{app_name}} cuando puedas.
+ *     Consulta el detalle en {{app_name}} cuando puedas.
  *
- *     [pie fijo: Notificación automática]
+ *     [pie fijo: Mensaje automático relacionado con tu cuenta]
  *
- * LOTE 184: eran CINCO cuando se escribio el 179, porque es lo que el dueño
- * dijo que habia creado. Al leer la plantilla aprobada con la API salio que
- * llevaba una mas, `empresa`, asi que el cuerpo del 179 habria dado 132000
- * -- descuadre de parametros -- y NO habria salido ni un aviso. Comprobado con
- * un envio real de seis parametros: `message_status: accepted`.
+ * TRES VECES SEGUIDAS LA PLANTILLA NO ERA LA QUE SE CREIA, y cada vez el
+ * sintoma habria sido el mismo: Meta rechaza el mensaje ENTERO por descuadre de
+ * parametros (132000) y, como nada lanza, no sale ni un aviso y solo se ve en el
+ * registro.
  *
- * La leccion, y es la segunda vez en dos lotes: la forma de la plantilla se LEE
- * de la API (`GET /meta/whatsapp/v24.0/{waba}/message_templates`), no se da por
- * sabida. La cabecera y el pie son fijos, asi que no llevan parametros.
+ *   · lote 179: se escribio para CINCO huecos, los que dijo el dueño.
+ *   · lote 184: la aprobada tenia SEIS -- `empresa` era propia.
+ *   · lote 186: la definitiva tiene SIETE -- aparece `referencia`, y ademas
+ *     cambia de nombre y de categoria (UTILITY en vez de MARKETING, que es la
+ *     que corresponde a un aviso operativo: una de marketing depende de que el
+ *     destinatario no la haya bloqueado).
+ *
+ * LA REGLA, ya sin excusa: la forma de la plantilla se LEE de
+ * `GET /meta/whatsapp/v24.0/{waba}/message_templates` y se comprueba con un
+ * envio real antes de darla por buena. Las tres veces se comprobo asi
+ * (`message_status: accepted`). La cabecera y el pie son fijos: no llevan
+ * parametros.
  *
  * LAS REGLAS DE META PARA UN PARAMETRO DE CUERPO, que no son opcionales:
  *   · no puede ir VACIO;
@@ -46,7 +56,7 @@ import type { AvisoDelPanel } from '@/services/avisos/avisoDelPanel';
  * Si algun dia la plantilla cambia, esto y `parametrosDelAviso` cambian juntos:
  * son el CONTRATO con lo que Meta tiene aprobado, no una preferencia nuestra.
  */
-export const HUECOS_DE_LA_PLANTILLA = ['administrador', 'empresa', 'tipo_aviso', 'cantidad', 'fecha', 'app_name'] as const;
+export const HUECOS_DE_LA_PLANTILLA = ['administrador', 'empresa', 'tipo_aviso', 'cantidad', 'fecha', 'referencia', 'app_name'] as const;
 
 export type HuecoDeLaPlantilla = (typeof HUECOS_DE_LA_PLANTILLA)[number];
 
@@ -98,7 +108,7 @@ export function montoDelAviso(...textos: (string | null | undefined)[]): string 
 }
 
 /**
- * Los seis huecos, listos para mandar.
+ * Los siete huecos, listos para mandar.
  *
  * `administrador` va con un saludo GENERICO, no con un nombre. El destino se
  * configura por empresa, no por persona: no sabemos quien lee ese telefono, y
@@ -116,7 +126,7 @@ export function parametrosDelAviso(
   fecha: string,
 ): Record<HuecoDeLaPlantilla, string> {
   const monto = montoDelAviso(aviso.description, aviso.title);
-  // El punto final lo pone la plantilla ("...un aviso en {{empresa}}: {{tipo_aviso}}."),
+  // El punto final lo pone la plantilla ("...registrado como {{tipo_aviso}}."),
   // asi que el del aviso sobraria y saldrian dos seguidos.
   const queEs = `${aviso.title} · ${aviso.description}`.replace(/\.+$/, '');
   return {
@@ -125,6 +135,12 @@ export function parametrosDelAviso(
     tipo_aviso: limpiarParametro(queEs),
     cantidad: limpiarParametro(monto),
     fecha: limpiarParametro(fecha),
+    //  LA REFERENCIA ES LA CLAVE ESTABLE DEL AVISO (lote 186): `caja-diferencia-
+    //  <id>`, `declaracion-606-202608`, `periodos-PRODUCCION`... Es la misma que
+    //  guarda `notifications.clave` y la que impide que el aviso se repita, asi
+    //  que quien reciba el mensaje y quien mire la base estan hablando del MISMO
+    //  aviso. Inventar un codigo nuevo aqui daria dos identidades para una cosa.
+    referencia: limpiarParametro(aviso.id),
     app_name: 'ContFast',
   };
 }

@@ -553,6 +553,22 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 186: la plantilla definitiva tiene SIETE huecos y es UTILITY.** El dueño
+  la recreó como **`notificacion_operativa`** (UTILITY, es_MX), que es la
+  categoría que corresponde a un aviso operativo — la anterior era MARKETING y
+  eso depende de que el destinatario no la haya bloqueado. Pero no es la misma con
+  otra etiqueta: **aparece `referencia`**, un séptimo hueco.
+  **Tres veces seguidas la plantilla no era la que se creía** (179: cinco, los
+  que dijo el dueño; 184: seis, `empresa` propia; 186: siete, con `referencia`),
+  y las tres el síntoma habría sido el mismo — **132000 y ni un aviso**, visible
+  solo en el registro. **Regla, ya sin excusa**: leer la plantilla de
+  `GET /meta/whatsapp/v24.0/{waba}/message_templates` **y** comprobarla con un
+  envío real antes de darla por buena.
+  `referencia` lleva la **clave estable del aviso** (`caja-diferencia-<id>`,
+  `declaracion-606-202608`), la misma de `notifications.clave`: así quien recibe
+  el mensaje y quien mira la base hablan del mismo aviso.
+  **Al desplegar**: `KAPSO_PLANTILLA_AVISO = notificacion_operativa`. El idioma
+  `es_MX` ya es el valor por defecto.
 - **Lote 185: dos logs que señalaban al sitio equivocado.** No es cosmética: el
   ruido de los registros de PRODUCCIÓN mandó a buscar el defecto del recibo donde
   no estaba.

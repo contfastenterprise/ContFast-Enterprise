@@ -28,12 +28,22 @@
  *
  * LOS PARAMETROS VAN CON NOMBRE (lote 179)
  * ----------------------------------------
- * La plantilla `aviso_administrativo` que creo el dueño el 2026-09-21 usa
- * parametros CON NOMBRE (`{{administrador}}`, `{{tipo_aviso}}`...), no
+ * La plantilla en uso -- `notificacion_operativa`, es_MX, categoria UTILITY --
+ * usa parametros CON NOMBRE (`{{administrador}}`, `{{empresa}}`...), no
  * posicionales. Meta los quiere como `{ type: 'text', parameter_name: '...',
  * text: '...' }`, y si el numero de parametros no coincide rechaza el mensaje
  * entero (error 132000). El lote 178 mandaba UNO suelto: no habria salido ni
  * un aviso, y como nada lanza solo se habria visto en el registro.
+ *
+ * CUALES SON Y CUANTOS, ESO NO SE DECIDE AQUI: los arma
+ * `services/avisos/plantillaDeAviso.ts`, que es donde esta escrito el contrato
+ * con lo que Meta tiene aprobado. Este fichero solo los traduce al cuerpo de la
+ * Cloud API. Ahi esta contado el porque, que costo tres lotes: la forma de la
+ * plantilla se LEE de la API y se comprueba con un envio real, nunca se supone.
+ *
+ * La anterior, `aviso_administrativo`, se borro el 2026-09-24: estaba aprobada
+ * como MARKETING, y esa categoria depende de que el destinatario no la haya
+ * bloqueado. Un aviso de caja descuadrada no es publicidad.
  */
 import { Logger } from '@/utils/logger';
 
