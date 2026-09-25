@@ -123,15 +123,25 @@ async function main() {
   ok('la insignia del entorno esta en la barra de arriba',
     /<InsigniaEntorno/.test(codigoLayout) && /from '@\/components\/ui\/insignia-entorno'/.test(layout));
   //  AL LADO DE LA CAMPANA, no en cualquier sitio de la barra: es lo que se pidio.
-  //  Se mira el ORDEN y que no haya nada entre las dos.
+  //
+  //  SE MIRA LA ADYACENCIA, NO EL ORDEN. La primera version exigia que la insignia
+  //  fuera DESPUES de la campana, y en el lote 193 el dueño la pidio al otro lado
+  //  ('ponlo del lado izquierdo y no lo separes tanto'). La comprobacion se puso en
+  //  rojo sin que faltara nada: fijaba la FORMA de entonces y no la propiedad, que es
+  //  que las dos vayan JUNTAS -- que el entorno se lea con la campana y no flotando
+  //  entre la campana y el avatar como si fuera otra cosa.
   const entreLasDos = (() => {
     const i = codigoLayout.indexOf('<CampanaAvisos />');
-    const j = codigoLayout.indexOf('<InsigniaEntorno', i);
-    return i > -1 && j > i ? codigoLayout.slice(i + '<CampanaAvisos />'.length, j) : null;
+    const j = codigoLayout.indexOf('<InsigniaEntorno');
+    if (i < 0 || j < 0) return null;
+    const [primero, segundo] = i < j
+      ? [i + '<CampanaAvisos />'.length, j]
+      : [j + '<InsigniaEntorno entorno={entorno} />'.length, i];
+    return segundo > primero ? codigoLayout.slice(primero, segundo) : null;
   })();
-  ok('  justo despues de la campana, sin nada en medio',
+  ok('  pegada a la campana, sin nada en medio (a un lado o al otro)',
     entreLasDos !== null && !/<[A-Za-z]/.test(entreLasDos),
-    entreLasDos === null ? 'no van seguidas' : '');
+    entreLasDos === null ? 'no van seguidas' : JSON.stringify(entreLasDos.trim().slice(0, 40)));
   ok('  y recibe el entorno de verdad, no un valor fijo',
     /<InsigniaEntorno entorno=\{entorno\}/.test(codigoLayout));
 
@@ -164,8 +174,11 @@ async function main() {
   //  "MODO PRUEBA (SANDBOX)" y esa SE QUEDA, asi que buscar la palabra en todo el
   //  fichero daba FALLA por lo que no hay que cambiar. La franja vive FUERA del
   //  `<nav>`; la pastilla estaba dentro.
+  //  Desde el GRUPO DERECHO de la barra y no desde la campana: en el lote 193 la
+  //  insignia paso a ir ANTES de la campana, y una rebanada que empezaba en la
+  //  campana se la dejaba fuera -- daba FALLA por lo que no habia que cambiar.
   const barraDerecha = (() => {
-    const i = codigoLayout.indexOf('<CampanaAvisos />');
+    const i = codigoLayout.indexOf("flex items-center gap-4");
     if (i < 0) return '';
     const j = codigoLayout.indexOf('</nav>', i);
     return j > -1 ? codigoLayout.slice(i, j) : '';

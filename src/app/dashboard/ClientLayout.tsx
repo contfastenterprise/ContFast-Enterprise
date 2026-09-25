@@ -10,6 +10,7 @@ import clsx from 'clsx';
 import NewAppSidebar from '@/components/ui/new-app-sidebar';
 import CampanaAvisos from '@/components/ui/campana-avisos';
 import MenuDelUsuario from '@/components/ui/menu-del-usuario';
+import SelectorDeEmpresa from '@/components/ui/selector-de-empresa';
 import InsigniaEntorno from '@/components/ui/insignia-entorno';
 import { RbacProvider, useRbac } from '@/components/providers/rbacContext';
 import { esAdminOSistemas } from '@/utils/rolMatch';
@@ -372,7 +373,7 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
             ? 'top-11 bg-zinc-950 text-white border-red-500/20 shadow-md'
             : 'top-0 bg-gradient-to-r from-sky-50 via-blue-50 to-indigo-100 text-slate-900 border-indigo-200/50 shadow-sm'
         )}>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             {/* Mobile hamburger */}
             <button
               className="md:hidden p-2 rounded-lg transition hover:bg-slate-200/50 text-inherit"
@@ -403,30 +404,33 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
               <img src="/Icono.svg" alt="Icono" className="h-7 w-auto object-contain drop-shadow-sm md:hidden" />
             </div>
 
-            {/* Company name — suppressHydrationWarning allows SSR/client content to differ */}
-            <span
-              suppressHydrationWarning
-              className="font-display-lg text-xl font-extrabold tracking-tight min-w-[80px] text-inherit border-l border-slate-300 pl-3 ml-1"
-            >
-              {switching ? '' : companyName}
-            </span>
+            {/*  LOTE 193: EL SELECTOR, EN LUGAR DEL NOMBRE SUELTO.
+                 Pedido del dueño. Aqui habia el nombre en texto plano y el menu
+                 lateral llevaba el selector con ESE MISMO nombre: el dato estaba dos
+                 veces y el sitio donde se cambia era el que menos se ve -- el pie del
+                 menu, que ademas desaparecia con el menu plegado.  */}
+            <SelectorDeEmpresa
+              companyName={companyName}
+              companies={companies}
+              rol={user?.role}
+              companyId={user?.companyId}
+              onSwitchCompany={handleSwitchCompany}
+              switching={switching}
+            />
           </div>
   
           <div className="flex items-center gap-4">
-            {/* Lote 160: los avisos del sistema, en todas las pantallas y no
-                solo en el panel de inicio. */}
-            <CampanaAvisos />
-
-            {/*  LOTE 192: EL ENTORNO, AL LADO DE LA CAMPANA Y SIN ETIQUETA.
-                 Pedido del dueño. Antes este mismo dato se enseñaba TRES veces en
-                 PRUEBA -- la franja de arriba, una pastilla "SANDBOX" aqui y el pie
-                 del menu -- y solo UNA en PRODUCCION: el pie del menu, que es el que
-                 se iba. La pastilla era la version con etiqueta de este punto, asi que
-                 se retira con el.
-                 LA FRANJA DE ARRIBA SE QUEDA, a proposito: dice que las operaciones son
-                 fiscalmente nulas, y eso es una advertencia legal, no un adorno.  */}
-            <InsigniaEntorno entorno={entorno} />
-
+            {/*  LOTE 193: EL PUNTO DEL ENTORNO, A LA IZQUIERDA DE LA CAMPANA Y PEGADO.
+                 Pedido del dueño: antes iba detras y con el hueco de 4 del grupo, que lo
+                 dejaba flotando entre la campana y el avatar como si fuera otra cosa. Van
+                 en su propio grupo con hueco de 1,5: el entorno es el CONTEXTO de lo que
+                 se mira, asi que se lee antes -- de izquierda a derecha -- y no despues.
+                 (Lote 192: este punto sustituyo a la pastilla "SANDBOX" y al rotulo del
+                 pie del menu. La franja rayada de PRUEBA sigue arriba, a proposito.)  */}
+            <div className="flex items-center gap-1.5">
+              <InsigniaEntorno entorno={entorno} />
+              <CampanaAvisos />
+            </div>
             {/*  LOTE 192: CERRAR SESION VIVE AQUI DENTRO.
                  Estaba en el pie del menu lateral, debajo de cincuenta elementos. Y
                  este avatar ya llevaba `cursor-pointer` y `hover:scale-105` SIN un
@@ -442,15 +446,10 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
   
         {/* AppSidebar */}
         <NewAppSidebar
-          user={user}
-          companies={companies}
-          companyName={companyName}
           entorno={entorno}
           collapsed={sidebarCollapsed}
           mobileOpen={mobileOpen}
           onMobileClose={() => setMobileOpen(false)}
-          onSwitchCompany={handleSwitchCompany}
-          switching={switching}
         />
   
         {/* Main Content Wrapper */}

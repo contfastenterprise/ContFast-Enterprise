@@ -144,15 +144,14 @@ function guardarFavoritos(favoritos: string[]): void {
 }
 
 interface AppSidebarProps {
-  user: any;
-  companies: any[];
-  companyName: string;
+  //  LOTE 193: se fueron `user`, `companies`, `companyName`, `onSwitchCompany` y
+  //  `switching`: eran todas del selector de empresa, que ahora vive en la cabecera.
+  //  `entorno` SE QUEDA aunque su rotulo tambien se fuera (lote 192): con el se
+  //  calcula el hueco de la franja de PRUEBA, y sin el el menu se metia debajo.
   entorno: Entorno;
   collapsed: boolean;
   mobileOpen: boolean;
   onMobileClose: () => void;
-  onSwitchCompany: (companyId: string) => void;
-  switching?: boolean;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -188,103 +187,6 @@ function getAllSearchableItems(
         grupo: g.title,
       }))
     )
-  );
-}
-
-// ─── WorkspaceSwitcher (Light, Beveled, Systems support) ───────────────────────
-
-function WorkspaceSwitcher({
-  user, companies, companyName, onSwitchCompany, switching, collapsed,
-}: {
-  user: any; companies: any[]; companyName: string;
-  onSwitchCompany: (id: string) => void; switching?: boolean; collapsed: boolean;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const isSistemas = user?.role === 'sistemas';
-  if (collapsed) {
-    return (
-      <div className="flex items-center justify-center py-4">
-        <div
-          className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary to-blue-600 text-on-primary flex items-center justify-center font-bold text-sm shadow-md shadow-primary/20 cursor-default transition hover:scale-105"
-          title={companyName}
-        >
-          {companyName.charAt(0).toUpperCase()}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative px-4 pb-3 pt-1">
-      <div
-        onClick={() => isSistemas && setIsOpen(o => !o)}
-        className={clsx(
-          'flex items-center justify-between px-3 py-2.5 rounded-xl border border-[#003366]/20 bg-[#003366]/10 select-none group transition duration-300',
-          isSistemas
-            ? 'hover:bg-[#003366]/15 hover:border-[#003366]/30 cursor-pointer shadow-[0_2px_8px_rgba(0,0,0,0.02)]'
-            : 'cursor-default',
-        )}
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-primary to-blue-600 text-on-primary flex items-center justify-center font-bold text-[14px] shadow-[0_3px_8px_rgba(0,0,0,0.08)] shrink-0">
-            {switching
-              ? <Loader2 className="w-4 h-4 animate-spin text-on-primary" />
-              : companyName.charAt(0).toUpperCase()}
-          </div>
-          <div className="flex flex-col overflow-hidden min-w-0">
-            <span className="text-[13px] font-bold leading-none mb-1 text-on-surface truncate">
-              {companyName}
-            </span>
-            <span className="text-[11px] text-on-surface-variant/70 leading-none">
-              {isSistemas ? 'Sistemas · cambiar' : 'Empresa activa'}
-            </span>
-          </div>
-        </div>
-        {isSistemas && (
-          <ChevronDown
-            className={clsx(
-              'w-4 h-4 text-on-surface-variant/40 group-hover:text-on-surface-variant/80 transition duration-200 shrink-0',
-              isOpen && 'rotate-180',
-            )}
-            strokeWidth={1.5}
-          />
-        )}
-      </div>
-
-      {/* Companies Dropdown */}
-      {isSistemas && isOpen && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-full left-4 right-4 mt-1.5 bg-surface-container-lowest border border-outline-variant/40 rounded-xl shadow-2xl z-50 py-2 flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
-            <div className="px-3 py-1.5 mb-1.5 border-b border-outline-variant/10">
-              <span className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest">
-                Seleccionar Empresa
-              </span>
-            </div>
-            <div className="max-h-56 overflow-y-auto custom-scrollbar">
-              {companies.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => { onSwitchCompany(c.id); setIsOpen(false); }}
-                  className={clsx(
-                    'w-full text-left px-3 py-2.5 text-[12px] cursor-pointer transition-colors flex flex-col gap-0.5 hover:bg-surface-container-low text-on-surface-variant hover:text-on-surface',
-                    user?.companyId === c.id && 'bg-primary/10 text-primary font-bold border-l-2 border-primary',
-                  )}
-                >
-                  <span className="flex items-center gap-2 truncate">
-                    {c.name}
-                    {user?.companyId === c.id && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                    )}
-                  </span>
-                  <span className="text-[10px] text-on-surface-variant/60 font-mono">RNC: {c.rnc}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
-    </div>
   );
 }
 
@@ -536,13 +438,12 @@ function SearchModal({ onClose, favoritos }: { onClose: () => void; favoritos: s
 // ─── SidebarContent (Glow and Accordion) ────────────────────────────────────────
 
 function SidebarContent({
-  user, companies, companyName, entorno, onSwitchCompany, switching,
+  entorno,
   collapsed, onItemClick,
   expandedGroups, toggleGroup, abrirGrupo,
   favoritos, alternarAnclado,
 }: {
-  user: any; companies: any[]; companyName: string; entorno: Entorno;
-  onSwitchCompany: (id: string) => void; switching?: boolean;
+  entorno: Entorno;
   collapsed: boolean; onItemClick?: () => void;
   //  LOTE 189: el estado de los grupos viene de FUERA. Antes lo tenia cada
   //  instancia, y hay dos -- escritorio y cajon movil --, asi que lo que abrias
@@ -623,15 +524,12 @@ function SidebarContent({
 
   return (
     <>
-      {/* Workspace Switcher */}
-      <WorkspaceSwitcher
-        user={user}
-        companies={companies}
-        companyName={companyName}
-        onSwitchCompany={onSwitchCompany}
-        switching={switching}
-        collapsed={collapsed}
-      />
+      {/*  LOTE 193: AQUI ESTABA EL SELECTOR DE EMPRESA.
+           Se fue a la cabecera, a peticion del dueño. Aqui abajo el nombre de la
+           empresa estaba REPETIDO -- la cabecera ya lo enseñaba en texto plano -- y,
+           con el menu plegado, el selector se quedaba en un cuadrito con la inicial
+           que no se podia pulsar: el unico sitio donde se cambia de empresa
+           desaparecia justo cuando el menu esta estrecho.  */}
 
       <div className="h-px bg-outline-variant/20 mx-4 mb-3" />
 
@@ -842,9 +740,7 @@ function SidebarContent({
 // ─── NewAppSidebar (main export) ───────────────────────────────────────────────
 
 export default function NewAppSidebar({
-  user, companies, companyName, entorno,
-  collapsed, mobileOpen, onMobileClose,
-  onSwitchCompany, switching,
+  entorno, collapsed, mobileOpen, onMobileClose,
 }: AppSidebarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [diagExpanded, setDiagExpanded] = useState(false);
@@ -900,7 +796,6 @@ export default function NewAppSidebar({
   }, []);
   const { hasPermission, routeMappings, user: rbacUser } = useRbac();
 
-  const activeUser = user || rbacUser;
   const auditGroups = buildSidebar(routeMappings, hasPermission, rbacUser?.role || '');
 
   // ⌘K global shortcut
@@ -957,12 +852,7 @@ export default function NewAppSidebar({
         </div>
 
         <SidebarContent
-          user={activeUser}
-          companies={companies}
-          companyName={companyName}
           entorno={entorno}
-          onSwitchCompany={onSwitchCompany}
-          switching={switching}
           collapsed={collapsed}
           expandedGroups={expandedGroups}
           toggleGroup={toggleGroup}
@@ -1015,12 +905,7 @@ export default function NewAppSidebar({
               </div>
 
               <SidebarContent
-                user={activeUser}
-                companies={companies}
-                companyName={companyName}
                 entorno={entorno}
-                onSwitchCompany={(id) => { onSwitchCompany(id); onMobileClose(); }}
-                switching={switching}
                 collapsed={false}
                 onItemClick={onMobileClose}
                 expandedGroups={expandedGroups}
@@ -1056,7 +941,6 @@ export default function NewAppSidebar({
             </div>
             <div className="space-y-1">
               <div><strong>Rol Client:</strong> {rbacUser?.role || 'null'}</div>
-              <div><strong>Rol Prop:</strong> {user?.role || 'null'}</div>
               <div><strong>Permisos:</strong> {rbacUser?.permissions?.length || 0}</div>
               <div><strong>Route Mappings:</strong> {routeMappings?.length || 0}</div>
               <div><strong>Grupos Sidebar:</strong> {auditGroups?.length || 0}</div>

@@ -553,6 +553,44 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 193: el selector de empresa sube a la cabecera** (pedido del dueño,
+  2026-09-25). El nombre de la empresa estaba **dos veces** —texto plano en la
+  cabecera y dentro del selector, en el pie del menú— y el único sitio donde se
+  cambia era el que menos se ve: **con el menú plegado desaparecía**, quedaba un
+  cuadrito con la inicial sin `onClick`.
+  **Medido (PRODUCCIÓN, 2026-09-25)**: de 9 usuarios, **6 son `administracion`** y
+  solo 1 es `sistemas`. Para esos 6 el selector nunca fue un selector: es el nombre
+  de la empresa. Y los nombres de rol están **todos en minúsculas**, así que la
+  comparación estricta se conserva: **este lote no cambia quién puede cambiar de**
+  **empresa**, aunque otras pantallas acepten además `'sistema'` y sin mayúsculas
+  (`admin/sessions`, `admin/users`, `dashboard/admin`). Si algún día aparece un rol
+  así, el sitio a tocar es uno: `src/utils/cambioDeEmpresa.ts`.
+  Ese fichero (puro) lleva `puedeCambiarDeEmpresa` e `inicialDeEmpresa`; la segunda
+  arregla algo real: `companyName.charAt(0)` daba **cadena vacía** mientras los
+  ajustes no habían llegado, y en la cabecera ese círculo en blanco se ve mucho más
+  que en el pie del menú.
+  **El nombre va completo** (pedido después de ver la primera versión): recortarlo
+  dejaba "LATIN DOO...", y con seis empresas el nombre a medias no dice en cuál
+  estás — es el dato que evita emitir una factura en la empresa equivocada. Lo que
+  cede en una pantalla estrecha es el **logo**, no el nombre.
+  El punto del entorno pasa a la **izquierda de la campana y pegado** (grupo propio
+  con hueco 1,5; antes flotaba entre la campana y el avatar con el hueco 4).
+  El sidebar pierde `user`, `companies`, `companyName`, `onSwitchCompany` y
+  `switching` —todas del selector— y el panel de diagnóstico pierde la línea "Rol
+  Prop": comparaba el rol del *prop* con el del contexto, y ya no hay dos fuentes.
+  Banco de 26, contraprueba 0 OK, **trece mutantes y trece muertos**. Dos cosas
+  apretaron el método:
+  1. `/if \(!sePuede\)/` en todo el fichero **sobrevivió** al mutante que vaciaba la
+     guarda, porque el `useEffect` que cierra el menú lleva ese mismo texto — mera
+     presencia otra vez. Ahora se acota a la rama y se exige que no tenga `<button`.
+  2. **Una tanda entera salió "11 de 11" con el banco ROTO** por un `
+` que escribí
+     a mano y se convirtió en salto de línea real: un banco que revienta parece matar
+     cualquier mutante. **El lanzador de mutantes ya distingue "dio FALLA" de "no**
+     **arrancó"**, y eso vale para todos los lotes que vengan.
+  Y `verificar_entorno_y_sesion.ts` (192) se puso en rojo por este lote: exigía la
+  insignia **después** de la campana. Deriva, no regresión — re-anclado a la
+  **adyacencia**, que es la propiedad, y verde en los dos estados.
 - **Lote 192: cerrar sesión dentro del avatar, y el entorno al lado de la campana**
   (pedido del dueño, 2026-09-24). Al ir a hacerlo salió lo que no se pedía:
   - el **mismo dato se enseñaba TRES veces en PRUEBA** —la franja rayada de arriba,
