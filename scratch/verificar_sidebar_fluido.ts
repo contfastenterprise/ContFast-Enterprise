@@ -177,21 +177,33 @@ async function main() {
   ok('las dos instancias comparten el mismo estado',
     instancias === 2 && conEstado === 2, `${conEstado} de ${instancias}`);
 
-  //  NO BASTA CON QUE LA FUNCION EXISTA: un mutante que quitaba la LLAMADA
-  //  sobrevivio, porque `guardarGrupos` seguia ahi con su `setItem` dentro. Es la
-  //  trampa de la mera presencia. Se exige tambien el efecto que la invoca.
+  //  LOTE 195: ESTAS CUATRO COMPROBACIONES HABLABAN DEL MECANISMO, NO DE LA
+  //  PROPIEDAD, y el mecanismo se movio: leer y escribir se fue a
+  //  `hooks/usePreferenciaDelNavegador` y la validacion a `utils/preferenciasDelMenu`.
+  //
+  //  Aqui se queda lo que este lote defiende: que la preferencia SE RECUERDE. Que no
+  //  lance, que no se cuele basura y que no se pise antes de leerla se comprueba en
+  //  `verificar_hidratacion_menu.ts`, y alli se EJECUTA -- la validacion es pura desde
+  //  el 195; aqui solo se podia leer el texto del fichero.
   ok('se guarda en el navegador',
-    /localStorage\.setItem\(CLAVE_GRUPOS/.test(codigo)
-    && /useEffect\(\(\) => \{ guardarGrupos\(expandedGroups\); \}, \[expandedGroups\]\)/.test(codigo));
-  ok('  y se lee al arrancar, no despues', /useState<Record<string, boolean>>\(\s*\(\) => \(typeof window/.test(codigo));
-  //  Leerlo en un efecto pintaria primero lo plegado y lo corregiria despues: se
-  //  veria como un salto.
-  ok('leer una preferencia NUNCA puede romper el menu',
-    /function leerGruposGuardados[\s\S]{0,900}catch \{\s*return null;/.test(codigo)
-    && /function guardarGrupos[\s\S]{0,300}catch \{/.test(codigo));
-  //  Basura en esa clave no puede colarse al estado.
-  ok('  ni lo guardado con una forma que no es la esperada',
-    /typeof v === 'boolean'/.test(codigo));
+    /CLAVE_GRUPOS/.test(codigo)
+    && /usePreferenciaDelNavegador<Record<string, boolean>>\(/.test(codigo));
+
+  //  ESTA COMPROBACION DEFENDIA UN DEFECTO, Y SE INVIERTE (no se borra).
+  //
+  //  Decia "y se lee al arrancar, no despues" y exigia
+  //  `useState(() => (typeof window ...))`, con un comentario que lo justificaba:
+  //  "leerlo en un efecto pintaria primero lo plegado". Pero eso es justo lo que hacia
+  //  que el servidor pintase todo plegado y el navegador otra cosa -- error de
+  //  hidratacion en cada carga de cada pantalla, reportado por el dueño el 2026-09-25.
+  //  Con `useLayoutEffect` la preferencia se restaura ANTES del pintado, asi que
+  //  tampoco se ve el salto que preocupaba: se consiguen las dos cosas.
+  //
+  //  Mismo caso que el p2_28_31 de los lotes 114-118: una comprobacion que protege un
+  //  error se cambia de sentido.
+  ok('NO se lee el navegador mientras se pinta (rompia la hidratacion)',
+    !/useState<Record<string, boolean>>\(\s*\(\) => \(typeof window/.test(codigo)
+    && /usePreferenciaDelNavegador/.test(codigo));
 
   //  Abrir NO es alternar: el grupo de la pagina actual se abre solo, y con
   //  `toggleGroup` se cerraria justo cuando ya estaba abierto.

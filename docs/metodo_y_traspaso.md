@@ -553,6 +553,46 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 195: el menú leía el navegador mientras se pintaba** — error de hidratación
+  en cada carga, y **un banco lo defendía**. Reportado por el dueño el 2026-09-25, y
+  era mío: de los lotes 189 y 191.
+  Las dos preferencias del menú se leían en el **inicializador** del `useState`
+  (`useState(() => (typeof window === 'undefined' ? {} : leerGruposGuardados()))`), así
+  que el servidor pintaba todo plegado y el navegador otra cosa: React tiraba su árbol
+  y **reconstruía el menú entero en cada carga de cada pantalla**. Medido: en todo
+  `src/` **solo esos dos sitios** lo hacían; el resto ya leía `localStorage` en un
+  efecto.
+  **Y el banco del 189 exigía el defecto**: `ok('  y se lee al arrancar, no despues')`,
+  con un comentario justificándolo. **Se invierte, no se borra** — mismo criterio que
+  el p2_28_31 de los lotes 114-118.
+  La cura conserva lo que el 189 quería: `hooks/usePreferenciaDelNavegador` deja el
+  valor de partida igual en los dos lados y restaura la preferencia en un
+  **`useLayoutEffect`** — después de montar y **antes de que el navegador pinte** —,
+  así que el HTML coincide y **nadie ve el menú plegado**. La cura de manual
+  (`useEffect`) habría arreglado la hidratación devolviendo el parpadeo. Que en el
+  servidor se use `useEffect` **no** es el defecto de antes: ahí `typeof window` decide
+  qué hook se usa, no qué se pinta.
+  Una guarda que no es teórica: **no se escribe nada hasta haber intentado leer**; si
+  el efecto que guarda corriera primero, escribiría el valor de partida y **borraría la
+  preferencia justo antes de leerla**.
+  `utils/preferenciasDelMenu.ts` (puro) se queda con la validación de lo guardado, que
+  antes vivía dentro del componente y solo se podía comprobar **leyendo el texto** del
+  fichero. De paso queda dicho algo que no estaba: `null` es «no hay preferencia» y
+  deja el valor de partida en pie, mientras que **vacío sí es una preferencia** («lo
+  dejé todo cerrado»).
+  Banco de 21, contraprueba **0 OK de 15 sin un superviviente**, diez mutantes y diez
+  muertos. Dos apretaron el método:
+  1. Quitar el `try` del `JSON.parse` hacía que la comprobación **lanzara** y el banco
+     abortara en vez de reportar FALLA: el mutante quedaba como «no se puede
+     concluir». Ahora se atrapa — si lanza, es que falla.
+  2. Darle a los favoritos **la clave de los grupos sobrevivió**: esa propiedad solo la
+     vigilaba el banco del 191 y es del mecanismo que se estrena aquí. Compartir clave
+     no daría ningún error: abrir un grupo **borraría las anclas**, en silencio.
+  **Confirmado en la práctica** (no solo por estructura): con `pnpm dev` reiniciado y
+  recarga completa, ni una línea de `Hydration failed`.
+  **Ojo con `alcanceStorefront.vitest.ts`**: vuelve a agotar su `beforeAll` (10 s) bajo
+  carga — la transformación pasa de 535 ms a 11 s. Solo, 27/27 en 2,5 s. Es contención,
+  y ya van dos veces en la misma sesión.
 - **Lote 194: el grupo que abres sube arriba** (pedido del dueño, 2026-09-25).
   Pulsar un grupo de la mitad de abajo —Sistema, Finanzas, RRHH— abría su submenú
   **debajo del pliegue**: pulsabas para desplegar y el despliegue no se veía.

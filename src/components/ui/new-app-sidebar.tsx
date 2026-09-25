@@ -20,6 +20,8 @@ import {
   alternarFavorito, esFavorito, favoritosVisibles, sugerenciasIniciales,
 } from '@/utils/favoritosDelMenu';
 import { grupoRecienAbierto } from '@/utils/grupoRecienAbierto';
+import { gruposDesdeTexto, favoritosDesdeTexto } from '@/utils/preferenciasDelMenu';
+import { usePreferenciaDelNavegador } from '@/hooks/usePreferenciaDelNavegador';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -67,48 +69,20 @@ interface NavGroupDef {
  */
 const CLAVE_GRUPOS = 'contfast:sidebar:grupos-abiertos';
 
-/**
- *  Lo guardado, o `null` si no hay nada utilizable.
- *
- *  NUNCA LANZA: en una ventana privada, con las cookies bloqueadas o si alguien
- *  dejo basura en esa clave, `localStorage` tira o devuelve algo que no es lo que
- *  se espera. Un sidebar que no se pinta porque no pudo leer una preferencia es
- *  peor que un sidebar que empieza plegado.
- */
-function leerGruposGuardados(): Record<string, boolean> | null {
-  try {
-    const crudo = window.localStorage.getItem(CLAVE_GRUPOS);
-    if (!crudo) return null;
-    const leido: unknown = JSON.parse(crudo);
-    if (!leido || typeof leido !== 'object' || Array.isArray(leido)) return null;
-    //  Solo booleanos: si la forma no es la esperada, se ignora entera en vez de
-    //  colar valores raros en el estado.
-    const limpio: Record<string, boolean> = {};
-    for (const [k, v] of Object.entries(leido as Record<string, unknown>)) {
-      if (typeof v === 'boolean') limpio[k] = v;
-    }
-    return limpio;
-  } catch {
-    return null;
-  }
-}
-
-function guardarGrupos(grupos: Record<string, boolean>): void {
-  try {
-    window.localStorage.setItem(CLAVE_GRUPOS, JSON.stringify(grupos));
-  } catch {
-    //  Que no se pueda recordar la preferencia no puede romper la navegacion.
-  }
-}
+//  LOTE 195: los valores de partida, en constantes y no escritos en la llamada.
+//  Son el HTML que pinta el servidor y con el que React compara al hidratar, asi
+//  que conviene que se vean de una vez y en un solo sitio.
+const VACIO_GRUPOS: Record<string, boolean> = {};
+const VACIO_FAVORITOS: string[] = [];
 
 /**
  *  DONDE SE GUARDA LO ANCLADO (lote 191).
  *
  *  Es del NAVEGADOR y no de la base, como los grupos abiertos, y eso es una
- *  decision: lo anclado es una preferencia de quien se sienta delante, igual que
- *  el zoom o el tema. Guardarlo en la base obligaria a una tabla, una migracion y
- *  una ruta para algo que si se pierde solo cuesta tres clics. Consecuencia
- *  asumida: quien entre desde otro ordenador empieza sin anclas.
+ *  decision: lo anclado es una preferencia de quien se sienta delante, igual que el
+ *  zoom o el tema. Guardarlo en la base obligaria a una tabla, una migracion y una
+ *  ruta para algo que si se pierde solo cuesta tres clics. Consecuencia asumida:
+ *  quien entre desde otro ordenador empieza sin anclas.
  *
  *  La clave lleva `favoritos` y no `anclados` porque lo que se guarda son RUTAS
  *  (`/dashboard/invoices`), y es lo mismo que lee el buscador.
@@ -116,34 +90,19 @@ function guardarGrupos(grupos: Record<string, boolean>): void {
 const CLAVE_FAVORITOS = 'contfast:sidebar:favoritos';
 
 /**
- *  Lo guardado, o lista vacia. NUNCA LANZA, por lo mismo que
- *  `leerGruposGuardados`: ventana privada, cookies bloqueadas o basura en esa
- *  clave no pueden dejar el menu sin pintar.
+ *  LOTE 195: AQUI ESTABAN LAS CUATRO FUNCIONES DE `localStorage`.
  *
- *  Se filtra a cadenas no vacias: si lo guardado no tiene la forma esperada se
- *  descarta elemento a elemento en vez de colar `null` en una lista de rutas, que
- *  acabaria pintando un `<Link href={undefined}>`.
+ *  Leer y escribir se fue a `hooks/usePreferenciaDelNavegador`, y la validacion de
+ *  lo guardado a `utils/preferenciasDelMenu` -- que, siendo puro, un banco si puede
+ *  ejecutar (antes se comprobaba leyendo el texto del fichero: que la linea
+ *  estuviera escrita, no que funcionara).
+ *
+ *  No es una mudanza por orden: aqui habia un DEFECTO. Las dos preferencias se leian
+ *  en el INICIALIZADOR del `useState`, asi que el servidor pintaba todo plegado y el
+ *  navegador pintaba lo que estuviera guardado. React lo detecta como
+ *  'Hydration failed... didn't match' y vuelve a construir el arbol entero en el
+ *  cliente, en cada carga de cada pantalla. Lo reporto el dueño el 2026-09-25.
  */
-function leerFavoritosGuardados(): string[] {
-  try {
-    const crudo = window.localStorage.getItem(CLAVE_FAVORITOS);
-    if (!crudo) return [];
-    const leido: unknown = JSON.parse(crudo);
-    if (!Array.isArray(leido)) return [];
-    return leido.filter((v): v is string => typeof v === 'string' && v.length > 0);
-  } catch {
-    return [];
-  }
-}
-
-function guardarFavoritos(favoritos: string[]): void {
-  try {
-    window.localStorage.setItem(CLAVE_FAVORITOS, JSON.stringify(favoritos));
-  } catch {
-    //  Igual que con los grupos: no poder recordarlo no rompe nada.
-  }
-}
-
 interface AppSidebarProps {
   //  LOTE 193: se fueron `user`, `companies`, `companyName`, `onSwitchCompany` y
   //  `switching`: eran todas del selector de empresa, que ahora vive en la cabecera.
@@ -790,13 +749,15 @@ export default function NewAppSidebar({
   //
   //  Y se recuerda (decision del dueño, 2026-09-24): con 50 elementos en 9
   //  grupos, volver a plegar todo en cada recarga obliga a rehacer el mismo
-  //  camino cada dia. `leerGruposGuardados` se llama en el inicializador para no
-  //  pintar primero lo plegado y corregirlo despues, que se veria como un salto.
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
-    () => (typeof window === 'undefined' ? {} : (leerGruposGuardados() ?? {})),
+  //  camino cada dia.
+  //
+  //  LOTE 195: la preferencia se restaura DESPUES de montar y ANTES de pintar, no en
+  //  el inicializador. Leerla en el inicializador hacia que el servidor pintase todo
+  //  plegado y el navegador otra cosa -- error de hidratacion en cada carga. El
+  //  porque de `useLayoutEffect`, y por que no se ve ningun salto, esta en el hook.
+  const [expandedGroups, setExpandedGroups] = usePreferenciaDelNavegador<Record<string, boolean>>(
+    CLAVE_GRUPOS, VACIO_GRUPOS, gruposDesdeTexto,
   );
-
-  React.useEffect(() => { guardarGrupos(expandedGroups); }, [expandedGroups]);
 
   //  LOTE 194: al alternar un grupo se apunta si lo que ha pasado es que se ABRIO.
   //  La decision es de `utils/grupoRecienAbierto`, fuera de este fichero, para que
@@ -832,14 +793,13 @@ export default function NewAppSidebar({
   //  escritorio no se veria en el movil ni en el buscador -- exactamente el defecto
   //  que el lote 189 arreglo con los grupos.
   //
-  //  Se lee en el inicializador y no en un `useEffect` para no pintar la lista sin
-  //  favoritos y corregirla despues: eso se ve como un salto, y ademas moveria las
-  //  filas justo cuando alguien va a hacer clic.
-  const [favoritos, setFavoritos] = useState<string[]>(
-    () => (typeof window === 'undefined' ? [] : leerFavoritosGuardados()),
+  //  LOTE 195: igual que los grupos -- se restaura antes de pintar, no en el
+  //  inicializador. Mover las filas justo cuando alguien va a hacer clic era el
+  //  motivo de leerlo cuanto antes, y con `useLayoutEffect` se sigue cumpliendo sin
+  //  romper la hidratacion.
+  const [favoritos, setFavoritos] = usePreferenciaDelNavegador<string[]>(
+    CLAVE_FAVORITOS, VACIO_FAVORITOS, favoritosDesdeTexto,
   );
-
-  React.useEffect(() => { guardarFavoritos(favoritos); }, [favoritos]);
 
   //  La regla de anclar/desanclar vive en `utils/favoritosDelMenu`: aqui solo se
   //  guarda el resultado.

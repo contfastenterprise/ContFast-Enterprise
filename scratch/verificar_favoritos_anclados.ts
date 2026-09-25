@@ -227,32 +227,41 @@ async function main() {
     `${usos.filter(u => /favoritos=\{favoritos\}/.test(u)).length} de ${usos.length}`);
   ok('  y las dos pueden anclar',
     usos.length === 2 && usos.every(u => /alternarAnclado=\{alternarAnclado\}/.test(u)));
+  //  LOTE 195: el estado sigue en el padre, pero ya no se crea con un `useState` a
+  //  pelo: lo crea el hook que restaura la preferencia antes de pintar. La propiedad
+  //  que importa no cambia -- UNA sola verdad para las dos instancias.
   ok('el estado vive en el padre, no en cada instancia',
-    /useState<string\[\]>\(/.test(cuerpoPadre) && !/useState<string\[\]>\(/.test(cuerpoContenido));
+    /usePreferenciaDelNavegador<string\[\]>\(/.test(cuerpoPadre)
+    && !/usePreferenciaDelNavegador<string\[\]>\(/.test(cuerpoContenido));
 
   // ───────────────────────────────────────────────────────────────────────────
   console.log('\n4) Se recuerda, y no lanza nunca\n');
   // ───────────────────────────────────────────────────────────────────────────
-  ok('lo anclado se guarda en el navegador', /localStorage\.setItem\(CLAVE_FAVORITOS/.test(codigo));
-  ok('  y se lee al arrancar', /localStorage\.getItem\(CLAVE_FAVORITOS/.test(codigo));
-  //  MERA PRESENCIA: que la funcion exista no basta. En el lote 189 un mutante
-  //  borro la LLAMADA a `guardarGrupos` y el banco lo dio por bueno. Se comprueba
-  //  que se LLAMA, y desde donde.
-  ok('  se guarda de verdad cuando cambia (no solo existe la funcion)',
-    /guardarFavoritos\(favoritos\)/.test(cuerpoPadre));
-  ok('  y se lee en el inicializador del estado, sin salto al repintar',
-    /useState<string\[\]>\([\s\S]{0,180}leerFavoritosGuardados\(\)/.test(cuerpoPadre));
-  //  Ventana privada, cookies bloqueadas o basura en esa clave: `localStorage`
-  //  tira. Un menu que no se pinta por no poder leer una preferencia es peor que un
-  //  menu sin favoritos.
-  const lectura = bloque(codigo, 'function leerFavoritosGuardados', 'function guardarFavoritos');
-  const escritura = bloque(codigo, 'function guardarFavoritos', 'interface AppSidebarProps');
-  ok('leer no lanza aunque localStorage tire', /try \{/.test(lectura) && /catch/.test(lectura));
-  ok('  ni guardar', /try \{/.test(escritura) && /catch/.test(escritura));
-  //  Si lo guardado no es una lista de cadenas, se descarta en vez de colar un
-  //  `null` que acabaria en `<Link href={undefined}>`.
-  ok('  y lo guardado se valida: solo rutas, no lo que haya en esa clave',
-    /Array\.isArray\(/.test(lectura) && /typeof v === 'string'/.test(lectura));
+  //  LOTE 195: guardar y leer se fue a `hooks/usePreferenciaDelNavegador`, el mismo
+  //  camino que los grupos abiertos, porque leer el navegador en el inicializador del
+  //  `useState` rompia la hidratacion (lo reporto el dueño el 2026-09-25).
+  //
+  //  Aqui se queda la propiedad de ESTE lote: que lo anclado se recuerde, y con SU
+  //  clave.
+  ok('lo anclado se recuerda en el navegador',
+    /CLAVE_FAVORITOS/.test(codigo)
+    && /usePreferenciaDelNavegador<string\[\]>\(/.test(cuerpoPadre));
+  //  Con su clave y no con la de los grupos: si las dos preferencias compartieran
+  //  clave, abrir un grupo borraria las anclas.
+  ok('  con su propia clave, no con la de los grupos abiertos',
+    /CLAVE_FAVORITOS, VACIO_FAVORITOS/.test(cuerpoPadre)
+    && /CLAVE_FAVORITOS = 'contfast:sidebar:favoritos'/.test(codigo));
+  //  ESTA DECIA LO CONTRARIO Y SE INVIERTE: exigia leerlo en el inicializador "sin
+  //  salto al repintar", que es exactamente el defecto que cerro el lote 195.
+  ok('  y NO se lee el navegador mientras se pinta',
+    !/useState<string\[\]>\([\s\S]{0,180}leerFavoritosGuardados/.test(cuerpoPadre)
+    && /usePreferenciaDelNavegador/.test(cuerpoPadre));
+  //  Que leer y guardar no lancen, y que lo guardado se valide, se comprueba ahora en
+  //  `verificar_hidratacion_menu.ts` -- y alli se EJECUTA, porque la validacion vive
+  //  en un modulo puro. Aqui solo se podia leer el texto del fichero: que la linea
+  //  estuviera escrita, no que funcionara. Se apunta el traslado en vez de dejar el
+  //  hueco sin explicacion.
+  console.log('  (que no lance y que valide lo guardado: en verificar_hidratacion_menu.ts, ejecutado)');
 
   // ───────────────────────────────────────────────────────────────────────────
   console.log('\n5) El buscador, con la caja vacia\n');
