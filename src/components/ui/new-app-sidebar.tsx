@@ -8,7 +8,7 @@ import {
   Wallet, Landmark, BookOpen, Settings, LogOut, X, Users, Truck,
   Package, HandCoins, Receipt, PieChart, Building2, ArrowRightLeft,
   History as HistoryIcon, Banknote, PackageMinus, Tag, FileMinus,
-  Calculator, Layers, ChevronDown, Search, Command, Loader2,
+  Calculator, Layers, ChevronDown, Search, Command, Loader2, Star,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
@@ -16,6 +16,9 @@ import { useRbac } from '@/components/providers/rbacContext';
 import { buildSidebar, getGroupIcon, getIconComponent, RouteMapping } from '@/utils/rbacHelpers';
 import { coincideEnAlguno } from '@/utils/buscarTexto';
 import { unaEntradaPorRuta } from '@/utils/menuSinRepetidos';
+import {
+  alternarFavorito, esFavorito, favoritosVisibles, sugerenciasIniciales,
+} from '@/utils/favoritosDelMenu';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -94,6 +97,49 @@ function guardarGrupos(grupos: Record<string, boolean>): void {
     window.localStorage.setItem(CLAVE_GRUPOS, JSON.stringify(grupos));
   } catch {
     //  Que no se pueda recordar la preferencia no puede romper la navegacion.
+  }
+}
+
+/**
+ *  DONDE SE GUARDA LO ANCLADO (lote 191).
+ *
+ *  Es del NAVEGADOR y no de la base, como los grupos abiertos, y eso es una
+ *  decision: lo anclado es una preferencia de quien se sienta delante, igual que
+ *  el zoom o el tema. Guardarlo en la base obligaria a una tabla, una migracion y
+ *  una ruta para algo que si se pierde solo cuesta tres clics. Consecuencia
+ *  asumida: quien entre desde otro ordenador empieza sin anclas.
+ *
+ *  La clave lleva `favoritos` y no `anclados` porque lo que se guarda son RUTAS
+ *  (`/dashboard/invoices`), y es lo mismo que lee el buscador.
+ */
+const CLAVE_FAVORITOS = 'contfast:sidebar:favoritos';
+
+/**
+ *  Lo guardado, o lista vacia. NUNCA LANZA, por lo mismo que
+ *  `leerGruposGuardados`: ventana privada, cookies bloqueadas o basura en esa
+ *  clave no pueden dejar el menu sin pintar.
+ *
+ *  Se filtra a cadenas no vacias: si lo guardado no tiene la forma esperada se
+ *  descarta elemento a elemento en vez de colar `null` en una lista de rutas, que
+ *  acabaria pintando un `<Link href={undefined}>`.
+ */
+function leerFavoritosGuardados(): string[] {
+  try {
+    const crudo = window.localStorage.getItem(CLAVE_FAVORITOS);
+    if (!crudo) return [];
+    const leido: unknown = JSON.parse(crudo);
+    if (!Array.isArray(leido)) return [];
+    return leido.filter((v): v is string => typeof v === 'string' && v.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+function guardarFavoritos(favoritos: string[]): void {
+  try {
+    window.localStorage.setItem(CLAVE_FAVORITOS, JSON.stringify(favoritos));
+  } catch {
+    //  Igual que con los grupos: no poder recordarlo no rompe nada.
   }
 }
 
@@ -246,19 +292,25 @@ function WorkspaceSwitcher({
 // ─── NavItem (Clean, System-token light theme) ─────────────────────────────────
 
 function NavItem({
-  item, pathname, collapsed, onClick, isSubItem, refActivo,
+  item, pathname, collapsed, onClick, isSubItem, refActivo, anclado, onAnclar,
 }: {
   item: NavItemDef; pathname: string; collapsed: boolean; onClick?: () => void; isSubItem?: boolean;
   //  LOTE 189: el enlace ACTIVO se deja anotar para poder traerlo a la vista.
   //  Con 59 filas posibles y el scrollbar que estaba oculto, la pantalla en la
   //  que estas podia quedar debajo del pliegue y habia que buscarla a mano.
   refActivo?: React.Ref<HTMLAnchorElement>;
+  //  LOTE 191: la estrella. `onAnclar` sin dar = fila sin estrella, que es lo que
+  //  hacen el menu plegado (solo caben los iconos) y la propia lista de anclados.
+  anclado?: boolean;
+  onAnclar?: () => void;
 }) {
   const isActive =
     pathname === item.href ||
     (item.href !== '/dashboard' && pathname.startsWith(item.href));
 
-  return (
+  const conEstrella = !!onAnclar && !collapsed;
+
+  const enlace = (
     <Link
       href={item.href}
       ref={isActive ? refActivo : undefined}
@@ -267,6 +319,9 @@ function NavItem({
       className={clsx(
         'group flex items-center rounded-xl transition duration-300 select-none w-full relative',
         collapsed ? 'justify-center p-3' : clsx('px-3.5 py-2.5', isSubItem ? 'pl-8 text-[12px] gap-2.5' : 'gap-3 text-[13px]'),
+        //  Hueco para la estrella: sin el, un nombre largo se corta DEBAJO de ella
+        //  y no se lee ni el nombre ni se ve bien el icono.
+        conEstrella && 'pr-9',
         isActive
           ? 'bg-[#003366] text-white font-bold border border-[#003366]/20 shadow-[0_4px_12px_rgba(0,51,102,0.15)]'
           : 'text-on-surface-variant/80 hover:bg-[#003366]/10 hover:text-[#003366] border border-transparent',
@@ -291,11 +346,56 @@ function NavItem({
       )}
     </Link>
   );
+
+  if (!conEstrella) return enlace;
+
+  //  LA ESTRELLA VA FUERA DEL ENLACE, no dentro.
+  //
+  //  Un `<button>` dentro de un `<a>` es HTML invalido, y en la practica pasa algo
+  //  peor que un aviso del validador: el clic navega igual -- el enlace es el
+  //  ancestro y recibe el evento --, asi que anclar te sacaria de la pagina. Por
+  //  eso es un hermano en posicion absoluta.
+  //
+  //  Y ademas del `preventDefault` hay `stopPropagation`: en el cajon del movil el
+  //  contenedor lleva `onItemClick` para cerrarse, y anclar no debe cerrar el menu.
+  return (
+    <div className="relative group/fila">
+      {enlace}
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onAnclar(); }}
+        title={anclado ? `Quitar "${item.name}" de Favoritos` : `Anclar "${item.name}" en Favoritos`}
+        aria-label={anclado ? `Quitar ${item.name} de Favoritos` : `Anclar ${item.name} en Favoritos`}
+        aria-pressed={anclado}
+        className={clsx(
+          'absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition cursor-pointer',
+          //  Sin anclar, la estrella solo aparece al pasar por encima: cincuenta
+          //  estrellas apagadas a la vez son ruido, y lo que se busca es la fila.
+          //  Anclada se ve siempre, porque es la unica señal de que lo esta.
+          //  `focus-visible` la saca tambien con el teclado -- si no, quien navega
+          //  con tabulador llegaria a un boton que no se ve.
+          anclado
+            ? 'opacity-100'
+            : 'opacity-0 group-hover/fila:opacity-100 focus-visible:opacity-100',
+          isActive
+            ? 'text-white/70 hover:text-white hover:bg-white/15'
+            : 'text-on-surface-variant/40 hover:text-amber-500 hover:bg-amber-500/10',
+          anclado && !isActive && 'text-amber-500',
+        )}
+      >
+        <Star
+          className="w-[14px] h-[14px]"
+          strokeWidth={1.75}
+          fill={anclado ? 'currentColor' : 'none'}
+        />
+      </button>
+    </div>
+  );
 }
 
 // ─── SearchModal ─────────────────────────────────────────────────────────────
 
-function SearchModal({ onClose }: { onClose: () => void }) {
+function SearchModal({ onClose, favoritos }: { onClose: () => void; favoritos: string[] }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const { hasPermission, routeMappings, user } = useRbac();
@@ -311,9 +411,19 @@ function SearchModal({ onClose }: { onClose: () => void }) {
   //
   //  Y se busca tambien por el GRUPO: quien escribe "finanzas" espera ver lo que
   //  hay dentro de Finanzas, aunque ninguno de esos elementos se llame asi.
+  //  LOTE 191: CON LA CAJA VACIA, LO ANCLADO PRIMERO.
+  //
+  //  Antes era `allItems.slice(0, 7)`: los siete primeros del menu, que para quien
+  //  abre Ctrl+K es un orden arbitrario -- los del grupo que `buildSidebar` puso
+  //  primero, no los que usa. Asi el buscador obligaba a escribir SIEMPRE, incluso
+  //  para ir a la pantalla de cada dia.
+  //
+  //  La regla vive en `utils/favoritosDelMenu` y no aqui: en este fichero, con
+  //  `'use client'`, React e iconos, un banco no puede cargarla para ejecutarla
+  //  (leccion del lote 190).
   const results = query.trim()
     ? allItems.filter(i => coincideEnAlguno([i.name, i.grupo], query))
-    : allItems.slice(0, 7);
+    : sugerenciasIniciales(allItems, favoritos, 7);
 
   //  EL TECLADO, QUE ERA LO QUE FALTABA. Solo se atendia `Escape`: escribias,
   //  aparecian los resultados y habia que ir al raton. Un buscador que obliga a
@@ -398,6 +508,12 @@ function SearchModal({ onClose }: { onClose: () => void }) {
                     strokeWidth={1.5}
                   />
                   <span className="text-[13px] flex-1">{item.name}</span>
+                  {/*  LOTE 191: se dice POR QUE esta ahi. Sin esto, con la caja
+                       vacia, lo anclado y el relleno se ven exactamente igual y
+                       la lista parece otra vez arbitraria.  */}
+                  {esFavorito(favoritos, item.href) && (
+                    <Star className="w-3 h-3 shrink-0 text-amber-500" fill="currentColor" strokeWidth={1.75} />
+                  )}
                   <span className="text-[10px] text-on-surface-variant/40 truncate max-w-[160px]">
                     {item.grupo}
                   </span>
@@ -424,6 +540,7 @@ function SidebarContent({
   user, companies, companyName, entorno, onSwitchCompany, switching,
   collapsed, onLogout, onItemClick,
   expandedGroups, toggleGroup, abrirGrupo,
+  favoritos, alternarAnclado,
 }: {
   user: any; companies: any[]; companyName: string; entorno: Entorno;
   onSwitchCompany: (id: string) => void; switching?: boolean;
@@ -434,6 +551,10 @@ function SidebarContent({
   expandedGroups: Record<string, boolean>;
   toggleGroup: (title: string) => void;
   abrirGrupo: (title: string) => void;
+  //  LOTE 191: lo anclado viene de FUERA por el mismo motivo que los grupos, y
+  //  ademas porque el buscador -- que es del padre, no de aqui -- lo necesita.
+  favoritos: string[];
+  alternarAnclado: (href: string) => void;
 }) {
   const pathname = usePathname();
   const { hasPermission, routeMappings, user: rbacUser } = useRbac();
@@ -493,6 +614,14 @@ function SidebarContent({
     refActivo.current?.scrollIntoView({ block: 'nearest' });
   }, [pathname, expandedGroups]);
 
+  //  LOTE 191: LO ANCLADO, CRUZADO CON LO QUE ESTA PERSONA PUEDE VER.
+  //
+  //  `dynamicGroups` ya viene de `buildSidebar`, o sea filtrado por permisos, asi
+  //  que un ancla a una pantalla que ya no se ve -- permiso retirado, o ruta que
+  //  desaparecio, como el modulo de documentos del lote 100 -- se ignora sola. El
+  //  ancla NO se borra: si el permiso vuelve, sigue ahi.
+  const anclados = favoritosVisibles(dynamicGroups.flatMap(g => g.items), favoritos);
+
   return (
     <>
       {/* Workspace Switcher */}
@@ -516,6 +645,40 @@ function SidebarContent({
            `custom-scrollbar` es la clase fina que ya usan el buscador y el
            selector de empresa de este mismo fichero.  */}
       <nav className="flex-1 overflow-y-auto custom-scrollbar px-3 pb-4 flex flex-col gap-2 mt-1 relative">
+        {/*  LOTE 191: LO ANCLADO, ARRIBA Y SIEMPRE A LA VISTA.
+             Esto es lo que convierte 50 elementos en 5: no hay que abrir el grupo,
+             ni hacer scroll, ni acordarse de en que grupo cayo la pantalla.
+             Solo se pinta si hay algo anclado -- una cabecera "Favoritos" sobre una
+             lista vacia seria una fila gastada de las que se querian ahorrar.  */}
+        {anclados.length > 0 && (
+          <div className="flex flex-col gap-1">
+            {!collapsed && (
+              <div className="flex items-center gap-2 px-3.5 pt-0.5 pb-1">
+                <Star className="w-3 h-3 shrink-0 text-amber-500" fill="currentColor" strokeWidth={1.75} />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/45">
+                  Favoritos
+                </span>
+              </div>
+            )}
+            {anclados.map(item => (
+              <NavItem
+                key={`anclado-${item.href}`}
+                item={item}
+                pathname={pathname}
+                collapsed={collapsed}
+                onClick={onItemClick}
+                anclado
+                onAnclar={() => alternarAnclado(item.href)}
+                /*  A PROPOSITO SIN `refActivo`: la misma pantalla aparece dos veces
+                    -- aqui y en su grupo -- y un solo `ref` no puede apuntar a las
+                    dos; la que se pintara ultima ganaria. Se queda con la del grupo,
+                    que es la que puede estar debajo del pliegue. Esta ya esta
+                    arriba: no hace falta traerla a la vista.  */
+              />
+            ))}
+            <div className="h-px bg-outline-variant/25 mx-1 mt-1.5" />
+          </div>
+        )}
         {dynamicGroups.map(group => {
           const visible = group.items;
           if (visible.length === 0) return null;
@@ -534,6 +697,8 @@ function SidebarContent({
                     collapsed={collapsed}
                     onClick={onItemClick}
                     refActivo={refActivo}
+                    anclado={esFavorito(favoritos, item.href)}
+                    onAnclar={() => alternarAnclado(item.href)}
                   />
                 ))}
               </div>
@@ -648,6 +813,8 @@ function SidebarContent({
                             onClick={onItemClick}
                             isSubItem={true}
                             refActivo={refActivo}
+                            anclado={esFavorito(favoritos, item.href)}
+                            onAnclar={() => alternarAnclado(item.href)}
                           />
                         ))}
                       </motion.div>
@@ -729,6 +896,29 @@ export default function NewAppSidebar({
   const abrirGrupo = React.useCallback((title: string) => {
     setExpandedGroups(prev => (prev[title] ? prev : { ...prev, [title]: true }));
   }, []);
+
+  //  LOTE 191: LO ANCLADO, TAMBIEN AQUI ARRIBA.
+  //
+  //  Tres consumidores a la vez: las dos instancias de `SidebarContent`
+  //  (escritorio y cajon movil) y el buscador de Ctrl+K, que tambien es hijo de
+  //  este componente. Si el estado viviera en `SidebarContent`, anclar en el
+  //  escritorio no se veria en el movil ni en el buscador -- exactamente el defecto
+  //  que el lote 189 arreglo con los grupos.
+  //
+  //  Se lee en el inicializador y no en un `useEffect` para no pintar la lista sin
+  //  favoritos y corregirla despues: eso se ve como un salto, y ademas moveria las
+  //  filas justo cuando alguien va a hacer clic.
+  const [favoritos, setFavoritos] = useState<string[]>(
+    () => (typeof window === 'undefined' ? [] : leerFavoritosGuardados()),
+  );
+
+  React.useEffect(() => { guardarFavoritos(favoritos); }, [favoritos]);
+
+  //  La regla de anclar/desanclar vive en `utils/favoritosDelMenu`: aqui solo se
+  //  guarda el resultado.
+  const alternarAnclado = React.useCallback((href: string) => {
+    setFavoritos(prev => alternarFavorito(prev, href));
+  }, []);
   const { hasPermission, routeMappings, user: rbacUser } = useRbac();
 
   const activeUser = user || rbacUser;
@@ -799,6 +989,8 @@ export default function NewAppSidebar({
           expandedGroups={expandedGroups}
           toggleGroup={toggleGroup}
           abrirGrupo={abrirGrupo}
+          favoritos={favoritos}
+          alternarAnclado={alternarAnclado}
         />
       </aside>
 
@@ -857,6 +1049,8 @@ export default function NewAppSidebar({
                 expandedGroups={expandedGroups}
                 toggleGroup={toggleGroup}
                 abrirGrupo={abrirGrupo}
+                favoritos={favoritos}
+                alternarAnclado={alternarAnclado}
               />
             </motion.aside>
           </div>
@@ -867,6 +1061,7 @@ export default function NewAppSidebar({
       {searchOpen && (
         <SearchModal
           onClose={() => setSearchOpen(false)}
+          favoritos={favoritos}
         />
       )}
 

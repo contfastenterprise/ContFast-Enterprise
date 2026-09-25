@@ -128,11 +128,30 @@ async function main() {
   //  ningun `scrollIntoView` que pudiera centrar nada.
   ok('  moviendo lo justo, sin saltos',
     /scrollIntoView\(\{ block: 'nearest' \}\)/.test(codigo) && !/block: 'center'/.test(codigo));
-  //  La referencia tiene que llegar a TODOS los sitios donde se pinta un enlace,
-  //  o el activo de un grupo se queda sin traer.
-  const navItems = (codigo.match(/<NavItem/g) || []).length;
-  const conRef = (codigo.match(/refActivo=\{refActivo\}/g) || []).length;
-  ok('  y la lleva cada sitio donde se pinta un enlace',
+  //  La referencia tiene que llegar a todos los enlaces DE LOS GRUPOS, que son los
+  //  que pueden quedar debajo del pliegue; si a uno le falta, el activo de ese
+  //  grupo se queda sin traer.
+  //
+  //  ACOTADO A LOS GRUPOS DESDE EL LOTE 191, y no por comodidad. Antes se contaban
+  //  los `<NavItem` del fichero entero y se exigia que TODOS lo llevaran. El 191
+  //  añadio un tercer sitio -- la copia anclada, arriba -- que a proposito NO lo
+  //  lleva: `refActivo` es UN solo `ref` y no puede apuntar a dos nodos, asi que si
+  //  lo llevaran los dos ganaria el ultimo en pintarse y el `scrollIntoView` de
+  //  este lote dejaria de traer la fila del grupo, que es la que se esconde. La
+  //  copia anclada ya esta arriba.
+  //
+  //  Es la trampa de la seccion 7 del traspaso otra vez: contar apariciones fija la
+  //  FORMA (cuantos hay hoy), no la propiedad (que los que se esconden se traigan).
+  const enLosGrupos = (() => {
+    const i = codigo.indexOf('dynamicGroups.map(');
+    if (i < 0) return '';
+    const j = codigo.indexOf('</nav>', i);
+    return j > -1 ? codigo.slice(i, j) : '';
+  })();
+  if (enLosGrupos === '') throw new Error('Precondicion: no se acotan los grupos del menu');
+  const navItems = (enLosGrupos.match(/<NavItem/g) || []).length;
+  const conRef = (enLosGrupos.match(/refActivo=\{refActivo\}/g) || []).length;
+  ok('  y la lleva cada enlace de los grupos, que son los que se esconden',
     navItems > 0 && conRef === navItems, `${conRef} de ${navItems}`);
   ok('  solo el activo la recibe', /ref=\{isActive \? refActivo : undefined\}/.test(codigo));
 
