@@ -19,6 +19,7 @@ import { unaEntradaPorRuta } from '@/utils/menuSinRepetidos';
 import {
   alternarFavorito, esFavorito, favoritosVisibles, sugerenciasIniciales,
 } from '@/utils/favoritosDelMenu';
+import { grupoRecienAbierto } from '@/utils/grupoRecienAbierto';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -441,7 +442,7 @@ function SidebarContent({
   entorno,
   collapsed, onItemClick,
   expandedGroups, toggleGroup, abrirGrupo,
-  favoritos, alternarAnclado,
+  favoritos, alternarAnclado, subirGrupo,
 }: {
   entorno: Entorno;
   collapsed: boolean; onItemClick?: () => void;
@@ -455,6 +456,14 @@ function SidebarContent({
   //  ademas porque el buscador -- que es del padre, no de aqui -- lo necesita.
   favoritos: string[];
   alternarAnclado: (href: string) => void;
+  //  LOTE 194: que grupo acaba de abrir esta persona, y con que numero de clic.
+  //  El numero (`sello`) no es decorativo: sin el, abrir DOS VECES el mismo grupo
+  //  no cambiaria el valor y el efecto no volveria a dispararse -- el segundo clic
+  //  no subiria nada. Y como hay dos instancias de este componente (escritorio y
+  //  cajon movil), no se puede limpiar el aviso despues de usarlo: la primera que
+  //  corriera se lo quitaria a la otra. Con un sello que cambia en cada clic las
+  //  dos se enteran y no hay nada que limpiar.
+  subirGrupo: { titulo: string; sello: number } | null;
 }) {
   const pathname = usePathname();
   const { hasPermission, routeMappings, user: rbacUser } = useRbac();
@@ -513,6 +522,32 @@ function SidebarContent({
   useEffect(() => {
     refActivo.current?.scrollIntoView({ block: 'nearest' });
   }, [pathname, expandedGroups]);
+
+  //  LOTE 194: EL GRUPO QUE ACABAS DE ABRIR SUBE A LA PARTE DE ARRIBA.
+  //
+  //  Pedido del dueño. Con 50 elementos en 9 grupos, pulsar un grupo de la mitad
+  //  de abajo -- Sistema, Finanzas, RRHH -- abria su submenu DEBAJO DEL PLIEGUE:
+  //  pulsabas para ver algo y lo que se despliega no se veia, asi que habia que
+  //  hacer scroll otra vez. `block: 'start'` lo lleva arriba, y el submenu se
+  //  despliega hacia abajo en el sitio que acaba de quedar libre.
+  //
+  //  ESTE EFECTO VA DESPUES DEL DE ARRIBA A PROPOSITO, Y NO ES INDIFERENTE.
+  //  Los dos reaccionan al mismo cambio de estado y piden cosas contrarias: el de
+  //  arriba trae el elemento ACTIVO con `nearest` (mover lo menos posible) y este
+  //  lleva la cabecera del grupo ARRIBA. React ejecuta los efectos de un
+  //  componente en el orden en que estan escritos, asi que el ultimo es el que
+  //  deja el scroll donde queda. Si alguien los intercambia, al abrir un grupo el
+  //  menu volveria a saltar al elemento activo y esto dejaria de funcionar sin que
+  //  faltara una linea. Hay una comprobacion en el banco que vigila el orden.
+  //
+  //  `abrirGrupo` NO pasa por aqui: el grupo de la pagina actual se abre solo en
+  //  cada navegacion, y si eso subiera el menu, entrar a cualquier pantalla daria
+  //  un salto que nadie pidio. Solo sube lo que se abre con el dedo.
+  const refsDeGrupo = React.useRef<Record<string, HTMLButtonElement | null>>({});
+  useEffect(() => {
+    if (!subirGrupo) return;
+    refsDeGrupo.current[subirGrupo.titulo]?.scrollIntoView({ block: 'start' });
+  }, [subirGrupo]);
 
   //  LOTE 191: LO ANCLADO, CRUZADO CON LO QUE ESTA PERSONA PUEDE VER.
   //
@@ -666,6 +701,7 @@ function SidebarContent({
               ) : (
                 <>
                   <button
+                    ref={(el) => { refsDeGrupo.current[group.title] = el; }}
                     onClick={() => toggleGroup(group.title)}
                     className={clsx(
                       'group flex items-center justify-between rounded-xl px-3.5 py-2.5 text-[13px] text-on-surface-variant/80 hover:bg-[#003366]/10 hover:text-[#003366] transition duration-300 w-full cursor-pointer select-none font-semibold border border-transparent',
@@ -762,9 +798,25 @@ export default function NewAppSidebar({
 
   React.useEffect(() => { guardarGrupos(expandedGroups); }, [expandedGroups]);
 
+  //  LOTE 194: al alternar un grupo se apunta si lo que ha pasado es que se ABRIO.
+  //  La decision es de `utils/grupoRecienAbierto`, fuera de este fichero, para que
+  //  se pueda ejecutar en un banco.
+  //
+  //  Se calcula con el estado que se ve al pulsar y no dentro del actualizador de
+  //  React: meter un `setState` (o escribir en un `ref`) dentro del actualizador es
+  //  un efecto colateral que en modo estricto se ejecuta dos veces. Es un clic, no
+  //  hay carrera que temer.
+  const [subirGrupo, setSubirGrupo] = useState<{ titulo: string; sello: number } | null>(null);
+
   const toggleGroup = React.useCallback((title: string) => {
-    setExpandedGroups(prev => ({ ...prev, [title]: !prev[title] }));
-  }, []);
+    const siguiente = { ...expandedGroups, [title]: !expandedGroups[title] };
+    setExpandedGroups(siguiente);
+    const abierto = grupoRecienAbierto(expandedGroups, siguiente);
+    //  El sello cambia en cada clic: abrir dos veces el mismo grupo tiene que
+    //  subirlo las dos veces, y sin el sello el valor seria el mismo y el efecto no
+    //  se volveria a disparar.
+    if (abierto) setSubirGrupo(prev => ({ titulo: abierto, sello: (prev?.sello ?? 0) + 1 }));
+  }, [expandedGroups]);
 
   //  Abrir NO es alternar: el grupo de la pagina actual se abre solo, y si eso
   //  llamara a `toggleGroup` lo cerraria cuando ya estuviera abierto.
@@ -859,6 +911,7 @@ export default function NewAppSidebar({
           abrirGrupo={abrirGrupo}
           favoritos={favoritos}
           alternarAnclado={alternarAnclado}
+          subirGrupo={subirGrupo}
         />
       </aside>
 
@@ -913,6 +966,7 @@ export default function NewAppSidebar({
                 abrirGrupo={abrirGrupo}
                 favoritos={favoritos}
                 alternarAnclado={alternarAnclado}
+                subirGrupo={subirGrupo}
               />
             </motion.aside>
           </div>

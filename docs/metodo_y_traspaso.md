@@ -553,6 +553,34 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 194: el grupo que abres sube arriba** (pedido del dueño, 2026-09-25).
+  Pulsar un grupo de la mitad de abajo —Sistema, Finanzas, RRHH— abría su submenú
+  **debajo del pliegue**: pulsabas para desplegar y el despliegue no se veía.
+  **Lo que ya había no lo resolvía**: el `scrollIntoView` del 189 trae el elemento
+  **ACTIVO** con `block: 'nearest'` (mover lo menos posible), que es lo contrario de
+  «llévalo arriba» — y el activo puede estar en otro grupo.
+  `src/utils/grupoRecienAbierto.ts` (puro) decide qué grupo se acaba de abrir, y ahí
+  están las dos decisiones que se pueden equivocar: **al abrir se sube, al cerrar**
+  **no** (cerrar no esconde nada; mover el menú entonces se lo lleva de debajo del
+  ratón) y **lo que ya estaba abierto no vuelve a subir** (si no, cualquier cambio en
+  otro grupo subiría el primero abierto).
+  Tres cosas del componente que no se ven en el resultado:
+  - **El orden de los dos efectos importa y no es estilo.** Los dos reaccionan al
+    mismo cambio y piden cosas contrarias (`nearest` contra `start`); React ejecuta
+    los efectos en el orden en que están escritos, así que el último deja el scroll
+    donde queda. **Intercambiarlos rompe el lote sin que falte una línea**, y por eso
+    el banco vigila el orden (mutante comprobado).
+  - **`abrirGrupo` no sube nada**: el grupo de la página actual se abre solo en cada
+    navegación, y si eso subiera el menú, entrar a cualquier pantalla daría un salto
+    que nadie pidió. Solo sube lo que se abre con el dedo.
+  - **El aviso lleva un sello que cambia en cada clic y no se consume**: sin sello,
+    abrir dos veces el mismo grupo no cambiaría el valor y el segundo clic no subiría
+    nada; y no se puede limpiar tras usarlo porque hay **dos instancias** del
+    componente y la primera en correr se lo quitaría a la otra.
+  Banco de 15, contraprueba 0 OK, nueve mutantes y nueve muertos. Cuatro
+  comprobaciones sobrevivieron y se apretaron: dos negaciones ciertas de balde y dos
+  propiedades verdaderas en los dos estados, que pasan a **precondición** — así el día
+  que alguien se las lleve, el banco no da FALLA: se niega a correr.
 - **Lote 193: el selector de empresa sube a la cabecera** (pedido del dueño,
   2026-09-25). El nombre de la empresa estaba **dos veces** —texto plano en la
   cabecera y dentro del selector, en el pie del menú— y el único sitio donde se
