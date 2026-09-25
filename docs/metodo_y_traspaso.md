@@ -553,6 +553,101 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 192: cerrar sesión dentro del avatar, y el entorno al lado de la campana**
+  (pedido del dueño, 2026-09-24). Al ir a hacerlo salió lo que no se pedía:
+  - el **mismo dato se enseñaba TRES veces en PRUEBA** —la franja rayada de arriba,
+    una pastilla "SANDBOX" junto a la campana y el pie del menú— y **una sola en
+    PRODUCCIÓN**: el pie del menú, que es justo el que se iba. La pastilla era este
+    mismo punto con etiqueta, así que se retira con él;
+  - `entorno` y `activeEnvironment` **son el mismo valor** (`ClientLayout` los fija
+    en la misma vuelta desde `initialSettings.dgiiEnv`), y **`CERT` es rama muerta**:
+    todo lo que no es PRODUCCION cae en PRUEBA y CERTIFICACION ya no se puede
+    guardar. Se mantiene en la regla para que un valor inesperado no se quede sin
+    rótulo;
+  - **el avatar prometía un clic que no hacía nada**: `cursor-pointer` y
+    `hover:scale-105` sin un solo `onClick`.
+  `src/utils/entornoVisible.ts` (puro) decide qué texto y qué color le toca a cada
+  entorno. **El detalle dice la CONSECUENCIA**, no el nombre otra vez: "Pruebas" no
+  le dice a nadie que lo que emita no vale ante la DGII. Y lleva **dónde se cambia**,
+  porque la pastilla retirada lo explicaba con un toque: ese dato pasa al globo, que
+  sale sin pulsar. El color **no es información** para quien no lo distingue ni para
+  un lector de pantalla, así que el rótulo va también en `aria-label` y
+  `role="status"`; sin `title`, o saldrían dos globos.
+  El menú del avatar se cierra con **Escape y pulsando fuera**, y el oyente de
+  Escape **solo está puesto mientras está abierto** (si no, se tragaría el Escape de
+  los diálogos de toda la aplicación). El nombre y el rol van **dentro** además de al
+  lado, porque al lado están ocultos por debajo de `sm:`: en el móvil es el único
+  sitio donde comprobar con qué cuenta se trabaja.
+  **Lo que NO hace, a propósito**: la **franja de MODO PRUEBA se queda** (dice que
+  las operaciones son fiscalmente nulas: advertencia legal, no adorno) y va de
+  **precondición** en el banco, no de comprobación — si alguien la retira, el banco
+  no dará FALLA: se negará a correr. Y **cerrar sesión sigue sin pedir**
+  **confirmación**, como estaba.
+  Banco de 28, contraprueba 0 OK, **diez mutantes y diez muertos**. Uno sobrevivió y
+  apretó el banco: dejar vacío el `onClick` del avatar pasaba, porque
+  `onClick={() => setAbierto` **también lo cumple la capa que cierra al pulsar**
+  **fuera** — se miraba otro clic. Y cuatro comprobaciones sobrevivieron a la
+  contraprueba: dos negaciones ciertas de balde (sin el fichero no hay `title` ni
+  `confirm` porque no hay nada) y dos propiedades verdaderas en los dos estados, que
+  pasan a precondición.
+  **De paso**: `verificar_sidebar_fluido.ts` (189) estaba en rojo por el 191 —
+  contaba los `<NavItem` del fichero y exigía que todos llevaran `refActivo`, y el
+  191 añadió un tercero que a propósito no lo lleva. Deriva, no regresión: re-anclado
+  a los enlaces **de los grupos**, que son los que pueden quedar bajo el pliegue.
+- **Lote 191: los favoritos anclados — cincuenta elementos de menú para cinco
+  pantallas al día.** Sugerencia 5 de las seis que se midieron el 2026-09-24,
+  elegida por el dueño. El 189 hizo que el scroll se vea y que lo que dejas abierto
+  se recuerde, pero el menú **sigue siendo grande**; y se sabe cuáles son los cinco
+  que importan porque están contados en PRODUCCIÓN: `inventory_movements` 476,
+  `expenses` 113, `invoices` 88, `products` 87, `delivery_notes` 70, frente a
+  `employees` 1 y `credit_debit_notes` 0.
+  **Anclar y no "recientes"** (decisión del dueño): los recientes no hay que
+  configurarlos, pero cambian solos — el menú se mueve debajo del ratón.
+  `src/utils/favoritosDelMenu.ts` (puro): orden de **anclado**, no alfabético, y
+  lista nueva en cada cambio, porque mutar el estado de React no repinta. Lo
+  anclado **se cruza con lo que cada uno puede ver**: un permiso retirado dejaría
+  un enlace a un 403 en el sitio más visible del menú, y un ancla a una ruta que ya
+  no existe sobrevive en el navegador (pasó: el lote 100 retiró el módulo de
+  documentos). El ancla **no se borra** por eso; si el permiso vuelve, sigue ahí.
+  El estado vive **en el padre** por lo mismo que los grupos del 189 (dos
+  instancias) **y** porque el buscador lo necesita: con la caja vacía ofrece lo
+  anclado primero, en vez de `allItems.slice(0, 7)` — los siete primeros del menú,
+  que para quien abre Ctrl+K es un orden arbitrario. Se guarda en el **navegador**,
+  como los grupos: quien entre desde otro ordenador empieza sin anclas.
+  **La estrella va FUERA del `<Link>`**: un `<button>` dentro de un `<a>` no es
+  solo HTML inválido — el clic navega igual, porque el enlace es el ancestro y
+  recibe el evento, así que anclar te sacaría de la página. Y la copia anclada
+  **no lleva `refActivo`**: el elemento activo sale dos veces y es un solo `ref`;
+  si lo llevaran los dos, el `scrollIntoView` del 189 dejaría de traer a la vista
+  la fila del grupo, que es la que puede estar bajo el pliegue.
+  Banco de 46 comprobaciones (18 ejecutando las reglas), contraprueba 0 OK, siete
+  mutantes muertos. **Uno apretó el banco**: contar `favoritos={favoritos}` en todo
+  el fichero daba dos apariciones aunque al cajón móvil le faltara, porque el
+  buscador también lo recibe; ahora se mira cada `<SidebarContent>` por separado.
+  **Queda del menú**: RRHH enseña 8 elementos para 1 empleado, y
+  `credit_debit_notes` tiene 0 filas.
+- **Lote 190: el buscador repetía una pantalla que tiene dos permisos — y la iba a
+  "arreglar" borrando una fila.** Al medir el menú salió
+  `/dashboard/antiguedad-saldos` **dos veces** en `route_mappings`, con el mismo
+  nombre y el mismo grupo. Iba a proponerlo como arreglo de DATOS y **me
+  equivocaba**: difieren en el **módulo de permisos** (`cobros` y `proveedores`),
+  a propósito, para que la vean los dos roles. Borrar una le habría quitado la
+  entrada del menú a un rol entero, sin aviso, y en las **seis** empresas, porque
+  `route_mappings` no tiene `company_id`. Y el sidebar **no** la duplicaba
+  (`seenHrefs`, de antes): el que la repetía era el buscador de Ctrl+K. El defecto
+  era de código y mucho más pequeño de lo que parecía: `unaEntradaPorRuta` en
+  `src/utils/menuSinRepetidos.ts`.
+  **La lección del lote, y por eso la regla vive fuera del componente**: la primera
+  versión la tenía dentro del sidebar y el banco la **reimplementaba** para
+  "ejecutarla". La contraprueba dejó **cinco comprobaciones en OK**, con razón:
+  comprobaban mi copia, no el código, y ningún mutante las mataba.
+  **Datos, pendiente de que lo lance el dueño**:
+  `scratch/_to_delete/renombrar_menu_ambiguo.ts --aplicar` — dos nombres del menú
+  están usados por dos pantallas distintas cada uno ("Cuentas por Pagar" →
+  "Pagos a Suplidores" para `/dashboard/ap`, que es donde se paga; "Ajustes" →
+  "Ajustes de Inventario"), más "Ajustes" → "Configuración" en
+  `/dashboard/settings`, pedido por el dueño. Ensayo limpio; **no borra ninguna
+  fila**.
 - **Lote 189: el sidebar deja de esconder lo que hay.** El dueño lo describió así:
   *"tiende a ocultarse y hay que hacer scroll para buscar y seleccionar"*.
   **Medido**: 50 elementos de menú en 9 grupos — 59 filas con todo abierto, así que

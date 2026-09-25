@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Shield, ShieldCheck, ShieldAlert, LayoutDashboard, FileText,
-  Wallet, Landmark, BookOpen, Settings, LogOut, X, Users, Truck,
+  Wallet, Landmark, BookOpen, Settings, X, Users, Truck,
   Package, HandCoins, Receipt, PieChart, Building2, ArrowRightLeft,
   History as HistoryIcon, Banknote, PackageMinus, Tag, FileMinus,
   Calculator, Layers, ChevronDown, Search, Command, Loader2, Star,
@@ -151,7 +151,6 @@ interface AppSidebarProps {
   collapsed: boolean;
   mobileOpen: boolean;
   onMobileClose: () => void;
-  onLogout: () => void;
   onSwitchCompany: (companyId: string) => void;
   switching?: boolean;
 }
@@ -538,13 +537,13 @@ function SearchModal({ onClose, favoritos }: { onClose: () => void; favoritos: s
 
 function SidebarContent({
   user, companies, companyName, entorno, onSwitchCompany, switching,
-  collapsed, onLogout, onItemClick,
+  collapsed, onItemClick,
   expandedGroups, toggleGroup, abrirGrupo,
   favoritos, alternarAnclado,
 }: {
   user: any; companies: any[]; companyName: string; entorno: Entorno;
   onSwitchCompany: (id: string) => void; switching?: boolean;
-  collapsed: boolean; onLogout: () => void; onItemClick?: () => void;
+  collapsed: boolean; onItemClick?: () => void;
   //  LOTE 189: el estado de los grupos viene de FUERA. Antes lo tenia cada
   //  instancia, y hay dos -- escritorio y cajon movil --, asi que lo que abrias
   //  en una no existia en la otra y el movil empezaba plegado cada vez.
@@ -827,35 +826,15 @@ function SidebarContent({
         })}
       </nav>
 
-      {/* Bottom: entorno indicator + logout */}
-      <div className={clsx(
-        'border-t border-outline-variant/20 flex flex-col gap-1.5 py-4 px-3',
-        collapsed && 'items-center',
-      )}>
-        {!collapsed && (
-          <div className="flex items-center gap-2.5 px-3 py-1.5 bg-surface-container rounded-xl border border-outline-variant/25">
-            <span className={clsx('h-2 w-2 rounded-full shrink-0 animate-pulse', {
-              'bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]': entorno === 'PROD',
-              'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]': entorno === 'CERT',
-              'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]': entorno === 'TEST',
-            })} />
-            <span className="text-[11px] text-on-surface-variant/70 font-bold uppercase tracking-wider">
-              {entorno === 'PROD' ? 'Producción' : entorno === 'CERT' ? 'Certificación' : 'Pruebas'}
-            </span>
-          </div>
-        )}
-        <button
-          onClick={onLogout}
-          title={collapsed ? 'Cerrar Sesión' : undefined}
-          className={clsx(
-            'flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-rose-500 hover:bg-rose-500/10 hover:text-rose-600 transition-colors w-full cursor-pointer border border-transparent hover:border-rose-500/20',
-            collapsed && 'justify-center',
-          )}
-        >
-          <LogOut className="w-[18px] h-[18px] shrink-0" strokeWidth={1.5} />
-          {!collapsed && <span className="text-[13px] font-bold">Cerrar Sesión</span>}
-        </button>
-      </div>
+      {/*  LOTE 192: AQUI ESTABAN EL ROTULO DEL ENTORNO Y "CERRAR SESION".
+           Los dos se fueron a la barra de arriba, a peticion del dueño: el entorno
+           al lado de la campana (sin etiqueta, con globo al pasar por encima) y
+           cerrar sesion DENTRO del avatar.
+           Por que no se quedan aqui: los dos desaparecian con el menu plegado, y
+           gastaban dos filas fijas de un menu de cincuenta elementos para decir
+           cosas que no cambian durante la sesion. Con el menu plegado ademas el
+           rotulo del entorno no se enseñaba, que es cuando mas falta hace saber si
+           lo que se emite vale.  */}
     </>
   );
 }
@@ -865,7 +844,7 @@ function SidebarContent({
 export default function NewAppSidebar({
   user, companies, companyName, entorno,
   collapsed, mobileOpen, onMobileClose,
-  onLogout, onSwitchCompany, switching,
+  onSwitchCompany, switching,
 }: AppSidebarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [diagExpanded, setDiagExpanded] = useState(false);
@@ -985,7 +964,6 @@ export default function NewAppSidebar({
           onSwitchCompany={onSwitchCompany}
           switching={switching}
           collapsed={collapsed}
-          onLogout={onLogout}
           expandedGroups={expandedGroups}
           toggleGroup={toggleGroup}
           abrirGrupo={abrirGrupo}
@@ -1044,7 +1022,6 @@ export default function NewAppSidebar({
                 onSwitchCompany={(id) => { onSwitchCompany(id); onMobileClose(); }}
                 switching={switching}
                 collapsed={false}
-                onLogout={onLogout}
                 onItemClick={onMobileClose}
                 expandedGroups={expandedGroups}
                 toggleGroup={toggleGroup}

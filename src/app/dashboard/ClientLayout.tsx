@@ -9,7 +9,8 @@ import { Toaster, toast } from 'sonner';
 import clsx from 'clsx';
 import NewAppSidebar from '@/components/ui/new-app-sidebar';
 import CampanaAvisos from '@/components/ui/campana-avisos';
-import Avatar from '@/components/ui/Avatar';
+import MenuDelUsuario from '@/components/ui/menu-del-usuario';
+import InsigniaEntorno from '@/components/ui/insignia-entorno';
 import { RbacProvider, useRbac } from '@/components/providers/rbacContext';
 import { esAdminOSistemas } from '@/utils/rolMatch';
 import { PageLoader } from '@/components/ui/PageLoader';
@@ -416,34 +417,26 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
                 solo en el panel de inicio. */}
             <CampanaAvisos />
 
-            {/* Environment Indicator Badge */}
-            {activeEnvironment === 'PRUEBA' && (
-              <div 
-                onClick={() => toast.info('El ambiente está enlazado a la configuración de la empresa. Cámbielo en Ajustes.')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-extrabold tracking-wider border mr-2 select-none cursor-pointer transition duration-200 active:scale-95 bg-red-950/60 text-red-400 border-red-500/30 hover:bg-red-900/60"
-              >
-                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                SANDBOX
-              </div>
-            )}
+            {/*  LOTE 192: EL ENTORNO, AL LADO DE LA CAMPANA Y SIN ETIQUETA.
+                 Pedido del dueño. Antes este mismo dato se enseñaba TRES veces en
+                 PRUEBA -- la franja de arriba, una pastilla "SANDBOX" aqui y el pie
+                 del menu -- y solo UNA en PRODUCCION: el pie del menu, que es el que
+                 se iba. La pastilla era la version con etiqueta de este punto, asi que
+                 se retira con el.
+                 LA FRANJA DE ARRIBA SE QUEDA, a proposito: dice que las operaciones son
+                 fiscalmente nulas, y eso es una advertencia legal, no un adorno.  */}
+            <InsigniaEntorno entorno={entorno} />
 
-            {/* User name, role & avatar */}
-            <div className="flex items-center gap-2.5 select-none">
-              <div className="hidden sm:flex flex-col text-right">
-                <span className="text-[13px] font-semibold tracking-wide leading-tight text-inherit">
-                  {user?.name || 'Usuario'}
-                </span>
-                <span className="text-[10px] font-medium leading-none mt-0.5 text-inherit opacity-60">
-                  {user?.role || ''}
-                </span>
-              </div>
-              <Avatar 
-                src={user?.avatarUrl} 
-                name={user?.name || 'CF'} 
-                size={36} 
-                className="border-2 shadow-inner hover:scale-105 transition-transform cursor-pointer border-slate-200"
-              />
-            </div>
+            {/*  LOTE 192: CERRAR SESION VIVE AQUI DENTRO.
+                 Estaba en el pie del menu lateral, debajo de cincuenta elementos. Y
+                 este avatar ya llevaba `cursor-pointer` y `hover:scale-105` SIN un
+                 solo `onClick`: prometia un clic que no hacia nada.  */}
+            <MenuDelUsuario
+              nombre={user?.name || 'Usuario'}
+              rol={user?.role || ''}
+              avatarUrl={user?.avatarUrl}
+              onCerrarSesion={handleLogout}
+            />
           </div>
         </nav>
   
@@ -456,7 +449,6 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
           collapsed={sidebarCollapsed}
           mobileOpen={mobileOpen}
           onMobileClose={() => setMobileOpen(false)}
-          onLogout={handleLogout}
           onSwitchCompany={handleSwitchCompany}
           switching={switching}
         />
