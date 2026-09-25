@@ -20,6 +20,7 @@ import { avisosQueSeMandan } from '@/services/avisos/avisoPorWhatsApp';
 import { formatDateDisplay, diaRD } from '@/utils/fechasLocales';
 import { clavesYaMandadasPorWhatsApp, marcarMandadasPorWhatsApp, type AvisoDelPanel } from '@/services/avisos/sincronizarAvisos';
 import { mandarWhatsApp, motivoParaNoMandar } from '@/services/avisos/whatsappKapso';
+import { esRechazoDeTodos } from '@/services/avisos/rechazoDeWhatsApp';
 
 export async function enviarAvisosPendientes(
   companyId: string,
@@ -51,10 +52,34 @@ export async function enviarAvisosPendientes(
     if (pendientes.length === 0) return 0;
 
     const salieron: string[] = [];
-    for (const envio of pendientes) {
+    for (const [i, envio] of pendientes.entries()) {
       const r = await mandarWhatsApp(envio.numero, envio.texto, envio.parametros);
-      if (r.enviado) salieron.push(envio.clave);
-      else Logger.warn('[avisos-whatsapp] no salio un aviso', { companyId, clave: envio.clave, motivo: r.motivo });
+      if (r.enviado) {
+        salieron.push(envio.clave);
+        continue;
+      }
+      Logger.warn('[avisos-whatsapp] no salio un aviso', { companyId, clave: envio.clave, motivo: r.motivo });
+
+      //  LOTE 196: LO QUE SE RECHAZA POR CONFIGURACION SE RECHAZA PARA TODOS.
+      //
+      //  Todos los avisos de esta empresa van al mismo numero, con la misma clave de
+      //  API y la misma plantilla, asi que un 4xx en el primero ya dice como acaban
+      //  los demas: cinco peticiones y cinco esperas de red para la misma respuesta.
+      //  Lo reporto el dueño el 2026-09-25, con cinco lineas iguales por carga.
+      //
+      //  NO se dan por perdidos: no se marcan, asi que la siguiente carga los vuelve
+      //  a intentar. Eso importa porque sin plantilla el texto libre solo se acepta
+      //  dentro de las 24 h desde que esa persona escribio al numero -- el mismo
+      //  aviso que hoy se rechaza puede salir mañana sin que nadie cambie nada.
+      if (esRechazoDeTodos(r.estado ?? 0)) {
+        const sinIntentar = pendientes.length - i - 1;
+        if (sinIntentar > 0) {
+          Logger.warn('[avisos-whatsapp] no se intentan los demas: mismo motivo', {
+            companyId, sinIntentar, motivo: r.motivo,
+          });
+        }
+        break;
+      }
     }
 
     await marcarMandadasPorWhatsApp(companyId, modo, salieron);

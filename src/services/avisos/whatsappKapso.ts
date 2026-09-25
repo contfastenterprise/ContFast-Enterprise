@@ -46,6 +46,7 @@
  * bloqueado. Un aviso de caja descuadrada no es publicidad.
  */
 import { Logger } from '@/utils/logger';
+import { motivoDelRechazo } from './rechazoDeWhatsApp';
 
 const BASE_ENVIO = 'https://api.kapso.ai/meta/whatsapp/v24.0';
 
@@ -54,6 +55,15 @@ export interface ResultadoEnvio {
   /** El id que devuelve Meta, para poder seguir el mensaje. */
   wamid?: string;
   motivo?: string;
+  /**
+   *  LOTE 196: el codigo HTTP del rechazo, o 0 si no hubo respuesta.
+   *
+   *  Quien llama lo necesita para saber si merece la pena seguir con los demas
+   *  avisos: un 4xx le va a pasar igual a todos (misma clave de API, mismo numero,
+   *  misma plantilla) y un 5xx o un plazo agotado no. Sin este dato habia que
+   *  adivinarlo leyendo el texto del motivo, que cambia cuando el proveedor quiere.
+   */
+  estado?: number;
 }
 
 /** Lo que falta para poder mandar, o null si no falta nada. */
@@ -114,16 +124,23 @@ export async function mandarWhatsApp(
     });
     clearTimeout(plazo);
 
-    const datos = await res.json().catch(() => null) as { messages?: { id: string }[]; error?: { message?: string } } | null;
+    //  LOTE 196: el cuerpo se guarda SIN suponer su forma. Antes se leia
+    //  `datos?.error?.message`, que es la forma de Meta, y Kapso contesta con otra:
+    //  el resultado era un "HTTP 422" a secas que no dejaba arreglar nada. Y si ni
+    //  siquiera es JSON, se lee como texto -- que es cuando mas falta hace.
+    const datos = await res.json().catch(() => null) as
+      { messages?: { id: string }[]; error?: { message?: string } } | null;
     if (!res.ok) {
-      // El motivo de Meta se guarda tal cual: "fuera de la ventana de 24 h" y
-      // "la plantilla no existe" se arreglan de formas distintas.
-      return { enviado: false, motivo: datos?.error?.message || `HTTP ${res.status}` };
+      // El motivo se guarda tal cual: "fuera de la ventana de 24 h" y "la plantilla
+      // no existe" se arreglan de formas distintas.
+      return { enviado: false, estado: res.status, motivo: motivoDelRechazo(res.status, datos) };
     }
     return { enviado: true, wamid: datos?.messages?.[0]?.id };
   } catch (err: unknown) {
     const motivo = (err as Error)?.name === 'AbortError' ? 'WhatsApp no respondio a tiempo' : (err as Error)?.message;
     Logger.warn('[avisos-whatsapp] no se pudo enviar', { motivo });
-    return { enviado: false, motivo };
+    //  Sin respuesta no hay estado: `0` significa "no llego a contestar", y eso NO
+    //  corta la pasada -- al siguiente aviso puede irle mejor.
+    return { enviado: false, estado: 0, motivo };
   }
 }

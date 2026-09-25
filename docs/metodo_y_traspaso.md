@@ -112,6 +112,17 @@ Las trampas que han salido, todas reales, todas costaron un lote:
 - **`.next\types\validator.ts` se queda rancio** y produce errores de `tsc` que
   no existen en el código. Ante un error de tipos que señala a `.next`:
   `Remove-Item -Recurse -Force .next` y volver a correr.
+- **`.next/dev/types/*` puede quedarse con el contenido DUPLICADO** (Next 16, con el
+  servidor de desarrollo levantado). `tsconfig.json` incluye `.next/dev/types/**/*.ts`
+  a propósito —son los tipos de rutas—, así que `tsc` falla con errores de SINTAXIS
+  (`';' expected`, `Declaration or statement expected`) en un fichero que no es tuyo.
+  Pasó el 2026-09-25 en el lote 196: `routes.d.ts` traía `declare global {` **dos**
+  **veces** (líneas 210 y 399) porque dos escrituras del servidor se concatenaron,
+  seguramente al morir el proceso. **Antes de sospechar del código**: mirar si el
+  fichero repite `declare global`, y si sí, borrar `.next/dev/types/routes.d.ts` y
+  `validator.ts` — se regeneran solos. `tsc` volvió a 0 sin tocar una línea de `src/`.
+  El paso 0 de `verificar.ps1` solo mira `.next	ypesalidator.ts`, que es la versión
+  antigua de esta misma trampa.
 - **Finales de línea mezclados en el mismo árbol.** Son CRLF: `msellerClient.ts`,
   `sincronizarPendientes.ts`, `queue.ts`, los ficheros de rutas y los bancos.
   Son LF: `worker.ts`, `jobRunners.ts`, `invoiceDbBooker.ts`, `sesionMseller.ts`,
@@ -553,6 +564,39 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 196: un aviso que no sale dice por qué, y no se repite cinco veces.** El dueño
+  pasó el registro de una sesión del 2026-09-25 con cinco líneas iguales por cada carga
+  del panel: `no salio un aviso ... motivo: 'HTTP 422'`. Dos defectos, y ninguno era la
+  plantilla:
+  - **El motivo se tiraba a la basura.** `datos?.error?.message || `HTTP ${status}``
+    solo sabe leer la forma de error de **Meta**, y Kapso contesta con otra: quedaba
+    "HTTP 422" y **la causa venía en el cuerpo, que se descartaba**. Es la lección del
+    lote 185 otra vez. `motivoDelRechazo` prueba las formas conocidas por orden y, si
+    ninguna encaja, **copia el cuerpo recortado**; el estado va siempre delante, que es
+    lo que permite clasificar (un 422 se arregla cambiando la petición, un 503
+    esperando). **Se recorta a 200 caracteres y no es cosmética**: un cuerpo de error
+    puede devolver la petición entera, y esa lleva el teléfono del destinatario.
+  - **Se reintentaba igual cinco veces.** Todos los avisos de una empresa salen con la
+    misma clave de API, el mismo número y la misma plantilla, así que un 4xx en el
+    primero ya dice cómo acaban los otros cuatro. `esRechazoDeTodos` decide por el
+    **estado** y no por el texto (los textos los cambia el proveedor): 4xx corta, 5xx y
+    «sin respuesta» no. **408** no corta (es del momento) y **429** sí, pero por el
+    motivo contrario: insistir lo empeora. Al cortar se dice **cuántos quedaron sin**
+    **intentar**, o el registro daría una cifra falsa.
+  **Lo que NO hace**: un aviso rechazado no se da por perdido — no se marca, así que la
+  siguiente carga lo reintenta. Sin plantilla configurada el texto libre solo se acepta
+  dentro de las 24 h desde que esa persona escribió al número, así que el mismo aviso
+  puede salir mañana sin que nadie cambie nada. Lo que se corta es repetir la petición
+  **dentro de la misma pasada**.
+  **La causa del 422 de ese registro, medida**: en el `.env` local no está
+  `KAPSO_PLANTILLA_AVISO`, así que el aviso sale como texto libre y Meta lo rechaza
+  fuera de la ventana. Es configuración, no código — pero ahora el registro lo dirá con
+  palabras en vez de con un número.
+  Banco de 24 (las dos reglas ejecutadas), contraprueba 0 OK de 11, **12 mutantes
+  muertos y 1 equivalente anotado en el código** (quitar la línea del 429 no cambia el
+  comportamiento, porque ya cae en el 4xx; se deja escrita porque dice una intención
+  distinta). Dos mutantes apretaron el banco: uno dejaba `sinIntentar = 0` conservando
+  el nombre —mera presencia— y otro quitaba el recorte del cuerpo (5.010 caracteres).
 - **Lote 195: el menú leía el navegador mientras se pintaba** — error de hidratación
   en cada carga, y **un banco lo defendía**. Reportado por el dueño el 2026-09-25, y
   era mío: de los lotes 189 y 191.
