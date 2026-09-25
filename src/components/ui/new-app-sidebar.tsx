@@ -15,6 +15,7 @@ import clsx from 'clsx';
 import { useRbac } from '@/components/providers/rbacContext';
 import { buildSidebar, getGroupIcon, getIconComponent, RouteMapping } from '@/utils/rbacHelpers';
 import { coincideEnAlguno } from '@/utils/buscarTexto';
+import { unaEntradaPorRuta } from '@/utils/menuSinRepetidos';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -116,13 +117,32 @@ function getAllSearchableItems(
   hasPermission: (module: string, action: string) => boolean,
   userRole: string
 ): NavItemBuscable[] {
-  return buildSidebar(routeMappings, hasPermission, userRole).flatMap(g =>
-    g.items.map(item => ({
-      name: item.name,
-      href: item.href,
-      icon: getIconComponent(item.iconName),
-      grupo: g.title,
-    }))
+  //  UNA ENTRADA POR RUTA (lote 190).
+  //
+  //  `route_mappings` puede tener VARIAS filas para la misma pantalla, una por
+  //  cada modulo de permisos que da acceso a ella. Medido el 2026-09-24:
+  //  `/dashboard/antiguedad-saldos` tiene dos, `cobros` y `proveedores`, para que
+  //  la vea tanto quien lleva los cobros como quien lleva los suplidores. NO es
+  //  un duplicado por error y no se puede borrar ninguna: borrar una le quitaria
+  //  la entrada del menu a un rol entero.
+  //
+  //  El sidebar ya lo tenia en cuenta (`seenHrefs` en `SidebarContent`); este
+  //  buscador no, y por eso "Antiguedad de Saldos" salia DOS VECES en Ctrl+K.
+  //  Se queda la primera, que es la del modulo con menor `order_index` segun el
+  //  orden que ya trae `buildSidebar`.
+  //  La regla vive en `utils/menuSinRepetidos`, fuera de este fichero: aqui
+  //  dentro -- con `'use client'`, React e iconos -- un banco no la puede cargar
+  //  para ejecutarla, y un banco que reimplementa la regla comprueba su copia, no
+  //  el codigo. Eso paso en la primera version de este lote.
+  return unaEntradaPorRuta(
+    buildSidebar(routeMappings, hasPermission, userRole).flatMap(g =>
+      g.items.map(item => ({
+        name: item.name,
+        href: item.href,
+        icon: getIconComponent(item.iconName),
+        grupo: g.title,
+      }))
+    )
   );
 }
 
