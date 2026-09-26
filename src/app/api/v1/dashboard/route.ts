@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { isAdminOrSistemas } from '@/middleware/permissions';
 import { DashboardRepository } from '@/repositories/dashboardRepository';
@@ -45,7 +45,24 @@ export async function GET(req: NextRequest) {
     // DESPUES de sincronizar, que es cuando se sabe cual es nuevo de verdad.
     // Tampoco lanza, y no se espera a que termine para responder: el panel no
     // se queda colgado porque WhatsApp tarde.
-    void enviarAvisosPendientes(session.companyId, session.modo, stats.alertsDetails ?? []);
+    //
+    //  LOTE 199: `after`, NO `void`. Y la diferencia no es de estilo.
+    //
+    //  Con `void` esto era "lanza y no esperes", que en una maquina de desarrollo
+    //  funciona -- el proceso sigue vivo -- pero en serverless NO: Vercel congela la
+    //  funcion en cuanto se devuelve la respuesta, asi que la peticion a Kapso se
+    //  cortaba a medias y ni siquiera se volcaban sus lineas de registro.
+    //
+    //  MEDIDO el 2026-09-26, y los dos sintomas encajan: en PRODUCCION los 7 avisos
+    //  vigentes seguian sin marca de envio Y no habia **ni una** linea
+    //  `[avisos-whatsapp]` en los registros, mientras en local esas mismas lineas
+    //  salian (con su 422 por falta de plantilla). Un envio que no ocurre y que
+    //  tampoco se queja es el peor de los dos mundos.
+    //
+    //  `after` hace lo que `void` prometia: la tarea corre DESPUES de responder -- el
+    //  panel no espera a WhatsApp -- pero la funcion se mantiene viva hasta que
+    //  termina. Es de `next/server`, sin dependencias nuevas.
+    after(() => enviarAvisosPendientes(session.companyId, session.modo, stats.alertsDetails ?? []));
 
     return NextResponse.json({
       success: true,

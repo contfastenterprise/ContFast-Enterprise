@@ -573,6 +573,29 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 199: los avisos se mandaban DESPUÉS de responder, y en serverless eso no
+  ocurre.** Dos síntomas que juntos señalan al mecanismo: en PRODUCCIÓN los 7 avisos
+  seguían **sin marca de envío** y en los registros no había **ni una** línea
+  `[avisos-whatsapp]` —ni de éxito ni de fallo—, mientras en **local esas mismas líneas
+  sí salían**. Un envío que no ocurre *y que tampoco se queja* no es un fallo del
+  proveedor: es código que no llega a correr.
+  **Descartado antes de mirar el mecanismo**: `sincronizarAvisos` sí había corrido (las
+  filas quedaron tocadas al abrir el panel), el número está configurado y
+  `normalizarNumero` lo acepta —ese camino también devuelve lista vacía en silencio y
+  era el primer sospechoso—, y los cuatro avisos de PRODUCCIÓN calificaban por
+  severidad.
+  **La causa**: `void enviarAvisosPendientes(...)`. En una máquina de desarrollo el
+  proceso sigue vivo y la tarea termina; **en serverless Vercel congela la función al
+  devolver la respuesta**, así que la petición se cortaba a medias y ni sus líneas de
+  registro se volcaban. La intención del lote 178 era correcta (que el panel no espere
+  a WhatsApp); el mecanismo no funciona donde esto corre.
+  **La cura**: `after()` de `next/server` —lo que `void` prometía: corre después de
+  responder, manteniendo la función viva—. Sin dependencias nuevas.
+  **Y un trinquete**, porque el próximo `void` tampoco avisará: el banco barre las
+  **182 rutas de API** y los servicios buscando `void <llamada>(`. Hoy no queda
+  ninguno; dos casos tolerados y anotados (`barrerViejos` del 183 y `triggerFallback`
+  de la cola). Banco de 7, contraprueba 0 OK, cinco mutantes y cinco muertos —incluido
+  el que mete un `void` nuevo en **otra** ruta, que es para lo que existe el trinquete.
 - **Lote 198: la consulta de RNC vuelve a funcionar** — el proveedor había
   desaparecido y el servicio de la DGII está retirado. El dueño reportó que "buscar
   RNC" daba error en clientes y suplidores.
