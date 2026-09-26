@@ -20,7 +20,11 @@ import { diaRD, primerDiaDelMesRD, primerDiaDelAnoRD } from '@/utils/fechasLocal
  * `America/Santo_Domingo` y no "-4 horas" a mano: si algun dia el pais adopta
  * horario de verano, lo sabe la base de datos, no este fichero.
  */
-const diaRDdeColumna = (columna: SQLWrapper) =>
+//  EXPORTADA EN EL LOTE 205: el informe de avisos necesita la misma conversion, y una
+//  SEGUNDA copia de la regla de zona es justo lo que el lote 174 vino a cerrar -- ese dia
+//  el panel perdia la jornada entera a partir de las 20:00 de RD porque la conversion
+//  estaba escrita a mano en un sitio y bien en otro.
+export const diaRDdeColumna = (columna: SQLWrapper) =>
   sql`((${columna} AT TIME ZONE 'UTC') AT TIME ZONE 'America/Santo_Domingo')::date`;
 
 /** PRODUCCION o PRUEBA. Obligatorio: ver la nota de cabecera de la clase. */

@@ -4232,6 +4232,172 @@ ${padDots('Dirección', 18)} ${cust.address || 'N/A'}
     `;
   }
 
+  /**
+   * INFORME DE AVISOS DEL SISTEMA (lote 205) -- el que se adjunta al correo.
+   *
+   * Pedido del dueño el 2026-09-26: "el correo lo quiero como un reporte, en un pdf con
+   * los datos de la empresa y el formato que tenemos en los demas pdf. todos los aviso
+   * debe de estar en un solo archivo pdf, me gustaria graficos de compras y ventas del
+   * dia". Y despues: "el grafico debe tener leyenda y toda la representacion de cada cosa
+   * debe ser profecional".
+   *
+   * POR QUE VIVE AQUI Y NO EN UN MODULO NUEVO: el formato de casa son `getBaseCss` y esta
+   * cabecera, las dos PRIVADAS de esta clase. Un informe escrito fuera tendria que
+   * copiarlas, y una copia del CSS se separa del original en el primer cambio -- que es
+   * justo lo que "el formato que tenemos en los demas pdf" pide que no pase.
+   *
+   * TODOS LOS AVISOS EN UN SOLO DOCUMENTO: hasta el lote 204 salia un correo POR aviso, y
+   * con ocho pendientes eso son ocho correos que nadie lee enteros. Aqui van en una tabla,
+   * ordenados por gravedad, con desde cuando estan.
+   *
+   * EL GRAFICO ES DE CATORCE DIAS y no del dia: medido en PRODUCCION el 2026-09-26, tres
+   * de los catorce dias estan enteramente a cero -- incluido el propio dia del informe --
+   * y solo seis tienen ventas, asi que "del dia" serian hoy dos barras en cero. Las
+   * cifras del dia SI van, arriba y en numeros, que es donde se leen exactas.
+   */
+  static renderAlertsReport(data: {
+    company: { name?: string; rnc?: string; address?: string; phone?: string; logoUrl?: string | null };
+    dia: string;
+    entorno?: string;
+    avisos: { titulo: string; descripcion: string; severidad: string; desdeCuando?: string | null }[];
+    grafico: string;
+    totalesDelDia: { compras: number; ventas: number };
+    periodo: { desde: string; hasta: string };
+  }): string {
+    const { company, dia, avisos, grafico, totalesDelDia, periodo } = data;
+    const css = this.getBaseCss('carta');
+
+    //  El logo O el nombre, nunca los dos: es el patron de los demas informes.
+    const logoHtml = company.logoUrl
+      ? `<img src="${company.logoUrl}" class="logo" style="max-height: 80px; margin-left: -24px;" alt="Logo">`
+      : '';
+    const companyTitleHtml = logoHtml
+      ? ''
+      : `<div class="font-bold" style="font-size: 11pt; color: #0f172a; margin-bottom: 4px;">${company.name ?? ''}</div>`;
+
+    //  ORDENADOS POR GRAVEDAD: los `error` primero. Quien abre el informe tiene que ver
+    //  arriba lo que no puede esperar, no lo que se guardo antes.
+    const PESO: Record<string, number> = { error: 0, warning: 1, info: 2 };
+    const ordenados = [...avisos].sort(
+      (a, b) => (PESO[a.severidad] ?? 9) - (PESO[b.severidad] ?? 9),
+    );
+
+    const ROTULO: Record<string, { texto: string; fondo: string }> = {
+      error: { texto: 'GRAVE', fondo: '#dc2626' },
+      warning: { texto: 'ADVERTENCIA', fondo: '#d97706' },
+      info: { texto: 'AVISO', fondo: '#0369a1' },
+    };
+
+    const filas = ordenados.map(a => {
+      const r = ROTULO[a.severidad] ?? { texto: (a.severidad ?? '').toUpperCase(), fondo: '#52525b' };
+      return `
+        <tr>
+          <td style="white-space: nowrap;">
+            <span style="display: inline-block; padding: 2px 6px; border-radius: 3px; color: #fff;
+                         font-size: 7pt; font-weight: bold; letter-spacing: 0.4px;
+                         background-color: ${r.fondo};">${r.texto}</span>
+          </td>
+          <td>
+            <div class="font-bold" style="color: #0f172a;">${a.titulo}</div>
+            <div style="color: #52525b; font-size: 8.5pt; margin-top: 2px;">${a.descripcion}</div>
+          </td>
+          <td class="text-center" style="white-space: nowrap; color: #52525b;">
+            ${a.desdeCuando ? formatDateDisplay(a.desdeCuando) : '-'}
+          </td>
+        </tr>`;
+    }).join('');
+
+    //  UN INFORME SIN AVISOS SE DICE, no se manda una tabla vacia. No deberia salir nunca
+    //  --sin avisos no se manda correo-- pero si alguna vez sale, tiene que leerse.
+    const cuerpoTabla = filas || `
+      <tr><td colspan="3" class="text-center" style="color: #52525b; padding: 18px !important;">
+        No hay avisos pendientes.
+      </td></tr>`;
+
+    const graves = ordenados.filter(a => a.severidad === 'error').length;
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Informe de avisos del sistema</title>
+        <style>
+          ${css}
+          /*  FONDO BLANCO EXPLICITO. El CSS de casa fija el color del TEXTO pero no el
+              del papel, asi que el documento hereda el del visor -- y en uno con tema
+              oscuro queda texto gris sobre negro. Se vio fotografiando el PDF; no lo ve
+              ningun banco.
+              (Sin comillas invertidas en este comentario: esta dentro de una plantilla
+              de cadena y una sola la cierra en medio. Paso.) */
+          html, body { background: #ffffff; }
+          .font-bold { font-weight: bold; }
+          table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+          th, td { padding: 8px !important; font-size: 9pt !important; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+          th { background-color: #003366; color: white; font-weight: bold; text-transform: uppercase; font-size: 8pt !important; }
+          .seccion { font-size: 9pt; font-weight: bold; text-transform: uppercase; letter-spacing: 0.6px;
+                     color: #003366; margin: 22px 0 6px; padding-bottom: 3px; border-bottom: 1px solid #e2e8f0; }
+          .cifras { display: flex; gap: 12px; margin-top: 4px; }
+          .cifra { flex: 1; border: 1px solid #e2e8f0; border-radius: 4px; padding: 10px 12px; }
+          .cifra .rotulo { font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.6px; color: #52525b; }
+          .cifra .valor { font-size: 15pt; font-weight: bold; color: #0f172a; margin-top: 2px; }
+          .grafico { margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="company-info">
+            ${logoHtml}
+            ${companyTitleHtml}
+            <div>RNC: ${company.rnc ?? ''}</div>
+            ${company.address ? `<div>Dirección: ${company.address}</div>` : ''}
+            ${company.phone ? `<div>Tel: ${company.phone}</div>` : ''}
+          </div>
+          <div class="doc-info">
+            <div class="subtitle">Informe de avisos del sistema</div>
+            <div>Fecha: ${formatDateDisplay(dia)}</div>
+            <div>Avisos pendientes: ${ordenados.length}${graves > 0 ? ` (${graves} grave${graves === 1 ? '' : 's'})` : ''}</div>
+            ${data.entorno ? `<div>Entorno: ${data.entorno}</div>` : ''}
+          </div>
+        </div>
+
+        <div class="seccion">Movimiento del día</div>
+        <div class="cifras">
+          <div class="cifra">
+            <div class="rotulo">Ventas del día</div>
+            <div class="valor">${this.fmt(totalesDelDia.ventas)}</div>
+          </div>
+          <div class="cifra">
+            <div class="rotulo">Compras del día</div>
+            <div class="valor">${this.fmt(totalesDelDia.compras)}</div>
+          </div>
+        </div>
+
+        <div class="seccion">Compras y ventas, del ${formatDateDisplay(periodo.desde)} al ${formatDateDisplay(periodo.hasta)}</div>
+        <div class="grafico">${grafico}</div>
+
+        <div class="seccion">Avisos pendientes</div>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 15%;">Gravedad</th>
+              <th style="width: 70%;">Aviso</th>
+              <th style="width: 15%;" class="text-center">Desde</th>
+            </tr>
+          </thead>
+          <tbody>${cuerpoTabla}</tbody>
+        </table>
+
+        <div class="footer">
+          Este informe lo genera ContFast Enterprise al recalcular los avisos del panel de
+          inicio. Cada aviso se envía una sola vez y desaparece del informe cuando se
+          atiende.
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
   static renderCustomerBalancesReport(data: any): string {
     const { company, items } = data;
     const css = this.getBaseCss('carta');

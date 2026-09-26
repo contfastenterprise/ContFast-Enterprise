@@ -64,66 +64,111 @@ export function correoValido(texto: string | null | undefined): string | null {
   return limpio;
 }
 
-export interface EnvioPorCorreo {
-  destino: string;
-  asunto: string;
-  cuerpo: string;
-  /** La clave estable del aviso (`notifications.clave`), para marcar lo que salio. */
-  clave: string;
-}
-
-/**
- * El asunto: la empresa delante y el titulo del aviso detras.
- *
- * LA EMPRESA VA EN EL ASUNTO, y no es un adorno: quien administra varias recibe los
- * avisos de todas en la misma bandeja, y "Caja con diferencia" sin decir de quien no se
- * puede ni ordenar ni buscar.
- */
-export function asuntoDelAviso(aviso: AvisoDelPanel, empresa: string): string {
-  return `[${empresa}] ${aviso.title}`;
-}
-
-/**
- * El cuerpo. Texto llano a proposito: se lee igual en el movil, en un cliente viejo y
- * en un reenvio, y no hay nada que se pueda romper al maquetarlo.
- */
-export function cuerpoDelAviso(aviso: AvisoDelPanel, empresa: string): string {
-  return [
-    aviso.title,
-    '',
-    aviso.description,
-    '',
-    `Empresa: ${empresa}`,
-    //  El enlace es lo que convierte un aviso en algo que se puede atender: sin el, hay
-    //  que buscar la pantalla a mano.
-    aviso.actionLink ? `Para atenderlo: ${aviso.actionLink}` : '',
-    '',
-    'ContFast Enterprise — aviso automático del sistema.',
-  ].filter((l, i, todas) => !(l === '' && todas[i - 1] === '')).join('\n');
-}
-
 /**
  * Los avisos que hay que mandar por correo ahora.
  *
  * Mismo criterio que el canal de WhatsApp (lote 178): se filtra por severidad y por lo
  * que YA salio, y sin direccion configurada no se manda nada -- ni se consulta nada.
+ *
+ * LOTE 205: devuelve los AVISOS y no un correo por aviso. Antes esta funcion armaba un
+ * envio por cada uno; el dueño pidio que todos vayan en un solo documento, asi que quien
+ * decide que entra sigue siendo esto y como se presenta es del informe. Con ocho avisos
+ * pendientes, lo de antes eran ocho correos.
  */
-export function avisosQueSeMandanPorCorreo(
+export function avisosParaElInforme(
   avisos: readonly AvisoDelPanel[],
-  empresa: string,
   correoConfigurado: string | null | undefined,
   yaMandados: ReadonlySet<string>,
-): EnvioPorCorreo[] {
-  const destino = correoValido(correoConfigurado);
-  if (!destino) return [];
-  return avisos
-    .filter((a) => seMandaPorCorreo(a.type) && !yaMandados.has(a.id))
-    .map((a) => ({
-      destino,
-      asunto: asuntoDelAviso(a, empresa),
-      cuerpo: cuerpoDelAviso(a, empresa),
-      clave: a.id,
-    }));
+): AvisoDelPanel[] {
+  if (!correoValido(correoConfigurado)) return [];
+  return avisos.filter((a) => seMandaPorCorreo(a.type) && !yaMandados.has(a.id));
+}
+
+/**
+ * El asunto del informe: la empresa delante y cuantos avisos hay detras.
+ *
+ * LA EMPRESA VA EN EL ASUNTO, y no es un adorno: quien administra varias recibe los
+ * avisos de todas en la misma bandeja, y "3 avisos pendientes" sin decir de quien no se
+ * puede ni ordenar ni buscar.
+ *
+ * LOS GRAVES SE CUENTAN APARTE cuando hay: "8 avisos pendientes" y "8 avisos pendientes
+ * (3 graves)" piden atencion distinta, y el asunto es lo unico que se ve sin abrir.
+ */
+export function asuntoDelInforme(avisos: readonly AvisoDelPanel[], empresa: string): string {
+  //  LA SEVERIDAD SE DERIVA de la clase del aviso, NO es `a.type`. `type` vale
+  //  'invoice_rejected', 'caja_con_diferencia', 'check_due'... y quien lo traduce a
+  //  error/warning/info es `severidadDeAviso`. Compararlo con 'error' a pelo da SIEMPRE
+  //  falso, asi que el asunto nunca habria contado un grave -- y el banco lo cazo.
+  const graves = avisos.filter((a) => severidadDeAviso(a.type) === 'error').length;
+  const cuantos = avisos.length;
+  const plural = cuantos === 1 ? 'aviso pendiente' : 'avisos pendientes';
+  const cola = graves > 0 ? ` (${graves} grave${graves === 1 ? '' : 's'})` : '';
+  return `[${empresa}] ${cuantos} ${plural}${cola}`;
+}
+
+/**
+ * El cuerpo del correo. Texto llano a proposito: se lee igual en el movil, en un cliente
+ * viejo y en un reenvio, y no hay nada que se pueda romper al maquetarlo.
+ *
+ * REPITE LOS AVISOS AUNQUE VAYAN EN EL PDF, y esto es deliberado: un adjunto puede no
+ * abrirse -- en el movil, con una conexion mala, o si el PDF no se pudo generar (pasa: el
+ * navegador que lo dibuja puede no arrancar). Si el cuerpo fuera "ver el adjunto", un
+ * fallo del PDF dejaria un correo que no dice nada. Asi el correo se sostiene solo y el
+ * informe es el detalle.
+ */
+export function cuerpoDelInforme(
+  avisos: readonly AvisoDelPanel[],
+  empresa: string,
+  conInforme: boolean,
+): string {
+  //  Los graves primero: el mismo orden que el informe, para que no se lean dos ordenes
+  //  distintos del mismo contenido.
+  const PESO: Record<string, number> = { error: 0, warning: 1, info: 2 };
+  const ordenados = [...avisos].sort(
+    (a, b) => (PESO[severidadDeAviso(a.type)] ?? 9) - (PESO[severidadDeAviso(b.type)] ?? 9));
+  const lineas: string[] = [
+    `Avisos pendientes de ${empresa}: ${avisos.length}.`,
+    '',
+  ];
+  for (const a of ordenados) {
+    lineas.push(`• [${rotuloDeSeveridad(severidadDeAviso(a.type))}] ${a.title}`);
+    if (a.description) lineas.push(`  ${a.description}`);
+    //  El enlace es lo que convierte un aviso en algo que se puede atender: sin el, hay
+    //  que buscar la pantalla a mano.
+    if (a.actionLink) lineas.push(`  Para atenderlo: ${a.actionLink}`);
+    lineas.push('');
+  }
+  if (conInforme) {
+    lineas.push('Se adjunta el informe en PDF, con el movimiento de compras y ventas.');
+    lineas.push('');
+  }
+  lineas.push('ContFast Enterprise — aviso automático del sistema.');
+  return lineas.filter((l, i, todas) => !(l === '' && todas[i - 1] === '')).join('\n');
+}
+
+/** Como se nombra cada severidad para una persona. */
+export function rotuloDeSeveridad(severidad: string): string {
+  if (severidad === 'error') return 'GRAVE';
+  if (severidad === 'warning') return 'ADVERTENCIA';
+  return 'AVISO';
+}
+
+/**
+ * El nombre del fichero adjunto.
+ *
+ * SE LIMPIA EL NOMBRE DE LA EMPRESA, y hace falta: los nombres reales traen puntos y
+ * apostrofos (`LATIN DOORS S.R.L.`, `D'JIMENEZ`), y un nombre de fichero con barras o con
+ * puntos de mas lo tratan mal algunos clientes de correo -- se ha visto guardar
+ * "informe.pdf.txt". Solo letras, numeros, guion y punto de la extension.
+ */
+export function nombreDelInforme(empresa: string, dia: string): string {
+  const limpio = (empresa || 'empresa')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^A-Za-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40) || 'empresa';
+  const fecha = /^\d{4}-\d{2}-\d{2}$/.test(dia) ? dia : 'sin-fecha';
+  return `avisos-${limpio}-${fecha}.pdf`;
 }
 
 /**

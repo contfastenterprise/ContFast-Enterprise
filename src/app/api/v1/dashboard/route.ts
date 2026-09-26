@@ -6,6 +6,21 @@ import { sincronizarAvisos } from '@/services/avisos/sincronizarAvisos';
 import { enviarAvisosPorCorreo } from '@/services/avisos/enviarAvisosPorCorreo';
 import { motivoDelError, motivoParaLaPantalla } from '@/utils/motivoDelError';
 
+/**
+ * LOTE 205: el plazo de la funcion, porque el informe de avisos dibuja un PDF.
+ *
+ * Esta ruta no declaraba ninguno. Desde el 205, lo que corre en `after()` arranca un
+ * Chromium para dibujar el informe -- medido en PRODUCCION el 2026-09-23: ~3,2 s en
+ * instancia nueva. `after()` mantiene la funcion viva despues de responder, pero NO la
+ * libera del plazo: sin margen, el dibujo se cortaria a media faena y el aviso se quedaria
+ * sin salir sin dejar ni una linea que lo explique -- que es justo el fallo mudo que
+ * costo los lotes 196 a 199.
+ *
+ * 60 s es lo que declaran las dos rutas de impresion (lote 105), por el mismo motivo.
+ * El panel responde en su tiempo de siempre: esto solo alarga lo que ocurre DESPUES.
+ */
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   try {
     const session = await verifyAuth(req);

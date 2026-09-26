@@ -85,7 +85,7 @@ async function main() {
   if (!M) {
     for (const t of ETIQUETAS) ok(t, false, 'no existe services/avisos/avisoPorCorreo.ts');
   } else {
-    const { correoValido, seMandaPorCorreo, asuntoDelAviso, cuerpoDelAviso, avisosQueSeMandanPorCorreo } = M;
+    const { correoValido, seMandaPorCorreo, avisosParaElInforme } = M;
 
     ok(ETIQUETAS[0],
       correoValido(' avisos@miempresa.com ') === 'avisos@miempresa.com'
@@ -116,26 +116,23 @@ async function main() {
       actionText: 'Ir al 606',
       actionLink: '/dashboard/reports/606?period=202608',
     };
-    //  LA EMPRESA VA EN EL ASUNTO: quien administra varias las recibe todas en la misma
-    //  bandeja, y "El 606 de agosto" sin decir de quien no se puede ni buscar.
-    ok('el asunto dice de que empresa es',
-      asuntoDelAviso(aviso, 'Latin Doors S.R.L') === '[Latin Doors S.R.L] El 606 de agosto no consta presentado');
-    const cuerpo = cuerpoDelAviso(aviso, 'Latin Doors S.R.L');
-    ok('  y el cuerpo lleva el porque y donde atenderlo',
-      cuerpo.includes('Oficina Virtual') && cuerpo.includes('/dashboard/reports/606?period=202608')
-      && cuerpo.includes('Latin Doors S.R.L'));
-
-    const yaSalio = new Set(['declaracion-606-202608']);
+    //  LOTE 205: AQUI HABIA CUATRO COMPROBACIONES MAS, y se fueron con las funciones que
+    //  probaban. `asuntoDelAviso`, `cuerpoDelAviso` y `avisosQueSeMandanPorCorreo` armaban
+    //  UN correo por aviso; el dueño pidio que todos vayan en un solo informe, asi que las
+    //  sustituyen `asuntoDelInforme`, `cuerpoDelInforme` y `avisosParaElInforme`.
+    //
+    //  LAS PROPIEDADES NO SE PIERDEN, CAMBIAN DE BANCO: la empresa en el asunto, el porque
+    //  y el enlace en el cuerpo, no repetir lo que ya salio y no mandar sin direccion
+    //  configurada se comprueban ahora en `verificar_informe_de_avisos.ts`, ejecutandolas
+    //  igual. Lo que se queda aqui es lo que sigue siendo de este banco: la validacion de
+    //  la direccion, que severidades salen, el ajuste de la pantalla y la migracion.
     ok(ETIQUETAS[2],
-      avisosQueSeMandanPorCorreo([aviso], 'X', 'a@b.com', yaSalio).length === 0
-      && avisosQueSeMandanPorCorreo([aviso], 'X', 'a@b.com', new Set()).length === 1);
+      avisosParaElInforme([aviso], 'a@b.com', new Set(['declaracion-606-202608'])).length === 0
+      && avisosParaElInforme([aviso], 'a@b.com', new Set()).length === 1);
     ok(ETIQUETAS[3],
-      avisosQueSeMandanPorCorreo([aviso], 'X', null, new Set()).length === 0
-      && avisosQueSeMandanPorCorreo([aviso], 'X', 'no es un correo', new Set()).length === 0);
-    const salida = avisosQueSeMandanPorCorreo([aviso], 'Latin Doors', 'a@b.com', new Set())[0];
-    ok('  y lo que sale lleva destino, asunto, cuerpo y su clave',
-      salida?.destino === 'a@b.com' && salida?.clave === 'declaracion-606-202608'
-      && (salida?.asunto.length ?? 0) > 0 && (salida?.cuerpo.length ?? 0) > 0);
+      avisosParaElInforme([aviso], null, new Set()).length === 0
+      && avisosParaElInforme([aviso], '', new Set()).length === 0
+      && avisosParaElInforme([aviso], 'no es un correo', new Set()).length === 0);
     //  El correo tiene su propia lista de severidades aunque hoy coincida con la del
     //  WhatsApp: son dos decisiones, y una puede cambiar sin la otra.
     // ── LOTE 201: usar el correo de la empresa ─────────────────────────────
@@ -214,15 +211,28 @@ async function main() {
   //  1. NUNCA LANZA: avisar de un problema no puede convertirse en un problema.
   ok('el envio no puede tumbar el panel',
     /catch \(err: unknown\)/.test(codigoServicio) && /return 0;/.test(codigoServicio));
-  //  2. MARCA LO QUE SALIO, no lo que se intento.
+  //  2. MARCA LO QUE SALIO, no lo que se intento. RE-ANCLADA EN EL LOTE 205: antes se
+  //     marcaba la lista `salieron` que iba llenando el bucle; ahora hay un solo envio y
+  //     lo que se marca son sus claves. La propiedad es la misma y es la que importa --
+  //     marcar ANTES de mandar perderia los avisos para siempre si el correo falla --,
+  //     asi que se comprueba el ORDEN, no el nombre de la variable.
   ok('marca lo que salio, no lo que se intento',
-    /marcarMandadasPorCorreo\(companyId, modo, salieron\)/.test(codigoServicio));
+    /marcarMandadasPorCorreo\(companyId, modo, claves\)/.test(codigoServicio)
+    && codigoServicio.indexOf('marcarMandadasPorCorreo(companyId') > codigoServicio.lastIndexOf('sendMail('));
   //  3. Sin direccion, ni una consulta de mas.
   ok('sin direccion configurada no consulta nada mas',
-    /if \(!ajustes\?\.correo\) return 0;/.test(codigoServicio));
-  //  4. Lo que falla por configuracion no se repite en la misma pasada (lote 196).
-  ok('lo que falla por configuracion no se repite cuatro veces',
-    /sinIntentar/.test(codigoServicio) && /break;/.test(codigoServicio));
+    /if \(!destino\) return 0;/.test(codigoServicio)
+    && codigoServicio.indexOf('if (!destino) return 0;') < codigoServicio.indexOf('clavesYaMandadasPorCorreo('));
+  //  4. LA CUARTA GARANTIA DEL LOTE 196 SE CUMPLE SOLA DESDE EL 205, y por eso esta
+  //     comprobacion cambia en vez de borrarse. Decia "lo que falla por configuracion no
+  //     se repite cuatro veces" y vigilaba un `break` dentro del bucle de envios. Ya no
+  //     hay bucle: todos los avisos van en UN correo, asi que no hay ninguna peticion
+  //     condenada que repetir. Lo que se vigila ahora es justamente eso -- que siga
+  //     habiendo un solo envio --, porque volver a un correo por aviso reabriria el
+  //     problema que el 196 cerro.
+  ok('hay un solo envio, asi que no hay nada que repetir (lo del lote 196, resuelto)',
+    (codigoServicio.match(/sendMail\(/g) || []).length === 1
+    && !/for \([^)]*of pendientes/.test(codigoServicio));
   ok('  y el motivo del fallo se registra completo (lote 197)',
     /motivoDelError\(err\)/.test(codigoServicio));
   //  Sin SMTP se dice UNA vez y con el nombre de la variable, nunca su valor.

@@ -90,8 +90,15 @@ async function main() {
   if (!/catch \(err: unknown\)/.test(envio) || !/return 0;/.test(envio)) {
     throw new Error('Precondicion: el envio de avisos ya puede lanzar y tumbar el panel');
   }
-  if (!/marcarMandadasPorCorreo\(companyId, modo, salieron\)/.test(envio)) {
-    throw new Error('Precondicion: ya no se marca solo lo que salio');
+  //  RE-ANCLADA EN EL LOTE 205. Exigia `marcarMandadasPorCorreo(companyId, modo, salieron)`
+  //  --el NOMBRE de la variable-- y ese lote renombro `salieron` a `claves` al pasar de un
+  //  correo por aviso a uno solo con todos. No faltaba nada: era la forma, no la
+  //  propiedad. Lo que hay que exigir es que se marque DESPUES de mandar; marcar antes
+  //  perderia los avisos para siempre si el correo falla, que es lo que esta guarda
+  //  protege. Es la trampa de la seccion 7, otra vez.
+  if (!/marcarMandadasPorCorreo\(companyId, modo, /.test(envio)
+    || envio.indexOf('marcarMandadasPorCorreo(companyId') < envio.lastIndexOf('sendMail(')) {
+    throw new Error('Precondicion: ya no se marca DESPUES de mandar, o no se marca');
   }
   console.log(`  pre   el envio no lanza, marca solo lo que salio y va despues de sincronizar · ${todas.length} rutas de API a barrer`);
 
