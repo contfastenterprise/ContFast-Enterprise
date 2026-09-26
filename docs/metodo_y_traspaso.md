@@ -578,6 +578,90 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
+  empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
+  reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
+  pdf. todos los aviso debe de estar en un solo archivo pdf, me gustaría gráficos de
+  compras y ventas del día"*, y después *"el gráfico debe tener leyenda y toda la
+  representación de cada cosa debe ser profesional"*.
+  **La medición cambió el gráfico.** Un gráfico "del día" son dos barras. Medido en
+  PRODUCCIÓN: de los catorce días del período, **tres están enteramente a cero** —
+  incluido el propio día del informe — y solo **seis tienen ventas**. Con eso delante, el
+  dueño eligió **catorce días con el día del informe destacado**; las cifras del día van
+  igual, arriba y en números.
+  **Y la medición se corrigió a sí misma, que es la lección**: la primera lectura dijo
+  "última venta el 14 de septiembre" y era **falsa** — el guion imprimía las fechas como
+  `Date` y el terminal las mostraba en hora local (UTC−4), o sea **un día antes**, y el
+  `tail` se comió las filas recientes. La última venta fue el **25, por RD$309.695,21**.
+  Se corrigió **cuadrando la serie contra la base por dos caminos independientes**
+  (14 de 14 días iguales). **Al medir, imprimir un `date` de Postgres como `Date` de
+  JavaScript lo corre un día.**
+  **La trampa del lote, y la regla que deja**: las dos series **no se agrupan igual**.
+  `invoices.created_at` es un INSTANTE en UTC y hay que convertirlo al día de RD (es el
+  defecto que cerró el lote 174); `expenses.issue_date` es una columna `date`, un DÍA, y
+  convertirla correría las compras un día hacia atrás. **Se convierte lo que es un
+  instante; un día ya es un día.** La conversión se **importa** de `biRepository`, no se
+  copia: una segunda copia de la regla de zona es lo que el 174 vino a cerrar.
+  Módulos: `services/avisos/graficoDeBarras.ts` (SVG a mano —**no recharts**, que es React
+  de navegador; precedente: `generateCode39Svg`— con **leyenda de todo lo que se dibuja**,
+  incluido el día destacado), `movimientoDeLosDias.ts` (el esqueleto: **los días sin
+  movimiento salen a CERO, no se saltan** — con solo lo que devuelve el `GROUP BY`, seis
+  días de ventas repartidos en dos semanas se dibujarían como seis barras seguidas; el
+  hueco es el dato), `consultaDeMovimiento.ts` y `informeDeAvisos.ts`. El informe vive
+  **dentro** de `documentTemplates.ts` porque el formato de casa (`getBaseCss` y la
+  cabecera) es privado de esa clase y una copia se separa del original al primer cambio.
+  **Un correo con todos, no uno por aviso** (con ocho pendientes eran ocho correos). Con
+  eso **desaparece la cuarta garantía del lote 196** — "lo que falla por configuración no
+  se repite en la misma pasada" — porque ya no hay pasada que cortar: se cumple sola.
+  **El PDF no puede costar un aviso**: si no se puede dibujar, el correo sale igual con el
+  texto, que ya lleva todos los avisos y sus enlaces. Por eso el cuerpo repite el
+  contenido en vez de decir "ver el adjunto".
+  `dashboard/route.ts` declara **`maxDuration = 60`**: no tenía ninguno, y ahora lo que
+  corre en `after()` arranca un Chromium (~3,2 s medidos). `after()` mantiene viva la
+  función tras responder pero **no la libera del plazo**.
+  **Se miró el PDF, y eso encontró lo que ningún banco ve**: se dibujó contra PRODUCCIÓN y
+  se fotografió. Salieron **tres defectos** —el rótulo de la unidad encima de la primera
+  cifra del eje, el nombre del mes encima de la leyenda, y el documento sin fondo blanco
+  propio (heredaba el del visor: en uno con tema oscuro, texto gris sobre negro)—. Un
+  solapamiento es **SVG perfectamente válido**: ninguna comprobación de "está bien
+  formado" se entera. Ahora el banco mide las **distancias** entre etiquetas.
+  Banco de 70 (55 ejecutando), contraprueba **69 FALLA sin un superviviente**, dieciséis
+  mutantes y dieciséis muertos. **Cinco trampas ya anotadas volvieron a morder**: (1) usar
+  `aviso.type` como si fuera la severidad —no lo es, la deriva `severidadDeAviso`, y
+  comparar con `'error'` da siempre falso: el asunto no habría contado ni un grave—,
+  cazado al **ejecutar** las reglas; (2) **la prosa, por quinta vez** — tres
+  comprobaciones leyeron mis propios comentarios, que explican por qué NO se usa recharts,
+  `@/db` ni `toLocaleDateString`; (3) **la precondición nombraba los módulos que el lote
+  crea**, así que la contraprueba habría reventado en vez de fallar; (4) **cinco OK
+  sobrevivieron** —dos propiedades ciertas ya antes (a precondición) y tres negaciones
+  ciertas **de balde** sobre ficheros inexistentes (atadas a una marca positiva)—; (5)
+  **un banco roto tapa mutantes**: una comprobación quedó siempre en rojo por un corte mal
+  puesto dentro del SVG y la tanda dio los dieciséis por muertos sin estarlo.
+  Y el barrido completo cazó dos más: el **trinquete del lote 118** (una unión
+  `'PRODUCCION' | 'PRUEBA'` escrita a mano donde existe `ModoOperativo`) y la precondición
+  del 199, que anclaba el **nombre** de una variable renombrada aquí.
+- **Lote 204: el correo de la empresa se elige con una CASILLA, no con un enlace.** Pedido
+  del dueño sobre el 201. No es solo cambiar el elemento: un botón se esconde cuando no
+  haría nada —incluido "ya es el que está puesto"—, pero una **casilla en ese caso tiene
+  que salir MARCADA**. Eran dos preguntas en una función y se separan:
+  `correoDeLaEmpresaParaAvisos` dice QUÉ se puede ofrecer y `usaElCorreoDeLaEmpresa` si ya
+  se está usando (comparando normalizado).
+  **El estado se DERIVA, no se guarda** —sin columna nueva, así que no puede mentir—, y de
+  ahí sale la única decisión que se puede equivocar: **desmarcar tiene que vaciar el
+  campo**. Si dejara el texto, seguiría siendo el correo de la empresa y la casilla
+  volvería a pintarse marcada: un interruptor que no se puede apagar. Vaciar significa
+  además algo — "esta empresa no recibe avisos" (lotes 178 y 200).
+  Ocho mutantes, ocho muertos. **Uno obligó a endurecer el banco**: quitar una guarda hacía
+  que la regla LANZARA y el banco abortaba en vez de dar FALLA. Se envuelve, y **devuelve
+  un centinela `'LANZO'` y no `false`** — con `false`, el mismo mutante sobreviviría en las
+  comprobaciones que esperan `false`, y "no cumple" y "reventó" volverían a ser
+  indistinguibles, al revés.
+- **Lote 201: el correo de los avisos se copia del de la empresa** (ver el 204, que lo
+  convirtió en casilla). Se **ofrece y no se aplica solo**: las seis empresas tienen el
+  campo vacío y vacío significa "esta empresa no recibe avisos por correo" (lote 178), así
+  que como valor por defecto habrían empezado a recibirlos sin que nadie lo decidiera.
+  **Un mutante cazó mera presencia**: cambiar lo que se ESCRIBE por `formData.email` a
+  pelo sobrevivía, porque la regla seguía apareciendo en la CONDICIÓN del bloque.
 - **Lote 202: cuatro bancos en rojo que los lotes 197 y 198 dejaron sin ver — y uno era
   un defecto de verdad.** Los lotes 197 a 201 se fueron commiteando sin correr el
   barrido completo, y esto es la lección del lote 100 otra vez, escrita en la sección 7
