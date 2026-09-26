@@ -72,8 +72,16 @@ async function main() {
   if (!/Timeout adding job to \$\{queueName\}/.test(cola)) {
     throw new Error('Precondicion: el aviso de plazo agotado ya no dice lo mismo; los registros viejos no se podrian buscar');
   }
-  if (!/message: 'Error de red al consultar DGII\.'/.test(rnc) || !/success: false/.test(rnc)) {
-    throw new Error('Precondicion: la consulta de RNC ya no devuelve el mismo resultado a quien llama');
+  //  RE-ANCLADA EN EL LOTE 202. Antes exigia el TEXTO exacto
+  //  (`message: 'Error de red al consultar DGII.'`), y el lote 198 lo cambio A
+  //  PROPOSITO: ese mensaje mentia dos veces -- no se consultaba a la DGII (era un
+  //  proxy de terceros que ya no resuelve) y no era un fallo pasajero. La propiedad
+  //  que esta guarda tiene que defender no es la frase, es que un fallo de la
+  //  consulta siga DEVOLVIENDOSE a quien llama en vez de lanzar: si lanzara, bajar
+  //  el nivel del log si perderia informacion. Es la trampa de la seccion 7 --
+  //  anclar la forma y no la propiedad -- por octava vez.
+  if (!/success: false/.test(rnc) || !/message: /.test(rnc) || /throw /.test(sinComentarios(rnc))) {
+    throw new Error('Precondicion: la consulta de RNC ya no devuelve el fallo a quien llama');
   }
   //  Bajar el nivel del log no puede convertir un fallo serio en algo que nadie
   //  ve: en modo estricto el validador tiene que seguir bloqueando.
@@ -113,9 +121,21 @@ async function main() {
   ok('  importando el registrador de verdad', /from '@\/utils\/logger'/.test(rnc));
   // La clave de API viaja en una cabecera: un volcado del error entero podria
   // arrastrarla al registro.
-  ok('  y no vuelca el error entero, solo su mensaje',
-    /motivo: \(error as Error\)\?\.message/.test(codigoRnc)
-    && !/Logger\.warn\([^)]*, error\)/.test(codigoRnc));
+  //  RE-ANCLADA EN EL LOTE 202. Exigia `motivo: (error as Error)?.message`, y el
+  //  lote 197 lo cambio a `motivoDelError(error)` a proposito: Drizzle envuelve el
+  //  fallo y la causa real viaja en `cause`, asi que `.message` a secas registraba
+  //  el envoltorio y nada mas.
+  //
+  //  LO QUE HAY QUE CONSERVAR sigue siendo lo mismo, y no es la frase: que al
+  //  registro llegue un TEXTO DERIVADO y no el objeto de error entero. Cuando se
+  //  escribio, el motivo era que la peticion llevaba la clave de API en una
+  //  cabecera; desde el lote 198 ya no hay peticion ninguna -- se lee el padron de
+  //  nuestra base --, pero la propiedad se queda porque `motivoDelError` recorta
+  //  (400 caracteres) y un volcado del objeto no tiene tope.
+  const motivoDerivado = /motivo: \(error as Error\)\?\.message/.test(codigoRnc)
+    || /motivo: motivoDelError\(error\)/.test(codigoRnc);
+  ok('  y no vuelca el error entero, solo un texto derivado de el',
+    motivoDerivado && !/Logger\.warn\([^)]*, error\)/.test(codigoRnc));
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
   process.exit(fallos === 0 ? 0 : 1);

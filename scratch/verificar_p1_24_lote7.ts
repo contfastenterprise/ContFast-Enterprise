@@ -173,10 +173,25 @@ console.log('\n=== rncLookup.ts ===\n');
   //  que se ancla: el parametro del catch tipado `unknown`, y para leer
   //  `.message` un cast PUNTUAL a `Error` -- exactamente el mismo criterio que
   //  este banco ya bendice arriba para `sincronizarPendientes.ts`.
-  ok('el catch: error tipado unknown, con cast puntual a Error para leer .message',
+  //  RE-ANCLADA OTRA VEZ EN EL LOTE 202, y por el mismo motivo que la vez
+  //  anterior. El lote 197 sustituyo el `(error as Error)?.message` de aqui por
+  //  `motivoDelError(error)`, a proposito: Drizzle envuelve el fallo como
+  //  `Failed query: <sql>` y el error de verdad viaja en `cause`, asi que leer
+  //  solo `.message` era lo que dejo el registro de produccion diciendo "fetch
+  //  failed" durante semanas sin decir que el DNS no resolvia.
+  //
+  //  La PROPIEDAD de la campaña P1-24 no ha cambiado y es la que se ancla: el
+  //  parametro del catch tipado `unknown` y NINGUN molde a `any`. Como se saca el
+  //  texto -- un cast puntual a `Error` o el ayudante compartido -- es
+  //  implementacion, y anclarlo fue lo que puso este banco en rojo dos veces.
+  ok('el catch: error tipado unknown, sin ningun molde a any',
     /\} catch \(error: unknown\) \{/.test(src)
-    && /\(error as Error\)\?\.message/.test(src)
+    && (/\(error as Error\)\?\.message/.test(src) || /motivoDelError\(error\)/.test(src))
     && !/error as any/.test(src));
+  //  ATADO AL IMPORT, no a la mera presencia del nombre: una llamada sin su
+  //  `import` deja el identificador igual de presente (seccion 3 del metodo).
+  ok('  y si delega en el ayudante compartido, lo importa',
+    !/motivoDelError\(error\)/.test(src) || /from '@\/utils\/motivoDelError'/.test(crd));
 }
 
 // ═══════════════════ pdfGenerator.ts ═══════════════════

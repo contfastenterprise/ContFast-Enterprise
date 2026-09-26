@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import { db, rncPadron } from '@/db';
 import { Logger } from '@/utils/logger';
 import { motivoDelError } from '@/utils/motivoDelError';
+import { formatDateDisplay } from '@/utils/fechasLocales';
 import { rncBuscable, estaActivo } from '@/services/dgii/padronDeRnc';
 
 export interface RncLookupResult {
@@ -113,9 +114,12 @@ export class DGIIService {
         };
       }
 
-      const fecha = alguna.actualizado.toLocaleDateString('es-DO', {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-      });
+      //  CON EL FORMATEADOR COMPARTIDO, no a mano. El lote 198 escribio aqui un
+      //  `toLocaleDateString('es-DO')`, que es justo lo que el barrido de fechas
+      //  (`verificar_fechas_impresas.ts`) vino a quitar de todo `src/`: en RD no
+      //  rellena con ceros ("2/9/2026") y conviviria un quinto formato con los
+      //  dd-MM-aaaa del resto de la aplicacion, en un mensaje que el usuario lee.
+      const fecha = formatDateDisplay(alguna.actualizado);
       return {
         success: false,
         rnc: buscado,

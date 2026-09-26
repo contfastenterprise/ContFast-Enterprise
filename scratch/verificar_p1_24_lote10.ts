@@ -31,8 +31,20 @@ const CAST_RE = CAST.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 {
   const src = crudo('src/app/api/v1/dashboard/route.ts');
   ok("dashboard/route: 0 ': any'", sinAny(src) === 0, `quedan ${sinAny(src)}`);
-  ok('dashboard/route: catch (err: unknown) + .message',
-    src.includes('} catch (err: unknown) {') && src.includes('message: (err as Error).message'));
+  //  RE-ANCLADA EN EL LOTE 202. Exigia `message: (err as Error).message`, y el lote
+  //  197 lo cambio a proposito: esta ruta devolvia 500 en PRODUCCION y `.message`
+  //  solo traia el envoltorio de Drizzle (`Failed query: select ...`), con la causa
+  //  real en `cause`. Lo que se manda al navegador pasa ahora por
+  //  `motivoParaLaPantalla`, que ademas recorta y se queda con el tramo mas interno
+  //  -- o sea, deja FUERA el SQL, que es lo que no debe salir de aqui.
+  //
+  //  La propiedad de P1-24 es el tipado del catch y que no haya moldes a `any`; de
+  //  donde sale el texto es implementacion. Anclar la forma es la trampa de la
+  //  seccion 7 del documento de traspaso.
+  ok('dashboard/route: catch (err: unknown), el mensaje derivado del error y sin any',
+    src.includes('} catch (err: unknown) {')
+    && (src.includes('message: (err as Error).message') || /message: motivoParaLaPantalla\(err\)/.test(src))
+    && !/err as any/.test(src));
 }
 
 // ═══════════════════ delivery-notes/[id]/approve, [id]/route (2), apply-code, route (2) -- todos status+code+message ═══════════════════
