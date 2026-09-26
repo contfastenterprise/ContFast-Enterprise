@@ -7,7 +7,7 @@ import AvatarUploader from '@/components/ui/AvatarUploader';
 import { useConfirm } from '@/providers/confirm-provider';
 import { esAdministracion, esSistemas } from '@/utils/rolMatch';
 import { formatDateDisplay } from '@/utils/fechasLocales';
-import { GRUPOS_DE_PUENTES } from '@/services/accounting/cuentasDelSistema';import { correoValido, correoDeLaEmpresaParaAvisos } from '@/services/avisos/avisoPorCorreo';
+import { GRUPOS_DE_PUENTES } from '@/services/accounting/cuentasDelSistema';import { correoValido, correoDeLaEmpresaParaAvisos, usaElCorreoDeLaEmpresa } from '@/services/avisos/avisoPorCorreo';
 
 export default function SettingsPage() {
   const confirm = useConfirm();
@@ -659,30 +659,47 @@ export default function SettingsPage() {
                             Se enviará a {correoDeAvisos}
                           </p>
                         )}
-                        {/*  LOTE 201: usar el correo de la empresa sin escribirlo otra
-                             vez (pedido del dueño). Medido: las seis empresas ya tienen
-                             uno valido en su ficha.
+                        {/*  LOTE 201, CASILLA EN EL 204: usar el correo de la empresa sin
+                             escribirlo otra vez (pedido del dueño). Medido: las seis
+                             empresas ya tienen uno válido en su ficha.
 
                              SE OFRECE, NO SE APLICA SOLO: "vacío = no recibir avisos" es
                              una decisión explícita (lotes 178 y 200). Si cayera por
                              defecto, las seis empezarían a recibir avisos sin que nadie
                              lo hubiera decidido.
 
-                             Y el botón NO SALE cuando no haría nada -- sin correo de
-                             empresa, o si ya es el mismo --, que es el defecto del avatar
-                             del lote 192: prometer un clic que no hace nada.  */}
-                        {correoDeLaEmpresaParaAvisos(formData.email, formData.avisosCorreo) && (
-                          <button
-                            type="button"
-                            onClick={() => setFormData({
-                              ...formData,
-                              avisosCorreo: correoDeLaEmpresaParaAvisos(formData.email, formData.avisosCorreo) ?? '',
-                            })}
-                            className="mt-1.5 text-[10px] font-bold text-[#003366] hover:underline cursor-pointer"
-                          >
-                            Usar el correo de la empresa ({correoDeLaEmpresaParaAvisos(formData.email, formData.avisosCorreo)})
-                          </button>
-                        )}
+                             NO SALE cuando no habría nada que ofrecer -- sin correo de
+                             empresa válido --, que es el defecto del avatar del lote 192:
+                             prometer un clic que no hace nada.
+
+                             DESMARCAR VACÍA EL CAMPO, y no es una elección estética: el
+                             estado de la casilla se DERIVA de lo que hay escrito (no hay
+                             columna que lo guarde, así que nunca puede mentir). Si al
+                             desmarcar se dejara el texto tal cual, seguiría siendo el
+                             correo de la empresa y la casilla volvería a pintarse
+                             marcada: un interruptor que no se puede apagar. Vacío es
+                             además un estado que significa algo -- no recibir avisos --,
+                             así que desmarcar dice justo eso.  */}
+                        {(() => {
+                          const deLaEmpresa = correoDeLaEmpresaParaAvisos(formData.email);
+                          if (!deLaEmpresa) return null;
+                          return (
+                            <label className="mt-1.5 flex items-start gap-1.5 cursor-pointer w-fit">
+                              <input
+                                type="checkbox"
+                                checked={usaElCorreoDeLaEmpresa(formData.email, formData.avisosCorreo)}
+                                onChange={e => setFormData({
+                                  ...formData,
+                                  avisosCorreo: e.target.checked ? deLaEmpresa : '',
+                                })}
+                                className="mt-0.5 h-3 w-3 shrink-0 accent-[#003366] cursor-pointer"
+                              />
+                              <span className="text-[10px] font-bold text-[#003366] leading-tight">
+                                Usar el correo de la empresa ({deLaEmpresa})
+                              </span>
+                            </label>
+                          );
+                        })()}
                       </div>
                       <div>
                         <p className="text-[11px] text-slate-600 leading-relaxed">

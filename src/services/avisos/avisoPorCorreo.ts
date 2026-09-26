@@ -127,7 +127,7 @@ export function avisosQueSeMandanPorCorreo(
 }
 
 /**
- * QUE CORREO DE LA EMPRESA SE PUEDE OFRECER PARA LOS AVISOS (lote 201).
+ * QUE CORREO DE LA EMPRESA SE PUEDE OFRECER PARA LOS AVISOS (lote 201, casilla en el 204).
  *
  * Pedido del dueño: poder usar el mismo correo de la empresa sin escribirlo otra vez.
  * Medido el 2026-09-26: las SEIS empresas tienen ya un correo valido en su ficha, y
@@ -136,24 +136,42 @@ export function avisosQueSeMandanPorCorreo(
  * SE OFRECE, NO SE APLICA SOLO, y la diferencia importa: "vacio = no recibir avisos" es
  * una decision explicita (lotes 178 y 200). Si el correo de la empresa se usara por
  * defecto, las seis empezarian a recibir avisos sin que nadie lo hubiera decidido, y
- * quien quisiera no recibirlos no tendria como decirlo. Con un boton, el campo sigue
- * diciendo exactamente a donde va.
+ * quien quisiera no recibirlos no tendria como decirlo.
  *
- * Devuelve `null` -- o sea, no hay nada que ofrecer -- en dos casos:
- *   · el correo de la empresa no sirve (vacio, o mal escrito);
- *   · ya es el que esta puesto para los avisos, porque entonces el boton no haria nada
- *     y un boton que no hace nada es peor que no tenerlo (es el defecto del avatar del
- *     lote 192).
+ * Devuelve `null` cuando no hay nada que ofrecer, o sea cuando el correo de la empresa
+ * no sirve (vacio, o mal escrito): copiar una direccion que el servidor va a rechazar
+ * con un 400 deja el campo con basura y guardar falla sin que se entienda por que.
+ *
+ * LO QUE CAMBIO EN EL LOTE 204, y es el motivo de que esta funcion ya no reciba el
+ * correo de avisos: el dueño pidio una CASILLA en vez de un boton. Un boton se esconde
+ * cuando no haria nada -- incluido el caso "ya es el que esta puesto" --, pero una
+ * casilla en ese caso tiene que salir MARCADA: es justo su estado normal. Las dos
+ * preguntas eran una sola funcion y son distintas, asi que se separan: esta dice QUE se
+ * puede ofrecer, y `usaElCorreoDeLaEmpresa` dice SI ya se esta usando.
  */
 export function correoDeLaEmpresaParaAvisos(
   correoDeLaEmpresa: string | null | undefined,
-  correoDeAvisos: string | null | undefined,
 ): string | null {
+  return correoValido(correoDeLaEmpresa);
+}
+
+/**
+ * SI EL CORREO DE AVISOS ES YA EL DE LA EMPRESA -- el estado de la casilla (lote 204).
+ *
+ * Se comparan NORMALIZADOS: escrito con espacios alrededor o con otras mayusculas es el
+ * mismo correo, y la casilla tiene que salir marcada igual. Si no, quien lo escribio a
+ * mano con una mayuscula distinta veria la casilla vacia teniendo puesto ese correo, y
+ * al marcarla no cambiaria nada visible.
+ *
+ * Es `false` cuando cualquiera de los dos no sirve: sin correo de empresa no hay nada
+ * que "estar usando", y un correo de avisos ilegible no es el de la empresa.
+ */
+export function usaElCorreoDeLaEmpresa(
+  correoDeLaEmpresa: string | null | undefined,
+  correoDeAvisos: string | null | undefined,
+): boolean {
   const deLaEmpresa = correoValido(correoDeLaEmpresa);
-  if (!deLaEmpresa) return null;
-  //  Se comparan NORMALIZADOS: si el de avisos esta escrito con espacios alrededor o con
-  //  otras mayusculas, es el mismo correo y el boton tampoco haria nada.
   const puesto = correoValido(correoDeAvisos);
-  if (puesto && puesto.toLowerCase() === deLaEmpresa.toLowerCase()) return null;
-  return deLaEmpresa;
+  if (!deLaEmpresa || !puesto) return false;
+  return puesto.toLowerCase() === deLaEmpresa.toLowerCase();
 }

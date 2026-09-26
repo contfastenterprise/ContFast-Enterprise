@@ -145,34 +145,61 @@ async function main() {
     //  SI LA FUNCION NO ESTA, se reporta FALLA por etiqueta en vez de reventar el banco:
     //  un banco que aborta no distingue "no cumple" de "no se puede concluir", y con eso
     //  la contraprueba y los mutantes dejan de decir nada (leccion del lote 196).
-    const ofrecer = (M as { correoDeLaEmpresaParaAvisos?: (a: string | null | undefined, b: string | null | undefined) => string | null })
+    const ofrecer = (M as { correoDeLaEmpresaParaAvisos?: (a: string | null | undefined) => string | null })
       .correoDeLaEmpresaParaAvisos;
-    if (typeof ofrecer !== 'function') {
+    const usa = (M as { usaElCorreoDeLaEmpresa?: (a: string | null | undefined, b: string | null | undefined) => boolean })
+      .usaElCorreoDeLaEmpresa;
+    if (typeof ofrecer !== 'function' || typeof usa !== 'function') {
       for (const t of ['se ofrece el correo de la empresa cuando sirve',
         '  y no se ofrece si el de la empresa no sirve',
-        '  ni cuando ya es el que esta puesto',
-        '  pero si es otro, se puede cambiar de un clic']) {
-        ok(t, false, 'no existe correoDeLaEmpresaParaAvisos');
+        '  la casilla sale MARCADA cuando ya es el que esta puesto',
+        '  y sin marcar si el de avisos es otro',
+        '  ni se da por usado lo que no sirve']) {
+        ok(t, false, 'falta correoDeLaEmpresaParaAvisos o usaElCorreoDeLaEmpresa');
       }
     } else {
     const correoDeLaEmpresaParaAvisos = ofrecer;
+    //  ATRAPANDO LO QUE LANCE, y no es una precaucion de estilo: un mutante que quito la
+    //  guarda `!puesto` hizo que `puesto.toLowerCase()` lanzara, y el banco ABORTO en vez
+    //  de reportar FALLA. Un banco que revienta no distingue "no cumple" de "no se puede
+    //  concluir", asi que ese mutante se habria contado como muerto sin que ninguna
+    //  comprobacion lo cazara. Es la leccion del lote 195, con el `JSON.parse`.
+    //  Si lanza, es que falla.
+    //
+    //  Y DEVUELVE 'LANZO', NO `false`: si lo que lanza se tradujera a `false`, el mismo
+    //  mutante SOBREVIVIRIA en las comprobaciones que esperan `false` -- "no cumple" y
+    //  "revento" volverian a ser indistinguibles, solo que al reves. Un centinela que no
+    //  es igual ni a `true` ni a `false` hace fallar la comprobacion sea cual sea.
+    const usaElCorreoDeLaEmpresa = (a: string | null | undefined, b: string | null | undefined): boolean | 'LANZO' => {
+      try { return usa(a, b); } catch { return 'LANZO'; }
+    };
     ok('se ofrece el correo de la empresa cuando sirve',
-      correoDeLaEmpresaParaAvisos('ventas@latindoors.com', '') === 'ventas@latindoors.com'
-      && correoDeLaEmpresaParaAvisos('  ventas@latindoors.com  ', null) === 'ventas@latindoors.com');
+      correoDeLaEmpresaParaAvisos('ventas@latindoors.com') === 'ventas@latindoors.com'
+      && correoDeLaEmpresaParaAvisos('  ventas@latindoors.com  ') === 'ventas@latindoors.com');
     //  NO SE OFRECE LO QUE NO SIRVE: un correo de empresa mal escrito no puede acabar
     //  como destino de los avisos de un clic.
     ok('  y no se ofrece si el de la empresa no sirve',
-      correoDeLaEmpresaParaAvisos('', '') === null
-      && correoDeLaEmpresaParaAvisos(null, '') === null
-      && correoDeLaEmpresaParaAvisos('no es un correo', '') === null);
-    //  UN BOTON QUE NO HARIA NADA NO SE ENSEÑA: es el defecto del avatar del lote 192.
-    ok('  ni cuando ya es el que esta puesto',
-      correoDeLaEmpresaParaAvisos('a@b.com', 'a@b.com') === null
-      && correoDeLaEmpresaParaAvisos('a@b.com', '  A@B.COM ') === null);
-    //  Y si el de avisos es OTRO, se sigue ofreciendo: cambiar de destino tiene que
-    //  poder hacerse de un clic.
-    ok('  pero si es otro, se puede cambiar de un clic',
-      correoDeLaEmpresaParaAvisos('a@b.com', 'otro@c.com') === 'a@b.com');
+      correoDeLaEmpresaParaAvisos('') === null
+      && correoDeLaEmpresaParaAvisos(null) === null
+      && correoDeLaEmpresaParaAvisos('no es un correo') === null);
+    //  LOTE 204 -- LO QUE UNA CASILLA EXIGE Y UN BOTON NO: con el boton, "ya es el que
+    //  esta puesto" era motivo para NO enseñarlo (el defecto del avatar del 192). Una
+    //  casilla en ese caso tiene que salir MARCADA: es su estado normal. Si esto se
+    //  invirtiera, la casilla apareceria vacia teniendo puesto ese correo y marcarla no
+    //  cambiaria nada visible.
+    ok('  la casilla sale MARCADA cuando ya es el que esta puesto',
+      usaElCorreoDeLaEmpresa('a@b.com', 'a@b.com') === true
+      //  Normalizado: espacios y mayusculas son el mismo correo.
+      && usaElCorreoDeLaEmpresa('a@b.com', '  A@B.COM ') === true);
+    ok('  y sin marcar si el de avisos es otro',
+      usaElCorreoDeLaEmpresa('a@b.com', 'otro@c.com') === false
+      && usaElCorreoDeLaEmpresa('a@b.com', '') === false);
+    //  Sin correo de empresa no hay nada que "estar usando": marcarla no significaria
+    //  nada, y por eso la pantalla ni la enseña.
+    ok('  ni se da por usado lo que no sirve',
+      usaElCorreoDeLaEmpresa('', '') === false
+      && usaElCorreoDeLaEmpresa(null, 'a@b.com') === false
+      && usaElCorreoDeLaEmpresa('no es un correo', 'no es un correo') === false);
 
     }
 
@@ -250,26 +277,40 @@ async function main() {
 
   ok('la pantalla tiene el campo, y avisa mientras se escribe',
     /formData\.avisosCorreo/.test(codigoPantalla) && /correoValido\(formData\.avisosCorreo\)/.test(codigoPantalla));
-  //  LOTE 201: el boton existe y sale de la regla, no de una condicion escrita ahi.
+  //  LOTE 201, CASILLA EN EL 204: existe y sale de la regla, no de una condicion escrita
+  //  ahi. Lo que vigila es que la pantalla no reimplemente el criterio -- la leccion del
+  //  lote 190, donde el banco acabo comprobando su propia copia de la regla.
   ok('la pantalla ofrece el correo de la empresa',
-    /correoDeLaEmpresaParaAvisos\(formData\.email, formData\.avisosCorreo\)/.test(codigoPantalla)
+    /correoDeLaEmpresaParaAvisos\(formData\.email\)/.test(codigoPantalla)
     && /Usar el correo de la empresa/.test(pantalla));
-  ok('  y solo cuando haria algo (si no, seria un boton muerto)',
-    /\{correoDeLaEmpresaParaAvisos\(formData\.email, formData\.avisosCorreo\) && \(/.test(codigoPantalla));
-  //  MERA PRESENCIA, cazada por un mutante: la regla aparece en la CONDICION del
-  //  bloque, asi que cambiar lo que el boton ESCRIBE por `formData.email` a pelo dejaba
-  //  todas las comprobaciones en verde -- y eso pondria en el campo un correo que la
-  //  regla habria rechazado (sin arroba, con espacios). Se mira lo que se ASIGNA.
-  const bloqueBoton = (() => {
-    const i = codigoPantalla.indexOf('<button');
+  //  ES UNA CASILLA, no un enlace: pedido del dueño el 2026-09-26.
+  const bloqueCasilla = (() => {
     const j = codigoPantalla.indexOf('Usar el correo de la empresa');
     if (j < 0) return '';
-    const ini = codigoPantalla.lastIndexOf('onClick', j);
-    return ini < 0 || ini < i - 4000 ? '' : codigoPantalla.slice(ini, j);
+    const ini = codigoPantalla.lastIndexOf('<label', j);
+    return ini < 0 ? '' : codigoPantalla.slice(ini, j);
   })();
-  ok('  y lo que ESCRIBE sale de la regla, no del correo a pelo',
-    /avisosCorreo:\s*correoDeLaEmpresaParaAvisos\(formData\.email, formData\.avisosCorreo\)/.test(bloqueBoton)
-    && !/avisosCorreo:\s*formData\.email/.test(bloqueBoton));
+  ok('  y es una casilla, con su estado sacado de la regla',
+    /type="checkbox"/.test(bloqueCasilla)
+    && /checked=\{usaElCorreoDeLaEmpresa\(formData\.email, formData\.avisosCorreo\)\}/.test(bloqueCasilla));
+  //  NO SE ENSEÑA SI NO HAY NADA QUE OFRECER (defecto del avatar del lote 192). Atado al
+  //  positivo: sin el bloque, "no se enseña" seria cierto de balde.
+  ok('  y no se enseña cuando no hay correo de empresa que ofrecer',
+    /const deLaEmpresa = correoDeLaEmpresaParaAvisos\(formData\.email\);/.test(codigoPantalla)
+    && /if \(!deLaEmpresa\) return null;/.test(codigoPantalla));
+  //  MERA PRESENCIA, cazada por un mutante en el 201: la regla aparece en la CONDICION
+  //  del bloque, asi que cambiar lo que se ESCRIBE por `formData.email` a pelo dejaba
+  //  todas las comprobaciones en verde -- y eso pondria en el campo un correo que la
+  //  regla habria rechazado (sin arroba, con espacios). Se mira lo que se ASIGNA.
+  ok('  y lo que ESCRIBE al marcarla sale de la regla, no del correo a pelo',
+    /avisosCorreo: e\.target\.checked \? deLaEmpresa : ''/.test(bloqueCasilla)
+    && !/avisosCorreo:\s*formData\.email/.test(bloqueCasilla));
+  //  DESMARCAR TIENE QUE CAMBIAR EL VALOR, y esto no es un detalle: el estado de la
+  //  casilla se DERIVA de lo escrito, asi que si al desmarcar se dejara el texto tal
+  //  cual, seguiria siendo el correo de la empresa y la casilla volveria a pintarse
+  //  marcada -- un interruptor que no se puede apagar.
+  ok('  y desmarcarla vacia el campo, o no se podria apagar',
+    /: ''/.test(bloqueCasilla) && !/: formData\.avisosCorreo/.test(bloqueCasilla));
   ok('  y carga lo que hay guardado',
     /avisosCorreo: data\.data\.settings\.avisosCorreo/.test(codigoPantalla));
 
