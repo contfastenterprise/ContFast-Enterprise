@@ -132,6 +132,11 @@ Las trampas que han salido, todas reales, todas costaron un lote:
   `validator.ts` — se regeneran solos. `tsc` volvió a 0 sin tocar una línea de `src/`.
   El paso 0 de `verificar.ps1` solo mira `.next	ypesalidator.ts`, que es la versión
   antigua de esta misma trampa.
+- **La contraprueba se revierte con `git show HEAD:<fichero>`, no con una copia a
+  mano.** En el lote 201 los respaldos del estado previo se pisaron con el posterior sin
+  que nada avisara, y la contraprueba salió **TODO CORRECTO de balde** — el resultado más
+  peligroso que puede dar, porque es el que se espera al final. Mientras el lote no esté
+  commiteado, `HEAD` **es** el estado anterior y no se puede confundir.
 - **Finales de línea mezclados en el mismo árbol.** Son CRLF: `msellerClient.ts`,
   `sincronizarPendientes.ts`, `queue.ts`, los ficheros de rutas y los bancos.
   Son LF: `worker.ts`, `jobRunners.ts`, `invoiceDbBooker.ts`, `sesionMseller.ts`,
@@ -573,6 +578,54 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 202: cuatro bancos en rojo que los lotes 197 y 198 dejaron sin ver — y uno era
+  un defecto de verdad.** Los lotes 197 a 201 se fueron commiteando sin correr el
+  barrido completo, y esto es la lección del lote 100 otra vez, escrita en la sección 7
+  desde entonces: **cambiar una regla compartida obliga a correr TODOS los bancos.**
+  - **El defecto real**: `rncLookup.ts` formateaba a mano la fecha del padrón con
+    `toLocaleDateString('es-DO')`, que es justo lo que el barrido de
+    `verificar_fechas_impresas.ts` quitó de todo `src/` — y el trinquete estaba en cero.
+    No es cosmética: en RD no rellena con ceros ("2/9/2026"), así que el mensaje que lee
+    el usuario traía un **quinto** formato de fecha. Pasa por `formatDateDisplay`.
+  - **Los otros tres eran deriva** y todos la misma trampa, por **octava** vez: anclaban
+    la FORMA de lo que el 197 cambió a propósito (`(error as Error).message` →
+    `motivoDelError` / `motivoParaLaPantalla`, porque Drizzle envuelve el fallo y la
+    causa viaja en `cause`). Y una precondición exigía el TEXTO del mensaje que el 198
+    cambió porque **mentía dos veces**. Re-anclados a la propiedad: el catch tipado
+    `unknown`, **ningún** molde a `any`, el fallo se DEVUELVE en vez de lanzarse, y al
+    registro llega un texto derivado y no el objeto entero. `verificar_p1_24_lote7` ya
+    se había re-anclado una vez por lo mismo, en el 185; la segunda vez lo dice el
+    comentario.
+  Cinco mutantes, cinco muertos — están para demostrar que una re-ancla no se ha
+  quedado en "acepta cualquier cosa", que es el riesgo de aflojar una comprobación.
+  **Lo que deja como regla**: un banco en rojo permanente acaba en la lista de deuda,
+  donde nadie lo mira; por eso el barrido se corre ENTERO antes de commitear, no el del
+  lote. Y la honestidad de la justificación vieja: "no vuelca el error entero" se
+  escribió porque la petición llevaba la clave de API en una cabecera — desde el 198 ya
+  no hay petición, pero la propiedad se queda porque `motivoDelError` recorta a 400
+  caracteres y un volcado no tiene tope.
+- **Lote 201: el correo de los avisos se copia del de la empresa, de un clic.** Pedido
+  del dueño. El campo lo estrena el 200 y las seis empresas lo tienen **vacío**, que no
+  es un descuido: vacío significa "esta empresa no recibe avisos por correo" (regla del
+  178). Por eso **se ofrece y no se aplica solo** — como valor por defecto, las seis
+  habrían empezado a mandar avisos a su dirección de facturación sin que nadie lo
+  decidiera. Medido antes: las seis tienen una dirección válida en `company_settings.email`.
+  `correoDeLaEmpresaParaAvisos` devuelve `null` cuando no hay nada que ofrecer, y son
+  las dos decisiones que se pueden equivocar: si el correo de la empresa **no pasa la
+  validación** (copiar algo que el servidor va a rechazar con un 400 deja el campo con
+  basura y guardar falla sin que se entienda), y si **ya es el que está puesto**,
+  comparando normalizado — un botón que no hace nada al pulsarlo es el defecto del
+  avatar del lote 192, y aquí sería invisible, porque el texto diría justo la dirección
+  que ya está escrita.
+  **Un mutante cazó mera presencia otra vez**: cambiar lo que el botón ESCRIBE por
+  `formData.email` a pelo sobrevivía, porque la regla seguía apareciendo en la
+  CONDICIÓN del bloque. Ahora se acota el `onClick` y se mira lo que se **asigna**.
+  **Y dos trampas del entorno, las dos de la sección 4**: este fichero es **LF** y los
+  mutantes se escribieron con CRLF, así que dos de cinco salieron "NO APLICA" — que es
+  exactamente lo que se confunde con un banco que funciona; y los respaldos del estado
+  previo se habían pisado con el posterior, con lo que la contraprueba dio TODO CORRECTO
+  **enteramente de balde**. **La contraprueba se hace contra `git show HEAD:<fichero>`**,
+  no contra una copia a mano.
 - **Lote 200: los avisos salen por CORREO, y se retira el canal de WhatsApp** que nunca
   entregó ninguno. Decisión del dueño (2026-09-26) al final de una cadena que empezó con
   «los avisos no me llegan».
