@@ -3,7 +3,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { isAdminOrSistemas } from '@/middleware/permissions';
 import { DashboardRepository } from '@/repositories/dashboardRepository';
 import { sincronizarAvisos } from '@/services/avisos/sincronizarAvisos';
-import { enviarAvisosPendientes } from '@/services/avisos/enviarAvisosPendientes';
+import { enviarAvisosPorCorreo } from '@/services/avisos/enviarAvisosPorCorreo';
 import { motivoDelError, motivoParaLaPantalla } from '@/utils/motivoDelError';
 
 export async function GET(req: NextRequest) {
@@ -41,28 +41,37 @@ export async function GET(req: NextRequest) {
     // tumbar el panel que lo produjo.
     await sincronizarAvisos(session.companyId, session.modo, stats.alertsDetails ?? []);
 
-    // Lote 178: y los que todavia no han salido, al WhatsApp de la empresa.
-    // DESPUES de sincronizar, que es cuando se sabe cual es nuevo de verdad.
-    // Tampoco lanza, y no se espera a que termine para responder: el panel no
-    // se queda colgado porque WhatsApp tarde.
+    //  LOTE 200: LOS AVISOS SALEN POR CORREO. El canal de WhatsApp se RETIRO.
     //
-    //  LOTE 199: `after`, NO `void`. Y la diferencia no es de estilo.
+    //  Estuvo desde el lote 178 y nunca llego a entregar un aviso en produccion.
+    //  Medido el 2026-09-26: la cuenta tiene UN numero, `+1 555-346-2012`, que es el
+    //  de PRUEBA que regala Meta -- su propio error lo dice, "WhatsApp **provided**
+    //  number" -- y rechaza todo lo que se mande desde el, plantilla o texto libre,
+    //  con la ventana de 24 horas abierta o cerrada:
     //
-    //  Con `void` esto era "lanza y no esperes", que en una maquina de desarrollo
-    //  funciona -- el proceso sigue vivo -- pero en serverless NO: Vercel congela la
-    //  funcion en cuanto se devuelve la respuesta, asi que la peticion a Kapso se
-    //  cortaba a medias y ni siquiera se volcaban sus lineas de registro.
+    //      HTTP 400: (#131037) WhatsApp provided number needs display name approval
     //
-    //  MEDIDO el 2026-09-26, y los dos sintomas encajan: en PRODUCCION los 7 avisos
-    //  vigentes seguian sin marca de envio Y no habia **ni una** linea
-    //  `[avisos-whatsapp]` en los registros, mientras en local esas mismas lineas
-    //  salian (con su 422 por falta de plantilla). Un envio que no ocurre y que
-    //  tampoco se queja es el peor de los dos mundos.
+    //  Para que funcionara habia que dar de alta un numero propio de la empresa en
+    //  Meta, que es un tramite y no codigo. Decision del dueño (2026-09-26): quitarlo
+    //  y quedarse con el correo, que SI funciona hoy (el SMTP lleva meses enviando y
+    //  el lote 157 dejo su registro).
     //
-    //  `after` hace lo que `void` prometia: la tarea corre DESPUES de responder -- el
-    //  panel no espera a WhatsApp -- pero la funcion se mantiene viva hasta que
-    //  termina. Es de `next/server`, sin dependencias nuevas.
-    after(() => enviarAvisosPendientes(session.companyId, session.modo, stats.alertsDetails ?? []));
+    //  Lo que se fue con el: `whatsappKapso.ts`, `enviarAvisosPendientes.ts`,
+    //  `plantillaDeAviso.ts`, `avisoPorWhatsApp.ts`, `rechazoDeWhatsApp.ts`, el campo
+    //  de la pantalla, su ajuste y las variables `KAPSO_*`. Lo que NO se fue: la
+    //  columna `notifications.whatsapp_enviado_at` y `company_settings.whatsapp_avisos`
+    //  quedan RESERVADAS con su dato (mismo criterio que el lote 107): borrar columnas
+    //  con historia es irreversible y no hace falta para nada.
+    //  LOTE 200: y por correo, que es por donde HOY pueden salir.
+    //
+    //  Medido el 2026-09-26: por WhatsApp no sale ninguno, porque el numero de la
+    //  cuenta es el de PRUEBA de Meta y rechaza todo (#131037). El canal de WhatsApp se
+    //  queda -- no se toca -- para cuando la empresa tenga numero propio.
+    //
+    //  Los dos canales van por SEPARADO y cada uno con su marca en la base: que uno
+    //  falle no puede impedir el otro, y el dia que los dos funcionen un aviso saldra
+    //  por los dos sin repetirse.
+    after(() => enviarAvisosPorCorreo(session.companyId, session.modo, stats.alertsDetails ?? []));
 
     return NextResponse.json({
       success: true,

@@ -7,12 +7,7 @@ import AvatarUploader from '@/components/ui/AvatarUploader';
 import { useConfirm } from '@/providers/confirm-provider';
 import { esAdministracion, esSistemas } from '@/utils/rolMatch';
 import { formatDateDisplay } from '@/utils/fechasLocales';
-import { GRUPOS_DE_PUENTES } from '@/services/accounting/cuentasDelSistema';
-//  LOTE 188: la mascara y el diagnostico salen del MISMO modulo puro que usa
-//  el servidor para decidir si acepta el numero. Una segunda regla en el
-//  navegador es lo que hace que la pantalla diga "correcto" y el servidor
-//  responda 400 -- o al contrario, que es peor.
-import { formatearNumeroMientrasEscribe, diagnosticoDelNumero } from '@/services/avisos/avisoPorWhatsApp';
+import { GRUPOS_DE_PUENTES } from '@/services/accounting/cuentasDelSistema';import { correoValido } from '@/services/avisos/avisoPorCorreo';
 
 export default function SettingsPage() {
   const confirm = useConfirm();
@@ -50,7 +45,6 @@ export default function SettingsPage() {
   //  Lote 187: por que el sistema NO puede mandar avisos, si es que no puede.
   //  Lo dice el servidor (nombra la variable que falta, nunca su valor): desde
   //  el navegador no se ve el entorno de Vercel.
-  const [whatsappMotivo, setWhatsappMotivo] = useState<string | null>(null);
   /** El ambiente elegido ya tiene su clave de API guardada. */
   const claveYaConfigurada = entornosMseller.includes(credencialesEntorno);
   const [showMsellerPassword, setShowMsellerPassword] = useState(false);
@@ -87,13 +81,15 @@ export default function SettingsPage() {
     barcodeDefaultType: 'code128',
     barcodePrefix: 'COD',
     barcodeLength: 9,
-    whatsappAvisos: ''
+    avisosCorreo: ''
   });
 
   //  LOTE 188: se recalcula en cada pintada, que es lo que hace que el aviso
   //  aparezca MIENTRAS se escribe. No hace falta estado propio: sale del valor
-  //  del campo, y un estado duplicado solo podria desincronizarse.
-  const diagnosticoNumero = diagnosticoDelNumero(formData.whatsappAvisos);
+  //  LOTE 200: el correo tambien se diagnostica MIENTRAS SE ESCRIBE, por lo mismo
+  //  que el numero en el 188: si solo se supiera al pulsar Guardar, el aviso llega
+  //  tarde y en otro sitio (un 400 del servidor).
+  const correoDeAvisos = correoValido(formData.avisosCorreo);
 
   const isSistemas = esSistemas(userRole);
   const isAdministracion = esAdministracion(userRole);
@@ -239,11 +235,10 @@ export default function SettingsPage() {
           barcodeDefaultType: data.data.settings.barcodeDefaultType || 'code128',
           barcodePrefix: data.data.settings.barcodePrefix || 'COD',
           barcodeLength: data.data.settings.barcodeLength ?? 9,
-          whatsappAvisos: data.data.settings.whatsappAvisos ?? ''
+          avisosCorreo: data.data.settings.avisosCorreo ?? ''
         });
         setEntornosMseller(data.data.settings.entornosMseller || []);
         setHasMsellerPassword(!!data.data.settings.hasMsellerPassword);
-        setWhatsappMotivo(data.data.settings.whatsappMotivo ?? null);
         setSubscription(data.data.subscription || null);
         setAvailablePlans(data.data.availablePlans || []);
         // Fetch accounts and mappings
@@ -618,87 +613,66 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Avisos por WhatsApp
-                    LOTE 187: vive DENTRO de Identidad Fiscal, debajo del logo
-                    (pedido del dueño). Antes estaba en la tarjeta de codigos de
-                    barra, donde nadie lo encontro: el lote 178 lo metio ahi
-                    porque aquella rejilla tenia un hueco libre, o sea por
-                    comodidad al escribir el codigo, no por criterio.
+                {/*  Avisos del sistema.
 
-                    Va en un bloque propio con su borde y su `mt-6 p-4`: sin esa
-                    separacion queda pegado a la tarjeta padre y parece un campo
-                    mas de la identidad de la empresa, que es justo la confusion
-                    que se venia de arreglar. */}
+                     LOTE 187: vive DENTRO de Identidad Fiscal, debajo del logo (pedido
+                     del dueño). Antes estaba en la tarjeta de codigos de barra, donde
+                     nadie lo encontro.
+
+                     LOTE 200: aqui habia ademas un numero de WhatsApp. El canal se
+                     RETIRO porque nunca llego a entregar un aviso: la cuenta solo tiene
+                     el numero de PRUEBA de Meta y rechaza todo (#131037, medido el
+                     2026-09-26). Queda el correo, que es el que funciona.  */}
                 <div className="col-span-1 md:col-span-2 mt-6">
                   <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <MessageSquare className="w-4 h-4 text-[#003366]" />
-                      <h4 className="text-sm font-bold text-[#003366]">Avisos por WhatsApp</h4>
+                      <h4 className="text-sm font-bold text-[#003366]">Avisos del sistema</h4>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Número de destino</label>
+                        <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Correo de destino</label>
                         <input
-                          type="tel"
-                          value={formData.whatsappAvisos || ''}
-                          onChange={e => setFormData({ ...formData, whatsappAvisos: formatearNumeroMientrasEscribe(e.target.value) })}
-                          placeholder="809 555 1234"
-                          className={`w-full h-8 px-3 py-1.5 text-xs rounded-lg outline-none focus:ring-1 text-slate-900 bg-white font-mono ${
-                            diagnosticoNumero.estado === 'valido'
-                              ? 'border-emerald-300 focus:border-emerald-400 focus:ring-emerald-200'
-                              : diagnosticoNumero.estado === 'vacio'
-                                ? 'border-slate-200 focus:border-[#c5a059] focus:ring-[#c5a059]/20'
+                          type="email"
+                          value={formData.avisosCorreo || ''}
+                          onChange={e => setFormData({ ...formData, avisosCorreo: e.target.value })}
+                          placeholder="avisos@miempresa.com"
+                          className={`w-full h-8 px-3 py-1.5 text-xs rounded-lg outline-none focus:ring-1 text-slate-900 bg-white ${
+                            formData.avisosCorreo.trim() === ''
+                              ? 'border-slate-200 focus:border-[#c5a059] focus:ring-[#c5a059]/20'
+                              : correoDeAvisos
+                                ? 'border-emerald-300 focus:border-emerald-400 focus:ring-emerald-200'
                                 : 'border-amber-300 focus:border-amber-400 focus:ring-amber-200'
                           }`}
                         />
-                        {/* El aviso, EN EL MOMENTO y debajo del campo (lote 188).
-                            Antes un numero mal puesto no se sabia hasta pulsar
-                            Guardar, y el servidor contestaba un 400: el aviso
-                            llegaba tarde y en otro sitio. */}
-                        {diagnosticoNumero.estado === 'valido' && (
-                          <p className="text-[10px] text-emerald-700 mt-1 font-mono">
-                            Se enviará a {diagnosticoNumero.comoSaldra}
+                        {/*  LOTE 200: el correo es HOY el canal que funciona. Por WhatsApp
+                            no sale ninguno: el numero de la cuenta es el de prueba de
+                            Meta y rechaza todo (#131037, medido el 2026-09-26). */}
+                        {formData.avisosCorreo.trim() !== '' && !correoDeAvisos && (
+                          <p className="text-[10px] text-amber-700 mt-1 leading-tight">
+                            Escriba una sola dirección, con arroba y dominio.
                           </p>
                         )}
-                        {(diagnosticoNumero.estado === 'incompleto' || diagnosticoNumero.estado === 'invalido') && (
-                          <p className="text-[10px] text-amber-700 mt-1 leading-tight">
-                            {diagnosticoNumero.mensaje}
+                        {correoDeAvisos && (
+                          <p className="text-[10px] text-emerald-700 mt-1 font-mono">
+                            Se enviará a {correoDeAvisos}
                           </p>
                         )}
                       </div>
-                      <div className="md:col-span-2">
+                      <div>
                         <p className="text-[11px] text-slate-600 leading-relaxed">
-                          Llegan a este número los avisos <strong>graves y de advertencia</strong> de esta empresa:
+                          Llegan a este correo los avisos <strong>graves y de advertencia</strong> de esta empresa:
                           un comprobante rechazado, un arqueo de caja descuadrado, una caja sin cerrar, un cheque
                           en garantía que se cobra pronto y el 606/607 pendiente de presentar.
                           Los informativos no se envían.
                           <br />
-                          Déjelo <strong>vacío para no recibir ninguno</strong>. Cada aviso se manda una sola vez.
-                          El número es de esta empresa: los avisos de las demás no llegan aquí.
+                          Déjelo <strong>vacío para no recibir ninguno</strong>. Cada aviso se manda una
+                          sola vez. El correo es de esta empresa: los avisos de las demás no llegan aquí.
                         </p>
                       </div>
                     </div>
 
-                    {/* Que el numero este puesto no basta: hacen falta variables de
-                        entorno que no se ven desde aqui. Sin esto, alguien lo configura,
-                        se queda tranquilo, y los avisos no salen nunca. */}
-                    {whatsappMotivo ? (
-                      <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 mt-3">
-                        <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-                        <p className="text-[11px] text-amber-800 leading-relaxed">
-                          <strong>El sistema no puede enviar todavía:</strong> {whatsappMotivo}.
-                          Hasta que se resuelva, el número se guarda pero no llega ningún aviso.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 mt-3">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-                        <p className="text-[11px] text-emerald-800">
-                          El sistema está configurado para enviar por WhatsApp.
-                        </p>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>

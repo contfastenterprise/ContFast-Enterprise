@@ -8,8 +8,7 @@ import { z } from 'zod';
 import { encryptAsync } from '@/utils/encryption';
 import { enforcePermission } from '@/middleware/permissions';
 import { CompanyRepository } from '@/repositories/companyRepository';
-import { normalizarNumero } from '@/services/avisos/avisoPorWhatsApp';
-import { motivoParaNoMandar } from '@/services/avisos/whatsappKapso';
+import { correoValido } from '@/services/avisos/avisoPorCorreo';
 
 const settingsSchema = z.object({
   name: z.string().min(1, 'El Nombre Comercial es requerido'),
@@ -45,8 +44,10 @@ const settingsSchema = z.object({
   barcodeDefaultType: z.string().default('code128').optional(),
   barcodePrefix: z.string().default('COD').optional(),
   barcodeLength: z.number().int().min(1).default(9).optional(),
-  // Lote 178: a que WhatsApp llegan los avisos del panel. Vacio = no se manda.
-  whatsappAvisos: z.string().max(20).optional().nullable()
+  // Lote 200: a que correo llegan los avisos del panel. Vacio = no se manda.
+  // Existe porque por WhatsApp hoy no puede salir ninguno: el numero de la cuenta es
+  // el de prueba de Meta y rechaza todo (#131037).
+  avisosCorreo: z.string().max(255).optional().nullable()
 });
 
 export async function GET(req: NextRequest) {
@@ -80,7 +81,7 @@ export async function GET(req: NextRequest) {
       barcodeDefaultType: companySettings.barcodeDefaultType,
       barcodePrefix: companySettings.barcodePrefix,
       barcodeLength: companySettings.barcodeLength,
-      whatsappAvisos: companySettings.whatsappAvisos
+      avisosCorreo: companySettings.avisosCorreo
     }).from(companySettings).where(eq(companySettings.companyId, session.companyId));
 
     //  LOTE 187: LA PANTALLA TIENE QUE PODER DECIR SI EL SISTEMA PUEDE MANDAR.
@@ -90,8 +91,6 @@ export async function GET(req: NextRequest) {
     //  tranquilo, y los avisos no salen nunca -- el fallo se registra y no lo
     //  mira nadie.
     //
-    //  Se devuelve el MOTIVO, que nombra la variable que falta; nunca su valor.
-    const whatsappMotivo = motivoParaNoMandar();
 
     // Auditoria ISO-16: que ambientes tienen credenciales, para que la pantalla
     // lo pueda decir. Solo los nombres: aqui no sale ningun secreto.
@@ -138,9 +137,6 @@ export async function GET(req: NextRequest) {
           // Que ambientes tienen clave de API. Sin secretos: solo los nombres.
           entornosMseller,
           //  Lote 187: si el sistema puede mandar avisos por WhatsApp, y si no,
-          //  QUE falta. Es el nombre de la variable, nunca su valor.
-          whatsappPuedeMandar: whatsappMotivo === null,
-          whatsappMotivo,
         },
         subscription: sub || null,
         availablePlans: activePlans
@@ -187,16 +183,15 @@ export async function PATCH(req: NextRequest) {
       barcodeDefaultType,
       barcodePrefix,
       barcodeLength,
-      whatsappAvisos
+      avisosCorreo
     } = parsed.data;
 
-    // Lote 178: un numero que no se puede marcar se RECHAZA aqui, no se guarda
-    // a la espera. Es la forma del defecto del lote 135: un valor que nadie
-    // puede usar no falla, se queda escrito y los avisos sencillamente no
-    // llegan nunca, sin nada donde mirar.
-    if (whatsappAvisos !== undefined && whatsappAvisos !== null && whatsappAvisos.trim() !== '' && !normalizarNumero(whatsappAvisos)) {
+    // Lote 200: lo mismo para el correo. Una direccion que no se puede usar no se
+    // guarda a la espera: se rechaza aqui, o los avisos no llegarian y no habria donde
+    // mirar (es la forma del defecto del lote 135).
+    if (avisosCorreo !== undefined && avisosCorreo !== null && avisosCorreo.trim() !== '' && !correoValido(avisosCorreo)) {
       return NextResponse.json(
-        { success: false, error: 'El WhatsApp para avisos no es un numero valido. Use 809 555 1234, o con codigo de pais para el extranjero.' },
+        { success: false, error: 'El correo para avisos no es una direccion valida. Escriba una sola direccion, por ejemplo avisos@miempresa.com' },
         { status: 400 },
       );
     }
@@ -307,11 +302,12 @@ export async function PATCH(req: NextRequest) {
         updatedAt: new Date()
       };
 
-      // Vacio es un valor: significa "esta empresa no recibe avisos". Por eso
-      // se guarda null y no se deja como estaba -- si no, no habria forma de
-      // desactivarlos desde la pantalla.
-      if (whatsappAvisos !== undefined) {
-        settingsUpdate.whatsappAvisos = whatsappAvisos && whatsappAvisos.trim() !== '' ? whatsappAvisos.trim() : null;
+      //  LOTE 200: y el correo. ESTE es el sitio que se olvido en el lote 178 -- el
+      //  campo estaba en el esquema, en el GET y en la pantalla, y el PATCH no lo
+      //  escribia: nada fallaba, el valor se perdia al guardar y los avisos no llegaban
+      //  nunca. Hay comprobaciones en el banco que vigilan justo esta linea.
+      if (avisosCorreo !== undefined) {
+        settingsUpdate.avisosCorreo = avisosCorreo && avisosCorreo.trim() !== '' ? avisosCorreo.trim() : null;
       }
 
       if (msellerUrl !== undefined) settingsUpdate.msellerUrl = msellerUrl;

@@ -57,117 +57,44 @@ const tarjetaSeparacion = (codigo: string): string => {
 
 const PANTALLA = 'src/app/dashboard/settings/page.tsx';
 const RUTA = 'src/app/api/v1/admin/settings/route.ts';
-const CLIENTE = 'src/services/avisos/whatsappKapso.ts';
 
 async function main() {
   const pantalla = leer(PANTALLA);
   const ruta = leer(RUTA);
 
-  // Valen en los DOS estados: el campo y su guardado son del lote 178/184.
-  if (!/formData\.whatsappAvisos/.test(pantalla)) {
-    throw new Error('Precondicion: la pantalla ya no tiene el campo del numero');
+  //  LOTE 200: las precondiciones del campo de WhatsApp se fueron con el canal. Lo
+  //  que este banco sigue defendiendo es de la pantalla, no del canal: que hay un
+  //  ajuste de avisos con su campo, y que guardar RELEE lo guardado.
+  if (!/formData\.avisosCorreo/.test(pantalla)) {
+    throw new Error('Precondicion: la pantalla ya no tiene el campo de avisos');
   }
-  if (!/settingsUpdate\.whatsappAvisos = /.test(ruta)) {
-    throw new Error('Precondicion: la ruta ya no guarda el numero');
-  }
-  if (!/export function motivoParaNoMandar/.test(leer(CLIENTE))) {
-    throw new Error('Precondicion: ya no existe la regla que dice por que no se puede mandar');
+  if (!/settingsUpdate\.avisosCorreo = /.test(ruta)) {
+    throw new Error('Precondicion: la ruta ya no guarda el ajuste de avisos');
   }
   if (!/const fetchSettings|async function fetchSettings/.test(pantalla)) {
     throw new Error('Precondicion: la pantalla ya no tiene de donde releer los ajustes');
   }
-  console.log('  pre   el campo, su guardado, la regla de envio y el lector de ajustes siguen en pie');
+  console.log('  pre   el campo de avisos, su guardado y el lector de ajustes siguen en pie');
 
   const codigo = sinComentarios(pantalla);
 
-  console.log('\n1) El ajuste se encuentra\n');
-
-  // Lo que estaba mal: el campo DENTRO del bloque de codigos de barra. Ese bloque
-  // ya no es una tarjeta suelta ni se llama igual (paso a `h4` dentro de
-  // Parametros Operativos), asi que se busca por el titulo que tiene HOY.
-  const bloqueBarras = (() => {
-    const i = codigo.indexOf('Códigos de Barra');
-    if (i < 0) return '';
-    return codigo.slice(i, i + 3000);
-  })();
-  ok('el numero YA NO esta en el bloque de codigos de barra',
-    bloqueBarras !== '' && !/whatsappAvisos/.test(bloqueBarras));
-
-  //  EL ORDEN DE LOS BLOQUES, pedido por el dueño: la identidad primero, la
-  //  integracion con mSeller despues y los parametros operativos al final. No es
-  //  capricho: se leen de arriba abajo la primera vez que alguien configura una
-  //  empresa, y los codigos de barra -- que son de PRODUCTOS -- estaban al mismo
-  //  nivel que la identidad fiscal.
-  const pos = (t: string) => codigo.indexOf(t);
+  console.log('\n1) El orden de las tarjetas, y los codigos de barra en su sitio\n');
+  //  LOTE 200: aqui habia dos secciones mas -- donde vivia el campo del numero de
+  //  WhatsApp (titulo, margen, borde, textos) y si el sistema podia mandar por ese
+  //  canal. Las dos se fueron CON EL CANAL, retirado porque nunca entrego un aviso: la
+  //  cuenta solo tiene el numero de PRUEBA de Meta y rechaza todo (#131037, medido el
+  //  2026-09-26).
+  //
+  //  Se queda lo que no era del canal y sigue siendo del lote 187: el ORDEN de las
+  //  tarjetas que pidio el dueño, los codigos de barra dentro de Parametros Operativos,
+  //  y -- abajo -- que guardar relea lo GUARDADO y no lo escrito.
   ok('el orden es identidad, mSeller, parametros',
-    pos('Identidad Fiscal') < pos('Integración mSeller API')
-    && pos('Integración mSeller API') < pos('Parámetros Operativos'),
-    `${pos('Identidad Fiscal')} / ${pos('Integración mSeller API')} / ${pos('Parámetros Operativos')}`);
+    codigo.indexOf('Identidad Fiscal') < codigo.indexOf('Integración mSeller API')
+    && codigo.indexOf('Integración mSeller API') < codigo.indexOf('Parámetros Operativos'));
   ok('los codigos de barra van DENTRO de parametros operativos, no sueltos',
-    pos('Parámetros Operativos') < pos('Códigos de Barra')
-    && !/<h3[^>]*>Configuración de Códigos de Barra<\/h3>/.test(codigo));
-  ok('  y dice que pertenecen a la configuracion de productos',
-    /de los <strong>productos<\/strong>/.test(codigo));
-  //  LOTE 187, segunda vuelta: el dueño lo quiso DENTRO de "Identidad Fiscal",
-  //  debajo del logo. Asi que ya no es una tarjeta hermana sino un bloque
-  //  anidado, y su titulo es `h4` -- pedir `h3` era fijar la FORMA. Lo que
-  //  importa: que tenga titulo propio, que este donde se pidio, y que NO quede
-  //  pegado a la tarjeta padre.
-  ok('tiene titulo propio', /<h[34][^>]*>Avisos por WhatsApp<\/h[34]>/.test(codigo));
-  ok('  esta dentro de Identidad Fiscal, no en otra tarjeta',
-    codigo.indexOf('Identidad Fiscal') < codigo.indexOf('Avisos por WhatsApp')
-    && codigo.indexOf('Avisos por WhatsApp') < codigo.indexOf('Parámetros Operativos'));
-  ok('  y debajo del logo', codigo.indexOf('Logo de la Empresa') < codigo.indexOf('Avisos por WhatsApp'));
-  //  La separacion es lo que pidio el dueño con nombre y apellido: sin ella el
-  //  bloque parece un campo mas de la identidad de la empresa.
-  const envoltorio = tarjetaSeparacion(codigo);
-  ok('  separado de la tarjeta padre por un margen', /mt-6/.test(envoltorio), envoltorio.trim().slice(-70));
-  ok('  y con su propio borde y relleno', /rounded-xl border[^"]*p-4/.test(envoltorio));
-
-  //  TODO LO QUE SIGUE SE MIRA DENTRO DE ESA TARJETA, no en la pantalla entera.
-  //  Cinco comprobaciones sobrevivieron a la contraprueba por mirar el fichero
-  //  completo: los textos existian ya (en la tarjeta equivocada), y
-  //  `indexOf('Avisos por WhatsApp')` vale -1 cuando la tarjeta no existe, asi
-  //  que "el campo esta despues" era cierto DE BALDE. Acotar es lo que las
-  //  convierte en comprobaciones de verdad.
-  const tarjetaWhatsApp = (() => {
-    const i = codigo.indexOf('Avisos por WhatsApp');
-    if (i < 0) return '';
-    //  Hasta el cierre de su tarjeta: el siguiente bloque de la pantalla.
-    const j = codigo.indexOf('activeTab === ', i);
-    return codigo.slice(i, j > -1 ? j : codigo.length);
-  })();
-  ok('  y el campo vive dentro de ella',
-    tarjetaWhatsApp !== '' && /formData\.whatsappAvisos/.test(tarjetaWhatsApp));
-
-  // Que llega y que no: sin esto, nadie sabe si esperar un aviso de cada cosa.
-  ok('dice que llegan los graves y de advertencia', /graves y de advertencia/.test(tarjetaWhatsApp));
-  ok('  y que los informativos no', /informativos no se env/.test(tarjetaWhatsApp));
-  ok('  que vacio significa no recibir ninguno', /vac[ií]o para no recibir ninguno/i.test(tarjetaWhatsApp));
-  ok('  que cada aviso se manda una sola vez', /una sola vez/.test(tarjetaWhatsApp));
-  ok('  y que el numero es de ESTA empresa', /de esta empresa/i.test(tarjetaWhatsApp));
-
-  console.log('\n2) La pantalla dice si el sistema puede mandar\n');
-
-  // El servidor es quien lo sabe: el navegador no ve el entorno de Vercel.
-  ok('la ruta calcula el motivo con la regla, no con una copia',
-    /motivoParaNoMandar\(\)/.test(sinComentarios(ruta))
-    && /from '@\/services\/avisos\/whatsappKapso'/.test(ruta));
-  ok('  y lo devuelve en los ajustes',
-    /whatsappMotivo,/.test(sinComentarios(ruta)) && /whatsappPuedeMandar: whatsappMotivo === null/.test(sinComentarios(ruta)));
-  // El motivo nombra la variable que falta; su VALOR no sale de aqui.
-  //  Negativa ATADA a la marca positiva: sola es cierta de balde en la
-  //  contraprueba, donde la ruta no menciona ninguna variable de Kapso.
-  ok('  sin sacar el valor de ninguna variable',
-    /motivoParaNoMandar\(/.test(sinComentarios(ruta))
-    && !/process\.env\.KAPSO_API_KEY/.test(sinComentarios(ruta)));
-  ok('la pantalla lo lee y lo guarda en su estado',
-    /setWhatsappMotivo\(data\.data\.settings\.whatsappMotivo/.test(codigo));
-  ok('  y lo enseña cuando NO se puede mandar',
-    /El sistema no puede enviar todav[ií]a/.test(codigo) && /\{whatsappMotivo \?/.test(codigo));
-  ok('  diciendo que el numero se guarda pero no llega nada',
-    /se guarda pero no llega ning[uú]n aviso/.test(codigo));
-  ok('  y confirma cuando SI se puede', /configurado para enviar por WhatsApp/.test(codigo));
+    codigo.indexOf('Parámetros Operativos') < codigo.indexOf('Códigos de Barra'));
+  ok('  y dice que pertenecen a la configuracion de los productos',
+    codigo.includes('productos'));
 
   console.log('\n3) Guardar releva lo GUARDADO, no lo escrito\n');
 

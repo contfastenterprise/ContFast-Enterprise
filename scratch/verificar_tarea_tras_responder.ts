@@ -1,6 +1,12 @@
 /**
  * Lote 199 -- lo que corre despues de responder tiene que sobrevivir a la respuesta.
  *
+ * PUESTO AL DIA EN EL LOTE 200: el canal de WhatsApp se RETIRO (nunca entrego un aviso
+ * en produccion -- la cuenta solo tiene el numero de PRUEBA de Meta y rechaza todo,
+ * #131037), asi que este banco vigila el canal de CORREO, que es el que hay. La
+ * propiedad que defiende no cambia, y es lo que importa: una tarea lanzada con `void` NO
+ * TERMINA en serverless. El trinquete sigue barriendo las 182 rutas.
+ *
  * DE DONDE SALE
  * -------------
  * El dueño reporto el 2026-09-25 que los avisos no le llegaban por WhatsApp. Tras
@@ -21,7 +27,7 @@
  *     `seMandaPorWhatsApp` acepta `invoice_rejected` y `declaracion_pendiente`. Los
  *     cuatro avisos de PRODUCCION calificaban.
  *
- * LA CAUSA: `void enviarAvisosPendientes(...)`. En una maquina de desarrollo el
+ * LA CAUSA: `void enviarAvisosPorCorreo(...)`. En una maquina de desarrollo el
  * proceso sigue vivo y la tarea termina; **en serverless Vercel congela la funcion en
  * cuanto se devuelve la respuesta**, asi que la peticion a Kapso se cortaba a medias y
  * ni sus lineas de registro se volcaban. Un envio que no ocurre y que tampoco se queja.
@@ -64,14 +70,14 @@ async function main() {
 
   //  PRECONDICIONES, ciertas en los DOS estados.
   if (ruta === '') throw new Error('Precondicion: no esta la ruta del panel');
-  if (!/enviarAvisosPendientes/.test(ruta)) {
+  if (!/enviarAvisosPorCorreo/.test(ruta)) {
     throw new Error('Precondicion: la ruta del panel ya no manda los avisos');
   }
   //  El envio va DESPUES de sincronizar, que es cuando se sabe cual es nuevo (lote
   //  178). Eso no lo cambia este lote, pero si se invirtiera, el envio mandaria cosas
   //  que la sincronizacion todavia no ha cerrado.
   const codigo = sinComentarios(ruta);
-  if (codigo.indexOf('sincronizarAvisos(') > codigo.indexOf('enviarAvisosPendientes(')) {
+  if (codigo.indexOf('sincronizarAvisos(') > codigo.indexOf('enviarAvisosPorCorreo(')) {
     throw new Error('Precondicion: el envio ya no va despues de sincronizar');
   }
   const todas = rutasDeApi();
@@ -80,11 +86,11 @@ async function main() {
   //  de un problema no puede convertirse en un problema) y marca solo lo que SALIO (un
   //  fallo de red se reintenta en la siguiente carga en vez de perderse). Si alguna se
   //  fuera, este banco se niega a correr en vez de dar un FALLA suave.
-  const envio = leer('src/services/avisos/enviarAvisosPendientes.ts');
+  const envio = leer('src/services/avisos/enviarAvisosPorCorreo.ts');
   if (!/catch \(err: unknown\)/.test(envio) || !/return 0;/.test(envio)) {
     throw new Error('Precondicion: el envio de avisos ya puede lanzar y tumbar el panel');
   }
-  if (!/marcarMandadasPorWhatsApp\(companyId, modo, salieron\)/.test(envio)) {
+  if (!/marcarMandadasPorCorreo\(companyId, modo, salieron\)/.test(envio)) {
     throw new Error('Precondicion: ya no se marca solo lo que salio');
   }
   console.log(`  pre   el envio no lanza, marca solo lo que salio y va despues de sincronizar · ${todas.length} rutas de API a barrer`);
@@ -93,26 +99,26 @@ async function main() {
   console.log('\n1) La tarea sobrevive a la respuesta\n');
   // ───────────────────────────────────────────────────────────────────────────
   ok('el envio de avisos se programa con `after`',
-    /after\(\(\) => enviarAvisosPendientes\(/.test(codigo));
+    /after\(\(\) => enviarAvisosPorCorreo\(/.test(codigo));
   ok('  importado de next/server, sin dependencias nuevas',
     /import \{ NextRequest, NextResponse, after \} from 'next\/server'/.test(ruta)
     && !/@vercel\/functions/.test(ruta));
   //  NEGATIVA ATADA AL POSITIVO: "no hay void" seria cierto de balde en un fichero que
   //  no mandara nada.
   ok('  y ya no se lanza sin esperar (`void`), que en serverless no termina',
-    /after\(\(\) => enviarAvisosPendientes\(/.test(codigo)
-    && !/void enviarAvisosPendientes\(/.test(codigo));
+    /after\(\(\) => enviarAvisosPorCorreo\(/.test(codigo)
+    && !/void enviarAvisosPorCorreo\(/.test(codigo));
   //  LO QUE NO SE PUEDE PERDER: el panel no debe esperar a WhatsApp. `after` corre
   //  DESPUES de responder; si alguien lo cambiara por un `await` delante del
   //  `NextResponse.json`, el panel volveria a pagar el plazo de 8 s por aviso.
-  const dondeAfter = codigo.indexOf('after(() => enviarAvisosPendientes');
+  const dondeAfter = codigo.indexOf('after(() => enviarAvisosPorCorreo');
   //  LA RESPUESTA DE EXITO, no la primera del fichero: antes hay dos
   //  `return NextResponse.json` de las guardas (401 y 403), y buscando la primera la
   //  comprobacion daba FALLA por el orden de unas guardas que no tienen nada que ver.
   const dondeRespuesta = dondeAfter > -1 ? codigo.indexOf('return NextResponse.json', dondeAfter) : -1;
   ok('el panel sigue respondiendo sin esperar a WhatsApp',
     dondeAfter > -1 && dondeRespuesta > dondeAfter
-    && !/await enviarAvisosPendientes\(/.test(codigo),
+    && !/await enviarAvisosPorCorreo\(/.test(codigo),
     `after en ${dondeAfter}, respuesta de exito en ${dondeRespuesta}`);
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -165,7 +171,7 @@ async function main() {
   //  contraprueba. Su valor es hacia el futuro; se exige ademas que la cura de este
   //  lote este puesta, para que el banco no regale un OK en un arbol sin arreglar.
   ok('  ni los servicios que ellas llaman, salvo los dos casos anotados',
-    /after\(\(\) => enviarAvisosPendientes\(/.test(codigo) && enServicios.length === 0,
+    /after\(\(\) => enviarAvisosPorCorreo\(/.test(codigo) && enServicios.length === 0,
     enServicios.slice(0, 3).join(' · ') || 'ninguno nuevo');
 
   // ───────────────────────────────────────────────────────────────────────────

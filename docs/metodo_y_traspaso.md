@@ -573,6 +573,43 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 200: los avisos salen por CORREO, y se retira el canal de WhatsApp** que nunca
+  entregó ninguno. Decisión del dueño (2026-09-26) al final de una cadena que empezó con
+  «los avisos no me llegan».
+  **Lo que costó verlo**: para llegar al motivo hubo que arreglar antes tres cosas que lo
+  tapaban — el 196 (el motivo del rechazo se tiraba), el 197 (la causa del 500 viajaba en
+  `cause`) y el 199 (`void` no termina en serverless). Con los tres puestos apareció:
+  `HTTP 400: (#131037) WhatsApp provided number needs display name approval`. Y al
+  **consultar a Meta** por el número: la cuenta tiene **uno solo**, `+1 555-346-2012`,
+  que es el de **PRUEBA** que regala Meta. No manda nada — ni plantilla ni texto libre,
+  con la ventana de 24 h abierta (probado con un envío real) o cerrada. Arreglarlo exigía
+  dar de alta un número propio: **un trámite, no código**.
+  **Y me equivoqué dos veces** interpretando ese error antes de medirlo bien (primero el
+  nombre, luego el texto libre). La lección: el mensaje de un proveedor se lee, pero su
+  **estado se consulta**.
+  Ahora: `services/avisos/avisoPorCorreo.ts` (puro) decide qué sale y cómo se escribe —la
+  empresa **en el asunto**, porque quien administra varias las recibe todas en la misma
+  bandeja—, y `enviarAvisosPorCorreo.ts` hereda las tres garantías del 178 (no lanza,
+  marca **lo que salió**, sin dirección no consulta nada) más la del 196 (lo que falla por
+  configuración no se repite). Con `after()` del 199.
+  Campo **Correo de destino** en Configuración, recorriendo los **seis** sitios del ajuste
+  —incluida **la escritura en la columna**, que es lo que el 178 dejó a medias—.
+  **MIGRACIÓN `drizzle/0015_avisos_por_correo.sql`: aplicarla ANTES de desplegar** (solo
+  añade dos columnas).
+  **Se van**: `whatsappKapso`, `enviarAvisosPendientes`, `plantillaDeAviso`,
+  `avisoPorWhatsApp`, `rechazoDeWhatsApp`, el campo, su ajuste y las variables `KAPSO_*`
+  (borradas de Vercel), más `DGII_API_KEY`, que el 198 dejó sin uso. **No se van las
+  columnas** `whatsapp_enviado_at` ni `whatsapp_avisos`: quedan **reservadas con su dato**
+  —hay un aviso que sí salió el 24/09—, mismo criterio que el lote 107 con `voided_by`.
+  **Los bancos, que es lo que más cuesta al retirar** (lección del lote 100): se retiran
+  con el canal los que solo lo vigilaban (178, 179/184/186, 188, 196) y se **adaptan** los
+  que cubrían dos asuntos — el 187 conserva el orden de las tarjetas y que guardar relea
+  lo guardado; el 199 apunta al canal de correo y su trinquete sigue barriendo las 182
+  rutas. En el banco nuevo, dos comprobaciones se **reescriben en vez de borrarse**: las
+  que decían «los dos canales van por separado» pasan a decir que el correo es el único y
+  que lleva **su** marca, que es lo que impide mandar dos veces el mismo aviso.
+  **Pendiente del dueño**: dar de baja las credenciales en Kapso y en el proveedor de la
+  API de RNC — borrar la variable **no** revoca la clave.
 - **Lote 199: los avisos se mandaban DESPUÉS de responder, y en serverless eso no
   ocurre.** Dos síntomas que juntos señalan al mecanismo: en PRODUCCIÓN los 7 avisos
   seguían **sin marca de envío** y en los registros no había **ni una** línea

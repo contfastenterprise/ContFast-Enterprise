@@ -67,6 +67,10 @@ export const notifications = pgTable('notifications', {
   // cheque se anunciaria cada vez que alguien abre el inicio. Se pone a null
   // si el aviso se cierra y vuelve a aparecer, porque eso si es noticia nueva.
   whatsappEnviadoAt: timestamp('whatsapp_enviado_at'),
+  //  LOTE 200: la marca del correo, SEPARADA de la de WhatsApp a proposito. Los dos
+  //  canales van por su cuenta: el dia que WhatsApp funcione, un aviso podra haber
+  //  salido por uno y no por el otro, y hay que poder distinguirlo.
+  correoEnviadoAt: timestamp('correo_enviado_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({

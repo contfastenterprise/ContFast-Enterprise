@@ -50,6 +50,10 @@ export const companySettings = pgTable('company_settings', {
   // sistema es multiempresa: los avisos de D'JIMENEZ no son asunto de quien
   // administra Latin Doors.
   whatsappAvisos: varchar('whatsapp_avisos', { length: 20 }),
+  //  LOTE 200: a quien se le mandan los avisos por correo. Vacio = no se manda nada,
+  //  igual que el numero de WhatsApp. Existe porque por WhatsApp hoy NO puede salir
+  //  ninguno: el numero de la cuenta es el de prueba de Meta y rechaza todo (#131037).
+  avisosCorreo: varchar('avisos_correo', { length: 255 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
