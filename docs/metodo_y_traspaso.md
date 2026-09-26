@@ -112,6 +112,15 @@ Las trampas que han salido, todas reales, todas costaron un lote:
 - **`.next\types\validator.ts` se queda rancio** y produce errores de `tsc` que
   no existen en el código. Ante un error de tipos que señala a `.next`:
   `Remove-Item -Recurse -Force .next` y volver a correr.
+- **`pnpm build` y `pnpm dev` NO pueden compartir `.next`.** `verificar.ps1` termina
+  con `pnpm build`, y si el servidor de desarrollo está levantado, los artefactos de
+  producción (`BUILD_ID`, `app-path-routes-manifest.json`, `export-marker.json`) se
+  mezclan con `.next/dev/` y **el `dev` empieza a contestar 404 a rutas que existen**.
+  Pasó el 2026-09-26 en el lote 198: `/auth/login` y `/api/v1/auth/refresh` daban 404
+  con los ficheros perfectamente en su sitio, y parecía que la aplicación se había
+  roto. La cura: parar el `dev`, `Remove-Item -Recurse -Force .next`, y levantarlo
+  otra vez **después** de que termine el barrido. Al lanzar `verificar.ps1`, contar con
+  que el `dev` se queda inservible hasta entonces.
 - **`.next/dev/types/*` puede quedarse con el contenido DUPLICADO** (Next 16, con el
   servidor de desarrollo levantado). `tsconfig.json` incluye `.next/dev/types/**/*.ts`
   a propósito —son los tipos de rutas—, así que `tsc` falla con errores de SINTAXIS
@@ -564,6 +573,52 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 198: la consulta de RNC vuelve a funcionar** — el proveedor había
+  desaparecido y el servicio de la DGII está retirado. El dueño reportó que "buscar
+  RNC" daba error en clientes y suplidores.
+  **No era nuestro código ni la clave**: se llamaba a
+  `pptonanntevatndjyzmk.supabase.co` —un proxy de **terceros**, no la DGII— y ese
+  nombre **ya no resuelve en DNS** (`ENOTFOUND`). Y el mensaje, "Error de red al
+  consultar DGII", **mentía dos veces**: no era la DGII y no era pasajero.
+  **El servicio web de la DGII también está retirado**: `wsMovilDGII` contesta **301
+  hacia su portal** (un POST SOAP devuelve 476 KB de la página) y `api.dgii.gov.do` no
+  resuelve. Lo único vivo es el formulario web y **el padrón descargable**.
+  Decisión del dueño (2026-09-26): el padrón. `drizzle/0014_padron_de_rnc.sql` +
+  `rnc_padron` (**aplicarla y CARGARLA**: nace vacía), sin `company_id` —dato público,
+  el mismo para las seis empresas— y con el **RNC como clave primaria**, que es lo que
+  hace que reimportar actualice en vez de duplicar.
+  **La forma del fichero se MIDIÓ, no se supuso** (la lección de la plantilla de Kapso,
+  que costó tres lotes): 21,8 MB de zip → `TMP/DGII_RNC.TXT` de 86,5 MB, 791.412
+  líneas, separador `|`, once campos, **latin-1**, sin cabecera. Y **la DGII devuelve
+  403 a quien no parece un navegador**, con una página de "Acceso Denegado" de 6 KB:
+  el guion manda `User-Agent` de navegador y comprueba **la firma del ZIP**, porque
+  mirar el tamaño no distingue un padrón de un 403.
+  La consulta lee la tabla: **sin terceros y sin clave**, y si un RNC no aparece **dice
+  de cuándo es el padrón** («cargado el 26/09/2026») — un contribuyente registrado la
+  semana pasada existe, y decir «no existe» sería falso. Un RNC suspendido **se
+  encuentra** y se advierte con la palabra de la DGII.
+  **No se actualiza solo** (decisión del dueño): lo importa él, como los demás guiones
+  de datos, frente a una tarea de GitHub Actions —que obligaría a poner
+  `DATABASE_URL` como secreto del repositorio— o un cron de Vercel, sitio equivocado
+  para 791.412 filas con 300 s. Lo que evita el olvido es un **aviso del panel a los 30
+  días**, con severidad `info` a propósito: `severidadDeAviso` manda al teléfono los
+  `error` y los `warning` (lote 178), y esto es mantenimiento.
+  **Aplicado en PRODUCCIÓN el 2026-09-26**: 791.373 filas en 103 s, la tabla pesa **129
+  MB** (la base entera pesaba 23 MB: es lo que cuesta no depender de nadie). Probado de
+  punta a punta: activo, suspendido y dado de baja con su advertencia, y **~100 ms**
+  frente a una petición con 30 s de plazo.
+  Banco de 35, contraprueba 0 OK de 24, **17 mutantes y 17 muertos**. Uno era grave:
+  **las tres filas reales con las que empecé no distinguían** leer el estado desde el
+  final de leerlo por posición —en las tres coincidía—, así que un mutante que lo leía
+  por posición sobrevivía y lo comprobado era una casualidad del fichero de hoy. Hizo
+  falta una fila de **doce** campos. Queda anotada la salvedad: contar desde el final
+  aguanta una columna metida en medio, **no** una añadida al final.
+  Y por **cuarta vez en el día**, la prosa hizo pasar una comprobación: el docstring
+  del guion explica que usa `on conflict do update`, así que buscarlo en el texto pasaba
+  aunque el SQL dijera otra cosa. **Se mide el código, no el texto.**
+  De paso: `scratch/_to_delete/aplicar_migracion.ts`, porque las migraciones se aplican
+  a mano y no había guion para hacerlo (`run-sql.ts` es de un arreglo puntual con dos
+  columnas escritas dentro).
 - **Lote 196: un aviso que no sale dice por qué, y no se repite cinco veces.** El dueño
   pasó el registro de una sesión del 2026-09-25 con cinco líneas iguales por cada carga
   del panel: `no salio un aviso ... motivo: 'HTTP 422'`. Dos defectos, y ninguno era la

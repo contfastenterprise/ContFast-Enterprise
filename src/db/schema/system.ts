@@ -129,3 +129,38 @@ export const systemEmailLogs = pgTable('system_email_logs', {
   contextIdx: index('system_email_logs_context_idx').on(table.context),
   statusIdx: index('system_email_logs_status_idx').on(table.status),
 }));
+
+/**
+ * El padron de contribuyentes de la DGII (lote 198).
+ *
+ * POR QUE ESTA TABLA. La consulta de RNC dependia de un proxy de terceros que
+ * DESAPARECIO (su nombre ya no resuelve en DNS, medido el 2026-09-25), y el
+ * servicio web de la propia DGII esta retirado (301 hacia su portal). Lo que la
+ * DGII si publica es el padron descargable, asi que el dato se trae UNA vez y se
+ * consulta aqui: sin terceros, sin clave, y funciona aunque la DGII este caida.
+ *
+ * NO LLEVA `company_id` NI `modo`, a proposito: es un dato publico del Estado, el
+ * mismo para las seis empresas -- como `route_mappings`. Ponerle empresa
+ * multiplicaria por seis 791.412 filas.
+ *
+ * LA CLAVE ES EL RNC Y NO UN `uuid`: es la unica forma de que reimportar el padron
+ * ACTUALICE en vez de duplicar, y de que la consulta sea un acceso directo por
+ * clave primaria. Se guarda tal como viene, con sus ceros delante: `00300755329`
+ * es una cedula de once digitos, y quitarselos la convierte en otra.
+ *
+ * SE GUARDAN CINCO CAMPOS DE LOS ONCE del fichero. Medido: el padron completo son
+ * 90,6 MB de texto y la base entera pesaba 23 MB, asi que cada columna que no se
+ * use es cara. Los otros seis campos (regimen, fechas, administracion local) no los
+ * pide ninguna pantalla.
+ */
+export const rncPadron = pgTable('rnc_padron', {
+  rnc: varchar('rnc', { length: 11 }).primaryKey(),
+  nombre: text('nombre').notNull(),
+  nombreComercial: text('nombre_comercial'),
+  estado: varchar('estado', { length: 30 }),
+  actividad: text('actividad'),
+  //  Cuando se importo esta fila. Sirve para saber si el padron esta viejo -- la
+  //  DGII lo republica cada cierto tiempo -- y para que una pantalla pueda decir
+  //  "dato de la DGII al 26/09/2026" en vez de dar una razon social como eterna.
+  actualizadoAt: timestamp('actualizado_at').defaultNow().notNull(),
+});

@@ -1,7 +1,8 @@
-import { db, invoices, checks, expenses, withTenantMode, invoiceLines, products, productCategories, apPayments, accountsPayable, cashSessions } from '@/db';
+import { db, invoices, checks, expenses, withTenantMode, invoiceLines, products, productCategories, apPayments, accountsPayable, cashSessions, rncPadron } from '@/db';
 import { eq, and, desc, sql, gte, lte, ne, isNull, inArray } from 'drizzle-orm';
 import { accountingPeriods } from '@/db';
 import { diasDeCobertura, DIAS_AVISO_PERIODOS } from '@/services/accounting/coberturaPeriodos';
+import { avisoDePadronViejo } from '@/services/dgii/padronDeRnc';
 import {
   limiteDeAvisoDeCheques,
   urgenciaDelCheque,
@@ -23,7 +24,11 @@ import { declaracionesDgii } from '@/db';
 interface DashboardAlert {
   id: string;
   type: 'invoice_rejected' | 'check_due' | 'periodos_por_agotarse' | 'caja_sin_cerrar'
-      | 'caja_con_diferencia' | 'declaracion_pendiente';
+      //  LOTE 198: `padron_viejo` -- el padron de RNC de la DGII lleva demasiados dias
+      //  sin reimportarse. La lista es cerrada a proposito y el compilador lo reclamo:
+      //  un tipo de aviso que no este aqui no se puede enseñar, y eso es lo que evita
+      //  que aparezca uno sin severidad ni orden.
+      | 'caja_con_diferencia' | 'declaracion_pendiente' | 'padron_viejo';
   title: string;
   description: string;
   actionText: string;
@@ -339,6 +344,26 @@ export class DashboardRepository {
         });
       }
     }
+
+    //  LOTE 198: EL PADRON DE RNC ENVEJECE, Y NADIE LO NOTARIA.
+    //
+    //  La consulta de RNC de clientes, suplidores y facturacion ya no llama a nadie:
+    //  lee el padron que la DGII publica y que se importa con
+    //  `scratch/_to_delete/importar_padron_rnc.ts`. Eso quita la dependencia de un
+    //  tercero (el anterior DESAPARECIO), pero mete una nueva: el dato es una foto y
+    //  hay que rehacerla. Como la rehace una persona, el sistema tiene que pedirlo.
+    //
+    //  Es UNA consulta mas en esta ruta, y `limit 1` sin ordenar se para en la primera
+    //  fila: no recorre las 791.412.
+    const [filaDelPadronCargado] = await db
+      .select({ actualizado: rncPadron.actualizadoAt })
+      .from(rncPadron)
+      .limit(1);
+    const avisoPadron = avisoDePadronViejo({
+      actualizado: filaDelPadronCargado?.actualizado ?? null,
+      ahora: today,
+    });
+    if (avisoPadron) alertsDetails.push(avisoPadron);
 
     return {
       invoicesToday,
