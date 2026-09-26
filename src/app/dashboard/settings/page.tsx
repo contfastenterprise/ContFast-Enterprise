@@ -7,7 +7,7 @@ import AvatarUploader from '@/components/ui/AvatarUploader';
 import { useConfirm } from '@/providers/confirm-provider';
 import { esAdministracion, esSistemas } from '@/utils/rolMatch';
 import { formatDateDisplay } from '@/utils/fechasLocales';
-import { GRUPOS_DE_PUENTES } from '@/services/accounting/cuentasDelSistema';import { correoValido } from '@/services/avisos/avisoPorCorreo';
+import { GRUPOS_DE_PUENTES } from '@/services/accounting/cuentasDelSistema';import { correoValido, correoDeLaEmpresaParaAvisos } from '@/services/avisos/avisoPorCorreo';
 
 export default function SettingsPage() {
   const confirm = useConfirm();
@@ -658,6 +658,30 @@ export default function SettingsPage() {
                           <p className="text-[10px] text-emerald-700 mt-1 font-mono">
                             Se enviará a {correoDeAvisos}
                           </p>
+                        )}
+                        {/*  LOTE 201: usar el correo de la empresa sin escribirlo otra
+                             vez (pedido del dueño). Medido: las seis empresas ya tienen
+                             uno valido en su ficha.
+
+                             SE OFRECE, NO SE APLICA SOLO: "vacío = no recibir avisos" es
+                             una decisión explícita (lotes 178 y 200). Si cayera por
+                             defecto, las seis empezarían a recibir avisos sin que nadie
+                             lo hubiera decidido.
+
+                             Y el botón NO SALE cuando no haría nada -- sin correo de
+                             empresa, o si ya es el mismo --, que es el defecto del avatar
+                             del lote 192: prometer un clic que no hace nada.  */}
+                        {correoDeLaEmpresaParaAvisos(formData.email, formData.avisosCorreo) && (
+                          <button
+                            type="button"
+                            onClick={() => setFormData({
+                              ...formData,
+                              avisosCorreo: correoDeLaEmpresaParaAvisos(formData.email, formData.avisosCorreo) ?? '',
+                            })}
+                            className="mt-1.5 text-[10px] font-bold text-[#003366] hover:underline cursor-pointer"
+                          >
+                            Usar el correo de la empresa ({correoDeLaEmpresaParaAvisos(formData.email, formData.avisosCorreo)})
+                          </button>
                         )}
                       </div>
                       <div>

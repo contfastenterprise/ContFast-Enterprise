@@ -138,6 +138,44 @@ async function main() {
       && (salida?.asunto.length ?? 0) > 0 && (salida?.cuerpo.length ?? 0) > 0);
     //  El correo tiene su propia lista de severidades aunque hoy coincida con la del
     //  WhatsApp: son dos decisiones, y una puede cambiar sin la otra.
+    // ── LOTE 201: usar el correo de la empresa ─────────────────────────────
+    //  Pedido del dueño: no escribirlo dos veces. Medido el 2026-09-26: las SEIS
+    //  empresas ya tienen un correo valido en su ficha y ninguna tenia puesto el de
+    //  avisos, asi que ahorra el paso justo donde estaba.
+    //  SI LA FUNCION NO ESTA, se reporta FALLA por etiqueta en vez de reventar el banco:
+    //  un banco que aborta no distingue "no cumple" de "no se puede concluir", y con eso
+    //  la contraprueba y los mutantes dejan de decir nada (leccion del lote 196).
+    const ofrecer = (M as { correoDeLaEmpresaParaAvisos?: (a: string | null | undefined, b: string | null | undefined) => string | null })
+      .correoDeLaEmpresaParaAvisos;
+    if (typeof ofrecer !== 'function') {
+      for (const t of ['se ofrece el correo de la empresa cuando sirve',
+        '  y no se ofrece si el de la empresa no sirve',
+        '  ni cuando ya es el que esta puesto',
+        '  pero si es otro, se puede cambiar de un clic']) {
+        ok(t, false, 'no existe correoDeLaEmpresaParaAvisos');
+      }
+    } else {
+    const correoDeLaEmpresaParaAvisos = ofrecer;
+    ok('se ofrece el correo de la empresa cuando sirve',
+      correoDeLaEmpresaParaAvisos('ventas@latindoors.com', '') === 'ventas@latindoors.com'
+      && correoDeLaEmpresaParaAvisos('  ventas@latindoors.com  ', null) === 'ventas@latindoors.com');
+    //  NO SE OFRECE LO QUE NO SIRVE: un correo de empresa mal escrito no puede acabar
+    //  como destino de los avisos de un clic.
+    ok('  y no se ofrece si el de la empresa no sirve',
+      correoDeLaEmpresaParaAvisos('', '') === null
+      && correoDeLaEmpresaParaAvisos(null, '') === null
+      && correoDeLaEmpresaParaAvisos('no es un correo', '') === null);
+    //  UN BOTON QUE NO HARIA NADA NO SE ENSEÑA: es el defecto del avatar del lote 192.
+    ok('  ni cuando ya es el que esta puesto',
+      correoDeLaEmpresaParaAvisos('a@b.com', 'a@b.com') === null
+      && correoDeLaEmpresaParaAvisos('a@b.com', '  A@B.COM ') === null);
+    //  Y si el de avisos es OTRO, se sigue ofreciendo: cambiar de destino tiene que
+    //  poder hacerse de un clic.
+    ok('  pero si es otro, se puede cambiar de un clic',
+      correoDeLaEmpresaParaAvisos('a@b.com', 'otro@c.com') === 'a@b.com');
+
+    }
+
     const fuente = leer('src/services/avisos/avisoPorCorreo.ts');
     ok('  la regla es pura: ni SMTP, ni base de datos',
       fuente !== '' && !/nodemailer|getTransporter|@\/db/.test(fuente));
@@ -212,6 +250,26 @@ async function main() {
 
   ok('la pantalla tiene el campo, y avisa mientras se escribe',
     /formData\.avisosCorreo/.test(codigoPantalla) && /correoValido\(formData\.avisosCorreo\)/.test(codigoPantalla));
+  //  LOTE 201: el boton existe y sale de la regla, no de una condicion escrita ahi.
+  ok('la pantalla ofrece el correo de la empresa',
+    /correoDeLaEmpresaParaAvisos\(formData\.email, formData\.avisosCorreo\)/.test(codigoPantalla)
+    && /Usar el correo de la empresa/.test(pantalla));
+  ok('  y solo cuando haria algo (si no, seria un boton muerto)',
+    /\{correoDeLaEmpresaParaAvisos\(formData\.email, formData\.avisosCorreo\) && \(/.test(codigoPantalla));
+  //  MERA PRESENCIA, cazada por un mutante: la regla aparece en la CONDICION del
+  //  bloque, asi que cambiar lo que el boton ESCRIBE por `formData.email` a pelo dejaba
+  //  todas las comprobaciones en verde -- y eso pondria en el campo un correo que la
+  //  regla habria rechazado (sin arroba, con espacios). Se mira lo que se ASIGNA.
+  const bloqueBoton = (() => {
+    const i = codigoPantalla.indexOf('<button');
+    const j = codigoPantalla.indexOf('Usar el correo de la empresa');
+    if (j < 0) return '';
+    const ini = codigoPantalla.lastIndexOf('onClick', j);
+    return ini < 0 || ini < i - 4000 ? '' : codigoPantalla.slice(ini, j);
+  })();
+  ok('  y lo que ESCRIBE sale de la regla, no del correo a pelo',
+    /avisosCorreo:\s*correoDeLaEmpresaParaAvisos\(formData\.email, formData\.avisosCorreo\)/.test(bloqueBoton)
+    && !/avisosCorreo:\s*formData\.email/.test(bloqueBoton));
   ok('  y carga lo que hay guardado',
     /avisosCorreo: data\.data\.settings\.avisosCorreo/.test(codigoPantalla));
 

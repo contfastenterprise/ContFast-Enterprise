@@ -125,3 +125,35 @@ export function avisosQueSeMandanPorCorreo(
       clave: a.id,
     }));
 }
+
+/**
+ * QUE CORREO DE LA EMPRESA SE PUEDE OFRECER PARA LOS AVISOS (lote 201).
+ *
+ * Pedido del dueño: poder usar el mismo correo de la empresa sin escribirlo otra vez.
+ * Medido el 2026-09-26: las SEIS empresas tienen ya un correo valido en su ficha, y
+ * ninguna tenia puesto el de avisos -- asi que esto ahorra el paso justo donde estaba.
+ *
+ * SE OFRECE, NO SE APLICA SOLO, y la diferencia importa: "vacio = no recibir avisos" es
+ * una decision explicita (lotes 178 y 200). Si el correo de la empresa se usara por
+ * defecto, las seis empezarian a recibir avisos sin que nadie lo hubiera decidido, y
+ * quien quisiera no recibirlos no tendria como decirlo. Con un boton, el campo sigue
+ * diciendo exactamente a donde va.
+ *
+ * Devuelve `null` -- o sea, no hay nada que ofrecer -- en dos casos:
+ *   · el correo de la empresa no sirve (vacio, o mal escrito);
+ *   · ya es el que esta puesto para los avisos, porque entonces el boton no haria nada
+ *     y un boton que no hace nada es peor que no tenerlo (es el defecto del avatar del
+ *     lote 192).
+ */
+export function correoDeLaEmpresaParaAvisos(
+  correoDeLaEmpresa: string | null | undefined,
+  correoDeAvisos: string | null | undefined,
+): string | null {
+  const deLaEmpresa = correoValido(correoDeLaEmpresa);
+  if (!deLaEmpresa) return null;
+  //  Se comparan NORMALIZADOS: si el de avisos esta escrito con espacios alrededor o con
+  //  otras mayusculas, es el mismo correo y el boton tampoco haria nada.
+  const puesto = correoValido(correoDeAvisos);
+  if (puesto && puesto.toLowerCase() === deLaEmpresa.toLowerCase()) return null;
+  return deLaEmpresa;
+}
