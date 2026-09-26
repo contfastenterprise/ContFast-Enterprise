@@ -4,6 +4,7 @@ import { isAdminOrSistemas } from '@/middleware/permissions';
 import { DashboardRepository } from '@/repositories/dashboardRepository';
 import { sincronizarAvisos } from '@/services/avisos/sincronizarAvisos';
 import { enviarAvisosPendientes } from '@/services/avisos/enviarAvisosPendientes';
+import { motivoDelError, motivoParaLaPantalla } from '@/utils/motivoDelError';
 
 export async function GET(req: NextRequest) {
   try {
@@ -59,7 +60,21 @@ export async function GET(req: NextRequest) {
       }
     });
   } catch (err: unknown) {
-    console.error('Error fetching dashboard data:', err);
-    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 500 });
+    //  LOTE 197: EL MOTIVO DE VERDAD, QUE ESTABA EN `cause`.
+    //
+    //  Esta ruta devolvia 500 en PRODUCCION y el registro solo decia
+    //  `Failed query: select ... from invoices`, que es el envoltorio de Drizzle: el
+    //  error real (`CONNECTION_CLOSED`, `too many clients`, un tiempo agotado) viaja
+    //  en `error.cause` y se descartaba. Con el panel caido no se envian los avisos
+    //  por WhatsApp, porque salen de aqui mismo (lote 178): un fallo mudo en esta
+    //  ruta apaga dos cosas a la vez.
+    //
+    //  Se sigue pasando `err` detras del motivo para no perder el rastro de pila,
+    //  que es lo unico que dice EN QUE consulta fue.
+    console.error('Error fetching dashboard data:', motivoDelError(err), err);
+    //  A la pantalla va el NUCLEO, no el envoltorio: es lo que explica el fallo y,
+    //  de paso, deja de mandarle al navegador la consulta que fallo -- hoy la pinta
+    //  tal cual en el aviso de "no se pudieron cargar los datos".
+    return NextResponse.json({ success: false, error: { message: motivoParaLaPantalla(err) } }, { status: 500 });
   }
 }
