@@ -4,11 +4,9 @@ on:
   push:
     branches:
       - main
-      - develop
   pull_request:
     branches:
       - main
-      - develop
 
 # Lote 211. Este pipeline no habia pasado NUNCA (0 en verde de sus 200 ultimas
 # ejecuciones, desde que se creo el 2026-06-25). Se paraba en la instalacion y,

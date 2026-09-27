@@ -21,6 +21,7 @@
  * El YAML se lee a mano (sin dependencia nueva): es un fichero pequeño y lo que se mira
  * son claves concretas.
  */
+import { execSync } from 'child_process';
 import { readFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 
@@ -189,6 +190,24 @@ function main() {
   const sinDecidir = [...conScript].filter((n) => !decididos.has(n)).sort();
   ok('todo paquete con script de instalacion esta en allowBuilds', sinDecidir.length === 0,
     sinDecidir.join(', ') || `${conScript.size} decididos`);
+
+  // ───────────────────────────────────────────────────────────────────────────
+  console.log('\n6) El pipeline solo escucha ramas que existen (lote 215)\n');
+  // ───────────────────────────────────────────────────────────────────────────
+  // `develop` se borro el 2026-09-27 (estaba entera dentro de `main`, sin un commit
+  // fuera). Un disparador a una rama que no existe no falla: simplemente no salta nunca,
+  // y quien lea el YAML cree que esa rama se verifica. Se mira contra las ramas remotas
+  // que conoce el repositorio local (sin red), asi que depende del ultimo `git fetch`.
+  const remotas = execSync('git branch -r --format="%(refname:short)"', { cwd: raiz, encoding: 'utf8' })
+    .split(/\r?\n/)
+    .map((l) => l.trim().replace(/^origin\//, ''))
+    .filter((l) => l !== '' && l !== 'HEAD' && l !== 'origin');
+  if (!remotas.includes('main')) throw new Error('Precondicion: el repositorio local no conoce origin/main; hacer git fetch');
+  const disparadores = /^on:\s*\r?\n([\s\S]*?)^\S/m.exec(yaml + '\nfin')?.[1] ?? '';
+  const escuchadas = [...disparadores.matchAll(/^\s+-\s+['"]?([\w./-]+)['"]?\s*$/gm)].map((m) => m[1]);
+  const inexistentes = [...new Set(escuchadas.filter((r) => !remotas.includes(r)))];
+  ok('toda rama de los disparadores existe en origin', escuchadas.length > 0 && inexistentes.length === 0,
+    inexistentes.join(', ') || `escucha: ${[...new Set(escuchadas)].join(', ')}`);
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLA(S)`} (${contadas} comprobaciones)`);
   process.exit(fallos === 0 ? 0 : 1);
