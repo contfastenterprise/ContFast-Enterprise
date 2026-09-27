@@ -198,14 +198,14 @@ function main() {
   // fuera). Un disparador a una rama que no existe no falla: simplemente no salta nunca,
   // y quien lea el YAML cree que esa rama se verifica. Se mira contra las ramas remotas
   // que conoce el repositorio local (sin red), asi que depende del ultimo `git fetch`.
-  const remotas = execSync('git branch -r --format="%(refname:short)"', { cwd: raiz, encoding: 'utf8' })
+  const remotas = new Set(execSync('git branch -r --format="%(refname:short)"', { cwd: raiz, encoding: 'utf8' })
     .split(/\r?\n/)
     .map((l) => l.trim().replace(/^origin\//, ''))
-    .filter((l) => l !== '' && l !== 'HEAD' && l !== 'origin');
-  if (!remotas.includes('main')) throw new Error('Precondicion: el repositorio local no conoce origin/main; hacer git fetch');
+    .filter((l) => l !== '' && l !== 'HEAD' && l !== 'origin'));
+  if (!remotas.has('main')) throw new Error('Precondicion: el repositorio local no conoce origin/main; hacer git fetch');
   const disparadores = /^on:\s*\r?\n([\s\S]*?)^\S/m.exec(yaml + '\nfin')?.[1] ?? '';
   const escuchadas = [...disparadores.matchAll(/^\s+-\s+['"]?([\w./-]+)['"]?\s*$/gm)].map((m) => m[1]);
-  const inexistentes = [...new Set(escuchadas.filter((r) => !remotas.includes(r)))];
+  const inexistentes = [...new Set(escuchadas.filter((r) => !remotas.has(r)))];
   ok('toda rama de los disparadores existe en origin', escuchadas.length > 0 && inexistentes.length === 0,
     inexistentes.join(', ') || `escucha: ${[...new Set(escuchadas)].join(', ')}`);
 
