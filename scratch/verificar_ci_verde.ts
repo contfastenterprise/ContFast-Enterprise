@@ -150,6 +150,46 @@ function main() {
   // ───────────────────────────────────────────────────────────────────────────
   ok('ni postgres ni redis: vitest no toca la base y Redis se retiro (lote 183)', !/^\s+services:/m.test(yaml) && /pnpm test/.test(yaml));
 
+  // ───────────────────────────────────────────────────────────────────────────
+  console.log('\n5) Todo script de instalacion esta decidido -- DERIVADO (lote 213)\n');
+  // ───────────────────────────────────────────────────────────────────────────
+  // pnpm 11 no ejecuta scripts de instalacion que no esten en `allowBuilds`, y con
+  // CI=true lo trata como ERROR (ERR_PNPM_IGNORED_BUILDS). En local solo avisa, asi que
+  // el primer aviso de verdad lo daba el CI: con @sentry/cli, justo despues del lote 211.
+  // La lista se saca de lo INSTALADO -- el lockfile no marca que paquete trae script.
+  const pnpmDir = join(raiz, 'node_modules', '.pnpm');
+  if (!existsSync(pnpmDir)) throw new Error('Precondicion: no hay node_modules/.pnpm; instalar antes de correr el banco');
+  const conScript = new Set<string>();
+  for (const d of readdirSync(pnpmDir)) {
+    const nm = join(pnpmDir, d, 'node_modules');
+    if (!existsSync(nm)) continue;
+    for (const a of readdirSync(nm)) {
+      const nombres = a.startsWith('@') ? readdirSync(join(nm, a)).map((b) => `${a}/${b}`) : [a];
+      for (const n of nombres) {
+        const pj = join(nm, n, 'package.json');
+        if (!existsSync(pj)) continue;
+        try {
+          const p = JSON.parse(readFileSync(pj, 'utf8')) as { name?: string; scripts?: Record<string, string> };
+          const s = p.scripts ?? {};
+          if (p.name && (s.preinstall || s.install || s.postinstall)) conScript.add(p.name);
+        } catch {
+          // Un package.json roto no es asunto de este banco.
+        }
+      }
+    }
+  }
+  // Sanidad del derivador: estos llevan script hoy; si no aparecen, lo roto es el recorrido.
+  for (const medido of ['esbuild', 'sharp', '@sentry/cli']) {
+    if (!conScript.has(medido)) throw new Error(`Precondicion: el recorrido ya no encuentra el script de ${medido}; revisarlo`);
+  }
+  const bloque = /^allowBuilds:\s*\r?\n((?:[ \t]+.*\r?\n?)+)/m.exec(leer('pnpm-workspace.yaml'))?.[1] ?? '';
+  const decididos = new Set(
+    [...bloque.matchAll(/^\s+["']?([@\w./-]+)["']?:\s*(true|false)\s*$/gm)].map((m) => m[1]),
+  );
+  const sinDecidir = [...conScript].filter((n) => !decididos.has(n)).sort();
+  ok('todo paquete con script de instalacion esta en allowBuilds', sinDecidir.length === 0,
+    sinDecidir.join(', ') || `${conScript.size} decididos`);
+
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLA(S)`} (${contadas} comprobaciones)`);
   process.exit(fallos === 0 ? 0 : 1);
 }
