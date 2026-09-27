@@ -28,6 +28,7 @@ import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 import RetentionSelector from '@/components/RetentionSelector';
 import { BorderRotate } from '@/components/ui/animated-gradient-border';
 import { SearchBar } from '@/components/ui/search-bar';
+import { BotonBuscarDgii } from '@/components/ui/boton-buscar-dgii';
 import { Pagination } from '@/components/ui/pagination';
 import DateRangePicker from '@/components/ui/date-range-picker';
 import { ProductAutocomplete } from '@/components/ui/product-autocomplete';
@@ -3341,23 +3342,13 @@ function InvoicesList() {
                         setNewCustomerData({ ...newCustomerData, rncCedula: e.target.value });
                         setRncVerified(false);
                       }}
-                      className="flex-1 bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors font-mono"
+                      className="flex-1 h-8 bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] outline-none transition-colors font-mono"
                     />
-                    <Button
-                      type="button"
-                      variant="warning"
-                      size="sm"
+                    <BotonBuscarDgii
                       onClick={handleNewCustomerSearchDGII}
-                      disabled={isSearchingRnc || !newCustomerData.rncCedula}
-                      className="shrink-0 text-[11px] px-3 font-bold"
-                    >
-                      {isSearchingRnc ? (
-                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Search className="h-3.5 w-3.5" />
-                      )}
-                      DGII
-                    </Button>
+                      buscando={isSearchingRnc}
+                      disabled={!newCustomerData.rncCedula}
+                    />
                   </div>
                 </div>
 
