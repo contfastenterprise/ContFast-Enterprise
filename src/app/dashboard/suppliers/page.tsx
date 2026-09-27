@@ -515,7 +515,7 @@ export default function SuppliersPage() {
                         type="button"
                         onClick={handleSearchDGII}
                         disabled={searchingDGII || !formData.rnc}
-                        className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                        className="h-8 px-3 py-1.5 text-xs rounded-lg flex items-center gap-1 bg-[#c5a059] text-white font-bold hover:bg-[#d4b069] transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
                       >
                         {searchingDGII ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
                         Buscar DGII

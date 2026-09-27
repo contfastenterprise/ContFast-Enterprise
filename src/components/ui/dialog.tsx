@@ -82,22 +82,22 @@ export function Modal({
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
             className={cn(
-              "relative z-10 w-full bg-background border border-border rounded-2xl shadow-2xl overflow-hidden flex flex-col my-auto max-h-[90vh]",
+              "relative z-10 w-full bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden flex flex-col my-auto max-h-[90vh]",
               maxWidthClasses[maxWidth],
               className
             )}
           >
             {/* Header */}
             {(title || description) && (
-              <div className="flex items-start justify-between p-6 pb-4 border-b border-border">
+              <div className="flex items-start justify-between p-6 pb-4 border-b border-[#003366] bg-[#003366]">
                 <div className="space-y-1 pr-6">
                   {title && (
-                    <h2 className="text-lg font-bold text-foreground">
+                    <h2 className="text-lg font-bold text-white">
                       {title}
                     </h2>
                   )}
                   {description && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-slate-300">
                       {description}
                     </p>
                   )}
@@ -105,7 +105,7 @@ export function Modal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  className="rounded-lg p-1.5 text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
                   title="Cerrar (Esc)"
                 >
                   <X className="h-5 w-5" />
@@ -129,7 +129,7 @@ export function Modal({
 
             {/* Footer */}
             {footer && (
-              <div className="flex items-center justify-end gap-3 p-4 px-6 bg-muted/30 border-t border-border">
+              <div className="flex items-center justify-end gap-3 p-4 px-6 bg-white border-t border-slate-200">
                 {footer}
               </div>
             )}
