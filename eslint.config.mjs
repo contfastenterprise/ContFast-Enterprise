@@ -25,6 +25,9 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "scratch/**",
+    // Carpeta de referencia que git ignora (.gitignore): el CI no la ve, y sin esto el
+    // linter local daba errores que el CI no tiene (lote 212).
+    "_referencia/**",
   ]),
 ]);
 

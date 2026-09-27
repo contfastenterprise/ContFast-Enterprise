@@ -39,11 +39,14 @@ export function GraficaDonaRiesgo({
   const activoKey = encima || seleccionado;
   const activo = stats.find((s) => s.key === activoKey);
 
-  let acumulado = 0;
-  const segmentos = stats.map((s) => {
+  // Cada segmento empieza donde acaban los ANTERIORES. Se suma sin mutar nada: un
+  // acumulador reasignado dentro del `map` es un efecto durante el render, y el linter
+  // de React lo marca como error (lote 212). Con cuatro niveles de riesgo, sumar el
+  // prefijo en cada vuelta no cuesta nada.
+  const segmentos = stats.map((s, i) => {
     const dash = `${(s.porcentaje / 100) * circunferencia} ${circunferencia}`;
-    const offset = -((acumulado / 100) * circunferencia);
-    acumulado += s.porcentaje;
+    const previos = stats.slice(0, i).reduce((suma, p) => suma + p.porcentaje, 0);
+    const offset = -((previos / 100) * circunferencia);
     const esActivo = seleccionado === s.key;
     const esEncima = encima === s.key;
     return {
