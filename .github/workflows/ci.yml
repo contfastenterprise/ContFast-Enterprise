@@ -10,61 +10,58 @@ on:
       - main
       - develop
 
+# Lote 211. Este pipeline no habia pasado NUNCA (0 en verde de sus 200 ultimas
+# ejecuciones, desde que se creo el 2026-06-25). Se paraba en la instalacion y,
+# por detras, llevaba mas cosas rotas que nadie llego a ver:
+#
+#   - pnpm 9 con un proyecto de pnpm 11. Los `overrides` viven en
+#     `pnpm-workspace.yaml`, que pnpm 9 no lee, asi que `--frozen-lockfile` veia
+#     una configuracion distinta de la del lockfile y abortaba
+#     (ERR_PNPM_LOCKFILE_CONFIG_MISMATCH). pnpm 11 exige Node >= 22.13: Node 24,
+#     el mismo que se usa en local y en Vercel.
+#   - Las pruebas corrian `src/tests/payroll.test.ts`, que NO EXISTE. Las pruebas
+#     de verdad son las de vitest (`pnpm test`, 245).
+#   - `build` falla sin variables de entorno: hay modulos que las exigen al
+#     CARGARSE (medido quitando el .env: JWT_SECRET, JWT_REFRESH_SECRET,
+#     URL_SIGNATURE_SECRET, CERTIFICATE_ENCRYPTION_KEY, DATABASE_URL y el cliente
+#     de Supabase de la ruta del logo). Aqui llevan valores de juguete: solo
+#     sirven para construir, no conectan con nada y no son secretos.
+#   - Los servicios `postgres` y `redis` no los usaba ningun paso: vitest pasa
+#     245/245 sin base de datos, y Redis se retiro de produccion (lote 183).
+#
+# La verificacion completa del proyecto (los bancos de `scratch/`, los de
+# integracion en la base desechable) sigue siendo `verificar.ps1` en local.
+# Esto es la red minima: que compile, que el linter no tenga errores, que las
+# pruebas pasen y que construya.
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_DB: contfast_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgrespassword
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    env:
+      DATABASE_URL: postgres://ci:ci@localhost:5432/ci_sin_base
+      CERTIFICATE_ENCRYPTION_KEY: ci-solo-para-construir-32-caracteres
+      JWT_SECRET: ci-jwt-solo-para-construir
+      JWT_REFRESH_SECRET: ci-jwt-refresh-solo-para-construir
+      URL_SIGNATURE_SECRET: ci-firma-url-solo-para-construir
+      SUPABASE_URL: http://localhost:54321
+      SUPABASE_SERVICE_ROLE_KEY: ci-supabase-solo-para-construir
+      SUPABASE_ANON_KEY: ci-supabase-anon-solo-para-construir
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9
-
-      - name: Get pnpm cache directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - name: Setup pnpm cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          node-version: 24
+          cache: pnpm
 
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
@@ -76,15 +73,7 @@ jobs:
         run: pnpm run lint
 
       - name: Run Unit Tests
-        env:
-          DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/contfast_test
-          REDIS_URL: redis://localhost:6379
-          CERTIFICATE_ENCRYPTION_KEY: ${{ secrets.CERTIFICATE_ENCRYPTION_KEY || 'test-encryption-key-32-chars-long-here' }}
-        run: pnpm exec tsx src/tests/payroll.test.ts
+        run: pnpm test
 
       - name: Build Next.js Production App
-        env:
-          DATABASE_URL: postgres://postgres:postgrespassword@localhost:5432/contfast_test
-          REDIS_URL: redis://localhost:6379
-          CERTIFICATE_ENCRYPTION_KEY: ${{ secrets.CERTIFICATE_ENCRYPTION_KEY || 'test-encryption-key-32-chars-long-here' }}
         run: pnpm run build
