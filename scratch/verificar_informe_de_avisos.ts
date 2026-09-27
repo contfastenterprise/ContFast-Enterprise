@@ -103,6 +103,7 @@ const ETIQUETAS_EJECUTADAS: readonly string[] = [
   '  con los TRES avisos en el mismo documento',
   '  ordenados por gravedad, el grave primero',
   '  y cada uno con su gravedad en palabras, no solo en color',
+  '  y una severidad que llega YA resuelta se respeta, no se degrada a "AVISO"',
   'el grafico va incrustado en el documento',
   '  y las cifras del dia van en numeros, con su moneda',
   '  el periodo del grafico queda dicho',
@@ -453,6 +454,30 @@ async function main() {
     && html.indexOf('Cheque en garantía por cobrar') < html.indexOf('Padrón de RNC'));
   ok('  y cada uno con su gravedad en palabras, no solo en color',
     html.includes('>GRAVE<') && html.includes('>ADVERTENCIA<'));
+  //  HAY DOS COSAS LLAMADAS `type` Y NO SIGNIFICAN LO MISMO, y esto lo descubrio un correo
+  //  de prueba DE VERDAD, no una comprobacion: `AvisoDelPanel.type` es la CLASE del aviso
+  //  ('invoice_rejected'), pero la COLUMNA `notifications.type` guarda la severidad YA
+  //  derivada ('error'). Quien arme el informe desde las filas guardadas -- lo natural el
+  //  dia que se quiera un boton de "reenviar" -- le pasaria una severidad donde se espera
+  //  una clase, `severidadDeAviso('error')` no la reconoce y devuelve 'info', y el
+  //  documento saldria rotulando TODO como "AVISO", incluido un comprobante rechazado. No
+  //  falla, no avisa: solo miente en un papel que lee el contador.
+  const desdeLaBase = DocumentTemplates.renderAlertsReport({
+    company: { name: 'X', rnc: '1', logoUrl: null }, dia: '2026-09-26',
+    avisos: [
+      { titulo: 'Factura rechazada', descripcion: 'd', severidad: SEV.severidadDeAviso('error'), desdeCuando: null },
+    ],
+    grafico: '<svg></svg>', totalesDelDia: { compras: 0, ventas: 0 },
+    periodo: { desde: '2026-09-13', hasta: '2026-09-26' },
+  });
+  ok('  y una severidad que llega YA resuelta se respeta, no se degrada a "AVISO"',
+    R.severidadDelAviso('error') === 'error' && R.severidadDelAviso('warning') === 'warning'
+    //  Y lo que SI es una clase se sigue derivando, que es el camino normal.
+    && R.severidadDelAviso('invoice_rejected') === 'error'
+    && R.severidadDelAviso('check_due') === 'warning'
+    && R.severidadDelAviso('padron_viejo') === 'info'
+    //  La marca de que el defecto existia: derivando a ciegas, un 'error' acaba en 'info'.
+    && desdeLaBase.includes('>AVISO<'));
   //  EL GRAFICO VA DENTRO del documento, no enlazado: un <img> a una URL no se ve en un
   //  PDF generado en el servidor si la red falla.
   ok('el grafico va incrustado en el documento',
@@ -583,10 +608,15 @@ async function main() {
   //  rotulado todo como "AVISO". Lo cazo este banco al ejecutar las reglas con avisos de
   //  verdad, y por eso la comprobacion se queda.
   const reglaFuente = sinComentarios(leer(REGLA));
-  ok('la severidad se DERIVA de la clase del aviso, no se lee de `type`',
-    /severidadDeAviso\(a\.type\)/.test(reglaFuente)
+  ok('la severidad se RESUELVE, no se lee de `type` a pelo',
+    /severidadDelAviso\(a\.type\)/.test(reglaFuente)
     && !/a\.type === 'error'/.test(reglaFuente)
-    && /severidadDeAviso\(a\.type\)/.test(sinComentarios(leer(INFORME))));
+    && /severidadDelAviso\(a\.type\)/.test(sinComentarios(leer(INFORME))));
+  //  EN UN SOLO SITIO: el asunto, el cuerpo y el informe tienen que resolverla igual, o el
+  //  correo diria "1 grave" y el PDF adjunto rotularia ese mismo aviso de otra forma.
+  ok('  y los tres -- asunto, cuerpo e informe -- la resuelven con la misma funcion',
+    (reglaFuente.match(/severidadDelAviso\(/g) || []).length >= 4
+    && /from '@\/services\/avisos\/avisoPorCorreo'/.test(leer(INFORME)));
   //  El informe no puede reimplementar la cabecera: tiene que ser la de casa.
   ok('el informe usa la plantilla de casa y no monta su propio HTML',
     /DocumentTemplates\.renderAlertsReport\(/.test(sinComentarios(leer(INFORME)))

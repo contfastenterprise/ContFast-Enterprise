@@ -85,6 +85,35 @@ export function avisosParaElInforme(
 }
 
 /**
+ * La severidad de un aviso, venga como CLASE o como severidad ya resuelta.
+ *
+ * HAY DOS COSAS LLAMADAS `type` Y NO SIGNIFICAN LO MISMO. Es la trampa que este lote
+ * descubrio mandando un correo de prueba de verdad:
+ *
+ *   · `AvisoDelPanel.type` es la CLASE del aviso -- 'invoice_rejected',
+ *     'caja_con_diferencia', 'check_due' --, y es lo que llega por el camino normal
+ *     (`stats.alertsDetails`, que el panel acaba de calcular).
+ *   · `notifications.type`, la COLUMNA, guarda la severidad **ya derivada**:
+ *     `sincronizarAvisos` escribe `severidadDeAviso(a.type)`. O sea 'error' | 'warning' |
+ *     'info'.
+ *
+ * Quien arme el informe desde las filas GUARDADAS --y es lo natural el dia que se quiera
+ * un boton de "reenviar"-- le estaria pasando una severidad donde se espera una clase.
+ * `severidadDeAviso('error')` no reconoce 'error' como clase y devuelve 'info', asi que el
+ * documento saldria rotulando **todo** como "AVISO", incluido un comprobante rechazado.
+ * No falla, no avisa: solo miente en un papel que lee el contador. Paso de verdad en la
+ * primera prueba.
+ *
+ * Por eso lo que ya ES una severidad se respeta, y solo lo demas se deriva. Se resuelve
+ * aqui y no en `severidadDeAviso`, que la comparten la campana y el orden de los avisos:
+ * ensancharla para todos por un caso de este informe seria cambiar lo que no hace falta.
+ */
+export function severidadDelAviso(tipo: string): 'error' | 'warning' | 'info' {
+  if (tipo === 'error' || tipo === 'warning' || tipo === 'info') return tipo;
+  return severidadDeAviso(tipo);
+}
+
+/**
  * El asunto del informe: la empresa delante y cuantos avisos hay detras.
  *
  * LA EMPRESA VA EN EL ASUNTO, y no es un adorno: quien administra varias recibe los
@@ -99,7 +128,7 @@ export function asuntoDelInforme(avisos: readonly AvisoDelPanel[], empresa: stri
   //  'invoice_rejected', 'caja_con_diferencia', 'check_due'... y quien lo traduce a
   //  error/warning/info es `severidadDeAviso`. Compararlo con 'error' a pelo da SIEMPRE
   //  falso, asi que el asunto nunca habria contado un grave -- y el banco lo cazo.
-  const graves = avisos.filter((a) => severidadDeAviso(a.type) === 'error').length;
+  const graves = avisos.filter((a) => severidadDelAviso(a.type) === 'error').length;
   const cuantos = avisos.length;
   const plural = cuantos === 1 ? 'aviso pendiente' : 'avisos pendientes';
   const cola = graves > 0 ? ` (${graves} grave${graves === 1 ? '' : 's'})` : '';
@@ -125,13 +154,13 @@ export function cuerpoDelInforme(
   //  distintos del mismo contenido.
   const PESO: Record<string, number> = { error: 0, warning: 1, info: 2 };
   const ordenados = [...avisos].sort(
-    (a, b) => (PESO[severidadDeAviso(a.type)] ?? 9) - (PESO[severidadDeAviso(b.type)] ?? 9));
+    (a, b) => (PESO[severidadDelAviso(a.type)] ?? 9) - (PESO[severidadDelAviso(b.type)] ?? 9));
   const lineas: string[] = [
     `Avisos pendientes de ${empresa}: ${avisos.length}.`,
     '',
   ];
   for (const a of ordenados) {
-    lineas.push(`• [${rotuloDeSeveridad(severidadDeAviso(a.type))}] ${a.title}`);
+    lineas.push(`• [${rotuloDeSeveridad(severidadDelAviso(a.type))}] ${a.title}`);
     if (a.description) lineas.push(`  ${a.description}`);
     //  El enlace es lo que convierte un aviso en algo que se puede atender: sin el, hay
     //  que buscar la pantalla a mano.

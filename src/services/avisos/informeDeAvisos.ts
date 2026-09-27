@@ -23,7 +23,7 @@ import { DocumentTemplates } from '@/utils/templates/documentTemplates';
 import { ReportRepository } from '@/repositories/reportRepository';
 import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 import type { AvisoDelPanel } from '@/services/avisos/sincronizarAvisos';
-import { severidadDeAviso } from '@/services/avisos/avisoDelPanel';
+import { severidadDelAviso } from '@/services/avisos/avisoPorCorreo';
 import { graficoDeBarrasSvg } from '@/services/avisos/graficoDeBarras';
 import {
   DIAS_DEL_INFORME,
@@ -81,9 +81,7 @@ export async function informeDeAvisosHtml(datos: DatosDelInforme): Promise<strin
     avisos: datos.avisos.map((a) => ({
       titulo: a.title,
       descripcion: a.description,
-      //  DERIVADA, no `a.type`: ese es la CLASE del aviso ('invoice_rejected'), y la
-      //  severidad sale de `severidadDeAviso`. Ponerla a pelo rotulaba todo como "AVISO".
-      severidad: severidadDeAviso(a.type),
+      severidad: severidadDelAviso(a.type),
       desdeCuando: datos.desdeCuando?.get(a.id)?.toISOString() ?? null,
     })),
     grafico,
