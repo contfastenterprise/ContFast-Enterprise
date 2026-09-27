@@ -599,6 +599,19 @@ Además, fuera de la tabla:
   usan los **tres** sitios que hablan de gravedad (asunto, cuerpo e informe) —si no, el
   correo podría decir «1 grave» y el PDF rotular ese mismo aviso de otra forma—. **No se
   toca `severidadDeAviso`**, que la comparten la campana y el orden de los avisos.
+- **Lote 210: "Buscar DGII" es UN botón, y la ventana de suplidores se ve como la de
+  clientes.** Reportado por el dueño (2026-09-27): misma acción, colores distintos. La
+  misma acción estaba escrita a mano en **tres** sitios: dorado con texto blanco
+  (clientes), **azul marino** y más alto que el campo (suplidores —el mismo azul que
+  "Registrar", dos acciones principales en un formulario—) y ámbar con solo "DGII" (alta
+  rápida de cliente en facturas). Ahora es `components/ui/boton-buscar-dgii.tsx`: dorado
+  de "Imprimir" con texto oscuro y `h-8` como el campo. La cabecera, el asterisco de
+  obligatorio y el sello "Validado DGII" de suplidores pasan a ser los de clientes.
+  **Lo que no se ve leyendo, y por eso el banco EJECUTA el componente**: vive dentro de un
+  `<form>`, y sin `type="button"` pulsarlo enviaría el formulario a medio escribir. Banco
+  de 33, contraprueba 33 FALLA sin supervivientes, dieciséis mutantes y dieciséis muertos.
+  **El banco se cazó a sí mismo**: `/<button[^>]*\bdisabled/` casaba con la CLASE
+  `disabled:opacity-50` y daba el botón por deshabilitado siempre — se ancla al atributo.
 - **Lote 208: Inteligencia de Negocio y el Agente Empresarial salen del menú lateral y se
   ven como pestañas del inicio, arriba a la derecha.** Pedido del dueño (2026-09-26). El
   menú tiene **cincuenta elementos** en nueve grupos (medido en el 189) y estas dos son

@@ -9,6 +9,7 @@ import { useConfirm } from '@/providers/confirm-provider';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/components/ui/search-bar';
+import { BotonBuscarDgii } from '@/components/ui/boton-buscar-dgii';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -596,15 +597,11 @@ export default function CustomersPage() {
                         className={`flex-1 h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono ${rncVerified ? 'border-emerald-500 ring-1 ring-emerald-500/30 focus:border-emerald-500 focus:ring-emerald-500/30' : ''}`}
                         placeholder="Ej. 130123456"
                       />
-                      <button
-                        type="button"
+                      <BotonBuscarDgii
                         onClick={handleSearchDGII}
-                        disabled={isSearchingRnc || !formData.rncCedula}
-                        className="h-8 px-3 py-1.5 text-xs rounded-lg flex items-center gap-1 bg-[#c5a059] text-white font-bold hover:bg-[#d4b069] transition-colors disabled:opacity-50 shrink-0 cursor-pointer"
-                      >
-                        {isSearchingRnc ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-                        Buscar DGII
-                      </button>
+                        buscando={isSearchingRnc}
+                        disabled={!formData.rncCedula}
+                      />
                     </div>
                   </div>
 
