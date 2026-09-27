@@ -30,12 +30,24 @@ const contar = (s: string, sub: string): number => s.split(sub).length - 1;
   ok('accounting: sin ningun role.includes( remanente', !src.includes('role.includes('));
 }
 
-// ─────────────────── 2. bi/page.tsx ───────────────────
+// ─────────────────── 2. la vista de Inteligencia de Negocios ───────────────────
+//
+//  RE-ANCLADO EN EL LOTE 208. Esto leia `app/dashboard/bi/page.tsx`, y ese fichero pasa a
+//  ser una envoltura de tres lineas: el cuerpo --y con el, el guardia de rol-- se movio a
+//  `components/bi/vista-inteligencia-negocio.tsx` para poder ensenarse tambien como
+//  pestaña del inicio. No falta nada: la PROPIEDAD que este banco vigila --que quien
+//  decide es `esAdminOSistemas` y no un `role.includes(`-- sigue cumpliendose, solo que
+//  en otro fichero. Es la leccion del lote 100: mover o retirar algo obliga a correr
+//  TODOS los bancos, no solo el del lote. Este lo cazo el barrido completo.
 {
-  const src = crudo('src/app/dashboard/bi/page.tsx');
+  const src = crudo('src/components/bi/vista-inteligencia-negocio.tsx');
   ok('bi: importa esAdminOSistemas de rolMatch', src.includes("import { esAdminOSistemas } from '@/utils/rolMatch';"));
   ok('bi: el guardia usa esAdminOSistemas', src.includes('const isAuth = esAdminOSistemas(role);'));
   ok('bi: sin ningun role.includes( remanente', !src.includes('role.includes('));
+  //  Y LA ENVOLTURA NO SE SALTA EL GUARDIA: si la ruta dejara de pintar la vista, el
+  //  guardia seguiria escrito pero no correria por ese camino.
+  ok('bi: la ruta sigue pintando la vista que lleva el guardia',
+    crudo('src/app/dashboard/bi/page.tsx').includes('<VistaInteligenciaNegocio />'));
 }
 
 // ─────────────────── 3. ClientLayout.tsx ───────────────────

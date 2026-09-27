@@ -1,10 +1,19 @@
 import { RouteMapping } from '@/types/rbac';
 
+//  LOTE 208: `/dashboard/bi` y `/dashboard/proposals` dejan de ser ELEMENTOS DE MENU
+//  (`isMenuItem: false`), a peticion del dueño: se ven ahora como pestañas del inicio.
+//
+//  LAS FILAS NO SE BORRAN, Y ESO ES DELIBERADO. Cada fila de `route_mappings` no solo
+//  pone un enlace en el menu: lleva el `module` y la `action` con los que
+//  `canAccessRoute` decide QUIEN puede entrar en esa ruta. Sin fila, la ruta se queda sin
+//  permiso asignado. Ademas la tabla no tiene `company_id`, asi que un borrado afectaria
+//  a las SEIS empresas a la vez -- es exactamente el error que el lote 190 estuvo a punto
+//  de cometer con `antiguedad-saldos`.
 export const DEFAULT_ROUTE_MAPPINGS: RouteMapping[] = [
   // 1. Principal
   { id: '1', routePattern: '/dashboard', module: 'caja', action: 'read', isMenuItem: true, displayName: 'Inicio', groupName: 'Principal', iconName: 'LayoutDashboard', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
-  { id: '35', routePattern: '/dashboard/bi%', module: 'administracion', action: 'read', isMenuItem: true, displayName: 'Inteligencia de Negocios', groupName: 'Principal', iconName: 'PieChart', orderIndex: 20, createdAt: new Date(), updatedAt: new Date() },
-  { id: '35b', routePattern: '/dashboard/proposals%', module: 'administracion', action: 'read', isMenuItem: true, displayName: 'Agente Empresarial (IA)', groupName: 'Principal', iconName: 'BrainCircuit', orderIndex: 25, createdAt: new Date(), updatedAt: new Date() },
+  { id: '35', routePattern: '/dashboard/bi%', module: 'administracion', action: 'read', isMenuItem: false, displayName: 'Inteligencia de Negocios', groupName: 'Principal', iconName: 'PieChart', orderIndex: 20, createdAt: new Date(), updatedAt: new Date() },
+  { id: '35b', routePattern: '/dashboard/proposals%', module: 'administracion', action: 'read', isMenuItem: false, displayName: 'Agente Empresarial (IA)', groupName: 'Principal', iconName: 'BrainCircuit', orderIndex: 25, createdAt: new Date(), updatedAt: new Date() },
   
   // 2. Contactos
   { id: '2', routePattern: '/dashboard/customers%', module: 'clientes', action: 'read', isMenuItem: true, displayName: 'Clientes', groupName: 'Contactos', iconName: 'Users', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },

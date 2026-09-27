@@ -47,7 +47,12 @@ const codigo = (f: string) => sinComentarios(fs.readFileSync(f, 'utf8').replace(
 
 const MOVS = 'src/app/dashboard/inventory/movements/page.tsx';
 const COMPRAS = 'src/app/dashboard/purchases/page.tsx';
-const BI = 'src/app/dashboard/bi/page.tsx';
+//  RE-APUNTADO EN EL LOTE 208: el cuerpo de Inteligencia de Negocios --y con el sus dos
+//  desplegables-- se movio a un componente para poder ensenarse tambien como pestaña del
+//  inicio; la ruta quedo como envoltura de tres lineas. La propiedad que se vigila no
+//  cambia: los dos piden con `limit`, que es lo que su ruta lee. Lo cazo el barrido
+//  completo, que es para lo que esta (leccion del lote 100).
+const BI = 'src/components/bi/vista-inteligencia-negocio.tsx';
 const AJUSTE = 'src/app/dashboard/inventory/adjustments/page.tsx';
 const API_PROD = 'src/app/api/v1/products/route.ts';
 

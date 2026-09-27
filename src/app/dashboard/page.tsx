@@ -2,7 +2,7 @@
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useRbac } from '@/components/providers/rbacContext';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
@@ -16,6 +16,22 @@ import { BorderRotate } from '@/components/ui/animated-gradient-border';
 import { SearchBar } from '@/components/ui/search-bar';
 import dynamic from 'next/dynamic';
 import { formatDateDisplay, formatTimeDisplay } from '@/utils/fechasLocales';
+import { pestanasVisibles, pestanaActiva } from '@/utils/pestanasDelInicio';
+
+//  LOTE 208: las dos pantallas que salieron del menu lateral, ahora pestañas de aqui.
+//
+//  CARGA PEREZOSA Y SIN SSR, como las graficas de abajo y por el mismo motivo: la vista de
+//  BI arrastra recharts, que es pesado y no se puede dibujar en el servidor. Sin esto,
+//  quien entra al inicio -- que es casi siempre la pestaña Resumen -- pagaria la descarga
+//  de dos pantallas que no esta mirando.
+const VistaInteligenciaNegocio = dynamic(() => import('@/components/bi/vista-inteligencia-negocio'), {
+  ssr: false,
+  loading: () => <div className="h-96 bg-slate-100 rounded-xl animate-pulse" />,
+});
+const VistaAgenteEmpresarial = dynamic(() => import('@/components/agente/vista-agente-empresarial'), {
+  ssr: false,
+  loading: () => <div className="h-96 bg-slate-100 rounded-xl animate-pulse" />,
+});
 
 const DashboardCharts = dynamic(() => import('./DashboardCharts'), {
   ssr: false,
@@ -97,7 +113,23 @@ const statusBadge = (status: string) => {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, loading: rbacLoading } = useRbac();
+  const { user, loading: rbacLoading, canAccessRoute } = useRbac();
+
+  //  LA PESTAÑA VIVE EN LA URL (`?tab=`), como en compras (`?tab=cheques`). Asi se puede
+  //  enlazar, se puede volver atras y sobrevive a una recarga; en el estado del
+  //  componente se perderia en cuanto alguien refresque.
+  const searchParams = useSearchParams();
+  //  LA VISIBILIDAD SALE DE `canAccessRoute`, que es la MISMA funcion que decide si esa
+  //  ruta se puede abrir escribiendola a mano. Copiar aqui la condicion ("solo
+  //  administracion y sistemas") haria que el dia que cambie el permiso, la pestaña y la
+  //  ruta dijeran cosas distintas: una pestaña que al pulsarla no ensena nada, o al reves.
+  const visibles = pestanasVisibles(canAccessRoute);
+  const activa = pestanaActiva(searchParams.get('tab'), visibles);
+  const irAPestana = (clave: string) => {
+    //  `replace` y no `push`: las pestañas de una misma pantalla no son sitios distintos,
+    //  y con `push` el boton de atras obligaria a deshacerlas una por una.
+    router.replace(clave === visibles[0]?.clave ? '/dashboard' : `/dashboard?tab=${clave}`);
+  };
   const [loading, setLoading] = useState(true);
   // P2-37: el fallo de carga NO se limpia solo. El aviso va arriba del todo
   // porque esta pantalla no es una lista: son tarjetas y graficas, y lo que
@@ -243,7 +275,9 @@ export default function DashboardPage() {
   const totalPages = Math.ceil(filteredInvoices.length / itemsPerPage) || 1;
   const displayedInvoices = filteredInvoices.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  if (loading) {
+  //  EL ESQUELETO ES DEL RESUMEN, no de la pantalla entera. Las otras pestañas no usan
+  //  estos datos, asi que esperarlos las dejaria en blanco por algo que no van a ensenar.
+  if (loading && activa === 'resumen') {
     return (
       <div className="space-y-10 pb-8">
         <header className="flex flex-col gap-2">
@@ -270,7 +304,54 @@ export default function DashboardPage() {
           <h1 className="font-display-lg text-3xl md:text-4xl text-primary tracking-tight font-extrabold">Dashboard Principal</h1>
           <p className="font-body-lg text-slate-500/80 mt-1">Resumen ejecutivo y operaciones pendientes para hoy.</p>
         </div>
+
+        {/* ── Pestañas, arriba a la derecha (pedido del dueño) ───────────────
+             LOTE 208: Inteligencia de Negocio y el Agente Empresarial salen del menú
+             lateral y se ven desde aquí. El menú tiene cincuenta elementos —medidos en
+             el lote 189— y estas dos son pantallas de CONSULTA: se miran desde el
+             inicio, no son sitios donde se registre nada.
+
+             Van DENTRO de la cabecera, que ya reparte con `justify-between`, así que el
+             grupo queda a la derecha del título sin tocar el resto de la pantalla.
+
+             La barra solo sale si hay algo más que el Resumen: para quien no puede ver
+             ninguna de las dos, un selector con una sola opción no dice nada y ocupa. */}
+        {visibles.length > 1 && (
+          <nav
+            aria-label="Secciones del inicio"
+            className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white/70 p-1 shrink-0 self-start"
+          >
+            {visibles.map((p) => (
+              <button
+                key={p.clave}
+                type="button"
+                onClick={() => irAPestana(p.clave)}
+                //  `aria-current` además del color: quien usa un lector de pantalla no ve
+                //  el fondo, y el color por sí solo tampoco lo distingue todo el mundo.
+                aria-current={activa === p.clave ? 'page' : undefined}
+                className={clsx(
+                  'px-3 py-1.5 text-xs font-bold rounded-lg transition-colors cursor-pointer whitespace-nowrap',
+                  activa === p.clave
+                    ? 'bg-[#003366] text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100',
+                )}
+              >
+                {p.titulo}
+              </button>
+            ))}
+          </nav>
+        )}
       </header>
+
+      {/*  LAS OTRAS DOS PESTAÑAS. Se pasan `enPestana` para que no repitan su propio
+           título —ya lo dice la pestaña— pero conserven su botón de acción, que es
+           función y no adorno.  */}
+      {activa === 'bi' && <VistaInteligenciaNegocio enPestana />}
+      {activa === 'agente' && <VistaAgenteEmpresarial enPestana />}
+
+      {activa === 'resumen' && (
+        <>
+
 
       {/* El aviso va aqui, encima de todo: esta pantalla no es una lista sino
           tarjetas y graficas, y lo que hay que decir no es "no hay datos" sino
@@ -762,6 +843,8 @@ export default function DashboardPage() {
         )}
       </AnimatePresence>
 
+        </>
+      )}
     </div>
   );
 }
