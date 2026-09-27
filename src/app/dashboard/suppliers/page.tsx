@@ -8,6 +8,7 @@ import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/components/ui/search-bar';
+import { BotonBuscarDgii } from '@/components/ui/boton-buscar-dgii';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -476,12 +477,12 @@ export default function SuppliersPage() {
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
               className="relative w-full max-w-3xl bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col z-10"
             >
-              <div className="flex justify-between items-center p-4 border-b border-slate-200 bg-white">
-                <h2 className="text-base font-bold text-slate-800 font-display flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-slate-500" />
+              <div className="flex justify-between items-center p-4 border-b border-[#003366] bg-[#001733]">
+                <h2 className="text-lg font-bold text-white font-display flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-[#c5a059]" />
                   {editId ? 'Editar Suplidor' : 'Registrar Nuevo Suplidor'}
                 </h2>
-                <button onClick={() => setShowModal(false)} className="text-slate-500 hover:text-slate-700 cursor-pointer">
+                <button onClick={() => setShowModal(false)} className="text-white/70 hover:text-white cursor-pointer">
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -495,7 +496,7 @@ export default function SuppliersPage() {
                         <span className="text-slate-400 font-normal normal-case tracking-normal">(Opcional)</span>
                       </label>
                       {rncVerified && (
-                        <span className="text-emerald-600 text-[10px] uppercase font-bold flex items-center gap-1">
+                        <span className="text-emerald-600 text-xs font-bold flex items-center gap-1">
                           <ShieldCheck className="h-3.5 w-3.5" /> Validado DGII
                         </span>
                       )}
@@ -511,20 +512,16 @@ export default function SuppliersPage() {
                         className={`flex-1 h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-mono ${rncVerified ? 'border-emerald-500 focus:border-emerald-500 focus:ring-emerald-500/20' : ''}`}
                         placeholder="Ej. 130123456"
                       />
-                      <button
-                        type="button"
+                      <BotonBuscarDgii
                         onClick={handleSearchDGII}
-                        disabled={searchingDGII || !formData.rnc}
-                        className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                      >
-                        {searchingDGII ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-                        Buscar DGII
-                      </button>
+                        buscando={searchingDGII}
+                        disabled={!formData.rnc}
+                      />
                     </div>
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre o Razón Social <span className="text-rose-500">*</span></label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre o Razón Social <span className="text-[#c5a059]">*</span></label>
                     <input
                       type="text"
                       required
