@@ -7,6 +7,61 @@ import DateRangePicker from '@/components/ui/date-range-picker';
 import { CustomerAutocomplete } from '@/components/ui/customer-autocomplete';
 import { SupplierAutocomplete } from '@/components/ui/supplier-autocomplete';
 
+// Las tarjetas viven FUERA de `ReportsPage` (lote 212). Definidas dentro, cada render
+// creaba un tipo de componente nuevo y React desmontaba y volvia a montar todas las
+// tarjetas en cada cambio de fecha; el linter lo marca como error y paraba el CI.
+const PdfCard = ({ color, icon: Icon, title, description, type, generando, onGenerar }: {
+  color: string; icon: any; title: string; description: string; type: string;
+  /** El reporte que se esta generando ahora, o `null`: mientras haya uno, ninguno se pide. */
+  generando: string | null;
+  onGenerar: (type: string) => void;
+}) => (
+  <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full">
+    <div className="w-full h-1 flex-shrink-0" style={{ backgroundColor: color }} />
+    <div className="flex flex-col flex-1 gap-2 px-4 pt-3 pb-4">
+      <div className="flex items-center gap-2">
+        <Icon className="h-4 w-4 flex-shrink-0" style={{ color }} />
+        <p className="text-sm font-bold text-slate-800 leading-tight">{title}</p>
+      </div>
+      <p className="text-[10px] text-slate-400 leading-snug flex-1">{description}</p>
+      <div className="flex justify-end pt-1">
+        <button
+          onClick={() => onGenerar(type)}
+          disabled={generando !== null}
+          className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+        >
+          {generando === type ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+          PDF
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+const LinkCard = ({ color, icon: Icon, title, description, href }: {
+  color: string; icon: any; title: string; description: string; href: string;
+}) => (
+  <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full">
+    <div className="w-full h-1 flex-shrink-0" style={{ backgroundColor: color }} />
+    <div className="flex flex-col flex-1 gap-2 px-4 pt-3 pb-4">
+      <div className="flex items-center gap-2">
+        <Icon className="h-4 w-4 flex-shrink-0" style={{ color }} />
+        <p className="text-sm font-bold text-slate-800 leading-tight">{title}</p>
+      </div>
+      <p className="text-[10px] text-slate-400 leading-snug flex-1">{description}</p>
+      <div className="flex justify-end pt-1">
+        <a
+          href={href}
+          className="h-7 px-3 text-[10px] font-bold rounded-lg text-white transition-colors flex items-center gap-1"
+          style={{ backgroundColor: color }}
+        >
+          <ExternalLink className="w-3 h-3" /> Abrir
+        </a>
+      </div>
+    </div>
+  </div>
+);
+
 export default function ReportsPage() {
   const [dates, setDates] = useState({
     start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
@@ -70,55 +125,6 @@ export default function ReportsPage() {
     }
   };
 
-  const PdfCard = ({ color, icon: Icon, title, description, type }: {
-    color: string; icon: any; title: string; description: string; type: string;
-  }) => (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full">
-      <div className="w-full h-1 flex-shrink-0" style={{ backgroundColor: color }} />
-      <div className="flex flex-col flex-1 gap-2 px-4 pt-3 pb-4">
-        <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4 flex-shrink-0" style={{ color }} />
-          <p className="text-sm font-bold text-slate-800 leading-tight">{title}</p>
-        </div>
-        <p className="text-[10px] text-slate-400 leading-snug flex-1">{description}</p>
-        <div className="flex justify-end pt-1">
-          <button
-            onClick={() => handleGeneratePdf(type)}
-            disabled={loadingType !== null}
-            className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-          >
-            {loadingType === type ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-            PDF
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const LinkCard = ({ color, icon: Icon, title, description, href }: {
-    color: string; icon: any; title: string; description: string; href: string;
-  }) => (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition overflow-hidden flex flex-col h-full">
-      <div className="w-full h-1 flex-shrink-0" style={{ backgroundColor: color }} />
-      <div className="flex flex-col flex-1 gap-2 px-4 pt-3 pb-4">
-        <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4 flex-shrink-0" style={{ color }} />
-          <p className="text-sm font-bold text-slate-800 leading-tight">{title}</p>
-        </div>
-        <p className="text-[10px] text-slate-400 leading-snug flex-1">{description}</p>
-        <div className="flex justify-end pt-1">
-          <a
-            href={href}
-            className="h-7 px-3 text-[10px] font-bold rounded-lg text-white transition-colors flex items-center gap-1"
-            style={{ backgroundColor: color }}
-          >
-            <ExternalLink className="w-3 h-3" /> Abrir
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-4 font-sans">
       <div className="flex items-center gap-2">
@@ -155,9 +161,9 @@ export default function ReportsPage() {
         <div>
           <h2 className="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2"><TrendingUp className="w-5 h-5 text-[#003366]"/> Financieros</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            <PdfCard color="#003366" icon={FileText} title="Estado de Resultados (P&L)" description="Ingresos, Costos de Venta y Gastos Operativos. Calcula la Utilidad Bruta y Neta del periodo." type="income_statement" />
-            <PdfCard color="#C5A059" icon={Building} title="Balance General" description="Situacion financiera: Activos, Pasivos y Capital a la fecha de corte seleccionada." type="balance_sheet" />
-            <PdfCard color="#7c3aed" icon={TrendingUp} title="Compras vs Ventas" description="Reporte comparativo de utilidad bruta: ingresos por ventas menos compras y gastos del periodo." type="sales_vs_purchases" />
+            <PdfCard color="#003366" icon={FileText} title="Estado de Resultados (P&L)" description="Ingresos, Costos de Venta y Gastos Operativos. Calcula la Utilidad Bruta y Neta del periodo." type="income_statement" generando={loadingType} onGenerar={handleGeneratePdf} />
+            <PdfCard color="#C5A059" icon={Building} title="Balance General" description="Situacion financiera: Activos, Pasivos y Capital a la fecha de corte seleccionada." type="balance_sheet" generando={loadingType} onGenerar={handleGeneratePdf} />
+            <PdfCard color="#7c3aed" icon={TrendingUp} title="Compras vs Ventas" description="Reporte comparativo de utilidad bruta: ingresos por ventas menos compras y gastos del periodo." type="sales_vs_purchases" generando={loadingType} onGenerar={handleGeneratePdf} />
           </div>
         </div>
 

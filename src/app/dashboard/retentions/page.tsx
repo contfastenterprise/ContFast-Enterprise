@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, ShieldAlert, Percent, Globe, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -78,7 +79,7 @@ export default function RetentionsPage() {
         <p className="text-slate-500 text-sm max-w-md">
           Necesitas permiso de lectura sobre <strong>Contabilidad</strong> para gestionar las retenciones fiscales.
         </p>
-        <a href="/dashboard" className="mt-6 text-sm font-semibold text-[#003366] hover:underline">← Volver al inicio</a>
+        <Link href="/dashboard" className="mt-6 text-sm font-semibold text-[#003366] hover:underline">← Volver al inicio</Link>
       </div>
     );
   }

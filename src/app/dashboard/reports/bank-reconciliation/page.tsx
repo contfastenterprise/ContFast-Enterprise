@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Landmark, ArrowLeft, Calendar, FileText, ChevronRight, CheckCircle2, AlertTriangle, HelpCircle, Loader2, Save, History, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
@@ -239,9 +240,9 @@ export default function BankReconciliationPage() {
     <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
       {/* Header Info Bar */}
       <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-between items-center shadow-inner">
-        <a href="/dashboard/reports" className="text-slate-100 hover:text-white text-xs font-bold hover:underline flex items-center gap-1">
+        <Link href="/dashboard/reports" className="text-slate-100 hover:text-white text-xs font-bold hover:underline flex items-center gap-1">
           <ArrowLeft className="h-3 w-3" /> Volver a Reportes
-        </a>
+        </Link>
         <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
           <Landmark className="h-3 w-3" /> Reportes Financieros
         </span>

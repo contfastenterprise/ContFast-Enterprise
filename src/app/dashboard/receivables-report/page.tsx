@@ -51,10 +51,6 @@ export default function ReceivablesReportPage() {
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
   const [printingCustomer, setPrintingCustomer] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, [selectedCustomer]);
-
   const fetchData = async () => {
     setLoading(true);
     setErrorCarga(null);
@@ -80,6 +76,12 @@ export default function ReceivablesReportPage() {
       setLoading(false);
     }
   };
+
+  // Despues de declarar `fetchData`, no antes: funcionaba igual (el efecto corre tras
+  // pintar), pero el linter lo marca como error y paraba el CI (lote 212).
+  useEffect(() => {
+    fetchData();
+  }, [selectedCustomer]);
 
   const handlePrint = async () => {
     setPrinting(true);
