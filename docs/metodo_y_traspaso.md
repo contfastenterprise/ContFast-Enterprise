@@ -132,6 +132,11 @@ Las trampas que han salido, todas reales, todas costaron un lote:
   `validator.ts` — se regeneran solos. `tsc` volvió a 0 sin tocar una línea de `src/`.
   El paso 0 de `verificar.ps1` solo mira `.next	ypesalidator.ts`, que es la versión
   antigua de esta misma trampa.
+- **Lo que se imprime hay que MIRARLO.** Un banco no ve dos etiquetas superpuestas, ni un
+  documento que hereda el fondo del visor, ni una gravedad mal rotulada: las tres son
+  HTML y SVG **perfectamente válidos**. Las cuatro correcciones de los lotes 205 y 207
+  salieron todas de dibujar el PDF, sacarle una foto y abrirla, ninguna de una
+  comprobación. Al tocar algo que se imprime: generarlo contra datos de verdad y verlo.
 - **La contraprueba se revierte con `git show HEAD:<fichero>`, no con una copia a
   mano.** En el lote 201 los respaldos del estado previo se pisaron con el posterior sin
   que nada avisara, y la contraprueba salió **TODO CORRECTO de balde** — el resultado más
@@ -578,6 +583,59 @@ Además, fuera de la tabla:
   **Datos**: `scratch/_to_delete/completar_cuentas_empresas.ts --aplicar` (lo
   lanza el dueño); desbloquea las cuatro empresas aunque aún no se despliegue,
   porque el código desplegado mira primero el enlace.
+- **Lote 207: hay DOS cosas llamadas `type` y el informe rotulaba mal la gravedad.** Lo
+  encontró un envío de PRUEBA de verdad —pedido por el dueño para ver el PDF— y después
+  **fotografiarlo**: los cinco avisos salían como «AVISO» en azul, incluida una factura
+  rechazada por la DGII.
+  `AvisoDelPanel.type` es la **clase** del aviso (`invoice_rejected`, `check_due`…); la
+  **columna** `notifications.type` guarda la severidad **ya derivada** —
+  `sincronizarAvisos` escribe `severidadDeAviso(a.type)`—. Quien arme el informe desde
+  las filas guardadas le pasa una severidad donde se espera una clase,
+  `severidadDeAviso('error')` no la reconoce y cae en `'info'`. **No falla, no avisa, y
+  no lo ve ningún banco**: solo miente en un papel que lee el contador.
+  El camino de producción era correcto —recibe las clases— pero leer de la tabla es lo
+  natural el día que se quiera un «reenviar», así que el hueco se cierra con el caso
+  delante: `severidadDelAviso` respeta lo que ya es una severidad y deriva lo demás, y la
+  usan los **tres** sitios que hablan de gravedad (asunto, cuerpo e informe) —si no, el
+  correo podría decir «1 grave» y el PDF rotular ese mismo aviso de otra forma—. **No se
+  toca `severidadDeAviso`**, que la comparten la campana y el orden de los avisos.
+- **Lote 208: Inteligencia de Negocio y el Agente Empresarial salen del menú lateral y se
+  ven como pestañas del inicio, arriba a la derecha.** Pedido del dueño (2026-09-26). El
+  menú tiene **cincuenta elementos** en nueve grupos (medido en el 189) y estas dos son
+  pantallas de **consulta**: se miran, no se registra nada en ellas.
+  **Lo que NO se hace, y es la decisión que más importa**: no se borra ninguna fila de
+  `route_mappings` ni se retira ninguna ruta. Solo se quita la ENTRADA DEL MENU
+  (`isMenuItem: false`). Cada fila lleva el `module` y la `action` con los que
+  `canAccessRoute` decide quién entra —sin fila, la ruta se queda **sin permiso**
+  **asignado**— y la tabla **no tiene `company_id`**, así que cualquier cambio alcanza a
+  las seis empresas. Es lo que el lote 190 estuvo a punto de hacer con
+  `antiguedad-saldos`. Las rutas siguen respondiendo: hay enlaces guardados.
+  **La regla vive fuera del componente** (`utils/pestanasDelInicio.ts`), por la lección
+  del 190: allí la regla se escribió dentro del sidebar y el banco acabó comprobando su
+  propia copia. Y **la visibilidad sale de `canAccessRoute`**, la misma función que
+  decide si la ruta se abre a mano: copiar la condición haría que el día que cambie el
+  permiso, la pestaña y la ruta dijeran cosas distintas.
+  **`?tab=bi` escrito a mano NO abre la pestaña a quien no puede verla** — sin esa
+  guarda sería un menú que solo esconde el enlace. **El Resumen no depende de ningún
+  permiso, a propósito**: si dependiera, alguien podría quedarse sin ninguna pestaña.
+  Las dos pantallas pasan a componentes y las rutas quedan como envoltura; dentro de la
+  pestaña **el título se calla pero el botón no** (las dos cabeceras llevan su acción
+  dentro), y no se redirige a `/dashboard` desde una pestaña que vive EN `/dashboard`.
+  **Datos aplicados**: 2 filas a `is_menu_item = false`, comprobado después que las 2
+  siguen con su `administracion:read`. Reversible.
+  Banco de 25 (8 ejecutando), contraprueba **23 FALLA sin supervivientes**, once
+  mutantes y once muertos. **Mera presencia** otra vez (`{false && visibles.length > 1`
+  sobrevivía: anclado al `{`), **`indexOf` por quinta vez** (cazaba el `<header>` del
+  esqueleto de carga, no el de verdad) y dos comprobaciones ciertas ya antes del lote,
+  que pasan a precondición.
+  **Y el barrido completo cazó dos bancos más** que el del lote no ve —`verificar_gating_ui`
+  (el guardia de rol se mudó de fichero) y `verificar_listas_completas` (el trinquete de
+  los parámetros sordos del 135)—: **mover algo obliga a correrlos TODOS**, lección del
+  lote 100. Ninguno señalaba una regresión.
+  **Trampa del entorno, anotada porque costó tres vueltas**: las sustituciones multilínea
+  sobre ficheros **CRLF** fallaron **en silencio** —`str.replace` no avisa cuando no
+  encuentra nada, así que el guion decía «hecho» sin haber cambiado una línea—. Toda
+  sustitución lleva ahora aserción.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
