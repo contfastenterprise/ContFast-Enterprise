@@ -2,6 +2,11 @@ packages:
   - 'packages/*'
 
 allowBuilds:
+  # Lote 213. pnpm 11 no ejecuta scripts de instalacion sin decidir, y en el CI lo
+  # trata como ERROR (ERR_PNPM_IGNORED_BUILDS). El de @sentry/cli busca primero el
+  # binario que ya trae su paquete de plataforma y solo descarga si falta: es el que
+  # sube los source maps a Sentry en el build (lote 153). Se permite.
+  "@sentry/cli": true
   esbuild: false
   msgpackr-extract: false
   puppeteer: false

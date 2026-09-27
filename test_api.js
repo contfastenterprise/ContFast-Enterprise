@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const http = require('http');
 
 http.get('http://localhost:3000/api/v1/reports/balances/customers?customerId=all', {

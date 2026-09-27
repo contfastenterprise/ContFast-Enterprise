@@ -636,6 +636,31 @@ Además, fuera de la tabla:
   sobre ficheros **CRLF** fallaron **en silencio** —`str.replace` no avisa cuando no
   encuentra nada, así que el guion decía «hecho» sin haber cambiado una línea—. Toda
   sustitución lleva ahora aserción.
+- **Lotes 211 y 212: el CI no había pasado NUNCA.** Salió al abrir el PR del lote 210:
+  **0 en verde de las 200 últimas ejecuciones** de "ContFast CI/CD Pipeline", desde que
+  se creó el 2026-06-25, `main` incluido. Se paraba en `pnpm install` y detrás había más:
+  **211** — pnpm 9 con un proyecto de pnpm 11 (los `overrides` viven en
+  `pnpm-workspace.yaml`, que pnpm 9 no lee), Node 20 cuando pnpm 11 exige ≥ 22.13, las
+  pruebas corrían `src/tests/payroll.test.ts` **que no existe** (ahora `pnpm test`, 245),
+  y `build` exige variables al **cargar** los módulos (JWT_SECRET, JWT_REFRESH_SECRET,
+  URL_SIGNATURE_SECRET, Supabase de la ruta del logo): van con valores de juguete a
+  nivel del job. Fuera `postgres` y `redis`, que no usaba ningún paso. **La lista de
+  variables se DERIVA del código** en `verificar_ci_verde.ts`: el día que alguien añada
+  una obligatoria, el banco falla antes que el CI. **212** — los 16 errores de lint que
+  quedaban detrás: `require()` en guiones CommonJS sin el `eslint-disable` que ya llevan
+  los demás, un efecto antes de su función, dos `<a href>` internos (recargan la
+  aplicación entera) a `<Link>`, dos tarjetas definidas dentro del render de
+  `reports/page.tsx` (React las remontaba en cada cambio) y un acumulador mutado en la
+  dona de riesgo. `_referencia/` sale del linter: git la ignora y el CI no la ve.
+  **La dona se DIBUJA en el banco** y se compara arco a arco con el algoritmo de antes,
+  como **invariante** (código 3), no como `ok()`: es cierto antes y después por
+  definición y regalaría un OK en la contraprueba.
+  **Trampa de PowerShell que costó un susto**: `$b` y `$B` son **la misma variable**. Al
+  medir `build` sin `.env`, la salida pisó la ruta del respaldo y el `.env` no volvió solo.
+  Se recuperó a mano; desde entonces los nombres no se reutilizan con otra caja.
+  **Y `verificar.ps1` se cuelga** al llegar a los bancos de integración si su salida va
+  redirigida a un fichero (`*>`): el PostgreSQL que arranca hereda el descriptor y
+  PowerShell espera a que se cierre. Sin redirigir no pasa.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
