@@ -110,9 +110,11 @@ async function main() {
     // ─────────────────────────────────────────────────────────────────────────
     console.log('\n1) El botón -- EJECUTADO\n');
     // ─────────────────────────────────────────────────────────────────────────
-    const React = await import('react');
-    const { renderToStaticMarkup } = await import('react-dom/server');
-    const M = await import('../src/components/ui/boton-buscar-dgii');
+    const [React, { renderToStaticMarkup }, M] = await Promise.all([
+      import('react'),
+      import('react-dom/server'),
+      import('../src/components/ui/boton-buscar-dgii'),
+    ]);
     const pinta = (p: Record<string, unknown>) =>
       renderToStaticMarkup(React.createElement(M.BotonBuscarDgii, { onClick: () => {}, ...p } as never));
 
