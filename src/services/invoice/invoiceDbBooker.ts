@@ -861,6 +861,8 @@ export class InvoiceDbBooker {
           // pisaban ese JSON con la respuesta de la consulta de estado, que no
           // lo lleva: sincronizar una factura borraba su codigo.
           securityCode: submission.securityHash || null,
+          //  Lote 220: `response_code` existia y nadie la escribia.
+          responseCode: submission.codigoHttp != null ? String(submission.codigoHttp) : null,
           retryCount: 0,
           modo: data.modo,
         });
@@ -907,6 +909,8 @@ export class InvoiceDbBooker {
             ? JSON.stringify(submission.msellerRequestPayload)
             : null,
           securityCode: submission.securityHash || null,
+          //  Lote 220: `response_code` existia y nadie la escribia.
+          responseCode: submission.codigoHttp != null ? String(submission.codigoHttp) : null,
           retryCount: 0,
           modo: data.modo,
         });

@@ -53,6 +53,7 @@ import { leerEstado } from './estadoEnvio';
 // La lista vivia aqui. Desde el lote 139 la comparte la consulta de estado:
 // ver el porque en `marcasRechazo.ts`.
 import { MARCAS_RECHAZO } from './marcasRechazo';
+import { causaDelCodigoHttp, esRechazoDeLaPeticion } from './causaDelFallo';
 
 export type Desenlace = 'rechazo' | 'desconocido';
 
@@ -151,8 +152,27 @@ export function leerDesenlace(mensaje: string | null | undefined, raw?: unknown)
  * Dice lo que se sabe y lo que no, y que va a pasar despues. Un "Error de red"
  * a secas deja a quien lo lee sin saber si el comprobante existe o no.
  */
-export function mensajeDesconocido(texto: string): string {
+export function mensajeDesconocido(texto: string, codigoHttp?: number | null): string {
   const detalle = texto ? ` (${texto})` : '';
+
+  //  LOTE 220: con el codigo HTTP, la causa se dice en el acto. Solo el TEXTO:
+  //  la factura sigue en `submitted` y no se reenvia -- ver `causaDelFallo.ts`.
+  const causa = causaDelCodigoHttp(codigoHttp);
+  if (causa && esRechazoDeLaPeticion(codigoHttp)) {
+    return (
+      `No enviado: ${causa}${detalle}. ` +
+      'Según mSeller la petición no se procesó, así que el comprobante no debería constar en la DGII; ' +
+      'se confirmará al consultar su estado. No se reenvía solo.'
+    );
+  }
+  if (causa) {
+    return (
+      `Enviado, pero ${causa}${detalle}. ` +
+      'El comprobante PUDO haber llegado a la DGII: no se reenvia para no duplicarlo. ' +
+      'El estado se consulta automaticamente y se actualizara solo.'
+    );
+  }
+
   return (
     'Enviado, pero la respuesta no llego completa' + detalle + '. ' +
     'El comprobante PUDO haber llegado a la DGII: no se reenvia para no duplicarlo. ' +

@@ -370,6 +370,7 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
         .set({
           status: 'failed',
           responseMessage: result.message,
+          responseCode: result.codigoHttp != null ? String(result.codigoHttp) : null,
           responsePayload: JSON.stringify(result.rawResponse),
           updatedAt: new Date(),
         })
@@ -402,7 +403,9 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
       .update(dgiiSubmissions)
       .set({
         status: 'submitted',
-        responseMessage: mensajeDesconocido(result.message || ''),
+        responseMessage: mensajeDesconocido(result.message || '', result.codigoHttp),
+        //  Lote 220: el codigo, en su columna. Ver `causaDelFallo.ts`.
+        responseCode: result.codigoHttp != null ? String(result.codigoHttp) : null,
         responsePayload: JSON.stringify(result.rawResponse),
         updatedAt: new Date(),
       })
@@ -412,7 +415,7 @@ export async function processDgiiSubmissionJob(data: { companyId: string; invoic
       .update(invoices)
       .set({
         status: 'submitted',
-        dgiiMessage: mensajeDesconocido(result.message || ''),
+        dgiiMessage: mensajeDesconocido(result.message || '', result.codigoHttp),
         updatedAt: new Date(),
       })
       .where(and(eq(invoices.id, invoiceId), eq(invoices.companyId, companyId)));
