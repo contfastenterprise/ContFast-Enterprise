@@ -741,6 +741,38 @@ Además, fuera de la tabla:
   del PR #5 (creada antes del 216) al atender un comentario de revisión, y el `next dev`
   del dueño sirve lo que hay en la carpeta. **Tras trabajar en otra rama, la carpeta
   vuelve a `main`.**
+- **Lote 218: la factura recién emitida ya no dice "Pendiente de confirmación de la
+  DGII".** Decisión del dueño (2026-09-28): *"si mSeller trae la aprobación o el rechazo
+  de la DGII, no veo la lógica"*. Sí la trae, pero **después**: la documentación de
+  mSeller (`docs.ecf.mseller.app/docs/integration/documents`, "Respuesta exitosa") dice
+  que `securityCode` y `qr_url` llegan **al instante, para la factura impresa**, y que el
+  veredicto se consulta **unos segundos después** — lo mismo que se midió en el 180
+  (mediana 20 s). Como el papel sale en el clic, la leyenda era verdad, pero se leía como
+  un problema en un documento que se entrega al cliente y no la pide la representación
+  impresa. Ahora, **con timbre y sin veredicto, el papel no lleva leyenda de estado**:
+  código, fecha de firma y QR, nada más (`timbreDelComprobante.ts` devuelve título y
+  detalle vacíos, y la plantilla no pinta la línea).
+  **Lo que no cambia**: "Firma Digital Válida" solo con `accepted`; "RECHAZADO POR LA
+  DGII" en un rechazado o una baja; y un comprobante **sin timbre** (envío fallido) sigue
+  diciendo que está pendiente — ahí el papel no tiene nada que lo respalde. El aviso de
+  la pantalla cuando la DGII rechaza **después** de imprimir sigue en su sitio, y es lo
+  que hace aceptable callar. Tampoco cambia el texto de estado de la **pantalla**
+  (`estadoEnvio.ts`, "Enviado… Pendiente de confirmación"): es para quien opera, no
+  para el cliente.
+  Banco `verificar_sin_leyenda_pendiente.ts`, que **dibuja** la factura en los tres
+  formatos (carta, 80 y 58 mm): 12 comprobaciones, contraprueba 12 FALLA sin
+  supervivientes, siete mutantes y siete muertos. Lo cierto antes y después (aceptada,
+  rechazada, sin timbre, código y QR) va como **invariante** —código 3—, no como `ok()`.
+  Un defecto que solo se ve dibujando: con el título vacío, la plantilla habría dejado
+  un `<strong></strong><br>` y una línea en blanco encima del código. El 180 queda con
+  una comprobación **invertida, no borrada** (`verificar_timbre_inmediato.ts`).
+  **Corrección a la entrada del 184, leyendo el código**: al emitir **no** se sube
+  ningún PDF salvo que mSeller conteste ya `accepted` (`invoiceFileGenerator.ts`,
+  `if (submission.finalStatus !== 'accepted') return`). La copia guardada
+  (`invoices/{companyId}/{ncf}.pdf`, Supabase Storage) la hace `correoFactura.ts` cuando
+  una consulta encuentra la aceptación, tenga el cliente correo o no, y sale siempre con
+  "Firma Digital Válida". Lo que se imprime en el clic va al bucket de temporales (una
+  hora). Así que la conclusión del 184 se mantiene, pero no por el motivo que daba.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -1930,5 +1962,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 217 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 218 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

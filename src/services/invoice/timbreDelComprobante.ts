@@ -93,9 +93,9 @@ export type ClaseDeRotulo = 'valida' | 'pendiente' | 'rechazado';
 
 export interface RotuloDelTimbre {
   clase: ClaseDeRotulo;
-  /** El titular, en negrita en el papel. */
+  /** El titular, en negrita en el papel. Vacio = no se pinta la linea. */
   titulo: string;
-  /** La linea explicativa de debajo. */
+  /** La linea explicativa de debajo. Vacio = no se pinta. */
   detalle: string;
   /** Si se enseñan el codigo de seguridad y la fecha de firma. */
   conCodigo: boolean;
@@ -132,18 +132,32 @@ export function rotuloDelTimbre(inv: DatosDelTimbre): RotuloDelTimbre {
   }
 
   // Timbre sin veredicto: el caso NORMAL de una factura recien emitida. El
-  // papel sale con su timbre y su codigo, y dice que falta la confirmacion.
+  // papel sale con su timbre y su codigo, y SIN LEYENDA de estado.
+  //
+  // LOTE 218 (decision del dueño, 2026-09-28): hasta aqui decia "Pendiente de
+  // confirmacion de la DGII". Era verdad, pero se leia como un problema en un
+  // papel que se le entrega al cliente, y no es lo que pide la representacion
+  // impresa: la documentacion de mSeller dice que `securityCode` y `qr_url`
+  // llegan "al instante" PARA LA FACTURA IMPRESA, y que el veredicto se
+  // consulta "unos segundos despues". Lo que el papel necesita (codigo, fecha
+  // de firma, QR) ya esta; lo que falta es el veredicto, y eso no se rotula.
+  //
+  // Callar NO es afirmar: "Firma Digital Valida" sigue exigiendo `accepted`
+  // (rama de arriba), y un rechazo posterior se sigue avisando en la pantalla
+  // de facturas ("NO tiene validez fiscal: recuperalo"). Titulo y detalle
+  // VACIOS significan "no se pinta la linea"; la plantilla lo respeta.
   if (hayTimbre(inv)) {
     return {
       clase: 'pendiente',
-      titulo: 'Pendiente de confirmación de la DGII',
-      detalle: 'El timbre fiscal consta. La DGII aún no ha confirmado el comprobante.',
+      titulo: '',
+      detalle: '',
       conCodigo: true,
       conQr: true,
     };
   }
 
-  // Ni timbre ni veredicto: no hay nada que rotular.
+  // Ni timbre ni veredicto: el envio no llego a firmarse. Este SI lo dice,
+  // porque aqui el papel no tiene nada que lo respalde (lote 218 no lo toca).
   return {
     clase: 'pendiente',
     titulo: 'Pendiente de confirmación de la DGII',

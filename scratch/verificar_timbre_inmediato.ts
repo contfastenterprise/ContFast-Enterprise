@@ -105,7 +105,12 @@ async function main() {
     const rEmitida = rotuloDelTimbre(emitida);
     ok(ETIQUETAS[1], rEmitida.conQr === true && rEmitida.conCodigo === true);
     ok(ETIQUETAS[2], rEmitida.clase === 'pendiente' && !/[Vv]álida/.test(rEmitida.titulo), rEmitida.titulo);
-    ok('  y dice que el timbre consta, para que no parezca que falta', /timbre/i.test(rEmitida.detalle), rEmitida.detalle);
+    // LOTE 218: INVERTIDA, no borrada. Antes exigia que el papel dijera
+    // "Pendiente de confirmacion... El timbre fiscal consta". Decision del
+    // dueño (2026-09-28): sin veredicto el papel no lleva leyenda de estado.
+    // Lo que no cambia es la linea de arriba: nunca dice "valida".
+    ok('  y no lleva leyenda de estado (lote 218)',
+      rEmitida.titulo === '' && rEmitida.detalle === '', `${rEmitida.titulo} / ${rEmitida.detalle}`);
 
     const aceptada = { ...TIMBRE, estadoFiscal: 'accepted' };
     const rAceptada = rotuloDelTimbre(aceptada);

@@ -534,7 +534,7 @@ export class DocumentTemplates {
             <div style="display: flex; align-items: center; gap: 15px;">
               ${rotulo.conQr && qrBase64 ? `<img src="${qrBase64}" class="qr-img-repeated" alt="QR">` : ''}
               <div style="font-family: monospace; font-size: 8pt; line-height: 1.4; text-align: left; border-left: 1px solid #cbd5e1; padding-left: 15px; color: #333;">
-                ${rotulo.titulo}<br>
+                ${rotulo.titulo ? `${rotulo.titulo}<br>` : ''}
                 ${rotulo.conCodigo
                   ? `Código de seguridad: ${inv.securityCode || 'No consta'}<br>
                 Fecha Firma: ${formattedSigDate}`
@@ -807,7 +807,7 @@ export class DocumentTemplates {
         -->
         <div class="qr-section">
           <div class="qr-text">
-            <strong>${rotulo.titulo}</strong><br>
+            ${rotulo.titulo ? `<strong>${rotulo.titulo}</strong><br>` : ''}
             ${rotulo.conCodigo
               ? `<strong>Código de Seguridad:</strong> ${inv.securityCode || 'No consta'}<br>
             <strong>Fecha de Firma:</strong> ${formatDateTimeDisplay(inv.signatureDate)}<br>`
