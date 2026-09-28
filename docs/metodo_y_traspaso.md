@@ -805,6 +805,35 @@ Además, fuera de la tabla:
   hace falta bajarlo.
   **CLI de Vercel reinstalada** (60.1.3) a petición del dueño; hasta que alguien haga
   `vercel login`, no lee registros.
+- **Lote 220 (el B del plan de mSeller): el código HTTP del fallo se dice y se guarda.**
+  `sendDocument` devolvía el motivo y **tiraba el código**, así que un 401 (credenciales),
+  un 400 y un corte de red acababan en el mismo "Enviado, pero la respuesta no llegó
+  completa"; la causa salía, como mucho, a los 30 minutos ("mSeller no reconoce este
+  e-NCF"). **Medido antes (2026-09-28, solo lectura): de los 85 envíos de la historia,
+  NINGUNO falló por HTTP** — todos aceptados (78) o rechazados por la DGII (7) —, así que
+  el dueño aprobó una versión **reducida**: `causaDelFallo.ts` (puro) traduce la tabla de
+  mSeller (400 formato · 401 credenciales · 403 clave de API · 429 límite · 5xx
+  servidor), un 4xx dice "No enviado: …" con la prudencia de "según mSeller", un 5xx
+  mantiene la duda, y el código va a `dgii_submissions.response_code` (existía y **nadie**
+  la escribía). **No cambia el desenlace**: lo sigue decidiendo `leerDesenlace`, la
+  factura queda en `submitted` y no se reenvía sola. Sin código, el mensaje es el de
+  siempre, letra por letra (invariante del banco).
+  Banco `verificar_causa_del_fallo_http.ts`: **ejecuta** la tabla, el mensaje y
+  `sendDocument` contra un `fetch` sustituido (clave cifrada de juguete). 19
+  comprobaciones, contraprueba 19 FALLA, diez mutantes y diez muertos.
+  **Hallazgo al medir, para el contador — E310000000028 y E310000000029 de Latin
+  Doors**: el 25/09 la DGII rechazó la factura de RD$102.616,67 como 028 y luego como 029
+  con **1209 "número de secuencia ya utilizado"**; salió como E310000000030 (aceptada).
+  Consultado a mSeller (autorizado por el dueño): las dos se registraron en **producción
+  (eCF) el 30/06/2026 a las 16:51-16:52**. El dueño lo explica: las emitió **creyendo que
+  estaba en modo prueba**, fuera de esta aplicación. Lo que contestó la DGII entonces ya no
+  consta (nuestros reenvíos pisaron el registro de mSeller), pero **casi seguro las
+  aceptó**: un rechazado se corrige reenviando el mismo e-NCF (lote 140), y aquí el
+  reenvío dijo "ya utilizado". O sea: **probablemente hay dos e-31 válidas en la DGII,
+  del 30/06, que no están en los libros ni en el 607**. Qué hacer (notas de crédito, a
+  quién y por cuánto se emitieron) es del contador; el dato está en el portal de la DGII
+  o en el historial del panel de mSeller. `scratch/_to_delete/consultar_028_029.ts` es la
+  consulta (no envía nada).
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -1994,5 +2023,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 219 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 220 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

@@ -119,6 +119,12 @@ export interface DgiiSubmissionResult {
    * pueda guardarlo: del envio se guardaba la respuesta y no la peticion.
    */
   msellerRequestPayload: unknown;
+  /**
+   * Lote 220: el codigo HTTP con que mSeller rechazo el envio, si lo rechazo.
+   * `null` cuando contesto bien o no hubo respuesta. Va a
+   * `dgii_submissions.response_code`, que existia y nadie escribia.
+   */
+  codigoHttp: number | null;
 }
 
 export class EcfRejectedError extends Error {

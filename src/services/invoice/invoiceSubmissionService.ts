@@ -35,6 +35,8 @@ export class InvoiceSubmissionService {
     //  `msellerPayload` se arma dentro de un bloque anidado y no llega al
     //  return: el mismo motivo por el que `msellerResponsePayload` vive aqui.
     let msellerRequestPayload: unknown = null;
+    //  Lote 220: el codigo HTTP con que mSeller rechazo el envio, si lo hizo.
+    let codigoHttp: number | null = null;
 
     // El entorno depende del MODO de la emision. La copia local que habia aqui
     // era la unica de las cuatro que lo miraba, pero perdia el caso de
@@ -184,6 +186,7 @@ export class InvoiceSubmissionService {
           // desconocido, y un documento que salio con desenlace desconocido es
           // `submitted`: pudo llegar, y `sincronizarPendientes` lo resuelve.
           const errMsg = msellerRes.message || '';
+          codigoHttp = msellerRes.codigoHttp ?? null;
           const lectura = leerDesenlace(errMsg, msellerRes.rawResponse);
 
           if (lectura.desenlace === 'rechazo') {
@@ -196,7 +199,7 @@ export class InvoiceSubmissionService {
             ncf, error: errMsg,
           });
           finalStatus = 'submitted';
-          dgiiMessage = mensajeDesconocido(errMsg);
+          dgiiMessage = mensajeDesconocido(errMsg, codigoHttp);
           msellerResponsePayload = msellerRes.rawResponse ?? null;
         }
       } catch (err: unknown) {
@@ -231,6 +234,7 @@ export class InvoiceSubmissionService {
       finalStatus,
       msellerResponsePayload,
       msellerRequestPayload,
+      codigoHttp,
     };
   }
 }

@@ -92,6 +92,8 @@ export interface MSellerSendResponse {
   qrCode?: string;
   message?: string;
   rawResponse?: unknown;
+  /** El codigo HTTP de la respuesta, cuando la hubo y no fue 2xx (lote 220). */
+  codigoHttp?: number;
 }
 
 export interface MSellerStatusResponse {
@@ -277,6 +279,9 @@ export class MSellerClient {
           success: false,
           message: detalle || `Error ${response.status} de mSeller`,
           rawResponse: raw,
+          //  Lote 220: el codigo se DEVUELVE. Se tiraba, y sin el un 401 y un
+          //  corte de red se veian igual. Ver `causaDelFallo.ts`.
+          codigoHttp: response.status,
         };
       }
 
