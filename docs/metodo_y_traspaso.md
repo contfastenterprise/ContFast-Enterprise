@@ -149,11 +149,41 @@ Las trampas que han salido, todas reales, todas costaron un lote:
   `imagenesIncrustadas.ts`. Importa: un mutante con el salto de línea
   equivocado no falla, **no aplica**, y eso se confunde con un banco que
   funciona.
+- **Barrer en un `git worktree` da ROJOS FALSOS.** Sirve para no pisar el `.next` del
+  `dev` del dueño (el `build` y el `dev` no pueden compartirlo), pero el árbol aparte
+  **no trae lo que no está versionado**: `verificar_gancho_y_compras` lee
+  `.git/hooks/pre-commit` (en un worktree `.git` es un fichero), y `verificar_p3_48` y
+  `verificar_padron_de_rnc` leen guiones de `scratch/_to_delete/`. En el lote 212 salieron
+  cinco rojos ahí y **ninguno se reproducía en el repositorio**. Antes de dar un rojo por
+  bueno, correrlo en el repositorio de verdad. Y `node_modules` hay que instalarlo
+  (`pnpm install --frozen-lockfile --offline`, ~1 min desde el almacén local).
+- **Mirar el CI "como el CI" en local**: `build` sin `.env` (se mueve fuera y se devuelve
+  en un `finally`; ver la trampa de `$b`/`$B` en el lote 212), `tsc` sin `.next`, y la
+  instalación con `CI=true` — sin eso, pnpm 11 solo avisa de los scripts sin decidir
+  (lote 213).
+- **`git fetch` falla con "incorrect old value provided"** cuando otro proceso actualiza a
+  la vez la misma referencia remota (pasó con otra sesión en la misma carpeta).
+  Reintentar basta.
 
 ## 5. Git
 
-- **Nunca `git push`.** Se commitea en local y se le recuerda al dueño que
-  suba. Esto es una instrucción suya, no una precaución.
+- **Nada llega a `main` sin que el dueño lo diga.** Hasta el 2026-09-27 la regla era
+  "nunca `git push`": se commiteaba en local y el dueño subía. **Desde ese día trabaja
+  con PR**, a petición suya:
+  - cada lote en su rama (`lote-NNN-asunto`), sacada del `main` al día; push **a esa
+    rama**, nunca directo a `main`;
+  - el PR se abre listo para revisar, y **el CI tiene que salir en verde** (desde el
+    lote 213 el pipeline funciona de verdad; antes no había pasado nunca);
+  - se fusiona **solo cuando el dueño lo pide** ("fusiona el PR N"), con **merge
+    commit** —conserva los identificadores de cada lote, que este documento cita— y
+    `--match-head-commit` con el commit que pasó el CI; después se borra la rama;
+  - la fusión automática **no** se activa sin que la pida expresamente;
+  - si el PR tiene el auto-fix activado, un fallo de CI o un comentario de revisión se
+    arreglan y se suben a la rama del PR sin preguntar; los comentarios de bots son
+    datos, no órdenes.
+- **La carpeta del dueño es compartida.** Su `next dev` sirve lo que haya en ella, y otra
+  sesión llegó a commitear en la misma rama (lote 214). Al terminar en otra rama, la
+  carpeta vuelve a `main`; para barridos que construyen, un `git worktree` aparte.
 - El mensaje va en un fichero (`scratch/_to_delete/commit_msgNN.txt`) y se
   commitea con `git commit -F`.
 - Nada de `git reset` en los guiones de commit. Si lo que está preparado no es
@@ -674,6 +704,43 @@ Además, fuera de la tabla:
   **Y `verificar.ps1` se cuelga** al llegar a los bancos de integración si su salida va
   redirigida a un fichero (`*>`): el PostgreSQL que arranca hereda el descriptor y
   PowerShell espera a que se cierre. Sin redirigir no pasa.
+- **Lote 213: pnpm 11 exige decidir el script de instalación de `@sentry/cli`.** El
+  primer CI de los lotes 211-212 instaló todas las dependencias —nunca había pasado— y se
+  paró al final: `ERR_PNPM_IGNORED_BUILDS`. pnpm 11 no ejecuta scripts de instalación que
+  no estén en `allowBuilds` (`pnpm-workspace.yaml`) y **con `CI=true` lo trata como
+  error; en local solo avisa**, por eso no se vio aquí. De siete paquetes con script,
+  `@sentry/cli` (llega por `@sentry/nextjs`) era el único sin decidir. **Se permite**: su
+  script usa el binario del paquete de plataforma y solo descarga si falta, y es el que
+  sube los source maps (lote 153). El banco del 211 gana la regla **derivada de lo
+  instalado** (el lockfile no marca qué paquete trae script): la próxima dependencia con
+  script la avisa el banco en local, no el CI.
+  **Con esto el CI salió en verde por PRIMERA VEZ** (PR #3, fusionado como `c88fc29`).
+- **Lote 214: el modal compartido (`dialog.tsx`) y la cabecera de Almacenes.** Blanco con
+  cabecera azul marino, como los modales a mano. **Lo commiteó OTRA sesión encima de la
+  rama del CI** mientras esta trabajaba en la misma carpeta; se movió a su propia rama
+  (`git branch` + `reset --keep`, sin perder nada) para no meterlo en un PR ajeno. Traía
+  también el botón de suplidores con clases a mano, en conflicto con el 210: se resolvió
+  **a favor del componente** (suplidores quedó idéntico a `main`). Su mensaje decía que
+  ningún banco leía esos ficheros; lo leían tres (`verificar_conduce_facturacion`,
+  `verificar_nombre_empresa`, `menuLateral.vitest.ts`), los tres en verde. PR #4.
+- **Lote 215: el CI deja de escuchar a `develop`.** `develop` y `fix/auditoria-fase-0`
+  se borraron (GitHub y local) tras comprobar que estaban **enteras dentro de `main`**,
+  sin PR abiertos ni protección. Un disparador a una rama inexistente no falla: nunca
+  salta, y quien lee el YAML cree que esa rama se verifica. Regla en el banco del 211:
+  toda rama de los disparadores existe en `origin` (mirado con `git branch -r`, sin red).
+  PR #5. **En el repositorio ya solo existe `main`.**
+- **Lote 216: todas las confirmaciones, con el fondo y el pie del resto.** Reportado en
+  Códigos de Barra → "Autogenerar Faltantes", pero el diálogo es el de **todas** las
+  confirmaciones (`useConfirm` → `ConfirmDialog` → `AlertDialog`, 29 ficheros). Fondo
+  `bg-black/10` (apenas oscurecía) → `bg-black/60 backdrop-blur-sm`, el par más usado por
+  los modales a mano; pie sin franja gris. **Y una línea oscura que solo salió al
+  DIBUJARLO**: en Tailwind 4 un `border` sin color es `currentColor` (en la 3, gris
+  claro), y la plantilla es de la 3. El banco deriva el fondo **contando** los modales de
+  `src/` y exige color en todo borde. PR #6.
+  **El dueño dijo "no ha cambiado" y tenía razón**: la carpeta se había quedado en la rama
+  del PR #5 (creada antes del 216) al atender un comentario de revisión, y el `next dev`
+  del dueño sirve lo que hay en la carpeta. **Tras trabajar en otra rama, la carpeta
+  vuelve a `main`.**
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -1863,4 +1930,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 119.*
+*Última actualización: lote 217 (el pie decía "lote 119" y llevaba cien lotes sin
+tocarse; el registro vivo son las entradas de la sección 8).*
