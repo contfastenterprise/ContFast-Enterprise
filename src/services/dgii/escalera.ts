@@ -51,3 +51,29 @@ export function huecoDelIntento(intento: number): number | null {
 export function alcanceTotalMs(): number {
   return ESCALERA_MS.reduce((a, b) => a + b, 0);
 }
+
+/**
+ * Cuanto se puede perseguir SIN COLA, dentro de la peticion que emitio.
+ *
+ * LOTE 219. Sin Redis, cada peldaño corre con `after()` en la misma funcion
+ * que emitio, y esa funcion muere al llegar al `maxDuration` de su ruta (300 s
+ * en las tres rutas que emiten). Un peldaño que no cabe no falla: se corta a
+ * medio esperar, sin una linea en el registro. Por eso no se programa.
+ *
+ * 250 s y no 300: cada peldaño ademas CONSULTA a mSeller (hasta `MS_CONSULTA`),
+ * y la suma de esperas tiene que dejarle sitio a esas consultas. Con 250 s
+ * caben los nueve primeros peldaños (240,5 s de esperas); el de 300 s, el
+ * ultimo, se queda para el barrido. Medido el 2026-09-28: el veredicto mas
+ * lento de PRODUCCION desde el 15/09 llego a los 119 s.
+ */
+export const PRESUPUESTO_SIN_COLA_MS = 250_000;
+
+/**
+ * ¿Cabe el intento numero `intento` dentro del presupuesto sin cola? Cuenta la
+ * espera ACUMULADA desde la emision, no solo la de este peldaño.
+ */
+export function cabeSinCola(intento: number): boolean {
+  if (huecoDelIntento(intento) == null) return false;
+  const acumulado = ESCALERA_MS.slice(0, intento + 1).reduce((a, b) => a + b, 0);
+  return acumulado <= PRESUPUESTO_SIN_COLA_MS;
+}

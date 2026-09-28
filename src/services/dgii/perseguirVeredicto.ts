@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { Logger } from '@/utils/logger';
 import { sincronizarPendientes } from './sincronizarPendientes';
 import type { Modo } from '@/repositories/dgiiSubmissionRepository';
-import { ESCALERA_MS, huecoDelIntento } from './escalera';
+import { ESCALERA_MS, huecoDelIntento, cabeSinCola } from './escalera';
 
 /**
  * Perseguir el veredicto de una factura recien emitida.
@@ -75,7 +75,13 @@ export async function encolarSiguienteIntento(
   //  La cola se importa aqui dentro y no arriba: `queue.ts` construye
   //  conexiones a Redis al cargarse, y este modulo lo usan caminos que no
   //  siempre quieren eso. Es el mismo patron que ya usa `invoiceDbBooker`.
-  const { addJob } = await import('@/infrastructure/queue');
+  const { addJob, estadoQueue } = await import('@/infrastructure/queue');
+
+  //  Sin cola, el peldaño vive dentro de la funcion que emitio y muere con su
+  //  `maxDuration` (lote 219). Uno que no cabe se deja para el barrido, y quien
+  //  llama lo anota ("se agoto la escalera"), en vez de cortarse en silencio.
+  if (!estadoQueue && !cabeSinCola(peticion.intento)) return null;
+
   await addJob(
     'dgii-estado',
     'perseguir-veredicto',

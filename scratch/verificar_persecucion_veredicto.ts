@@ -164,7 +164,13 @@ async function main(): Promise<void> {
   // ─────────────────────────────────────────────────────────────────────────
   ok('el camino sin Redis recibe el retraso',
      codigo(COLA).includes('data: JobPayloads[K],') && codigo(COLA).includes('delay = 0'));
-  ok('y lo usa en vez de ejecutar de golpe', codigo(COLA).includes('}, delay);'));
+  //  LOTE 219: re-anclada a la PROPIEDAD. Anclaba la linea literal `}, delay);`,
+  //  y el respaldo tiene ahora dos caminos (con `after()` dentro de una peticion,
+  //  con `setTimeout` fuera). Lo que se vigila sigue siendo lo mismo: que el
+  //  retraso se RESPETE en los dos, y no se ejecute de golpe.
+  ok('y lo usa en vez de ejecutar de golpe, con after() y sin el',
+     /if \(delay > 0\) await new Promise\(\(resolve\) => setTimeout\(resolve, delay\)\)/.test(codigo(COLA))
+     && /setTimeout\(ejecutar, delay\)/.test(codigo(COLA)));
   ok('los tres sitios que caen al camino sin Redis se lo pasan',
      (codigo(COLA).match(/triggerFallback\(queueName, name, data, opts\.delay\)/g) ?? []).length === 3);
   ok('y ese camino sabe atender la cola nueva',

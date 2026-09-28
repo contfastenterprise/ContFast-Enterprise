@@ -25,8 +25,15 @@ import { eq, and, count, gte, lte, inArray, isNull } from 'drizzle-orm';
  * Se escribe el numero literal a proposito. Next lo lee en tiempo de
  * compilacion analizando el fichero, no ejecutandolo, asi que una constante
  * importada no vale: no la resolveria.
+ *
+ * LOTE 219: de 60 a 300. Sin Redis, la persecucion del veredicto y el correo
+ * al cliente corren con `after()` DENTRO de esta funcion, despues de responder,
+ * y `after()` vive lo que diga este numero. Con 60 s se cortaria a medio camino
+ * justo las e-31, cuyo veredicto medido llega a los 73-119 s. El presupuesto de
+ * la escalera (`PRESUPUESTO_SIN_COLA_MS`, 250 s) cuelga de este numero: si
+ * baja, baja aquel. La respuesta al cajero no tarda mas por esto: sale igual.
  */
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 /**
  * GET /api/v1/invoices - Paginated list of invoices

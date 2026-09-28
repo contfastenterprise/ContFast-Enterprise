@@ -86,7 +86,7 @@ async function triggerFallback<K extends keyof JobPayloads>(
   //  a la vez, preguntando ocho veces por algo que aun no puede haber
   //  cambiado. Y en desarrollo, que es donde no suele haber Redis, seria el
   //  unico comportamiento que se ve.
-  setTimeout(async () => {
+  const ejecutar = async () => {
     try {
       if (queueName === 'emails-sending') {
         await sendEmailJob(data as any);
@@ -101,7 +101,35 @@ async function triggerFallback<K extends keyof JobPayloads>(
     } catch (err: any) {
       console.error(`[Queue Fallback] Job "${name}" in queue "${queueName}" failed:`, err.message);
     }
-  }, delay);
+  };
+
+  //  DENTRO DE UNA PETICION, CON `after()` (lote 219).
+  //
+  //  Desde que se retiro `REDIS_URL` (22/09) este es el camino NORMAL en
+  //  produccion, no un respaldo: por aqui salen el correo al cliente y los
+  //  peldaños de la persecucion del veredicto. Con un `setTimeout` suelto, la
+  //  tarea corre solo si Vercel mantiene viva la instancia despues de
+  //  responder, y eso la plataforma no lo promete -- es el mismo defecto que el
+  //  `void` del lote 199. Medido el 2026-09-28: las 12 facturas de PRODUCCION
+  //  desde el 15/09 tuvieron su veredicto en 6-119 s, asi que HOY funciona;
+  //  esto lo pasa de "funciona en la practica" a garantizado. `after()` mantiene
+  //  viva la funcion hasta que la tarea termina, dentro del `maxDuration` de la
+  //  ruta, y se puede anidar (cada peldaño encola el siguiente desde dentro).
+  //
+  //  FUERA de una peticion -- guiones, bancos, el worker con Redis -- `after()`
+  //  lanza ("called outside a request scope") y se queda el `setTimeout` de
+  //  siempre, que ahi si vive porque el proceso no se congela.
+  //
+  //  Se importa aqui dentro: este modulo lo cargan tambien guiones fuera de Next.
+  try {
+    const { after } = await import('next/server');
+    after(async () => {
+      if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
+      await ejecutar();
+    });
+  } catch {
+    setTimeout(ejecutar, delay);
+  }
 
   // Return a dummy Job object that mimics BullMQ Job structure
   return {
