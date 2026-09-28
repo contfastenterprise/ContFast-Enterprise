@@ -773,6 +773,38 @@ Además, fuera de la tabla:
   una consulta encuentra la aceptación, tenga el cliente correo o no, y sale siempre con
   "Firma Digital Válida". Lo que se imprime en el clic va al bucket de temporales (una
   hora). Así que la conclusión del 184 se mantiene, pero no por el motivo que daba.
+- **Lote 219: sin Redis, lo que se encola corre con `after()`.** Salió de revisar las
+  buenas prácticas de mSeller (2026-09-28). El plan decía que la persecución del
+  veredicto "no corre desde que se quitó Redis" y que el PDF y el correo tardaban
+  horas. **La medición lo desmintió**: las 12 facturas de PRODUCCIÓN desde el 15/09
+  tuvieron su veredicto en **6-9 s las e-32** (las resuelve la consulta de la pantalla a
+  los 5 s) y en **73-119 s las e-31**, y los correos desde el 25/09 salieron (los dos sin
+  registro, 17/09 y 22/09, son de cuando Redis tenía la cuota agotada). Funcionaba
+  porque Vercel mantenía viva la instancia tras responder, **cosa que no promete**: el
+  `setTimeout` de `triggerFallback` era el `void` del lote 199 con otro nombre, y desde
+  el 22/09 es el camino NORMAL (correo al cliente y peldaños de la escalera).
+  Ahora: dentro de una petición la tarea va a `after()`, que respeta el retraso y se
+  anida (cada peldaño encola el siguiente); fuera de una petición (guiones, bancos, el
+  worker con Redis) `after()` lanza y queda el `setTimeout` de siempre. Como `after()`
+  vive lo que el `maxDuration` de la ruta, **las tres rutas que emiten pasan a 300 s**
+  (`invoices`, `invoices/[id]/submit`, `ecf/[id]/resubmit`; la de emisión estaba en 60,
+  que habría cortado justo las e-31) y la escalera sin cola **no programa lo que no
+  cabe** (`cabeSinCola`, presupuesto 250 s: nueve peldaños, el de 300 s queda para el
+  barrido). La respuesta al cajero no tarda más.
+  Banco `verificar_respaldo_con_after.ts`, que **ejecuta** el respaldo dentro de un
+  ámbito de petición simulado con el mismo `workAsyncStorage` que lee `after()` (hay que
+  poner `AsyncLocalStorage` en `globalThis`, como hace el servidor de Next). 12
+  comprobaciones, contraprueba 12 FALLA, ocho mutantes y ocho muertos.
+  `verificar_persecucion_veredicto` (102) anclaba la línea `}, delay);`: re-anclado a
+  que el retraso se respete **en los dos caminos**.
+  **Del plan de prácticas de mSeller** (docs.ecf.mseller.app): quedan **B** (el código
+  HTTP decide el mensaje: hoy 400/401/403/429 acaban todos en "Enviado, pero la
+  respuesta no llegó completa"), **C** (reintentar 429 y fallos de red en que la
+  petición no salió; nunca un timeout tras enviar) y **E** (`validate=true`, que mSeller
+  declara en beta). **El D — guardar el XML firmado en casa — lo descartó el dueño**: no
+  hace falta bajarlo.
+  **CLI de Vercel reinstalada** (60.1.3) a petición del dueño; hasta que alguien haga
+  `vercel login`, no lee registros.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -1962,5 +1994,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 218 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 219 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

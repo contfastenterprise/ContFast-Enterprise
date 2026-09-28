@@ -6,6 +6,14 @@ import { db, auditLogs, dgiiSubmissions } from '@/db';
 import { addJob } from '@/infrastructure/queue';
 import { eq, and } from 'drizzle-orm';
 
+/**
+ * Lote 219: sin Redis, la emision que se encola aqui corre con `after()` dentro
+ * de ESTA funcion, y tras ella la persecucion del veredicto y el correo al
+ * cliente. `after()` vive lo que diga este numero; ver el mismo razonamiento
+ * en `api/v1/invoices/route.ts`. Literal a proposito: Next lo lee sin ejecutar.
+ */
+export const maxDuration = 300;
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<any> }
