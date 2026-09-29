@@ -145,3 +145,92 @@ export function avisoDelConduce(datos: {
     description: `${lista}. ${factura}; ${consecuencia}`,
   };
 }
+
+/**
+ * LOTE 223: los renglones para VER un conduce, cada uno con lo que le falta.
+ *
+ * Pedido del dueño: al abrir un conduce, por cada mercancia su SKU, nombre,
+ * cantidad facturada, y si no hay bastante, cuanto falta. El faltante sale de
+ * `faltantesDelConduce`, la misma regla del aviso (lote 221) y de la
+ * aprobacion: un conduce no puede decir "falta 1" en el aviso y otra cosa al
+ * abrirlo.
+ *
+ * El faltante SOLO tiene sentido en un borrador. Un conduce despachado ya
+ * desconto su existencia -- compararla otra vez con lo que pide diria que
+ * falta lo que ya salio --, y uno anulado no va a despachar nada. En esos
+ * casos `faltan` es `null`: "no aplica", no "cero".
+ */
+export interface RenglonParaVer {
+  productId: string;
+  sku: string | null;
+  nombre: string;
+  /** Lo que dice la factura de ese producto (todas sus lineas). */
+  facturada: number;
+  /** Lo que despacha ESTE conduce (puede ser parcial). */
+  despacha: number;
+  llevaInventario: boolean;
+  existencia: number;
+  minimo: number;
+  /** Unidades que faltan para poder despachar; 0 si alcanza; `null` si no aplica. */
+  faltan: number | null;
+}
+
+export function renglonesParaVer(
+  renglones: Array<RenglonDelConduce & { facturada: number | string | null }>,
+  estado: string,
+): RenglonParaVer[] {
+  const faltantes = estado === 'draft'
+    ? new Map(faltantesDelConduce(renglones).map((f) => [f.productId, f.faltan]))
+    : null;
+
+  const porProducto = new Map<string, RenglonParaVer>();
+  for (const r of renglones) {
+    const previo = porProducto.get(r.productId);
+    if (previo) {
+      previo.despacha = r4(previo.despacha + aCantidad(r.pedido));
+      continue;
+    }
+    porProducto.set(r.productId, {
+      productId: r.productId,
+      sku: r.sku,
+      nombre: r.nombre,
+      facturada: r4(aCantidad(r.facturada)),
+      despacha: r4(aCantidad(r.pedido)),
+      llevaInventario: r.llevaInventario,
+      existencia: r4(aCantidad(r.existencia)),
+      minimo: r4(aCantidad(r.minimo)),
+      faltan: null,
+    });
+  }
+
+  const salida = [...porProducto.values()];
+  if (faltantes) {
+    for (const r of salida) r.faltan = r.llevaInventario ? (faltantes.get(r.productId) ?? 0) : null;
+  }
+  return salida.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+}
+
+/**
+ * Lo que dice la columna de faltante de un renglon (lote 223), y en que tono.
+ * Vive aqui y no en el componente para poder comprobarse sin montar React.
+ *
+ *   · borrador, falta     -> "Faltan 4 · hay 1" (con el minimo si lo hay), rojo
+ *   · borrador, alcanza   -> "Disponible", verde
+ *   · no lleva inventario -> "No lleva inventario", neutro
+ *   · despachado          -> "Despachado", neutro: su existencia ya salio
+ *   · anulado             -> "—"
+ */
+export function disponibilidadDelRenglon(
+  r: Pick<RenglonParaVer, 'faltan' | 'existencia' | 'minimo' | 'llevaInventario'>,
+  estado: string,
+): { texto: string; tono: 'falta' | 'alcanza' | 'neutro' } {
+  if (estado === 'approved') return { texto: 'Despachado', tono: 'neutro' };
+  if (estado !== 'draft') return { texto: '—', tono: 'neutro' };
+  if (!r.llevaInventario) return { texto: 'No lleva inventario', tono: 'neutro' };
+  if (r.faltan != null && r.faltan > 0) {
+    const verbo = r.faltan === 1 ? 'Falta' : 'Faltan';
+    const minimo = r.minimo > 0 ? ` (mínimo ${cantidad(r.minimo)})` : '';
+    return { texto: `${verbo} ${cantidad(r.faltan)} · hay ${cantidad(r.existencia)}${minimo}`, tono: 'falta' };
+  }
+  return { texto: 'Disponible', tono: 'alcanza' };
+}

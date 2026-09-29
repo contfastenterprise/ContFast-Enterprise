@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Search, FileText, Check, RefreshCw, X, Trash2,
   ArrowLeft, Calendar, FileDown, Printer,
-  AlertCircle, Package, Truck, UserCheck, ShieldAlert, FileCheck
+  AlertCircle, Package, Truck, UserCheck, ShieldAlert, FileCheck, Eye
 } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/dialog';
 import { FormField } from '@/components/ui/form-field';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { VerConduce } from './components/VerConduce';
 import {
   TableContainer, Table, TableHeader, TableBody, TableRow, TableHead, TableCell
 } from '@/components/ui/table';
@@ -28,6 +29,8 @@ import {
 export default function DeliveryNotesPage() {
   const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
+  //  Lote 223: el conduce que se esta viendo (null = ninguno).
+  const [conduceAVer, setConduceAVer] = useState<string | null>(null);
   // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
   // enseña el error en vez de su mensaje de vacio.
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
@@ -485,6 +488,15 @@ export default function DeliveryNotesPage() {
                               <td className="px-4 py-2.5 align-middle text-right">
                                 <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button
+                                    type="button"
+                                    onClick={() => setConduceAVer(note.id)}
+                                    className="p-1.5 hover:bg-slate-50 rounded text-slate-600 transition-colors"
+                                    title="Ver Conduce"
+                                    aria-label={`Ver conduce ${note.deliveryNumber}`}
+                                  >
+                                    <Eye className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
                                     onClick={() => handlePrintNote(note.id)}
                                     className="p-1.5 hover:bg-slate-50 rounded text-slate-600 transition-colors"
                                     title="Imprimir Conduce"
@@ -824,6 +836,8 @@ export default function DeliveryNotesPage() {
           </div>
         )}
       </AnimatePresence>
+
+      <VerConduce conduceId={conduceAVer} onClose={() => setConduceAVer(null)} />
     </>
   );
 }
