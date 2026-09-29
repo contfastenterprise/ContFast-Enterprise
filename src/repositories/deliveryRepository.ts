@@ -1,4 +1,6 @@
-import { db, deliveryNotes, deliveryNoteLines, invoices, invoiceLines, journalEntries, type DbOTx } from '@/db';
+import { db, deliveryNotes, deliveryNoteLines, invoices, invoiceLines, journalEntries, products, inventoryLevels, type DbOTx, type DbTransaction } from '@/db';
+import { repartoDelDespacho } from '@/services/inventario/faltanteDelConduce';
+import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 import { eq, and, isNull, desc, count, like, inArray } from 'drizzle-orm';
 import { checkStockBatch, deductStock } from '@/services/inventoryService';
 import { AccountRepository } from '@/repositories/accountRepository';
@@ -109,8 +111,11 @@ export class DeliveryRepository {
   /**
    * Fetches a delivery note by ID, including its lines.
    */
-  static async getById(id: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
-    const [note] = await db
+  static async getById(id: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA', tx: DbOTx = db) {
+    //  Lote 224: `tx` opcional. Quien parte un conduce reescribe sus renglones
+    //  DENTRO de una transaccion y luego lo aprueba en la misma: leer con `db`
+    //  veria los renglones de antes, sin confirmar todavia.
+    const [note] = await tx
       .select()
       .from(deliveryNotes)
       .where(
@@ -125,7 +130,7 @@ export class DeliveryRepository {
 
     if (!note) return null;
 
-    const lines = await db
+    const lines = await tx
       .select()
       .from(deliveryNoteLines)
       .where(eq(deliveryNoteLines.deliveryNoteId, id));
@@ -214,9 +219,26 @@ export class DeliveryRepository {
    * Approves a delivery note, validating quantities and deducting inventory.
    */
   static async approve(id: string, userId: string, companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
-    return await db.transaction(async (tx) => {
+    return await db.transaction((tx) => this.aprobarEnTx(tx, id, userId, companyId, modo));
+  }
+
+  /**
+   * Lote 224: el cuerpo de `approve`, SIN abrir su transaccion, para que
+   * `despacharLoDisponible` pueda partir el conduce y aprobarlo en UNA sola: si
+   * la aprobacion falla, tambien se deshace el reparto. `approve` hace lo de
+   * siempre; lo unico que cambia es que el conduce se lee DENTRO de la
+   * transaccion (antes `getById` leia fuera; la guarda de P1-09 sigue abajo).
+   */
+  static async aprobarEnTx(
+    tx: DbTransaction,
+    id: string,
+    userId: string,
+    companyId: string,
+    modo: ModoOperativo
+  ) {
+    {
       // 1. Fetch delivery note
-      const note = await this.getById(id, companyId, modo);
+      const note = await this.getById(id, companyId, modo, tx);
       if (!note) {
         throw new Error('Conduce no encontrado.');
       }
@@ -459,6 +481,121 @@ export class DeliveryRepository {
         .where(eq(invoices.id, invoice.id));
 
       return { success: true, deliveryNumber: note.deliveryNumber };
+    }
+  }
+
+  /**
+   * Lote 224: despachar LO DISPONIBLE de un borrador y dejar el resto pendiente.
+   *
+   * Pedido del dueño. En UNA transaccion: el borrador se queda con lo que se
+   * puede sacar (`repartoDelDespacho`, la regla de la aprobacion) y se aprueba
+   * con la aprobacion de siempre -- descuenta existencia, asienta costo de venta
+   * y marca la entrega parcial --, y lo pendiente pasa a un borrador NUEVO de la
+   * misma factura. Ese borrador nuevo es el que mantiene vivo el aviso del panel
+   * (lote 221): sin el, lo que falta por entregar se quedaria sin nadie que lo
+   * recuerde.
+   *
+   * Si alcanza para todo, es la aprobacion normal; si no alcanza para nada, se
+   * niega. El conduce se BLOQUEA antes de leerlo: dos pulsaciones a la vez no
+   * pueden partirlo dos veces.
+   *
+   * MUTANTE EQUIVALENTE, A SABIENDAS: quitar el `.for('update')` no cambia el
+   * resultado -- medido en el banco de integracion --, porque la guarda de P1-09
+   * dentro de `aprobarEnTx` (el UPDATE condicionado a 'draft') hace que la
+   * segunda pulsacion pierda y deshaga TODO lo suyo, reparto incluido. Se queda
+   * porque sin el la segunda transaccion parte el conduce, crea un borrador y
+   * descuenta existencia para nada antes de perder, y porque dice en voz alta
+   * que esto no se puede hacer dos veces a la vez.
+   */
+  static async despacharLoDisponible(id: string, userId: string, companyId: string, modo: ModoOperativo) {
+    return await db.transaction(async (tx) => {
+      const [bloqueado] = await tx
+        .select({ id: deliveryNotes.id, estado: deliveryNotes.status })
+        .from(deliveryNotes)
+        .where(and(
+          eq(deliveryNotes.id, id),
+          eq(deliveryNotes.companyId, companyId),
+          eq(deliveryNotes.modo, modo),
+          isNull(deliveryNotes.deletedAt),
+        ))
+        .for('update');
+      if (!bloqueado) throw new Error('Conduce no encontrado.');
+      if (bloqueado.estado !== 'draft') throw new Error('Solo se puede despachar en parte un conduce en borrador.');
+
+      const note = await this.getById(id, companyId, modo, tx);
+      if (!note) throw new Error('Conduce no encontrado.');
+
+      const [invoice] = await tx
+        .select({ id: invoices.id, warehouseId: invoices.warehouseId })
+        .from(invoices)
+        .where(and(eq(invoices.id, note.invoiceId), eq(invoices.companyId, companyId)))
+        .limit(1);
+      if (!invoice?.warehouseId) throw new Error('Factura de referencia no encontrada.');
+
+      const ids = [...new Set(note.lines.map((l) => l.productId))];
+      const [productos, niveles] = await Promise.all([
+        tx.select({ id: products.id, nombre: products.name, sku: products.sku, lleva: products.tracksInventory })
+          .from(products)
+          .where(and(eq(products.companyId, companyId), inArray(products.id, ids))),
+        tx.select({ productId: inventoryLevels.productId, quantity: inventoryLevels.quantity, minStock: inventoryLevels.minStock })
+          .from(inventoryLevels)
+          .where(and(
+            eq(inventoryLevels.companyId, companyId),
+            eq(inventoryLevels.warehouseId, invoice.warehouseId),
+            eq(inventoryLevels.modo, modo),
+            inArray(inventoryLevels.productId, ids),
+          )),
+      ]);
+      const producto = new Map(productos.map((p) => [p.id, p]));
+      const nivel = new Map(niveles.map((n) => [n.productId, n]));
+
+      const reparto = repartoDelDespacho(note.lines.map((l) => ({
+        productId: l.productId,
+        nombre: producto.get(l.productId)?.nombre ?? '',
+        sku: producto.get(l.productId)?.sku ?? null,
+        pedido: l.quantity,
+        existencia: nivel.get(l.productId)?.quantity ?? 0,
+        minimo: nivel.get(l.productId)?.minStock ?? 0,
+        llevaInventario: producto.get(l.productId)?.lleva ?? true,
+      })));
+
+      if (reparto.despachar.length === 0) {
+        throw new Error('No hay existencia para despachar ninguna mercancía de este conduce.');
+      }
+      if (reparto.pendiente.length === 0) {
+        const r = await this.aprobarEnTx(tx, id, userId, companyId, modo);
+        return { despachado: r.deliveryNumber, pendiente: null as string | null };
+      }
+
+      //  El borrador se queda con lo que sale...
+      await tx.delete(deliveryNoteLines).where(eq(deliveryNoteLines.deliveryNoteId, id));
+      await tx.insert(deliveryNoteLines).values(
+        reparto.despachar.map((d) => ({ deliveryNoteId: id, productId: d.productId, quantity: d.cantidad.toString() }))
+      );
+
+      //  ...y lo pendiente pasa a un borrador nuevo de la misma factura, con los
+      //  mismos datos de transporte, que se pueden cambiar al despacharlo.
+      const numero = await this.getNextDeliveryNumber(companyId, modo, tx);
+      const [pendiente] = await tx.insert(deliveryNotes).values({
+        companyId,
+        modo,
+        invoiceId: note.invoiceId,
+        userId,
+        deliveryNumber: numero,
+        deliveryDate: note.deliveryDate,
+        driverName: note.driverName,
+        driverLicense: note.driverLicense,
+        vehiclePlate: note.vehiclePlate,
+        dispatcherName: note.dispatcherName,
+        notes: `Pendiente del conduce ${note.deliveryNumber}.`,
+        status: 'draft',
+      }).returning({ id: deliveryNotes.id });
+      await tx.insert(deliveryNoteLines).values(
+        reparto.pendiente.map((p) => ({ deliveryNoteId: pendiente.id, productId: p.productId, quantity: p.cantidad.toString() }))
+      );
+
+      const r = await this.aprobarEnTx(tx, id, userId, companyId, modo);
+      return { despachado: r.deliveryNumber, pendiente: numero as string | null };
     });
   }
 

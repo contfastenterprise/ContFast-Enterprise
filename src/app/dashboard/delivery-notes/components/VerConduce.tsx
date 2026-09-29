@@ -8,52 +8,143 @@
  * Aparte de `page.tsx` (829 lineas) a proposito. Los datos los arma el servidor
  * (`/api/v1/delivery-notes/[id]/detalle`) y el texto de la columna de faltante
  * lo decide `disponibilidadDelRenglon`: aqui solo se pinta.
+ *
+ * LOTE 224: "Despachar lo disponible", y dos avisos de React Doctor del 223
+ * cerrados de paso: el conduce se pide AL PULSAR el ojo (`useVerConduce().abrir`)
+ * y no en un efecto, y ninguna respuesta se lee sin mirar `r.ok`.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import clsx from 'clsx';
+import { toast } from 'sonner';
 import { Modal } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
+import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay, formatDateTimeDisplay } from '@/utils/fechasLocales';
-import { disponibilidadDelRenglon } from '@/services/inventario/faltanteDelConduce';
+import {
+  disponibilidadDelRenglon,
+  repartoDelDespacho,
+  type RenglonDelConduce,
+} from '@/services/inventario/faltanteDelConduce';
 import type { ConduceParaVer } from '@/services/inventario/verConduce';
 
 const ESTADOS: Record<string, string> = { approved: 'Despachado', draft: 'Borrador', voided: 'Anulado' };
 
-export function VerConduce({ conduceId, onClose }: { conduceId: string | null; onClose: () => void }) {
+/** Los renglones de la vista, en la forma que usa la regla del reparto. */
+function renglonesDelReparto(conduce: ConduceParaVer): RenglonDelConduce[] {
+  return conduce.renglones.map((r) => ({
+    productId: r.productId, nombre: r.nombre, sku: r.sku, pedido: r.despacha,
+    existencia: r.existencia, minimo: r.minimo, llevaInventario: r.llevaInventario,
+  }));
+}
+
+/**
+ * Que queda pendiente si se despacha lo disponible, en palabras, o `null` si el
+ * boton no tiene sentido: no es un borrador, alcanza para todo (es la
+ * aprobacion de siempre) o no alcanza para nada.
+ */
+export function pendienteSiSeDespachaLoDisponible(conduce: ConduceParaVer): string | null {
+  if (conduce.estado !== 'draft') return null;
+  const reparto = repartoDelDespacho(renglonesDelReparto(conduce));
+  if (reparto.despachar.length === 0 || reparto.pendiente.length === 0) return null;
+  const nombre = new Map(conduce.renglones.map((r) => [r.productId, r.nombre]));
+  return reparto.pendiente.map((p) => `${nombre.get(p.productId) ?? p.productId}: ${p.cantidad}`).join('; ');
+}
+
+/** El estado del visor. Se pide al pulsar, no en un efecto. */
+export function useVerConduce() {
+  const [conduceId, setConduceId] = useState<string | null>(null);
   const [conduce, setConduce] = useState<ConduceParaVer | null>(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [intento, setIntento] = useState(0);
+  //  Una respuesta vieja no puede pisar la del conduce que se abrio despues.
+  const peticion = useRef(0);
 
-  useEffect(() => {
-    if (!conduceId) return;
-    //  Una respuesta vieja no puede pisar la del conduce que se abrio despues.
-    let vigente = true;
-    setCargando(true);
-    setError(null);
+  const abrir = useCallback(async (id: string) => {
+    const mia = ++peticion.current;
+    setConduceId(id);
     setConduce(null);
-    fetch(`/api/v1/delivery-notes/${conduceId}/detalle`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (!vigente) return;
-        if (data.success) setConduce(data.data);
-        else setError(motivoDeCarga(null, data.error?.message));
-      })
-      .catch((err) => { if (vigente) setError(motivoDeCarga(err)); })
-      .finally(() => { if (vigente) setCargando(false); });
-    return () => { vigente = false; };
-  }, [conduceId, intento]);
+    setError(null);
+    setCargando(true);
+    try {
+      const r = await fetch(`/api/v1/delivery-notes/${id}/detalle`);
+      const data = await r.json().catch(() => null);
+      if (mia !== peticion.current) return;
+      if (r.ok && data?.success) setConduce(data.data);
+      else setError(motivoDeCarga(null, data?.error?.message));
+    } catch (err) {
+      if (mia === peticion.current) setError(motivoDeCarga(err));
+    } finally {
+      if (mia === peticion.current) setCargando(false);
+    }
+  }, []);
+
+  const cerrar = useCallback(() => {
+    peticion.current++;
+    setConduceId(null);
+    setConduce(null);
+    setError(null);
+    setCargando(false);
+  }, []);
+
+  return { conduceId, conduce, cargando, error, abrir, cerrar };
+}
+
+export function VerConduce({
+  visor,
+  onDespachado,
+}: {
+  visor: ReturnType<typeof useVerConduce>;
+  /** Tras despachar, para que la lista se recargue. */
+  onDespachado: () => void;
+}) {
+  const confirm = useConfirm();
+  const [despachando, setDespachando] = useState(false);
+  const { conduceId, conduce, cargando, error, abrir, cerrar } = visor;
+  const pendiente = conduce ? pendienteSiSeDespachaLoDisponible(conduce) : null;
+
+  const despacharLoDisponible = async () => {
+    if (!conduce || !pendiente) return;
+    const ok = await confirm({
+      title: `Despachar lo disponible de ${conduce.numero}`,
+      description:
+        'Se despacha lo que hay en existencia: descuenta el inventario y asienta su costo de venta. ' +
+        `Lo pendiente pasa a un conduce nuevo en borrador (${pendiente}).`,
+    });
+    if (!ok) return;
+    setDespachando(true);
+    try {
+      const r = await fetch(`/api/v1/delivery-notes/${conduce.id}/despachar-disponible`, { method: 'POST' });
+      const data = await r.json().catch(() => null);
+      if (r.ok && data?.success) {
+        toast.success(data.message);
+        cerrar();
+        onDespachado();
+      } else {
+        toast.error(data?.error?.message || 'No se pudo despachar lo disponible.');
+      }
+    } catch (err) {
+      toast.error(motivoDeCarga(err));
+    } finally {
+      setDespachando(false);
+    }
+  };
 
   return (
     <Modal
       isOpen={conduceId !== null}
-      onClose={onClose}
+      onClose={cerrar}
       maxWidth="4xl"
       title={conduce ? `Conduce ${conduce.numero}` : 'Conduce'}
       description={conduce ? ESTADOS[conduce.estado] ?? conduce.estado : undefined}
+      footer={pendiente ? (
+        <Button type="button" onClick={despacharLoDisponible} disabled={despachando}>
+          {despachando ? 'Despachando…' : 'Despachar lo disponible'}
+        </Button>
+      ) : undefined}
     >
       {cargando && <div className="py-10 text-center text-sm text-slate-400">Cargando conduce…</div>}
-      {error && <ErrorDeCarga mensaje={error} onReintentar={() => setIntento((n) => n + 1)} />}
+      {error && conduceId && <ErrorDeCarga mensaje={error} onReintentar={() => abrir(conduceId)} />}
 
       {conduce && <VistaDelConduce conduce={conduce} />}
     </Modal>

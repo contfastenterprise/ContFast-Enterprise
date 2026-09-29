@@ -897,6 +897,42 @@ Además, fuera de la tabla:
   desechable no trae usuario con contraseña ni `route_mappings`.
   Banco `verificar_ver_conduce.ts` (dibuja con `react-dom/server`): 28 comprobaciones,
   contraprueba 28 FALLA, doce mutantes y doce muertos.
+- **Lote 224: "Despachar lo disponible".** Pedido del dueño (2026-09-28): *"si quiero
+  despachar lo que está disponible y dejar pendiente alguna mercancía"*. Ya se podía, con
+  rodeo: la aprobación es **todo o nada** y un borrador **no se edita**, así que había que
+  borrarlo y rehacerlo a mano — y lo pendiente se quedaba **sin borrador, o sea sin el
+  aviso del 221**. Ahora, en el visor del conduce (223), un botón que solo sale si se puede
+  despachar algo **y** queda algo, con confirmación que nombra lo pendiente.
+  `DeliveryRepository.despacharLoDisponible`, en **una** transacción: bloquea el conduce,
+  reparte con `repartoDelDespacho` (puro, en `faltanteDelConduce.ts`: sale
+  `existencia − mínimo`, nunca más de lo pedido; lo que no lleva inventario sale entero),
+  deja el borrador con lo que sale y lo **aprueba con la aprobación de siempre** (existencia,
+  costo de venta, entrega parcial), y pasa lo pendiente a un **borrador nuevo** de la misma
+  factura ("Pendiente del conduce …", mismo transporte). Para eso `approve` se partió:
+  su cuerpo es `aprobarEnTx(tx, …)` y `getById` acepta `tx` — **la aprobación normal lee
+  ahora el conduce dentro de su transacción** (antes fuera); la guarda de P1-09 sigue.
+  Ruta `POST /api/v1/delivery-notes/[id]/despachar-disponible` (`facturacion:write`, la de
+  aprobar). **De paso, los dos avisos de React Doctor del 223**: el visor pide el conduce
+  al pulsar (`useVerConduce().abrir`), no en un efecto, y mira `r.ok`.
+  Dos bancos. `verificar_despachar_disponible.ts` (código): barre 500 casos — lo que sale
+  **pasa `alcanzaLaExistencia`**, sale+queda = pedido, y no se queda corto —; 20
+  comprobaciones, contraprueba 20 FALLA. `verificar_despachar_disponible_db.ts`
+  (**integración, base desechable**): ejecuta el reparto de verdad — existencia, asiento de
+  costo (1.100), entrega parcial y luego completa, los rechazos, **todo o nada** cuando la
+  aprobación de dentro falla (exceso de entrega) y **dos pulsaciones a la vez** —; 17
+  comprobaciones, contraprueba 17 FALLA. Mutantes: todos muertos salvo quitar el
+  `.for('update')`, **equivalente y anotado en el código** (la guarda de P1-09 ya hace
+  perder a la segunda pulsación). **Dos lecciones del banco**: cuatro mutantes salieron
+  "no arrancó" porque la aprobación de dentro lanzaba y el banco reventaba — cada sección
+  atrapa ahora su excepción y la cuenta como FALLA —; y "no se parte un despachado"
+  miraba solo la palabra "borrador", que también dice la guarda de dentro.
+  `tsc -p scratch` cazó un molde mal hecho en el banco del 223 que se había colado.
+  **Y el barrido cazó cuatro bancos más**, ninguno una regresión: dos anclaban el cuerpo de
+  `approve` (`verificar_conduce_duplicadas`, `verificar_p1_09_10`), que ahora vive en
+  `aprobarEnTx` — re-anclados, y comprobado con un mutante que siguen cazando —; el
+  trinquete del **lote 118** (dos uniones `'PRODUCCION' | 'PRUEBA'` escritas a mano: pasan
+  a `ModoOperativo`, sin subir el techo); y `verificar_tipos_mios`, que cuenta las firmas
+  con `DbOTx` (la de `getById`, a propósito: 16 → 17). Lección del lote 100 otra vez.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2086,5 +2122,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 223 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 224 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

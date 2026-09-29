@@ -91,7 +91,7 @@ async function main() {
   let Vista: ((p: { conduce: unknown }) => unknown) | null = null;
   try {
     const m = await import('../src/app/dashboard/delivery-notes/components/VerConduce');
-    Vista = (m as { VistaDelConduce?: typeof Vista }).VistaDelConduce ?? null;
+    Vista = (m as unknown as { VistaDelConduce?: typeof Vista }).VistaDelConduce ?? null;
   } catch { Vista = null; }
   if (!Vista || !G.renglonesParaVer) falta(E3, 'no existe VistaDelConduce');
   else {
@@ -131,14 +131,18 @@ async function main() {
   ok('  y el faltante lo decide la regla, no la consulta', /renglonesParaVer\(/.test(consulta));
 
   console.log('\n5) La pantalla\n');
+  //  LOTE 224: re-anclado. El visor paso a un hook (`useVerConduce`) para pedir
+  //  el conduce AL PULSAR y no en un efecto (aviso de React Doctor del 223). Lo
+  //  que se vigila no cambia: el ojo abre ESE conduce, y el visor se pinta.
   const pagina = sinComentarios(leer('src/app/dashboard/delivery-notes/page.tsx'));
-  ok('importa el visor', /import \{ VerConduce \} from '\.\/components\/VerConduce';/.test(pagina));
-  // Acotado al boton: `setConduceAVer(null)` del cierre tambien contiene el nombre.
+  ok('importa el visor', /import \{ VerConduce, useVerConduce \} from '\.\/components\/VerConduce';/.test(pagina)
+    && /const visor = useVerConduce\(\);/.test(pagina));
+  // Acotado al boton: el visor aparece tambien donde se pinta.
   ok('un icono de ojo en acciones abre ESE conduce',
-    /onClick=\{\(\) => setConduceAVer\(note\.id\)\}[\s\S]{0,700}<Eye className/.test(pagina));
-  ok('  y es un boton que no envia formularios', /type="button"\s*onClick=\{\(\) => setConduceAVer\(note\.id\)\}/.test(pagina));
-  ok('se pinta con el conduce elegido y se cierra',
-    /<VerConduce conduceId=\{conduceAVer\} onClose=\{\(\) => setConduceAVer\(null\)\} \/>/.test(pagina));
+    /onClick=\{\(\) => visor\.abrir\(note\.id\)\}[\s\S]{0,700}<Eye className/.test(pagina));
+  ok('  y es un boton que no envia formularios', /type="button"\s*onClick=\{\(\) => visor\.abrir\(note\.id\)\}/.test(pagina));
+  ok('se pinta con el visor, y recarga la lista tras despachar',
+    /<VerConduce visor=\{visor\} onDespachado=\{loadDeliveryNotes\} \/>/.test(pagina));
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
   process.exit(fallos === 0 ? 0 : 1);

@@ -22,7 +22,9 @@ const FIRMAS: [string, number][] = [
   ['src/middleware/permissions.ts', 1],
   ['src/repositories/accountingRepository.ts', 2],
   ['src/repositories/bankRepository.ts', 2],
-  ['src/repositories/deliveryRepository.ts', 1],
+  //  Lote 224: getById gana `tx: DbOTx = db` (lee dentro de la transaccion que
+  //  parte un conduce): 1 -> 2.
+  ['src/repositories/deliveryRepository.ts', 2],
   ['src/repositories/dgiiSubmissionRepository.ts', 2],
   ['src/services/dgii/credenciales.ts', 2],
   //  Lote 117: 89f0a17 anadio checkStockBatch con su `tx: DbOTx = db`: 5 -> 6.
@@ -60,7 +62,7 @@ const FIRMAS: [string, number][] = [
     ok(`${base(path)}: ${esperadas} firma(s) usan DbOTx (halladas ${n})`, n === esperadas);
     ok(`${base(path)}: importa el tipo DbOTx`, /import\s*\{[^}]*\btype DbOTx\b[^}]*\}\s*from\s*'@\/db'/s.test(s));
   }
-  ok(`las 16 firmas estan cubiertas (contadas ${totalFirmas}; 15 + checkStockBatch de 89f0a17)`, totalFirmas === 16);
+  ok(`las 17 firmas estan cubiertas (contadas ${totalFirmas}; 15 + checkStockBatch de 89f0a17 + getById del lote 224)`, totalFirmas === 17);
 
   for (const [path] of FIRMAS) {
     ok(`${base(path)}: sin ninguna firma ': typeof db' remanente`, !crudo(path).includes(': typeof db'));
