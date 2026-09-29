@@ -5,19 +5,27 @@
  * aprueba. Salio de `page.tsx` al partirla (lote 226), con su estado y su
  * accion tal cual; al aplicar avisa a la pagina para que recargue la lista.
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { FileCheck, RefreshCw, Truck } from 'lucide-react';
 import { toast } from 'sonner';
+import { leerRespuesta } from '@/utils/leerRespuesta';
 
 export function AplicarPorCodigo({ onAplicado }: { onAplicado: () => void }) {
   const [applyCode, setApplyCode] = useState('');
   const [applying, setApplying] = useState(false);
+  //  Lote 227: la guarda contra el doble clic es una REFERENCIA y no el estado:
+  //  dos clics seguidos llegan antes de que React vuelva a pintar, y los dos
+  //  verian `applying` todavia en false.
+  const enCurso = useRef(false);
 
   const handleApplyCode = async () => {
+    //  Un segundo clic mientras la primera peticion sigue en curso no lanza otra.
+    if (enCurso.current) return;
     if (!applyCode.trim()) {
       toast.error('Debe ingresar un código de factura o conduce.');
       return;
     }
+    enCurso.current = true;
     setApplying(true);
     try {
       const res = await fetch('/api/v1/delivery-notes/apply-code', {
@@ -25,8 +33,9 @@ export function AplicarPorCodigo({ onAplicado }: { onAplicado: () => void }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: applyCode }),
       });
-      const data = await res.json();
-      if (data.success) {
+      const leido = await leerRespuesta<{ message?: string; alreadyApproved?: boolean }>(res);
+      if (leido.bien) {
+        const data = leido.cuerpo;
         if (data.alreadyApproved) {
           toast.warning(data.message || 'El conduce ya está aprobado.');
         } else {
@@ -36,11 +45,12 @@ export function AplicarPorCodigo({ onAplicado }: { onAplicado: () => void }) {
         // Refresh delivery notes list
         onAplicado();
       } else {
-        toast.error(data.error?.message || 'Error al aplicar el código.');
+        toast.error(leido.mensaje || 'Error al aplicar el código.');
       }
     } catch (error) {
       toast.error('Error de red al aplicar el código.');
     } finally {
+      enCurso.current = false;
       setApplying(false);
     }
   };
@@ -60,6 +70,7 @@ export function AplicarPorCodigo({ onAplicado }: { onAplicado: () => void }) {
         <input
           type="text"
           placeholder="Ej: E310000000001 o CON-2026-000001"
+          aria-label="NCF de la factura o código de conduce"
           value={applyCode}
           onChange={(e) => setApplyCode(e.target.value)}
           className="h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors w-full sm:w-80 font-mono"

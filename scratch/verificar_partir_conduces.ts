@@ -80,7 +80,17 @@ async function main() {
   if (!antes.includes('export default function DeliveryNotesPage')) throw new Error(`Precondicion: no se pudo leer la pagina de ${ANTES}`);
 
   console.log('\n1) Nada visible cambio\n');
-  const ahora = [leer(PAGINA), ...NUEVOS.map(leer)].join('\n');
+  //  LOTE 227: se comparan los DOS COMMITS, no la carpeta. El 227 cambia marcado
+  //  a proposito (etiquetas, un <button> en el buscador), asi que "igual que
+  //  antes del 226" ya no es cierto del arbol de hoy -- pero la prueba del 226
+  //  sigue siendo la misma: entre a7b763c y la fusion del 226 (21e3dab) no
+  //  cambio nada visible. Atada a esos dos commits, vale para siempre.
+  const DESPUES = '21e3dab';
+  const mostrar = (ref: string, f: string) => {
+    try { return execSync(`git show ${ref}:${f}`, { cwd: raiz, encoding: 'utf8', maxBuffer: 1 << 24 }); } catch { return ''; }
+  };
+  const ahora = [PAGINA, ...NUEVOS].map((f) => mostrar(DESPUES, f)).join('\n');
+  if (!ahora.includes('export function TablaDeConduces')) throw new Error(`Precondicion: no se pudo leer ${DESPUES}`);
   const dif = diferencia(huella(antes), huella(ahora));
   invariante(`clases, textos, placeholders, titulos, avisos y API: los mismos, uno por uno (${huella(antes).length})`,
     dif.length === 0, dif.slice(0, 6).join(' | '));

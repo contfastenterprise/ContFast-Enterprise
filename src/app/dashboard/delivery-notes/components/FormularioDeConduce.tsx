@@ -37,7 +37,8 @@ export function FormularioDeConduce({
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2 flex flex-col justify-end">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Factura Relacionada</label>
+              {/* Lote 227: <p> y no <label>, porque encabeza un boton, no etiqueta un campo. */}
+              <p className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Factura Relacionada</p>
               {f.targetInvoice ? (
                 <div className="flex items-center justify-between border border-emerald-200 bg-emerald-50/50 rounded-xl px-4 py-2.5">
                   <div>
@@ -67,8 +68,9 @@ export function FormularioDeConduce({
             </div>
 
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[#001e40]">Fecha de Despacho</label>
+              <label htmlFor="conduce-fecha" className="block text-xs font-semibold text-[#001e40]">Fecha de Despacho</label>
               <input
+                id="conduce-fecha"
                 type="date"
                 required
                 value={f.deliveryDate}
@@ -80,9 +82,10 @@ export function FormularioDeConduce({
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[#001e40]">Nombre del Chofer</label>
+              <label htmlFor="conduce-chofer" className="block text-xs font-semibold text-[#001e40]">Nombre del Chofer</label>
               <input
                 type="text"
+                id="conduce-chofer"
                 placeholder="Ej. Juan Pérez"
                 value={f.driverName}
                 onChange={(e) => f.setDriverName(e.target.value)}
@@ -90,9 +93,10 @@ export function FormularioDeConduce({
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[#001e40]">Licencia Chofer</label>
+              <label htmlFor="conduce-licencia" className="block text-xs font-semibold text-[#001e40]">Licencia Chofer</label>
               <input
                 type="text"
+                id="conduce-licencia"
                 placeholder="001-0000000-0"
                 value={f.driverLicense}
                 onChange={(e) => f.setDriverLicense(e.target.value)}
@@ -100,9 +104,10 @@ export function FormularioDeConduce({
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[#001e40]">Placa del Vehículo</label>
+              <label htmlFor="conduce-placa" className="block text-xs font-semibold text-[#001e40]">Placa del Vehículo</label>
               <input
                 type="text"
+                id="conduce-placa"
                 placeholder="L123456"
                 value={f.vehiclePlate}
                 onChange={(e) => f.setVehiclePlate(e.target.value)}
@@ -110,9 +115,10 @@ export function FormularioDeConduce({
               />
             </div>
             <div className="space-y-1">
-              <label className="block text-xs font-semibold text-[#001e40]">Responsable Despacho</label>
+              <label htmlFor="conduce-responsable" className="block text-xs font-semibold text-[#001e40]">Responsable Despacho</label>
               <input
                 type="text"
+                id="conduce-responsable"
                 placeholder="Firma autorizada"
                 value={f.dispatcherName}
                 onChange={(e) => f.setDispatcherName(e.target.value)}
@@ -144,7 +150,7 @@ export function FormularioDeConduce({
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {f.dispatchLines.map((line, idx) => (
-                      <tr key={`${line.productId}-${idx}`} className="group">
+                      <tr key={line.lineId} className="group">
                         <td className="px-4 py-2.5 font-medium text-slate-800 text-xs">{line.productName}</td>
                         <td className="px-4 py-2.5 text-center text-slate-500 text-xs">{line.invoicedQty}</td>
                         <td className="px-4 py-2.5 text-center text-slate-500 text-xs">{line.previouslyDelivered}</td>
@@ -154,6 +160,7 @@ export function FormularioDeConduce({
                             type="number"
                             min="0"
                             max={line.pendingQty}
+                            aria-label={`Despachar hoy: ${line.productName}`}
                             value={line.quantity}
                             onChange={(e) => f.cambiarCantidad(idx, e.target.value)}
                             className="w-20 text-center h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
@@ -167,8 +174,9 @@ export function FormularioDeConduce({
 
               {/* Notes / Observaciones */}
               <div className="border-t border-slate-100 pt-6 mt-6">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Observaciones Contables / Notas de Entrega</label>
+                <label htmlFor="conduce-notas" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Observaciones Contables / Notas de Entrega</label>
                 <textarea
+                  id="conduce-notas"
                   rows={3}
                   value={f.notesText}
                   onChange={(e) => f.setNotesText(e.target.value)}

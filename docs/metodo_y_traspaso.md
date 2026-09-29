@@ -988,6 +988,38 @@ Además, fuera de la tabla:
   clonara el proyecto, fallaría. Ahora `\r?\n`, comprobado en las dos copias y con un
   mutante sobre la CRLF. **El worktree sirve justo para esto**: es la única forma de correr
   los bancos sobre una copia limpia.
+- **Lote 227: las advertencias de React Doctor de la pantalla de conduces, cerradas.**
+  Pedido del dueño tras el 226. Eran **36** en los ficheros de conduces (las mismas que
+  tenía la página vieja); medido después con React Doctor en local, **0**. Las que cambian
+  comportamiento:
+  · **nueve lecturas `await res.json()` sin mirar `res.ok`**. Ahora todas pasan por
+    `src/utils/leerRespuesta.ts` (el lector que nació en el visor en el 225 sube ahí): un
+    5xx con cuerpo HTML ya no se cuenta como "error de red" — la red funcionó, falló el
+    servidor —, un 4xx no depende de que el servidor ponga `success: false`, y nunca lanza.
+    También la de registrar el conduce, que ya miraba `res.ok` pero reventaba con un 5xx
+    que no fuera JSON;
+  · **el doble clic en "Aplicar Despacho" lanzaba dos peticiones**. La guarda es un
+    `useRef` y no el estado: dos clics seguidos llegan antes de volver a pintar y los dos
+    verían `applying` en `false` (React Doctor lo marcó con la primera versión, que usaba
+    el estado);
+  · **accesibilidad**: cada etiqueta con su `htmlFor`/`id`, `aria-label` en los campos
+    sin etiqueta (incluida cada cantidad a despachar, que dice de qué producto es), el
+    botón de cerrar dice que cierra, "Factura Relacionada" pasa a `<p>` (encabeza un
+    botón, no etiqueta un campo) y **las facturas del buscador son `<button>`**, así que
+    se eligen con el teclado.
+  Sin efecto visible: la fila del despacho usa el `id` de la línea como clave (una
+  factura puede repetir producto), lo entregado antes se pide en paralelo, la fecha se
+  inicializa perezosa, `LazyMotion` + `m` en vez de `motion`, e imprimir sale al módulo.
+  Banco `verificar_avisos_conduces.ts`: **ejecuta** el lector con seis respuestas (entre
+  ellas un 502 con HTML) y **dibuja** el formulario y el buscador para comprobar en el
+  HTML que cada `for` tiene su `id`. 18 comprobaciones, contraprueba 18 FALLA, diez
+  mutantes y diez muertos — **uno sobrevivió primero**: "las facturas son botones" miraba
+  "un `<button>` y luego el NCF", y el de cerrar también es un botón y va antes.
+  Re-anclados: `verificar_despachar_disponible` (el lector, a `utils/`),
+  `verificar_paginacion_comun_lote4` (el total llega en `leido.cuerpo`) y
+  `verificar_partir_conduces`, cuya prueba de equivalencia compara ahora **los dos commits**
+  (`a7b763c` y `21e3dab`) y no la carpeta: este lote cambia marcado a propósito, y así la
+  prueba del 226 sigue valiendo para siempre.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2177,5 +2209,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 226 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 227 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

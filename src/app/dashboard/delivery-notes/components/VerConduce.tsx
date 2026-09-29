@@ -21,6 +21,9 @@ import { Button } from '@/components/ui/button';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay, formatDateTimeDisplay } from '@/utils/fechasLocales';
+//  Lote 227: el lector que nacio aqui en el 225 sube a `utils/`, compartido con
+//  el resto de la pantalla de conduces.
+import { leerRespuesta } from '@/utils/leerRespuesta';
 import {
   disponibilidadDelRenglon,
   pendienteSiSeDespachaLoDisponible,
@@ -29,19 +32,6 @@ import type { ConduceParaVer } from '@/services/inventario/verConduce';
 
 const ESTADOS: Record<string, string> = { approved: 'Despachado', draft: 'Borrador', voided: 'Anulado' };
 
-/**
- * Lee una respuesta de la API mirando el ESTADO antes de consumir el cuerpo
- * (lote 225, aviso de React Doctor): con un 4xx o 5xx solo se lee para sacar
- * el mensaje, y un 2xx sin `success` tampoco se da por bueno.
- */
-async function leerRespuesta<T>(r: Response): Promise<{ bien: true; cuerpo: T } | { bien: false; mensaje?: string }> {
-  if (!r.ok) {
-    const error = await r.json().catch(() => null);
-    return { bien: false, mensaje: error?.error?.message };
-  }
-  const cuerpo = await r.json().catch(() => null);
-  return cuerpo?.success ? { bien: true, cuerpo: cuerpo as T } : { bien: false, mensaje: cuerpo?.error?.message };
-}
 
 /** El estado del visor. Se pide al pulsar, no en un efecto. */
 export function useVerConduce() {
