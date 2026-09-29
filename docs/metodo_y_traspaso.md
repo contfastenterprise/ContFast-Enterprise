@@ -877,6 +877,26 @@ Además, fuera de la tabla:
   con uno real: ese fue el error de orden de esta medición.
   Con esto, del plan de mSeller: A hecho (219), B hecho reducido (220), C descartado por
   medición (221), D descartado por el dueño, E descartado aquí.
+- **Lote 223: ver un conduce desde la lista, con lo que le falta.** Pedido del dueño
+  (2026-09-28), a raíz del aviso del 221: un ojo en la columna de acciones abre el
+  conduce con factura, hora de emisión, cliente (con RNC), número, almacén y, por
+  mercancía, SKU, nombre, cantidad facturada, lo que despacha **este** conduce (puede ser
+  parcial) y una columna **Faltante** ("Faltan 4 · hay 1", con el mínimo si lo hay).
+  **El faltante es el mismo que dice el aviso**: `renglonesParaVer` y
+  `disponibilidadDelRenglon` viven en `faltanteDelConduce.ts` junto a la regla del 221 y
+  de la aprobación. **Solo un borrador tiene faltante**: uno despachado ya descontó su
+  existencia (compararla otra vez diría que falta lo que ya salió) y dice "Despachado".
+  Ruta **aparte**, `GET /api/v1/delivery-notes/[id]/detalle` (permiso `facturacion:read`):
+  `GET [id]` la leen también el despacho y la impresión con los renglones pelados.
+  La consulta (`services/inventario/verConduce.ts`) usa el almacén **de su factura** y su
+  modo, y lo facturado suma **todas** las líneas del producto. El visor vive en
+  `delivery-notes/components/VerConduce.tsx` y no en `page.tsx` (829 líneas).
+  **Se dibujó con datos reales y el CSS compilado, y se fotografió** (CON-2026-000056 y
+  000044): `VistaDelConduce` solo pinta, sin estado ni red, para poder hacerlo.
+  **No se miró dentro de la app corriendo**: entrar exige una cuenta real y la base
+  desechable no trae usuario con contraseña ni `route_mappings`.
+  Banco `verificar_ver_conduce.ts` (dibuja con `react-dom/server`): 28 comprobaciones,
+  contraprueba 28 FALLA, doce mutantes y doce muertos.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2066,5 +2086,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 222 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 223 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
