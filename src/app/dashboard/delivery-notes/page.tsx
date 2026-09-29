@@ -1,30 +1,30 @@
 'use client';
 
+/**
+ * Conduces de entrega.
+ *
+ * LOTE 226: la pagina tenia 844 lineas y React Doctor la marcaba por
+ * complejidad. Se partio sin cambiar lo que hace: aqui queda la LISTA -- cargarla,
+ * su estado de error, aprobar y anular con su confirmacion, la paginacion --, y
+ * salen a ficheros propios la barra de aplicar por codigo (`AplicarPorCodigo`),
+ * la tabla (`TablaDeConduces`), el alta (`FormularioDeConduce` y
+ * `BuscadorDeFacturas`) y su estado (`useFormularioConduce`). El estado del alta
+ * se crea AQUI y no dentro del formulario: lo escrito (chofer, placa, fecha)
+ * sobrevivia a cancelar, y asi sigue.
+ */
 import { useState, useEffect, useCallback } from 'react';
-import {
-  Plus, Search, FileText, Check, RefreshCw, X, Trash2,
-  ArrowLeft, Calendar, FileDown, Printer,
-  AlertCircle, Package, Truck, UserCheck, ShieldAlert, FileCheck, Eye
-} from 'lucide-react';
+import { Plus, RefreshCw, Truck } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
-import clsx from 'clsx';
-import { Button } from '@/components/ui/button';
-import { SearchBar } from '@/components/ui/search-bar';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Modal } from '@/components/ui/dialog';
-import { FormField } from '@/components/ui/form-field';
-import { formatDateDisplay } from '@/utils/fechasLocales';
 import { VerConduce, useVerConduce } from './components/VerConduce';
-import {
-  TableContainer, Table, TableHeader, TableBody, TableRow, TableHead, TableCell
-} from '@/components/ui/table';
+import { AplicarPorCodigo } from './components/AplicarPorCodigo';
+import { TablaDeConduces } from './components/TablaDeConduces';
+import { FormularioDeConduce } from './components/FormularioDeConduce';
+import { BuscadorDeFacturas } from './components/BuscadorDeFacturas';
+import { useFormularioConduce } from './hooks/useFormularioConduce';
 
 export default function DeliveryNotesPage() {
   const confirm = useConfirm();
@@ -35,7 +35,6 @@ export default function DeliveryNotesPage() {
   // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
   // enseña el error en vez de su mensaje de vacio.
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   const [notes, setNotes] = useState<any[]>([]);
 
   // Pagination & Filters for List
@@ -45,28 +44,9 @@ export default function DeliveryNotesPage() {
   // conduces", que es cuantos caben, no cuantos hay (lote 131).
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 15;
-  const [searchTerm, setSearchTerm] = useState('');
 
   // Creation Flow
   const [showForm, setShowForm] = useState(false);
-  const [deliveryDate, setDeliveryDate] = useState(new Date().toISOString().split('T')[0]);
-  const [driverName, setDriverName] = useState('');
-  const [driverLicense, setDriverLicense] = useState('');
-  const [vehiclePlate, setVehiclePlate] = useState('');
-  const [dispatcherName, setDispatcherName] = useState('');
-  const [notesText, setNotesText] = useState('');
-
-  // Target Invoice
-  const [applyCode, setApplyCode] = useState('');
-  const [applying, setApplying] = useState(false);
-  const [showInvoiceSearch, setShowInvoiceSearch] = useState(false);
-  const [invoiceSearchQuery, setInvoiceSearchQuery] = useState('');
-  const [invoicesList, setInvoicesList] = useState<any[]>([]);
-  const [invoicesLoading, setInvoicesLoading] = useState(false);
-  const [targetInvoice, setTargetInvoice] = useState<any>(null);
-
-  // Line dispatches
-  const [dispatchLines, setDispatchLines] = useState<any[]>([]);
 
   // Load Conduces List
   const loadDeliveryNotes = useCallback(async () => {
@@ -97,203 +77,21 @@ export default function DeliveryNotesPage() {
     }
   }, [page]);
 
-  const handleApplyCode = async () => {
-    if (!applyCode.trim()) {
-      toast.error('Debe ingresar un código de factura o conduce.');
-      return;
-    }
-    setApplying(true);
-    try {
-      const res = await fetch('/api/v1/delivery-notes/apply-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: applyCode }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        if (data.alreadyApproved) {
-          toast.warning(data.message || 'El conduce ya está aprobado.');
-        } else {
-          toast.success(data.message || 'Código aplicado con éxito.');
-        }
-        setApplyCode('');
-        // Refresh delivery notes list
-        loadDeliveryNotes();
-      } else {
-        toast.error(data.error?.message || 'Error al aplicar el código.');
-      }
-    } catch (error) {
-      toast.error('Error de red al aplicar el código.');
-    } finally {
-      setApplying(false);
-    }
-  };
-
   useEffect(() => {
     loadDeliveryNotes();
   }, [loadDeliveryNotes]);
 
-  // Search for accepted invoices with pending or partial delivery status
-  const handleSearchInvoices = async () => {
-    setInvoicesLoading(true);
-    try {
-      // Fetch current delivery notes to check for drafts
-      const dRes = await fetch(`/api/v1/delivery-notes?per_page=100`);
-      const dData = await dRes.json();
-      const draftInvoiceIds = new Set<string>();
-      if (dData.success) {
-        (dData.data || []).forEach((dn: any) => {
-          if (dn.status === 'draft') {
-            draftInvoiceIds.add(dn.invoiceId);
-          }
-        });
-      }
-
-      // Fetch invoices (without forcing accepted status, we will filter in frontend to allow signed/submitted too)
-      const res = await fetch(`/api/v1/ecf?q=${encodeURIComponent(invoiceSearchQuery)}&per_page=50`);
-      const data = await res.json();
-      if (data.success) {
-        // Filter out credit notes (34) and check deliveryStatus, only show active invoices (accepted, signed, submitted)
-        // Also exclude invoices that already have a draft delivery note
-        const validInvoices = (data.data || []).filter(
-          (inv: any) =>
-            inv.ecfType !== '34' &&
-            ['accepted', 'signed', 'submitted'].includes(inv.status) &&
-            (inv.deliveryStatus === 'pending' || inv.deliveryStatus === 'partial') &&
-            !draftInvoiceIds.has(inv.id)
-        );
-        setInvoicesList(validInvoices);
-      }
-    } catch (err) {
-      toast.error('Error al buscar facturas.');
-    } finally {
-      setInvoicesLoading(false);
-    }
-  };
-
-  const handleSelectInvoice = async (inv: any) => {
-    try {
-      toast.info('Cargando líneas y cantidades despachadas...');
-      const res = await fetch(`/api/v1/invoices/${inv.id}`);
-      const data = await res.json();
-      if (data.success) {
-        const fullInvoice = data.data;
-
-        // Fetch already approved delivery notes to calculate delivered quantities
-        const dRes = await fetch(`/api/v1/delivery-notes?per_page=100`);
-        const dData = await dRes.json();
-        const deliveredMap: Record<string, number> = {};
-
-        if (dData.success) {
-          const approvedNotes = (dData.data || []).filter(
-            (dn: any) => dn.invoiceId === inv.id && dn.status === 'approved'
-          );
-
-          // Get detail lines for each approved note to sum up
-          for (const an of approvedNotes) {
-            const linesRes = await fetch(`/api/v1/delivery-notes/${an.id}`);
-            const linesData = await linesRes.json();
-            if (linesData.success && linesData.data?.lines) {
-              for (const l of linesData.data.lines) {
-                deliveredMap[l.productId] = (deliveredMap[l.productId] || 0) + Number(l.quantity);
-              }
-            }
-          }
-        }
-
-        setTargetInvoice(fullInvoice);
-        // Map lines
-        const linesMap = fullInvoice.lines.map((l: any) => {
-          const invQty = Number(l.quantity);
-          const prevQty = deliveredMap[l.productId] || 0;
-          const pendingQty = Math.max(0, invQty - prevQty);
-
-          return {
-            productId: l.productId,
-            productName: l.productName,
-            invoicedQty: invQty,
-            previouslyDelivered: prevQty,
-            pendingQty: pendingQty,
-            quantity: pendingQty, // Default to dispatch all remaining
-          };
-        });
-
-        setDispatchLines(linesMap);
-        setShowInvoiceSearch(false);
-        toast.success(`Factura ${inv.ncf} seleccionada.`);
-      }
-    } catch (err) {
-      toast.error('Error al cargar los detalles de la factura.');
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!targetInvoice) {
-      toast.error('Debe seleccionar una factura de referencia.');
-      return;
-    }
-    if (dispatchLines.every((l) => l.quantity <= 0)) {
-      toast.error('Debe despachar una cantidad mayor a cero en al menos un producto.');
-      return;
-    }
-
-    // Verify limit validation
-    for (const line of dispatchLines) {
-      if (line.quantity > line.pendingQty) {
-        toast.error(`No puede despachar más de la cantidad pendiente para: ${line.productName}`);
-        return;
-      }
-    }
-
-    setSubmitting(true);
-    try {
-      const payload = {
-        invoiceId: targetInvoice.id,
-        deliveryDate,
-        driverName,
-        driverLicense,
-        vehiclePlate,
-        dispatcherName,
-        notes: notesText,
-        lines: dispatchLines
-          .filter((l) => l.quantity > 0)
-          .map((l) => ({
-            productId: l.productId,
-            quantity: l.quantity,
-          })),
-      };
-
-      const res = await fetch('/api/v1/delivery-notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || 'Error al guardar conduce.');
-      }
-
-      toast.success('Borrador de conduce creado correctamente.', {
-        description: `Código: ${data.data.deliveryNumber}`,
-      });
-
-      // Reset Form State
+  const formulario = useFormularioConduce({
+    onCreado: () => {
       setShowForm(false);
-      setTargetInvoice(null);
-      setDispatchLines([]);
-      setDriverName('');
-      setDriverLicense('');
-      setVehiclePlate('');
-      setDispatcherName('');
-      setNotesText('');
       loadDeliveryNotes();
-    } catch (err: any) {
-      toast.error('Error al crear conduce', { description: err.message });
-    } finally {
-      setSubmitting(false);
-    }
+    },
+  });
+
+  /** "Volver al listado" y "Cancelar": como antes, solo se suelta la factura. */
+  const salirDelFormulario = () => {
+    setShowForm(false);
+    formulario.descartarFactura();
   };
 
   // Approve Conduce (Exits stock)
@@ -400,38 +198,7 @@ export default function DeliveryNotesPage() {
                 </div>
 
                 {/* Quick Action: Apply Delivery Note or Invoice Stock Deduction */}
-                <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-[#c5a059]/10 p-3 rounded-lg text-[#c5a059]">
-                      <Truck className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <h3 className="text-md font-bold text-slate-900">Aplicar Despacho por Código</h3>
-                      <p className="text-xs text-slate-500">Digita el NCF de la factura o el código de conduce para aprobar y descontar stock automáticamente.</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3 items-stretch md:items-center w-full md:w-auto">
-                    <input
-                      type="text"
-                      placeholder="Ej: E310000000001 o CON-2026-000001"
-                      value={applyCode}
-                      onChange={(e) => setApplyCode(e.target.value)}
-                      className="h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors w-full sm:w-80 font-mono"
-                    />
-                    <button
-                      onClick={handleApplyCode}
-                      disabled={applying}
-                      className="bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] font-bold h-8 px-3 py-1.5 rounded-lg shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 text-xs shrink-0 disabled:opacity-50"
-                    >
-                      {applying ? (
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <FileCheck className="h-4 w-4" />
-                      )}
-                      <span>Aplicar Despacho</span>
-                    </button>
-                  </div>
-                </div>
+                <AplicarPorCodigo onAplicado={loadDeliveryNotes} />
 
                 {/* Table list */}
                 <div className="bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
@@ -447,97 +214,13 @@ export default function DeliveryNotesPage() {
                       <span className="text-sm">No se encontraron conduces registrados.</span>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left">
-                        <thead className="bg-slate-50/80 border-b border-slate-200">
-                          <tr>
-                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Número</th>
-                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Fecha Entrega</th>
-                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Chofer</th>
-                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Placa</th>
-                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Estado</th>
-                            <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {notes.map((note) => (
-                            <tr key={note.id} className="hover:bg-[#C5A059]/5 transition-colors group">
-                              <td className="px-4 py-2.5 align-middle text-xs font-mono font-bold text-slate-800">
-                                {note.deliveryNumber}
-                              </td>
-                              <td className="px-4 py-2.5 align-middle text-xs text-slate-600">
-                                {formatDateDisplay(note.deliveryDate)}
-                              </td>
-                              <td className="px-4 py-2.5 align-middle text-xs text-slate-700 font-semibold">
-                                {note.driverName || 'N/A'}
-                              </td>
-                              <td className="px-4 py-2.5 align-middle text-xs font-mono text-slate-500">
-                                {note.vehiclePlate || 'N/A'}
-                              </td>
-                              <td className="px-4 py-2.5 align-middle text-center">
-                                <span
-                                  className={clsx(
-                                    "inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-0.5 rounded border",
-                                    note.status === 'approved' && "bg-emerald-50 text-emerald-700 border-emerald-100",
-                                    note.status === 'draft' && "bg-amber-50 text-amber-700 border-amber-100",
-                                    note.status === 'voided' && "bg-rose-50 text-rose-700 border-rose-100"
-                                  )}
-                                >
-                                  {note.status === 'approved' ? 'Despachado' : note.status === 'draft' ? 'Borrador' : 'Anulado'}
-                                </span>
-                              </td>
-                              <td className="px-4 py-2.5 align-middle text-right">
-                                <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button
-                                    type="button"
-                                    onClick={() => visor.abrir(note.id)}
-                                    className="p-1.5 hover:bg-slate-50 rounded text-slate-600 transition-colors"
-                                    title="Ver Conduce"
-                                    aria-label={`Ver conduce ${note.deliveryNumber}`}
-                                  >
-                                    <Eye className="h-3.5 w-3.5" />
-                                  </button>
-                                  <button
-                                    onClick={() => handlePrintNote(note.id)}
-                                    className="p-1.5 hover:bg-slate-50 rounded text-slate-600 transition-colors"
-                                    title="Imprimir Conduce"
-                                  >
-                                    <Printer className="h-3.5 w-3.5" />
-                                  </button>
-                                  {note.status === 'draft' && (
-                                    <>
-                                      <button
-                                        onClick={() => handleApproveNote(note.id)}
-                                        className="p-1.5 hover:bg-emerald-50 rounded text-emerald-600 transition-colors"
-                                        title="Aprobar y Despachar Inventario"
-                                      >
-                                        <Check className="h-3.5 w-3.5" />
-                                      </button>
-                                      <button
-                                        onClick={() => handleVoidNote(note.id)}
-                                        className="p-1.5 hover:bg-rose-50 rounded text-rose-600 transition-colors"
-                                        title="Eliminar Borrador"
-                                      >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </button>
-                                    </>
-                                  )}
-                                  {note.status === 'approved' && (
-                                    <button
-                                      onClick={() => handleVoidNote(note.id)}
-                                      className="p-1.5 hover:bg-rose-50 rounded text-rose-600 transition-colors"
-                                      title="Anular y Revertir Inventario"
-                                    >
-                                      <ShieldAlert className="h-4 w-4" />
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    <TablaDeConduces
+                      notes={notes}
+                      onVer={visor.abrir}
+                      onImprimir={handlePrintNote}
+                      onAprobar={handleApproveNote}
+                      onAnular={handleVoidNote}
+                    />
                   )}
 
                   {/* Paginacion: el componente comun (P3-45, lote 131) */}
@@ -561,202 +244,7 @@ export default function DeliveryNotesPage() {
                 exit={{ opacity: 0, y: -15 }}
                 className="space-y-6"
               >
-                <div>
-                  <button
-                    onClick={() => {
-                      setShowForm(false);
-                      setTargetInvoice(null);
-                      setDispatchLines([]);
-                    }}
-                    className="flex items-center gap-1 text-xs font-semibold text-[#C5A059] hover:underline mb-2"
-                  >
-                    <ArrowLeft className="h-4 w-4" /> Volver al listado
-                  </button>
-                  <h2 className="text-2xl font-bold text-[#003366]">Nuevo Conduce de Entrega</h2>
-                  <p className="text-slate-500 text-sm">Registre un nuevo despacho de mercancías sobre una factura existente.</p>
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Select Invoice & Driver */}
-                  <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2 flex flex-col justify-end">
-                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Factura Relacionada</label>
-                        {targetInvoice ? (
-                          <div className="flex items-center justify-between border border-emerald-200 bg-emerald-50/50 rounded-xl px-4 py-2.5">
-                            <div>
-                              <div className="text-xs font-bold text-emerald-800 font-mono">NCF: {targetInvoice.ncf}</div>
-                              <div className="text-[11px] text-slate-500">{targetInvoice.buyerName || 'Consumidor Final'}</div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setTargetInvoice(null);
-                                setDispatchLines([]);
-                              }}
-                              className="text-xs text-rose-600 font-bold hover:underline"
-                            >
-                              Cambiar Factura
-                            </button>
-                          </div>
-                        ) : (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setShowInvoiceSearch(true);
-                              handleSearchInvoices();
-                            }}
-                            className="w-full h-8 text-xs font-semibold text-[#003366] dark:text-[#C5A059] border-dashed border-[#003366]/40 hover:border-[#003366] hover:bg-[#003366]/5 transition gap-1.5 justify-center cursor-pointer"
-                          >
-                            <FileText className="h-3.5 w-3.5 text-[#C5A059]" />
-                            <span>Vincular Factura Afectada</span>
-                          </Button>
-                        )}
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="block text-xs font-semibold text-[#001e40]">Fecha de Despacho</label>
-                        <input
-                          type="date"
-                          required
-                          value={deliveryDate}
-                          onChange={(e) => setDeliveryDate(e.target.value)}
-                          className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                      <div className="space-y-1">
-                        <label className="block text-xs font-semibold text-[#001e40]">Nombre del Chofer</label>
-                        <input
-                          type="text"
-                          placeholder="Ej. Juan Pérez"
-                          value={driverName}
-                          onChange={(e) => setDriverName(e.target.value)}
-                          className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="block text-xs font-semibold text-[#001e40]">Licencia Chofer</label>
-                        <input
-                          type="text"
-                          placeholder="001-0000000-0"
-                          value={driverLicense}
-                          onChange={(e) => setDriverLicense(e.target.value)}
-                          className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="block text-xs font-semibold text-[#001e40]">Placa del Vehículo</label>
-                        <input
-                          type="text"
-                          placeholder="L123456"
-                          value={vehiclePlate}
-                          onChange={(e) => setVehiclePlate(e.target.value)}
-                          className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="block text-xs font-semibold text-[#001e40]">Responsable Despacho</label>
-                        <input
-                          type="text"
-                          placeholder="Firma autorizada"
-                          value={dispatcherName}
-                          onChange={(e) => setDispatcherName(e.target.value)}
-                          className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Line dispatch checklist */}
-                  {targetInvoice && (
-                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                      <div className="bg-slate-50 border-b border-slate-100 px-4 py-3">
-                        <span className="font-bold text-slate-800 text-sm flex items-center gap-2">
-                          <Package className="w-4 h-4 text-[#003366]" /> Líneas de Despacho Físico
-                        </span>
-                      </div>
-                      <div className="p-4">
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead>
-                              <tr className="bg-slate-50/80 border-b border-slate-200">
-                                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-left">Artículo / Servicio</th>
-                                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Facturado</th>
-                                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Entregado Ant.</th>
-                                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Pendiente</th>
-                                <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Despachar Hoy</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                              {dispatchLines.map((line, idx) => (
-                                <tr key={`${line.productId}-${idx}`} className="group">
-                                  <td className="px-4 py-2.5 font-medium text-slate-800 text-xs">{line.productName}</td>
-                                  <td className="px-4 py-2.5 text-center text-slate-500 text-xs">{line.invoicedQty}</td>
-                                  <td className="px-4 py-2.5 text-center text-slate-500 text-xs">{line.previouslyDelivered}</td>
-                                  <td className="px-4 py-2.5 text-center text-indigo-600 font-bold text-xs">{line.pendingQty}</td>
-                                  <td className="px-4 py-2.5 text-center">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      max={line.pendingQty}
-                                      value={line.quantity}
-                                      onChange={(e) => {
-                                        const val = Math.min(Number(e.target.value), line.pendingQty);
-                                        const updated = [...dispatchLines];
-                                        updated[idx].quantity = val;
-                                        setDispatchLines(updated);
-                                      }}
-                                      className="w-20 text-center h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
-                                    />
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-
-                        {/* Notes / Observaciones */}
-                        <div className="border-t border-slate-100 pt-6 mt-6">
-                          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Observaciones Contables / Notas de Entrega</label>
-                          <textarea
-                            rows={3}
-                            value={notesText}
-                            onChange={(e) => setNotesText(e.target.value)}
-                            placeholder="Ingrese notas particulares del chofer, dirección detallada, condiciones de la mercancía, etc."
-                            className="w-full border border-slate-200 rounded-xl p-3 text-xs outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Form Actions */}
-                  <div className="flex justify-end gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowForm(false);
-                        setTargetInvoice(null);
-                        setDispatchLines([]);
-                      }}
-                      className="border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold h-8 px-3 py-1.5 rounded-lg text-xs transition"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={submitting || !targetInvoice}
-                      className="bg-[#003366] hover:bg-[#002244] text-white font-bold h-8 px-3 py-1.5 rounded-lg shadow-md transition flex items-center gap-2 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Registrar Conduce
-                    </button>
-                  </div>
-                </form>
+                <FormularioDeConduce formulario={formulario} onSalir={salirDelFormulario} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -764,79 +252,7 @@ export default function DeliveryNotesPage() {
       </div>
 
       {/* MODAL: Invoice Search Popup */}
-      <AnimatePresence>
-        {showInvoiceSearch && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-xl w-full overflow-hidden"
-            >
-              <div className="bg-[#003366] text-white px-4 py-3 flex items-center justify-between">
-                <h3 className="font-bold flex items-center gap-2 text-base">
-                  <FileText className="w-5 h-5 text-[#C5A059]" /> Buscar Facturas Pendientes de Despacho
-                </h3>
-                <button
-                  onClick={() => setShowInvoiceSearch(false)}
-                  className="hover:bg-white/10 p-1.5 rounded-full transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="p-4 space-y-4">
-                <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Búsqueda por NCF, Cliente o RNC..."
-                      value={invoiceSearchQuery}
-                      onChange={(e) => setInvoiceSearchQuery(e.target.value)}
-                      className="flex-1 h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
-                    />
-                  <Button
-                    onClick={handleSearchInvoices}
-                    variant="primary"
-                    size="sm"
-                    className="cursor-pointer"
-                  >
-                    Buscar
-                  </Button>
-                </div>
-
-                <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-xl">
-                  {invoicesLoading ? (
-                    <div className="flex justify-center py-12">
-                      <RefreshCw className="h-6 w-6 animate-spin text-[#C5A059]" />
-                    </div>
-                  ) : invoicesList.length === 0 ? (
-                    <div className="py-12 text-center text-slate-400 text-sm">
-                      Busque facturas aceptadas con despachos pendientes (e-31, e-32, e-45).
-                    </div>
-                  ) : (
-                    invoicesList.map((inv) => (
-                      <div
-                        key={inv.id}
-                        onClick={() => handleSelectInvoice(inv)}
-                        className="p-4 hover:bg-slate-50 transition-colors flex justify-between items-center cursor-pointer group"
-                      >
-                        <div>
-                          <div className="font-mono font-bold text-xs text-[#003366]">{inv.ncf}</div>
-                          <div className="text-xs font-semibold text-slate-800">{inv.buyerName || 'Consumidor Final'}</div>
-                          <div className="text-[10px] text-slate-500">Monto: RD$ {Number(inv.total).toLocaleString('es-DO')}</div>
-                        </div>
-                        <span className="text-xs font-bold text-[#C5A059] group-hover:underline flex items-center gap-1">
-                          Vincular <Check className="w-3.5 h-3.5" />
-                        </span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      <BuscadorDeFacturas formulario={formulario} />
 
       <VerConduce visor={visor} onDespachado={loadDeliveryNotes} />
     </>

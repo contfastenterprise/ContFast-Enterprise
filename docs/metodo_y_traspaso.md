@@ -955,6 +955,39 @@ Además, fuera de la tabla:
   y al volver a `main` git la reescribió en CRLF y el banco cayó **sin que cambiara una
   línea**. Ahora `\r?\n`, comprobado con un mutante (sin el filtro de modo sigue
   fallando). **Regla**: en un banco, un salto de línea dentro de una expresión es `\r?\n`.
+- **Lote 226: la página de conduces, partida en componentes sin cambiar lo que hace.**
+  Pedido del dueño. `delivery-notes/page.tsx` tenía **844 líneas** (React Doctor:
+  complejidad alta, componente gigante). Queda en la página la **lista** — cargarla, su
+  error, aprobar y anular con su confirmación, la paginación: lo que anclan
+  `verificar_p2_33`, `p2_37` y `paginacion_comun_lote4`, que no se movieron — y salen
+  `AplicarPorCodigo`, `TablaDeConduces`, `FormularioDeConduce`, `BuscadorDeFacturas` y el
+  hook `useFormularioConduce` (página 261 líneas, ninguna pieza pasa de 240).
+  **La trampa que un refactor podía esconder**: lo escrito en el alta (chofer, placa,
+  fecha) **sobrevivía a cancelar** — solo se soltaban la factura y sus líneas —. Con el
+  estado dentro del formulario se perdería al desmontarlo; por eso el estado es un hook
+  que crea la **página** y el formulario solo pinta.
+  **Cómo se demostró que no cambió nada visible**: `verificar_partir_conduces.ts` extrae
+  de la página de antes (`a7b763c`) y de los ficheros de ahora las clases, textos,
+  `placeholder`, `title`, avisos y direcciones de la API — **216** — y exige que coincidan
+  uno por uno (invariante, código 3). Tres mutantes que cambian **una** clase, **un**
+  aviso o **un** texto lo rompen. Contraprueba 7 FALLA, ocho mutantes y ocho muertos.
+  Re-anclados a `TablaDeConduces`: `verificar_fechas_pantallas` (la fecha de entrega) y
+  `verificar_ver_conduce` (el ojo). De paso fuera `searchTerm` (se declaraba y nadie lo
+  leía) y los imports que no se usaban.
+  **React Doctor, medido en local**: se va la complejidad; quedan **las mismas** 36
+  advertencias que tenía la página vieja (37 antes), ahora en otros ficheros —
+  accesibilidad de etiquetas y respuestas leídas sin mirar el estado, sobre todo —. En el
+  PR salen como "nuevas" porque el código cambió de sitio; arreglarlas cambia
+  comportamiento y va aparte.
+  **El barrido se hizo en un `git worktree`** (el dueño tenía el `next dev` levantado y
+  `build` no puede compartir su `.next`). Salieron tres rojos: dos, los falsos conocidos
+  de un worktree (`gancho_y_compras`, `p3_48`), verdes en la carpeta; y el tercero,
+  **`verificar_grupo_i`, uno de verdad del banco**: la misma trampa del 225 (`\n` a pelo
+  en una expresión) sobre `inventoryService.ts`, que en una copia **recién sacada** sale en
+  CRLF. En la carpeta del dueño el fichero está en LF y pasaba; en el primer ordenador que
+  clonara el proyecto, fallaría. Ahora `\r?\n`, comprobado en las dos copias y con un
+  mutante sobre la CRLF. **El worktree sirve justo para esto**: es la única forma de correr
+  los bancos sobre una copia limpia.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2144,5 +2177,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 225 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 226 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
