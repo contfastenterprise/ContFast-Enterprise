@@ -110,16 +110,20 @@ async function main() {
   //  LOTE 225: las respuestas se leen con `leerRespuesta`, que mira el ESTADO
   //  antes de consumir el cuerpo (aviso de React Doctor): antes se hacia
   //  `r.json()` y DESPUES se miraba `r.ok`.
+  //  LOTE 227: el lector sube a `src/utils/leerRespuesta.ts`, compartido con el
+  //  resto de la pantalla. Lo vigilado no cambia: el estado se mira antes del
+  //  cuerpo, y el visor no lee ninguna respuesta por su cuenta.
+  const util = sinComentarios(leer('src/utils/leerRespuesta.ts'));
   const lector = (() => {
-    const i = visor.indexOf('async function leerRespuesta');
-    return i < 0 ? '' : visor.slice(i, visor.indexOf('\n}\n', i));
+    const i = util.indexOf('export async function leerRespuesta');
+    return i < 0 ? '' : util.slice(i);
   })();
   ok('las respuestas se leen mirando el estado ANTES del cuerpo',
-    lector !== '' && lector.indexOf('if (!r.ok) {') > -1
-    && lector.indexOf('if (!r.ok) {') < lector.indexOf('r.json()')
-    && /cuerpo\?\.success \?/.test(lector));
+    lector !== '' && lector.indexOf('if (!res.ok) {') > -1
+    && lector.indexOf('if (!res.ok) {') < lector.indexOf('res.json()')
+    && /cuerpo\?\.success\s*\?/.test(lector));
   ok('  y ninguna llamada consume la respuesta por su cuenta',
-    (visor.match(/r\.json\(\)/g) ?? []).length === 2 && lector.includes('r.json()')
+    !/\.json\(\)/.test(visor) && /import \{ leerRespuesta \} from '@\/utils\/leerRespuesta';/.test(visor)
     && (visor.match(/await leerRespuesta</g) ?? []).length === 2);
   ok('  llama a la ruta del reparto y solo se fia de una respuesta buena',
     /\/despachar-disponible`, \{ method: 'POST' \}/.test(visor) && /if \(leido\.bien\) \{\s*toast\.success\(leido\.cuerpo\.message\)/.test(visor));

@@ -15,7 +15,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, RefreshCw, Truck } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
-import { motion, AnimatePresence } from 'framer-motion';
+//  Lote 227: `m` dentro de `LazyMotion` y no `motion` (aviso de React Doctor):
+//  las animaciones cargan solo lo que usan.
+import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
@@ -25,6 +27,12 @@ import { TablaDeConduces } from './components/TablaDeConduces';
 import { FormularioDeConduce } from './components/FormularioDeConduce';
 import { BuscadorDeFacturas } from './components/BuscadorDeFacturas';
 import { useFormularioConduce } from './hooks/useFormularioConduce';
+import { leerRespuesta } from '@/utils/leerRespuesta';
+
+/** Imprimir no depende de nada del componente (lote 227: al ambito del modulo). */
+function imprimirConduce(noteId: string) {
+  window.open(`/api/v1/delivery-notes/${noteId}/print`, '_blank');
+}
 
 export default function DeliveryNotesPage() {
   const confirm = useConfirm();
@@ -58,14 +66,14 @@ export default function DeliveryNotesPage() {
         per_page: String(itemsPerPage),
       });
       const res = await fetch(`/api/v1/delivery-notes?${params.toString()}`);
-      const data = await res.json();
-      if (data.success) {
-        setNotes(data.data || []);
-        setTotalPages(data.meta?.total_pages || 1);
-        setTotalItems(data.meta?.total || 0);
+      const leido = await leerRespuesta<{ data: any[]; meta?: { total_pages?: number; total?: number } }>(res);
+      if (leido.bien) {
+        setNotes(leido.cuerpo.data || []);
+        setTotalPages(leido.cuerpo.meta?.total_pages || 1);
+        setTotalItems(leido.cuerpo.meta?.total || 0);
       } else {
         setNotes([]);
-        setErrorCarga(motivoDeCarga(null, data.error?.message));
+        setErrorCarga(motivoDeCarga(null, leido.mensaje));
         toast.error('Error al cargar conduces');
       }
     } catch (err) {
@@ -109,14 +117,14 @@ export default function DeliveryNotesPage() {
       const res = await fetch(`/api/v1/delivery-notes/${noteId}/approve`, {
         method: 'POST',
       });
-      const data = await res.json();
+      const leido = await leerRespuesta<{ message?: string }>(res);
       toast.dismiss();
 
-      if (data.success) {
-        toast.success(data.message || 'Conduce aprobado correctamente.');
+      if (leido.bien) {
+        toast.success(leido.cuerpo.message || 'Conduce aprobado correctamente.');
         loadDeliveryNotes();
       } else {
-        toast.error(data.error?.message || 'Error al aprobar conduce.');
+        toast.error(leido.mensaje || 'Error al aprobar conduce.');
       }
     } catch (err: any) {
       toast.dismiss();
@@ -140,14 +148,14 @@ export default function DeliveryNotesPage() {
       const res = await fetch(`/api/v1/delivery-notes/${noteId}`, {
         method: 'DELETE',
       });
-      const data = await res.json();
+      const leido = await leerRespuesta<{ message?: string }>(res);
       toast.dismiss();
 
-      if (data.success) {
-        toast.success(data.message || 'Conduce anulado correctamente.');
+      if (leido.bien) {
+        toast.success(leido.cuerpo.message || 'Conduce anulado correctamente.');
         loadDeliveryNotes();
       } else {
-        toast.error(data.error?.message || 'Error al anular conduce.');
+        toast.error(leido.mensaje || 'Error al anular conduce.');
       }
     } catch (err: any) {
       toast.dismiss();
@@ -155,12 +163,8 @@ export default function DeliveryNotesPage() {
     }
   };
 
-  const handlePrintNote = (noteId: string) => {
-    window.open(`/api/v1/delivery-notes/${noteId}/print`, '_blank');
-  };
-
   return (
-    <>
+    <LazyMotion features={domAnimation}>
       <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
         {/* Header Ribbon */}
         <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center shadow-inner">
@@ -173,7 +177,7 @@ export default function DeliveryNotesPage() {
           <AnimatePresence mode="wait">
             {!showForm ? (
               /* LIST VIEW */
-              <motion.div
+              <m.div
                 key="list"
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -217,7 +221,7 @@ export default function DeliveryNotesPage() {
                     <TablaDeConduces
                       notes={notes}
                       onVer={visor.abrir}
-                      onImprimir={handlePrintNote}
+                      onImprimir={imprimirConduce}
                       onAprobar={handleApproveNote}
                       onAnular={handleVoidNote}
                     />
@@ -234,10 +238,10 @@ export default function DeliveryNotesPage() {
                     hideControlsWhenSinglePage
                   />
                 </div>
-              </motion.div>
+              </m.div>
             ) : (
               /* CREATION FLOW */
-              <motion.div
+              <m.div
                 key="form"
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -245,7 +249,7 @@ export default function DeliveryNotesPage() {
                 className="space-y-6"
               >
                 <FormularioDeConduce formulario={formulario} onSalir={salirDelFormulario} />
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>
@@ -255,6 +259,6 @@ export default function DeliveryNotesPage() {
       <BuscadorDeFacturas formulario={formulario} />
 
       <VerConduce visor={visor} onDespachado={loadDeliveryNotes} />
-    </>
+    </LazyMotion>
   );
 }

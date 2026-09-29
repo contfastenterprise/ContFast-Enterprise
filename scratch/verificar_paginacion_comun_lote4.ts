@@ -65,7 +65,10 @@ for (const t of TRAMO) {
   const src = codigo(t.f);
   ok(`${t.etiqueta}: guarda el total que manda la API`,
      new RegExp(`const \\[${t.items}, set${t.items[0].toUpperCase()}${t.items.slice(1)}\\] = useState\\(0\\);`).test(src)
-     && new RegExp(`set${t.items[0].toUpperCase()}${t.items.slice(1)}\\(data\\.meta\\?\\.total \\|\\| 0\\);`).test(src));
+     //  Lote 227: conduces lee la respuesta con `leerRespuesta` (mira el estado
+     //  antes del cuerpo), y el total llega en `leido.cuerpo`. Lo vigilado no
+     //  cambia: que el total de la API se guarde.
+     && new RegExp(`set${t.items[0].toUpperCase()}${t.items.slice(1)}\\((?:data|leido\\.cuerpo)\\.meta\\?\\.total \\|\\| 0\\);`).test(src));
   ok(`${t.etiqueta}: el tamano de pagina, en una constante que tambien se pide`,
      new RegExp(`const itemsPerPage = ${t.tam};`).test(src)
      && (src.includes('per_page: String(itemsPerPage),') || src.includes('per_page=${itemsPerPage}')));

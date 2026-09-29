@@ -14,10 +14,12 @@
  */
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { leerRespuesta } from '@/utils/leerRespuesta';
 
 export function useFormularioConduce({ onCreado }: { onCreado: () => void }) {
   const [submitting, setSubmitting] = useState(false);
-  const [deliveryDate, setDeliveryDate] = useState(new Date().toISOString().split('T')[0]);
+  //  Lote 227: inicializacion perezosa; la fecha no se recalcula en cada render.
+  const [deliveryDate, setDeliveryDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [driverName, setDriverName] = useState('');
   const [driverLicense, setDriverLicense] = useState('');
   const [vehiclePlate, setVehiclePlate] = useState('');
@@ -55,10 +57,10 @@ export function useFormularioConduce({ onCreado }: { onCreado: () => void }) {
     try {
       // Fetch current delivery notes to check for drafts
       const dRes = await fetch(`/api/v1/delivery-notes?per_page=100`);
-      const dData = await dRes.json();
+      const dData = await leerRespuesta<{ data: any[] }>(dRes);
       const draftInvoiceIds = new Set<string>();
-      if (dData.success) {
-        (dData.data || []).forEach((dn: any) => {
+      if (dData.bien) {
+        (dData.cuerpo.data || []).forEach((dn: any) => {
           if (dn.status === 'draft') {
             draftInvoiceIds.add(dn.invoiceId);
           }
@@ -67,8 +69,9 @@ export function useFormularioConduce({ onCreado }: { onCreado: () => void }) {
 
       // Fetch invoices (without forcing accepted status, we will filter in frontend to allow signed/submitted too)
       const res = await fetch(`/api/v1/ecf?q=${encodeURIComponent(invoiceSearchQuery)}&per_page=50`);
-      const data = await res.json();
-      if (data.success) {
+      const leido = await leerRespuesta<{ data: any[] }>(res);
+      if (leido.bien) {
+        const data = leido.cuerpo;
         // Filter out credit notes (34) and check deliveryStatus, only show active invoices (accepted, signed, submitted)
         // Also exclude invoices that already have a draft delivery note
         const validInvoices = (data.data || []).filter(
@@ -96,26 +99,29 @@ export function useFormularioConduce({ onCreado }: { onCreado: () => void }) {
     try {
       toast.info('Cargando líneas y cantidades despachadas...');
       const res = await fetch(`/api/v1/invoices/${inv.id}`);
-      const data = await res.json();
-      if (data.success) {
-        const fullInvoice = data.data;
+      const leido = await leerRespuesta<{ data: any }>(res);
+      if (leido.bien) {
+        const fullInvoice = leido.cuerpo.data;
 
         // Fetch already approved delivery notes to calculate delivered quantities
         const dRes = await fetch(`/api/v1/delivery-notes?per_page=100`);
-        const dData = await dRes.json();
+        const dData = await leerRespuesta<{ data: any[] }>(dRes);
         const deliveredMap: Record<string, number> = {};
 
-        if (dData.success) {
-          const approvedNotes = (dData.data || []).filter(
+        if (dData.bien) {
+          const approvedNotes = (dData.cuerpo.data || []).filter(
             (dn: any) => dn.invoiceId === inv.id && dn.status === 'approved'
           );
 
-          // Get detail lines for each approved note to sum up
-          for (const an of approvedNotes) {
-            const linesRes = await fetch(`/api/v1/delivery-notes/${an.id}`);
-            const linesData = await linesRes.json();
-            if (linesData.success && linesData.data?.lines) {
-              for (const l of linesData.data.lines) {
+          // Get detail lines for each approved note to sum up.
+          // Lote 227: en paralelo y no uno detras de otro (aviso de React Doctor);
+          // la suma no depende del orden.
+          const detalles = await Promise.all(approvedNotes.map(async (an: any) =>
+            leerRespuesta<{ data?: { lines?: any[] } }>(await fetch(`/api/v1/delivery-notes/${an.id}`))
+          ));
+          for (const linesData of detalles) {
+            if (linesData.bien && linesData.cuerpo.data?.lines) {
+              for (const l of linesData.cuerpo.data.lines) {
                 deliveredMap[l.productId] = (deliveredMap[l.productId] || 0) + Number(l.quantity);
               }
             }
@@ -130,6 +136,9 @@ export function useFormularioConduce({ onCreado }: { onCreado: () => void }) {
           const pendingQty = Math.max(0, invQty - prevQty);
 
           return {
+            //  Lote 227: la clave de la fila. Una factura puede repetir producto,
+            //  asi que `productId` no basta; la linea tiene su propio id.
+            lineId: l.id,
             productId: l.productId,
             productName: l.productName,
             invoicedQty: invQty,
@@ -177,12 +186,10 @@ export function useFormularioConduce({ onCreado }: { onCreado: () => void }) {
         vehiclePlate,
         dispatcherName,
         notes: notesText,
-        lines: dispatchLines
-          .filter((l) => l.quantity > 0)
-          .map((l) => ({
-            productId: l.productId,
-            quantity: l.quantity,
-          })),
+        //  Lote 227: una sola pasada en vez de `filter` + `map`.
+        lines: dispatchLines.flatMap((l) => (l.quantity > 0
+          ? [{ productId: l.productId, quantity: l.quantity }]
+          : [])),
       };
 
       const res = await fetch('/api/v1/delivery-notes', {
@@ -191,13 +198,16 @@ export function useFormularioConduce({ onCreado }: { onCreado: () => void }) {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || 'Error al guardar conduce.');
+      //  Lote 227: con el lector compartido, como el resto de la pantalla. Esta ya
+      //  miraba `res.ok`, pero un 5xx con cuerpo que no es JSON hacia fallar
+      //  `res.json()` y se veia el error del analizador en vez del del servidor.
+      const leido = await leerRespuesta<{ data: { deliveryNumber: string } }>(res);
+      if (!leido.bien) {
+        throw new Error(leido.mensaje || 'Error al guardar conduce.');
       }
 
       toast.success('Borrador de conduce creado correctamente.', {
-        description: `Código: ${data.data.deliveryNumber}`,
+        description: `Código: ${leido.cuerpo.data.deliveryNumber}`,
       });
 
       // Reset Form State
