@@ -159,11 +159,14 @@ async function main() {
 
   console.log('\n7) El repositorio\n');
   const dr = fuente('src/repositories/deliveryRepository.ts');
-  ok('la numeracion filtra el entorno', /eq\(deliveryNotes\.modo, modo\),\n\s*like\(/.test(dr));
+  //  Lote 225: `\r?\n` y no `\n`. El fichero se guarda en LF y `.gitattributes`
+  //  lo saca en CRLF (`eol=crlf`): con `\n` a pelo el banco pasaba o fallaba segun
+  //  como estuviera la copia de la carpeta, no segun el codigo.
+  ok('la numeracion filtra el entorno', /eq\(deliveryNotes\.modo, modo\),\r?\n\s*like\(/.test(dr));
   ok('getByInvoiceId lo exige aunque no tenga llamadores',
     /getByInvoiceId\(\s*invoiceId: string,\s*companyId: string,\s*modo: 'PRODUCCION' \| 'PRUEBA'/.test(dr));
   ok('las sumas internas van acotadas por empresa',
-    (dr.match(/eq\(deliveryNotes\.companyId, companyId\),\n\s*eq\(deliveryNotes\.status, 'approved'\)/g) || []).length === 2);
+    (dr.match(/eq\(deliveryNotes\.companyId, companyId\),\r?\n\s*eq\(deliveryNotes\.status, 'approved'\)/g) || []).length === 2);
   ok('la ruta del listado pasa el entorno',
     /list\(auth\.companyId, auth\.modo, page, perPage\)/.test(
       fuente('src/app/api/v1/delivery-notes/route.ts')));
