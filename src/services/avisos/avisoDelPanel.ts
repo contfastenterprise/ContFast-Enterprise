@@ -35,6 +35,9 @@ export function severidadDeAviso(tipo: string): 'error' | 'warning' | 'info' {
   // Lote 176: una diferencia de arqueo es dinero que falta o que sobra y que
   // el mayor no refleja. No es un recordatorio: es un descuadre.
   if (tipo === 'invoice_rejected' || tipo === 'caja_con_diferencia') return 'error';
-  if (tipo === 'check_due' || tipo === 'caja_sin_cerrar' || tipo === 'declaracion_pendiente') return 'warning';
+  // Lote 221: un conduce sin despachar deja inventario y costo de venta sin
+  // reflejar la venta. No es un descuadre de dinero, pero tampoco un recordatorio.
+  if (tipo === 'check_due' || tipo === 'caja_sin_cerrar' || tipo === 'declaracion_pendiente'
+      || tipo === 'conduce_sin_despachar') return 'warning';
   return 'info';
 }
