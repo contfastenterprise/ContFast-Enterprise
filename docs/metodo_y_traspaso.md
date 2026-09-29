@@ -860,6 +860,23 @@ Además, fuera de la tabla:
   **El lote C del plan de mSeller se descarta por medición**: ni un solo fallo de
   comunicación en la historia (0 NCF reservados sin usar, 0 desenlaces desconocidos, 0
   HTTP).
+- **Lote 222: `validate=true` de mSeller se DESCARTA — hoy emite de verdad.** Era el E
+  del plan de prácticas de mSeller. Su documentación dice que `POST
+  /{entorno}/documentos-ecf?validate=true` solo valida ("NO se envía a la DGII y NO se
+  consume una secuencia") y contesta `{"valid": true, ...}`, aunque avisa de que *"no
+  está activada por defecto"*. **Medido el 2026-09-28 en TesteCF**, con autorización del
+  dueño y la petición guardada de la factura de PRUEBA E320000001014 (ya aceptada):
+  mSeller **ignoró el parámetro** y contestó como un envío real — `securityCode`,
+  `qr_url` y una **fecha de firma nueva** —, y la DGII de pruebas lo rechazó con *"La
+  combinación e-NCF y código de seguridad … ya han sido utilizados previamente"*. Sin
+  daño: entorno de pruebas, rechazado por repetido, y la factura sigue `accepted` en la
+  base (la sincronización solo consulta `submitted`); en mSeller/TesteCF quedó en
+  "Error". **Consecuencia: NO usar `validate=true` en PRODUCCIÓN** mientras mSeller no lo
+  active — emitiría un comprobante fiscal. Si algún día se quiere probar otra vez, se
+  prueba primero con un documento que **no pueda** emitirse (inválido a propósito), no
+  con uno real: ese fue el error de orden de esta medición.
+  Con esto, del plan de mSeller: A hecho (219), B hecho reducido (220), C descartado por
+  medición (221), D descartado por el dueño, E descartado aquí.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2049,5 +2066,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 221 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 222 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
