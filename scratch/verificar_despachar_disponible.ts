@@ -83,8 +83,9 @@ async function main() {
   }
 
   console.log('\n2) La confirmacion dice que queda pendiente\n');
-  let V: { pendienteSiSeDespachaLoDisponible?: (c: unknown) => string | null } = {};
-  try { V = await import('../src/app/dashboard/delivery-notes/components/VerConduce') as typeof V; } catch { V = {}; }
+  //  LOTE 225: el ayudante vive en `faltanteDelConduce.ts` (exportarlo desde el
+  //  fichero del componente estorbaba la recarga en caliente). Se lee de alli.
+  const V = F as unknown as { pendienteSiSeDespachaLoDisponible?: (c: unknown) => string | null };
   const E2 = ['nombra lo que queda y cuanto', 'sin boton en un despachado', 'sin boton si alcanza todo', 'sin boton si no alcanza nada'];
   if (!V.pendienteSiSeDespachaLoDisponible) falta(E2, 'no existe pendienteSiSeDespachaLoDisponible');
   else {
@@ -93,7 +94,10 @@ async function main() {
     const conduce = (estado: string, renglones: unknown[]) => ({ id: 'x', numero: 'CON-X', estado, fechaEntrega: null, factura: null, cliente: null, almacen: null, renglones });
     const p = V.pendienteSiSeDespachaLoDisponible;
     const texto = p(conduce('draft', [renglon('d', 'Dintel Caoba', 5, 1), renglon('j', 'Jamba Roble', 20, 24)]));
-    ok(E2[0], texto === 'Dintel Caoba: 4', String(texto));
+    //  Con DOS pendientes: con uno solo el separador no se usa, y un mutante que
+    //  lo cambiaba sobrevivia (lote 225).
+    const dos = p(conduce('draft', [renglon('d', 'Dintel Caoba', 5, 1), renglon('m', 'Marco Roble', 3, 1), renglon('j', 'Jamba Roble', 20, 24)]));
+    ok(E2[0], texto === 'Dintel Caoba: 4' && dos === 'Dintel Caoba: 4; Marco Roble: 2', `${texto} | ${dos}`);
     ok(E2[1], p(conduce('approved', [renglon('d', 'Dintel Caoba', 5, 1)])) === null);
     ok(E2[2], p(conduce('draft', [renglon('j', 'Jamba Roble', 20, 24)])) === null);
     ok(E2[3], p(conduce('draft', [renglon('d', 'Dintel Caoba', 5, 0)])) === null);
@@ -103,12 +107,29 @@ async function main() {
   const visor = sinComentarios(leer('src/app/dashboard/delivery-notes/components/VerConduce.tsx'));
   ok('el boton solo sale cuando tiene sentido, y pide confirmacion',
     /footer=\{pendiente \? \(/.test(visor) && /await confirm\(\{/.test(visor) && /if \(!ok\) return;/.test(visor));
-  ok('  llama a la ruta del reparto y mira r.ok antes de fiarse',
-    /\/despachar-disponible`, \{ method: 'POST' \}/.test(visor) && /if \(r\.ok && data\?\.success\) \{\s*toast\.success/.test(visor));
+  //  LOTE 225: las respuestas se leen con `leerRespuesta`, que mira el ESTADO
+  //  antes de consumir el cuerpo (aviso de React Doctor): antes se hacia
+  //  `r.json()` y DESPUES se miraba `r.ok`.
+  const lector = (() => {
+    const i = visor.indexOf('async function leerRespuesta');
+    return i < 0 ? '' : visor.slice(i, visor.indexOf('\n}\n', i));
+  })();
+  ok('las respuestas se leen mirando el estado ANTES del cuerpo',
+    lector !== '' && lector.indexOf('if (!r.ok) {') > -1
+    && lector.indexOf('if (!r.ok) {') < lector.indexOf('r.json()')
+    && /cuerpo\?\.success \?/.test(lector));
+  ok('  y ninguna llamada consume la respuesta por su cuenta',
+    (visor.match(/r\.json\(\)/g) ?? []).length === 2 && lector.includes('r.json()')
+    && (visor.match(/await leerRespuesta</g) ?? []).length === 2);
+  ok('  llama a la ruta del reparto y solo se fia de una respuesta buena',
+    /\/despachar-disponible`, \{ method: 'POST' \}/.test(visor) && /if \(leido\.bien\) \{\s*toast\.success\(leido\.cuerpo\.message\)/.test(visor));
   ok('  al terminar cierra y recarga la lista', /cerrar\(\);\s*onDespachado\(\);/.test(visor));
-  // Los dos avisos de React Doctor del lote 223.
-  ok('el conduce se pide al pulsar, no en un efecto; y se mira r.ok',
-    !/useEffect/.test(visor) && /if \(r\.ok && data\?\.success\) setConduce\(data\.data\)/.test(visor));
+  ok('el conduce se pide al pulsar, no en un efecto',
+    !/useEffect/.test(visor) && /if \(leido\.bien\) setConduce\(leido\.cuerpo\.data\)/.test(visor));
+  // El fichero del componente solo exporta componentes y el hook del visor.
+  const exportados = [...visor.matchAll(/export (?:async )?function (\w+)/g)].map((m) => m[1]);
+  ok('el fichero del visor solo exporta componentes y su hook',
+    exportados.length > 0 && exportados.every((n) => /^[A-Z]/.test(n) || /^use[A-Z]/.test(n)), exportados.join(', '));
   const ruta = sinComentarios(leer('src/app/api/v1/delivery-notes/[id]/despachar-disponible/route.ts'));
   ok('la ruta exige el permiso de aprobar (facturacion:write)',
     /enforcePermission\(auth\.userId, auth\.role, auth\.roleId, auth\.companyId, 'facturacion', 'write'\)/.test(ruta)

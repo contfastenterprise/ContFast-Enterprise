@@ -291,3 +291,24 @@ export function sePuedeDespacharEnParte(renglones: RenglonDelConduce[]): boolean
   const r = repartoDelDespacho(renglones);
   return r.despachar.length > 0 && r.pendiente.length > 0;
 }
+
+/**
+ * Que queda pendiente si se despacha lo disponible, en palabras, o `null` si el
+ * boton no tiene sentido: no es un borrador, alcanza para todo (es la
+ * aprobacion de siempre) o no alcanza para nada.
+ *
+ * LOTE 225: vivia en el componente del visor, y exportar algo que no es un
+ * componente desde un fichero de componentes estorba la recarga en caliente
+ * (aviso de React Doctor). Aqui, junto al reparto que usa, y con un tipo
+ * ESTRUCTURAL: `ConduceParaVer` vive en `verConduce.ts`, que arrastra `@/db`.
+ */
+export function pendienteSiSeDespachaLoDisponible(conduce: { estado: string; renglones: RenglonParaVer[] }): string | null {
+  if (conduce.estado !== 'draft') return null;
+  const reparto = repartoDelDespacho(conduce.renglones.map((r) => ({
+    productId: r.productId, nombre: r.nombre, sku: r.sku, pedido: r.despacha,
+    existencia: r.existencia, minimo: r.minimo, llevaInventario: r.llevaInventario,
+  })));
+  if (reparto.despachar.length === 0 || reparto.pendiente.length === 0) return null;
+  const nombre = new Map(conduce.renglones.map((r) => [r.productId, r.nombre]));
+  return reparto.pendiente.map((p) => `${nombre.get(p.productId) ?? p.productId}: ${p.cantidad}`).join('; ');
+}

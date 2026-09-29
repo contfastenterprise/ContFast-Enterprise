@@ -23,32 +23,24 @@ import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay, formatDateTimeDisplay } from '@/utils/fechasLocales';
 import {
   disponibilidadDelRenglon,
-  repartoDelDespacho,
-  type RenglonDelConduce,
+  pendienteSiSeDespachaLoDisponible,
 } from '@/services/inventario/faltanteDelConduce';
 import type { ConduceParaVer } from '@/services/inventario/verConduce';
 
 const ESTADOS: Record<string, string> = { approved: 'Despachado', draft: 'Borrador', voided: 'Anulado' };
 
-/** Los renglones de la vista, en la forma que usa la regla del reparto. */
-function renglonesDelReparto(conduce: ConduceParaVer): RenglonDelConduce[] {
-  return conduce.renglones.map((r) => ({
-    productId: r.productId, nombre: r.nombre, sku: r.sku, pedido: r.despacha,
-    existencia: r.existencia, minimo: r.minimo, llevaInventario: r.llevaInventario,
-  }));
-}
-
 /**
- * Que queda pendiente si se despacha lo disponible, en palabras, o `null` si el
- * boton no tiene sentido: no es un borrador, alcanza para todo (es la
- * aprobacion de siempre) o no alcanza para nada.
+ * Lee una respuesta de la API mirando el ESTADO antes de consumir el cuerpo
+ * (lote 225, aviso de React Doctor): con un 4xx o 5xx solo se lee para sacar
+ * el mensaje, y un 2xx sin `success` tampoco se da por bueno.
  */
-export function pendienteSiSeDespachaLoDisponible(conduce: ConduceParaVer): string | null {
-  if (conduce.estado !== 'draft') return null;
-  const reparto = repartoDelDespacho(renglonesDelReparto(conduce));
-  if (reparto.despachar.length === 0 || reparto.pendiente.length === 0) return null;
-  const nombre = new Map(conduce.renglones.map((r) => [r.productId, r.nombre]));
-  return reparto.pendiente.map((p) => `${nombre.get(p.productId) ?? p.productId}: ${p.cantidad}`).join('; ');
+async function leerRespuesta<T>(r: Response): Promise<{ bien: true; cuerpo: T } | { bien: false; mensaje?: string }> {
+  if (!r.ok) {
+    const error = await r.json().catch(() => null);
+    return { bien: false, mensaje: error?.error?.message };
+  }
+  const cuerpo = await r.json().catch(() => null);
+  return cuerpo?.success ? { bien: true, cuerpo: cuerpo as T } : { bien: false, mensaje: cuerpo?.error?.message };
 }
 
 /** El estado del visor. Se pide al pulsar, no en un efecto. */
@@ -68,10 +60,10 @@ export function useVerConduce() {
     setCargando(true);
     try {
       const r = await fetch(`/api/v1/delivery-notes/${id}/detalle`);
-      const data = await r.json().catch(() => null);
+      const leido = await leerRespuesta<{ data: ConduceParaVer }>(r);
       if (mia !== peticion.current) return;
-      if (r.ok && data?.success) setConduce(data.data);
-      else setError(motivoDeCarga(null, data?.error?.message));
+      if (leido.bien) setConduce(leido.cuerpo.data);
+      else setError(motivoDeCarga(null, leido.mensaje));
     } catch (err) {
       if (mia === peticion.current) setError(motivoDeCarga(err));
     } finally {
@@ -115,13 +107,13 @@ export function VerConduce({
     setDespachando(true);
     try {
       const r = await fetch(`/api/v1/delivery-notes/${conduce.id}/despachar-disponible`, { method: 'POST' });
-      const data = await r.json().catch(() => null);
-      if (r.ok && data?.success) {
-        toast.success(data.message);
+      const leido = await leerRespuesta<{ message: string }>(r);
+      if (leido.bien) {
+        toast.success(leido.cuerpo.message);
         cerrar();
         onDespachado();
       } else {
-        toast.error(data?.error?.message || 'No se pudo despachar lo disponible.');
+        toast.error(leido.mensaje || 'No se pudo despachar lo disponible.');
       }
     } catch (err) {
       toast.error(motivoDeCarga(err));

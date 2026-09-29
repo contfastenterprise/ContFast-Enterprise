@@ -933,6 +933,28 @@ Además, fuera de la tabla:
   trinquete del **lote 118** (dos uniones `'PRODUCCION' | 'PRUEBA'` escritas a mano: pasan
   a `ModoOperativo`, sin subir el techo); y `verificar_tipos_mios`, que cuenta las firmas
   con `DbOTx` (la de `getById`, a propósito: 16 → 17). Lección del lote 100 otra vez.
+- **Lote 225: las tres advertencias de React Doctor del visor del conduce.** Pedido del
+  dueño tras el PR 14. (1 y 2) *Respuesta leída sin comprobar el estado*: el 224 ya miraba
+  `r.ok`, pero **después** de `r.json()`, y la regla pide mirarlo antes. Las dos llamadas
+  del visor leen ahora con `leerRespuesta`, que mira el estado **antes** de consumir el
+  cuerpo y tampoco da por bueno un 2xx sin `success`. (3) *Exportación que no es
+  componente* (estorba la recarga en caliente): `pendienteSiSeDespachaLoDisponible` pasa a
+  `faltanteDelConduce.ts`, con un tipo **estructural** — `ConduceParaVer` vive en
+  `verConduce.ts`, que arrastra `@/db`. **Medido antes de subir**, con React Doctor en
+  local (`--scope files --base origin/main`): 0 avisos, 100/100, sobre esos dos ficheros.
+  Queda la complejidad de `delivery-notes/page.tsx` (829 líneas), para cuando se parta.
+  `verificar_despachar_disponible.ts` gana cinco comprobaciones (el estado antes del
+  cuerpo, que ninguna llamada lea por su cuenta, que el fichero del visor solo exporte
+  componentes y su hook); contraprueba 9 FALLA, seis mutantes y seis muertos — **uno
+  sobrevivió primero**: cambiar el separador de la lista de pendientes, porque el banco
+  solo probaba **un** pendiente y el separador no se usaba.
+  **El barrido cazó una trampa de entorno, no del código**: `verificar_conduces.ts`
+  (integración) anclaba dos expresiones con `\n` a pelo tras una coma. Git guarda
+  `deliveryRepository.ts` en LF y `.gitattributes` lo saca en **CRLF** (`eol=crlf`);
+  durante el 224 la copia de la carpeta estaba en LF (reescrita a mano) y el banco pasaba,
+  y al volver a `main` git la reescribió en CRLF y el banco cayó **sin que cambiara una
+  línea**. Ahora `\r?\n`, comprobado con un mutante (sin el filtro de modo sigue
+  fallando). **Regla**: en un banco, un salto de línea dentro de una expresión es `\r?\n`.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2122,5 +2144,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 224 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 225 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
