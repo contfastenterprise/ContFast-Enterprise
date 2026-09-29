@@ -21,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/dialog';
 import { FormField } from '@/components/ui/form-field';
 import { formatDateDisplay } from '@/utils/fechasLocales';
-import { VerConduce } from './components/VerConduce';
+import { VerConduce, useVerConduce } from './components/VerConduce';
 import {
   TableContainer, Table, TableHeader, TableBody, TableRow, TableHead, TableCell
 } from '@/components/ui/table';
@@ -29,8 +29,9 @@ import {
 export default function DeliveryNotesPage() {
   const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
-  //  Lote 223: el conduce que se esta viendo (null = ninguno).
-  const [conduceAVer, setConduceAVer] = useState<string | null>(null);
+  //  Lote 223: el visor del conduce. Desde el 224 el conduce se pide al pulsar
+  //  el ojo (`visor.abrir`), no en un efecto.
+  const visor = useVerConduce();
   // P2-37: el fallo de carga NO se limpia solo. Mientras este puesto, la lista
   // enseña el error en vez de su mensaje de vacio.
   const [errorCarga, setErrorCarga] = useState<string | null>(null);
@@ -489,7 +490,7 @@ export default function DeliveryNotesPage() {
                                 <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button
                                     type="button"
-                                    onClick={() => setConduceAVer(note.id)}
+                                    onClick={() => visor.abrir(note.id)}
                                     className="p-1.5 hover:bg-slate-50 rounded text-slate-600 transition-colors"
                                     title="Ver Conduce"
                                     aria-label={`Ver conduce ${note.deliveryNumber}`}
@@ -837,7 +838,7 @@ export default function DeliveryNotesPage() {
         )}
       </AnimatePresence>
 
-      <VerConduce conduceId={conduceAVer} onClose={() => setConduceAVer(null)} />
+      <VerConduce visor={visor} onDespachado={loadDeliveryNotes} />
     </>
   );
 }

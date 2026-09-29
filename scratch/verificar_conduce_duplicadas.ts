@@ -71,7 +71,9 @@ function ok(t: string, c: boolean): void {
 // ─── src/repositories/deliveryRepository.ts ─────────────────────────────
 {
   const src = fuente('src/repositories/deliveryRepository.ts');
-  const b = bloque(src, 'static async approve(');
+  //  Lote 224: el cuerpo de la aprobacion vive en `aprobarEnTx` (approve delega
+  //  en el, en su transaccion). Lo vigilado no cambia; cambia donde esta.
+  const b = bloque(src, 'static async aprobarEnTx(');
 
   ok('facturado: se suma por producto, porque la FACTURA tambien puede repetir',
     b.includes('facturadoPorProducto.set(')

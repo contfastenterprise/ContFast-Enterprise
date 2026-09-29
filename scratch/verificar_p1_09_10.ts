@@ -24,7 +24,9 @@ console.log('\n=== P1-09: doble aprobacion de conduce (deliveryRepository.ts) ==
 
 const delivery = fuente('src/repositories/deliveryRepository.ts');
 
-const cuerpoApprove = bloque(delivery, /static\s+async\s+approve\s*\(/);
+//  Lote 224: el cuerpo de la aprobacion vive en `aprobarEnTx` (approve delega en
+//  el, en su transaccion). Lo vigilado -- la guarda de la carrera -- no cambia.
+const cuerpoApprove = bloque(delivery, /static\s+async\s+aprobarEnTx\s*\(/);
 ok('se pudo aislar el cuerpo de approve()', cuerpoApprove.length > 0);
 
 ok("el UPDATE de aprobacion exige status='draft' en el WHERE",

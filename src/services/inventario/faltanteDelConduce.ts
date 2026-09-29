@@ -234,3 +234,60 @@ export function disponibilidadDelRenglon(
   }
   return { texto: 'Disponible', tono: 'alcanza' };
 }
+
+/**
+ * LOTE 224: como se parte un conduce para despachar LO DISPONIBLE.
+ *
+ * Pedido del dueño: con mercancia que falta, despachar lo que hay y dejar lo
+ * demas pendiente. Hasta aqui la aprobacion era todo o nada -- un solo producto
+ * sin existencia frenaba el conduce entero -- y un borrador no se puede editar.
+ *
+ * Por producto (sumando sus renglones, como la aprobacion):
+ *   · sin inventario: se despacha entero;
+ *   · con inventario: se despacha lo que la regla de la aprobacion deja sacar,
+ *     `existencia - minimo` (nunca menos de 0 ni mas de lo pedido), y el resto
+ *     queda pendiente.
+ *
+ * Dos propiedades que el banco barre, porque si fallan el boton rompe:
+ *   · lo que se despacha PASA `alcanzaLaExistencia` -- si no, la aprobacion de
+ *     dentro lo rechazaria y el boton daria un error en vez de despachar;
+ *   · despachado + pendiente = pedido, producto a producto: no se pierde ni se
+ *     inventa una unidad.
+ */
+export interface Reparto {
+  despachar: Array<{ productId: string; cantidad: number }>;
+  pendiente: Array<{ productId: string; cantidad: number }>;
+}
+
+export function repartoDelDespacho(renglones: RenglonDelConduce[]): Reparto {
+  const porProducto = new Map<string, { pedido: number; existencia: number; minimo: number; lleva: boolean }>();
+  for (const r of renglones) {
+    const previo = porProducto.get(r.productId);
+    if (previo) { previo.pedido = r4(previo.pedido + aCantidad(r.pedido)); continue; }
+    porProducto.set(r.productId, {
+      pedido: r4(aCantidad(r.pedido)),
+      existencia: r4(aCantidad(r.existencia)),
+      minimo: r4(aCantidad(r.minimo)),
+      lleva: r.llevaInventario,
+    });
+  }
+
+  const reparto: Reparto = { despachar: [], pendiente: [] };
+  for (const [productId, p] of porProducto) {
+    const sale = p.lleva ? r4(Math.min(p.pedido, Math.max(0, p.existencia - p.minimo))) : p.pedido;
+    const queda = r4(p.pedido - sale);
+    if (sale > 0) reparto.despachar.push({ productId, cantidad: sale });
+    if (queda > 0) reparto.pendiente.push({ productId, cantidad: queda });
+  }
+  return reparto;
+}
+
+/**
+ * ¿Tiene sentido el boton? Solo si se puede despachar ALGO y queda ALGO: si
+ * alcanza todo, es la aprobacion de siempre; si no alcanza nada, no hay que
+ * despachar.
+ */
+export function sePuedeDespacharEnParte(renglones: RenglonDelConduce[]): boolean {
+  const r = repartoDelDespacho(renglones);
+  return r.despachar.length > 0 && r.pendiente.length > 0;
+}
