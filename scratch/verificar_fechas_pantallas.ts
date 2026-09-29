@@ -194,7 +194,9 @@ console.log('\nD. LOS APAÑOS VIEJOS YA NO HACEN FALTA');
 const TENIAN_APANO = [
   'src/app/dashboard/financial/customers/page.tsx',
   'src/app/dashboard/financial/suppliers/page.tsx',
-  'src/app/dashboard/delivery-notes/page.tsx',
+  //  Lote 226: la tabla de conduces salio de su pagina al partirla, y con ella
+  //  la fecha de entrega que es la que llevaba el apaño.
+  'src/app/dashboard/delivery-notes/components/TablaDeConduces.tsx',
 ];
 for (const f of TENIAN_APANO) {
   if (!fs.existsSync(f)) throw new Error(`No existe ${f}: la lista de apaños quedo obsoleta.`);

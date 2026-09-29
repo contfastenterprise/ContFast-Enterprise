@@ -114,9 +114,13 @@ async function main() {
   const inv = fuente('src/services/inventoryService.ts');
   ok('ninguna funcion de inventario tiene el entorno por defecto',
     !/modo: 'PRODUCCION' \| 'PRUEBA' = 'PRODUCCION'/.test(inv));
+  //  Lote 226: `\r?\n`. Git guarda el fichero en LF y lo saca en CRLF
+  //  (`eol=crlf`): en una copia recien sacada -- el worktree del barrido -- este
+  //  `\n` a pelo no casaba y el banco caia sin que cambiara el codigo. Misma
+  //  trampa que `verificar_conduces` en el lote 225.
   ok('y va en segundo lugar, donde no puede ser opcional',
-    (inv.match(/companyId: string,\n\s*modo: 'PRODUCCION' \| 'PRUEBA',/g) || []).length >= 3,
-    String((inv.match(/companyId: string,\n\s*modo: 'PRODUCCION' \| 'PRUEBA',/g) || []).length));
+    (inv.match(/companyId: string,\r?\n\s*modo: 'PRODUCCION' \| 'PRUEBA',/g) || []).length >= 3,
+    String((inv.match(/companyId: string,\r?\n\s*modo: 'PRODUCCION' \| 'PRUEBA',/g) || []).length));
   const dr = fuente('src/repositories/deliveryRepository.ts');
   const llamadas = dr.match(/deductStock\(\s*companyId,\s*modo,/g) || [];
   ok('las DOS llamadas de conduces pasan el entorno', llamadas.length === 2,
