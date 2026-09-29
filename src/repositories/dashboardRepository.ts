@@ -1,4 +1,5 @@
-import { db, invoices, checks, expenses, withTenantMode, invoiceLines, products, productCategories, apPayments, accountsPayable, cashSessions, rncPadron } from '@/db';
+import { db, invoices, checks, expenses, withTenantMode, invoiceLines, products, productCategories, apPayments, accountsPayable, cashSessions, rncPadron, deliveryNotes, deliveryNoteLines, inventoryLevels } from '@/db';
+import { faltantesDelConduce, avisoDelConduce, type RenglonDelConduce } from '@/services/inventario/faltanteDelConduce';
 import { eq, and, desc, sql, gte, lte, ne, isNull, inArray } from 'drizzle-orm';
 import { accountingPeriods } from '@/db';
 import { diasDeCobertura, DIAS_AVISO_PERIODOS } from '@/services/accounting/coberturaPeriodos';
@@ -28,7 +29,9 @@ interface DashboardAlert {
       //  sin reimportarse. La lista es cerrada a proposito y el compilador lo reclamo:
       //  un tipo de aviso que no este aqui no se puede enseñar, y eso es lo que evita
       //  que aparezca uno sin severidad ni orden.
-      | 'caja_con_diferencia' | 'declaracion_pendiente' | 'padron_viejo';
+      | 'caja_con_diferencia' | 'declaracion_pendiente' | 'padron_viejo'
+      //  LOTE 221: un conduce de una factura emitida que sigue en borrador.
+      | 'conduce_sin_despachar';
   title: string;
   description: string;
   actionText: string;
@@ -291,6 +294,74 @@ export class DashboardRepository {
           : 'Se contó más efectivo del que el sistema esperaba. Hay una entrada que no quedó registrada.',
         actionText: 'Revisar el arqueo',
         actionLink: '/dashboard/cash'
+      });
+    }
+
+    //  Lote 221: el conduce que no se pudo despachar.
+    //
+    //  Facturar no descuenta existencia: lo hace el conduce al aprobarse, y ahi
+    //  se asienta el costo de venta. Si el conduce automatico falla por
+    //  "inventario insuficiente" queda en borrador, y eso solo constaba en la
+    //  auditoria. Medido el 2026-09-28: cinco en PRODUCCION, del 10/09 al 25/09.
+    //  El aviso dice QUE falta y CUANTO (pedido del dueño) con la misma regla que
+    //  la aprobacion (`faltanteDelConduce.ts`), o que ya se puede despachar. No
+    //  aprueba nada: primero hay que cuadrar la existencia, y eso es de quien
+    //  conoce el almacen. Se apaga solo al aprobarse o anularse el conduce.
+    //
+    //  Una consulta: los renglones de TODOS los borradores de facturas vivas,
+    //  con el nivel del almacen de SU factura (la aprobacion mira ese, no otro).
+    const renglonesSinDespachar = await db.select({
+      conduceId: deliveryNotes.id,
+      numero: deliveryNotes.deliveryNumber,
+      ncf: invoices.ncf,
+      productId: deliveryNoteLines.productId,
+      nombre: products.name,
+      sku: products.sku,
+      llevaInventario: products.tracksInventory,
+      pedido: deliveryNoteLines.quantity,
+      existencia: inventoryLevels.quantity,
+      minimo: inventoryLevels.minStock,
+    }).from(deliveryNotes)
+      .innerJoin(invoices, and(eq(invoices.id, deliveryNotes.invoiceId), eq(invoices.companyId, deliveryNotes.companyId)))
+      .innerJoin(deliveryNoteLines, eq(deliveryNoteLines.deliveryNoteId, deliveryNotes.id))
+      .innerJoin(products, eq(products.id, deliveryNoteLines.productId))
+      .leftJoin(inventoryLevels, and(
+        eq(inventoryLevels.productId, deliveryNoteLines.productId),
+        eq(inventoryLevels.warehouseId, invoices.warehouseId),
+        eq(inventoryLevels.companyId, deliveryNotes.companyId),
+        eq(inventoryLevels.modo, deliveryNotes.modo),
+      ))
+      .where(withTenantMode(deliveryNotes, ctx,
+        eq(deliveryNotes.status, 'draft'),
+        isNull(invoices.deletedAt),
+        sql`${invoices.status} not in ('draft', 'rejected', 'void')`,
+      ))
+      .orderBy(deliveryNotes.deliveryNumber);
+
+    const conducesSinDespachar = new Map<string, { numero: string; ncf: string | null; renglones: RenglonDelConduce[] }>();
+    for (const r of renglonesSinDespachar) {
+      const conduce = conducesSinDespachar.get(r.conduceId)
+        ?? { numero: r.numero, ncf: r.ncf, renglones: [] };
+      conduce.renglones.push({
+        productId: r.productId, nombre: r.nombre, sku: r.sku, llevaInventario: r.llevaInventario,
+        pedido: r.pedido, existencia: r.existencia, minimo: r.minimo,
+      });
+      conducesSinDespachar.set(r.conduceId, conduce);
+    }
+    for (const [conduceId, conduce] of conducesSinDespachar) {
+      const { title, description } = avisoDelConduce({
+        numero: conduce.numero,
+        ncf: conduce.ncf,
+        faltantes: faltantesDelConduce(conduce.renglones),
+        llevaInventario: conduce.renglones.some((r) => r.llevaInventario),
+      });
+      alertsDetails.push({
+        id: `conduce-sin-despachar-${conduceId}`,
+        type: 'conduce_sin_despachar',
+        title,
+        description,
+        actionText: 'Ir a Conduces',
+        actionLink: '/dashboard/delivery-notes',
       });
     }
 

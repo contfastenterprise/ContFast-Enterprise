@@ -834,6 +834,32 @@ Además, fuera de la tabla:
   quién y por cuánto se emitieron) es del contador; el dato está en el portal de la DGII
   o en el historial del panel de mSeller. `scratch/_to_delete/consultar_028_029.ts` es la
   consulta (no envía nada).
+- **Lote 221: el panel avisa del conduce que no se pudo despachar, y dice qué falta.**
+  Salió al medir el lote C (2026-09-28): la auditoría tenía **6 `fallo_post_emision`**
+  del conduce automático ("Inventario insuficiente"), y ningún aviso lo decía. Facturar
+  no descuenta existencia — lo hace el conduce al aprobarse, y ahí se asienta el costo
+  de venta —, así que esas ventas no estaban en el inventario ni en el costo de venta.
+  **Medido**: cinco conduces en borrador en PRODUCCIÓN, y no les faltaba lo mismo:
+  CON-2026-000041 (1 Puerta Roble 90*210) y 000056 (4 Dintel Caoba) sí; 000053 y 000055
+  ya tenían existencia repuesta; 000044 solo llevaba productos **sin inventario**. Por
+  eso el aviso distingue "falta mercancía" (producto, SKU y cuántas, **pedido del dueño**)
+  de "listo para despachar". La regla es **la de la aprobación** (`alcanzaLaExistencia`,
+  con el **mínimo del almacén**: un conduce se frena con unidades en el estante si lo
+  dejarían por debajo), en `services/inventario/faltanteDelConduce.ts` (puro), y el
+  mismo producto en dos renglones pide la **suma**. Advertencia (va al correo de avisos),
+  clave estable por conduce: se actualiza al cambiar la existencia y **se cierra solo**
+  al aprobarse. **No aprueba nada**: cuadrar la existencia es de quien conoce el almacén.
+  **Se dibujó contra PRODUCCIÓN** y eso cazó lo que el banco no veía: al 000044 le decía
+  "ya hay existencia" y que "la mercancía sigue contando en el inventario", las dos
+  cosas falsas para productos que no llevan inventario.
+  Banco `verificar_conduce_sin_despachar.ts`: ejecuta la regla con los casos reales y la
+  barre contra `alcanzaLaExistencia` en 400 casos (0 discrepancias). 25 comprobaciones,
+  contraprueba 25 FALLA, doce mutantes y doce muertos. **Mera presencia otra vez**: el
+  filtro de facturas vivas ya existía en el mismo fichero (aviso del 606/607) y la
+  comprobación sobrevivía a la contraprueba; se acotó al bloque.
+  **El lote C del plan de mSeller se descarta por medición**: ni un solo fallo de
+  comunicación en la historia (0 NCF reservados sin usar, 0 desenlaces desconocidos, 0
+  HTTP).
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2023,5 +2049,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 220 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 221 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
