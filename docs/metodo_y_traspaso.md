@@ -1039,6 +1039,39 @@ Además, fuera de la tabla:
   `verificar_arqueo_de_caja` (172) anclaba `expectedBalance: undefined` en la ruta:
   re-anclado a la propiedad, ejecutada — a quien cuenta no le llega el esperado, y se
   quita en el servidor.
+- **Lote 229: la página de caja, partida en componentes sin cambiar lo que hace.** Pedido
+  del dueño tras el 228. `cash/page.tsx` tenía **1.629 líneas**. Quedan en la página las
+  pestañas y los envoltorios animados de cada vista (con su `key`: es lo que
+  `AnimatePresence` necesita para animar la salida); salen `caja.ts` (tipos, `fmt`,
+  denominaciones), dos hooks —`useCaja` (la caja abierta: apertura, movimientos, arqueo y
+  cierre) y `useHistorialCaja` (el histórico y dar por revisada una diferencia)— y siete
+  componentes: `VistaApertura`, `VistaGestion`, `VistaArqueo`, `VistaHistorico`,
+  `ModalMovimiento`, `ModalCierre` y `ModalVerSesion`. Página 141 líneas; ninguna pieza
+  pasa de 281. El código se **movió tal cual**, cortado por rangos de líneas con un guion;
+  lo único que cambia es el prefijo `c.`/`h.` de lo que viene del hook.
+  **Lo que un corte en dos hooks podía romper sin que se viera**: cada uno necesita una
+  acción del otro. Abrir la pestaña del histórico lo **carga** y dar por revisada una
+  diferencia **recarga la caja**; antes eran llamadas dentro de la misma función, ahora
+  cruzan (`alAbrirHistorico`, `recargarCaja`). Si se pierden, compila igual y el histórico
+  sale vacío. Las dos las vigila el banco.
+  **Una trampa del prefijo mecánico**: el histórico recibe el hook como `h`, y la página
+  vieja ya usaba `h` como parámetro de sus `reduce`/`filter` (`(s, h) => s + h.difference`).
+  Funcionaba —el parámetro tapa al prop solo dentro de la flecha— pero se leía como lo
+  contrario de lo que hace; esos parámetros pasan a `x`.
+  Banco `verificar_partir_caja.ts`: la huella visible (clases, textos, `placeholder`,
+  `title`, `aria-label`, avisos y API: **478**) de la página de `0078ab2` contra los
+  ficheros de ahora, como **invariante**; y **dibuja** la gestión (el administrador ve el
+  saldo, el cajero "Se ve al cerrar la caja") y el histórico (el botón de revisar solo
+  donde hay diferencia sin revisar; un fallo de carga no pasa por "no hay cierres"). 11
+  comprobaciones, contraprueba **11 FALLA** más la precondición de las animaciones — era
+  cierta antes, y como `ok()` regalaba un OK —, trece mutantes y trece muertos.
+  **Cinco bancos leían la página y se quedaron mirando solo las pestañas**
+  (`arqueo_de_caja`, `balance_de_caja`, `diferencia_de_arqueo`, `fechas_pantallas`,
+  `p2_37`): leen ahora la pantalla **entera** con `scratch/pantallaDeCaja.ts`, que en el
+  estado de antes devuelve solo la página, así que los cinco pasan **en los dos
+  estados** (comprobado). Un mutante que esconde el error de carga del histórico
+  sobrevive a `p2_37` —nunca miró la condición, tampoco en la página vieja— y lo mata el
+  banco nuevo al dibujar.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2228,5 +2261,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 228 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 229 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

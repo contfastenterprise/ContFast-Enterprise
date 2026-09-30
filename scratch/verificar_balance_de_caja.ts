@@ -18,6 +18,7 @@
  */
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { leerPantallaDeCaja } from './pantallaDeCaja';
 
 const raiz = join(__dirname, '..');
 const leer = (p: string) => (existsSync(join(raiz, p)) ? readFileSync(join(raiz, p), 'utf8') : '');
@@ -65,16 +66,17 @@ async function main() {
   ok('la ruta usa la regla con el rol de la sesion', /sesionParaMostrar\(activeSession, auth\.role\)/.test(ruta) && /data: paraMostrar/.test(ruta));
 
   console.log('\n3) La pantalla ya no pinta 0,00 donde falta el dato\n');
-  const pant = sinComentarios(leer(PANTALLA));
+  //  Lote 229: la pantalla esta partida; se lee entera.
+  const pant = sinComentarios(leerPantallaDeCaja(raiz));
   ok('ningun sitio pinta el saldo de la sesion abierta con un 0 de relleno',
-    !/fmt\(session\?\.expectedBalance \|\| '0'\)/.test(pant));
+    !/fmt\((?:c\.)?session\?\.expectedBalance \|\| '0'\)/.test(pant));
   ok('"Balance Actual": el saldo si se ve, y si no, lo dice',
-    /session\?\.saldoVisible \? \(\s*<p[^>]*>\s*\{fmt\(session\.expectedBalance \|\| '0'\)\}/.test(pant)
+    /(?:c\.)?session\?\.saldoVisible \? \(\s*<p[^>]*>\s*\{fmt\((?:c\.)?session\.expectedBalance \|\| '0'\)\}/.test(pant)
     && /\{TEXTO_SALDO_OCULTO\}/.test(pant));
   ok('"Total Neto en Caja", igual',
-    /\{session\?\.saldoVisible \? fmt\(session\.expectedBalance \|\| '0'\) : TEXTO_SALDO_OCULTO\}/.test(pant));
+    /\{(?:c\.)?session\?\.saldoVisible \? fmt\((?:c\.)?session\.expectedBalance \|\| '0'\) : TEXTO_SALDO_OCULTO\}/.test(pant));
   ok('la tarjeta EFECTIVO no da hecha la suma a quien cuenta a ciegas',
-    /amount: session\?\.saldoVisible\s*\?/.test(pant) && /card\.amount === null \? '—' : fmt\(card\.amount\)/.test(pant));
+    /amount: (?:c\.)?session\?\.saldoVisible\s*\?/.test(pant) && /card\.amount === null \? '—' : fmt\(card\.amount\)/.test(pant));
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
   process.exit(fallos === 0 ? 0 : 1);

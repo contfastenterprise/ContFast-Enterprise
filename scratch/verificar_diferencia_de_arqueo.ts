@@ -22,6 +22,7 @@
  */
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { leerPantallaDeCaja } from './pantallaDeCaja';
 
 const raiz = join(__dirname, '..');
 const leer = (p: string) => (existsSync(join(raiz, p)) ? readFileSync(join(raiz, p), 'utf8') : '');
@@ -117,7 +118,8 @@ async function main() {
     /tipo === 'invoice_rejected' \|\| tipo === 'caja_con_diferencia'/.test(clasifica));
 
   console.log('\n3) Se puede resolver (si no, el aviso seria eterno)\n');
-  const pantalla = leer(PANTALLA);
+  //  Lote 229: la pantalla esta partida; se lee entera.
+  const pantalla = leerPantallaDeCaja(raiz);
   const codigo = sinComentarios(pantalla);
   ok('la pantalla de caja llama a la ruta de aprobar, que nadie llamaba',
     /fetch\(`\/api\/v1\/cash\/sessions\/\$\{id\}\/approve`, \{ method: 'POST' \}\)/.test(codigo));
