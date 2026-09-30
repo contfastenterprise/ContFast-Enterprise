@@ -9,6 +9,8 @@
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { motivoDeCarga } from '@/components/ui/estado-carga';
+//  Lote 230: el estado antes que el cuerpo (el lector del lote 227).
+import { leerRespuesta } from '@/utils/leerRespuesta';
 import { formatDateTimeDisplay } from '@/utils/fechasLocales';
 import type { HistorySession } from '../caja';
 
@@ -24,8 +26,8 @@ export function useHistorialCaja({ recargarCaja }: { recargarCaja: () => Promise
     setAprobando(id);
     try {
       const res = await fetch(`/api/v1/cash/sessions/${id}/approve`, { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error?.message || 'No se pudo aprobar.');
+      const leido = await leerRespuesta(res);
+      if (!leido.bien) throw new Error(leido.mensaje || 'No se pudo aprobar.');
       toast.success('Diferencia dada por revisada', {
         description: 'El aviso del panel se apaga solo la próxima vez que se actualice.',
       });
@@ -46,12 +48,12 @@ export function useHistorialCaja({ recargarCaja }: { recargarCaja: () => Promise
     setErrorCarga(null);
     try {
       const res = await fetch('/api/v1/cash/sessions');
-      const data = await res.json();
-      if (data.success) {
-        setHistory(data.data || []);
+      const leido = await leerRespuesta<{ data: HistorySession[] }>(res);
+      if (leido.bien) {
+        setHistory(leido.cuerpo.data || []);
       } else {
         setHistory([]);
-        setErrorCarga(motivoDeCarga(null, data.error?.message));
+        setErrorCarga(motivoDeCarga(null, leido.mensaje));
       }
     } catch (err) {
       // El catch no ligaba el error, asi que no habia ni que registrar.
@@ -90,6 +92,8 @@ export function useHistorialCaja({ recargarCaja }: { recargarCaja: () => Promise
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    //  Lote 230: soltar el fichero de la memoria una vez descargado (React Doctor).
+    URL.revokeObjectURL(url);
     toast.success('Archivo exportado exitosamente');
   };
 

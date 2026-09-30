@@ -8,7 +8,16 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
+//  Lote 230: toda respuesta se lee mirando el ESTADO antes que el cuerpo (el
+//  lector del lote 227). Antes: `await res.json()` y despues `data.success`, asi
+//  que un 5xx con pagina de error hacia lanzar a `json()` y el mensaje que salia
+//  era el del analizador ("Unexpected token <"), no el del servidor.
+import { leerRespuesta } from '@/utils/leerRespuesta';
 import { DENOMINATIONS, type CashView, type Session, type Movement, type Register } from '../caja';
+
+type ResultadoArqueo = {
+  expectedBalance: string; actualBalance: string; difference: string; totalTransferencias?: string;
+};
 
 export function useCaja({ alAbrirHistorico }: { alAbrirHistorico: () => void }) {
   const [view, setView] = useState<CashView>('loading');
@@ -39,9 +48,7 @@ export function useCaja({ alAbrirHistorico }: { alAbrirHistorico: () => void }) 
   // Lote 172: el resultado del arqueo, tal como lo devuelve el cierre. Antes de
   // cerrar no existe: es lo que el arqueo ciego no deja ver.
 
-  const [resultadoArqueo, setResultadoArqueo] = useState<{
-    expectedBalance: string; actualBalance: string; difference: string; totalTransferencias?: string;
-  } | null>(null);
+  const [resultadoArqueo, setResultadoArqueo] = useState<ResultadoArqueo | null>(null);
   const [closeObservations, setCloseObservations] = useState('');
   const [closing, setClosing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -58,20 +65,27 @@ export function useCaja({ alAbrirHistorico }: { alAbrirHistorico: () => void }) 
         fetch('/api/v1/cash/registers'),
       ]);
 
-      const sessData = await sessRes.json();
-      const regData = await regRes.json();
+      const [sesion, cajas] = await Promise.all([
+        leerRespuesta<{ data: Session | null }>(sessRes),
+        leerRespuesta<{ data: Register[] }>(regRes),
+      ]);
 
-      if (regData.success) {
-        setRegisters(regData.data || []);
-        if (regData.data?.length > 0) setSelectedRegisterId(regData.data[0].id);
+      if (cajas.bien) {
+        setRegisters(cajas.cuerpo.data || []);
+        if (cajas.cuerpo.data?.length > 0) setSelectedRegisterId(cajas.cuerpo.data[0].id);
       }
 
-      if (sessData.success && sessData.data) {
-        setSession(sessData.data);
+      //  No poder leer la sesion no es "no hay caja abierta": se dice. Se sigue
+      //  mostrando la apertura, como hacia el `catch` de siempre.
+      if (!sesion.bien) toast.error(sesion.mensaje || 'Error al cargar datos de caja.');
+
+      if (sesion.bien && sesion.cuerpo.data) {
+        const abierta = sesion.cuerpo.data;
+        setSession(abierta);
         // Load movements
-        const movRes = await fetch(`/api/v1/cash/sessions/${sessData.data.id}/movements`);
-        const movData = await movRes.json();
-        if (movData.success) setMovements(movData.data || []);
+        const movRes = await fetch(`/api/v1/cash/sessions/${abierta.id}/movements`);
+        const mov = await leerRespuesta<{ data: Movement[] }>(movRes);
+        if (mov.bien) setMovements(mov.cuerpo.data || []);
         setView('gestion');
       } else {
         setSession(null);
@@ -93,12 +107,13 @@ export function useCaja({ alAbrirHistorico }: { alAbrirHistorico: () => void }) 
     if (!session) return;
     try {
       const movRes = await fetch(`/api/v1/cash/sessions/${session.id}/movements`);
-      const movData = await movRes.json();
-      if (movData.success) setMovements(movData.data || []);
+      const mov = await leerRespuesta<{ data: Movement[] }>(movRes);
+      if (mov.bien) setMovements(mov.cuerpo.data || []);
       // Also refresh session expected balance
       const sessRes = await fetch('/api/v1/cash/sessions/active');
-      const sessData = await sessRes.json();
-      if (sessData.success && sessData.data) setSession(sessData.data);
+      const sesion = await leerRespuesta<{ data: Session | null }>(sessRes);
+      if (sesion.bien && sesion.cuerpo.data) setSession(sesion.cuerpo.data);
+      if (!mov.bien) toast.error(mov.mensaje || 'Error al actualizar movimientos.');
     } catch {
       toast.error('Error al actualizar movimientos.');
     }
@@ -118,21 +133,21 @@ export function useCaja({ alAbrirHistorico }: { alAbrirHistorico: () => void }) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newRegisterForm),
       });
-      const data = await res.json();
-      if (data.success) {
+      const leido = await leerRespuesta<{ data: { id?: string } }>(res);
+      if (leido.bien) {
         toast.success('Terminal de punto de venta creada exitosamente.');
         setShowNewRegisterModal(false);
         setNewRegisterForm({ name: '', code: '' });
         
         // Reload registers and auto-select
         const regRes = await fetch('/api/v1/cash/registers');
-        const regData = await regRes.json();
-        if (regData.success) {
-          setRegisters(regData.data || []);
-          if (data.data?.id) setSelectedRegisterId(data.data.id);
+        const cajas = await leerRespuesta<{ data: Register[] }>(regRes);
+        if (cajas.bien) {
+          setRegisters(cajas.cuerpo.data || []);
+          if (leido.cuerpo.data?.id) setSelectedRegisterId(leido.cuerpo.data.id);
         }
       } else {
-        toast.error(data.error?.message || 'Error al crear la terminal');
+        toast.error(leido.mensaje || 'Error al crear la terminal');
       }
     } catch {
       toast.error('Error de red al crear la terminal');
@@ -157,8 +172,8 @@ export function useCaja({ alAbrirHistorico }: { alAbrirHistorico: () => void }) 
           initialBalance: parseFloat(initialBalance),
         }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error?.message || 'Error al abrir sesión.');
+      const leido = await leerRespuesta(res);
+      if (!leido.bien) throw new Error(leido.mensaje || 'Error al abrir sesión.');
       toast.success('¡Caja abierta exitosamente!');
       await loadCashData();
     } catch (error: any) {
@@ -185,8 +200,8 @@ export function useCaja({ alAbrirHistorico }: { alAbrirHistorico: () => void }) 
           description: moveDescription,
         }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error?.message || 'Error al registrar movimiento.');
+      const leido = await leerRespuesta(res);
+      if (!leido.bien) throw new Error(leido.mensaje || 'Error al registrar movimiento.');
       toast.success('Movimiento registrado.');
       setShowMoveModal(false);
       setMoveAmount('');
@@ -229,10 +244,10 @@ export function useCaja({ alAbrirHistorico }: { alAbrirHistorico: () => void }) 
           justification: closeObservations || undefined,
         }),
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error?.message || 'Error al cerrar sesión.');
+      const leido = await leerRespuesta<{ data?: { summary?: ResultadoArqueo } }>(res);
+      if (!leido.bien) throw new Error(leido.mensaje || 'Error al cerrar sesión.');
       // El resultado del arqueo: ahora si se puede ver.
-      setResultadoArqueo(data.data?.summary ?? null);
+      setResultadoArqueo(leido.cuerpo.data?.summary ?? null);
       setClosedSessionId(session.id);
       setShowSuccessModal(true);
     } catch (error: any) {

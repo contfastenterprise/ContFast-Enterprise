@@ -5,7 +5,8 @@
  * Salio de `cash/page.tsx` al partirla (lote 229), con el mismo marcado.
  */
 import { Wallet, Printer, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+//  Lote 230: `m` y no `motion`; el `LazyMotion` lo pone la pagina.
+import { m, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { formatDateTimeDisplay } from '@/utils/fechasLocales';
 import { fmt } from '../caja';
@@ -16,11 +17,11 @@ export function ModalVerSesion({ h }: { h: HistorialCaja }) {
     <>
       <AnimatePresence>
         {h.showViewModal && h.selectedSession && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-[#001e40]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
-            <motion.div
+            <m.div
               initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
               className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
             >
@@ -32,7 +33,7 @@ export function ModalVerSesion({ h }: { h: HistorialCaja }) {
                   <h3 className="text-base font-bold font-display">Detalle de Turno</h3>
                   <p className="text-xs opacity-80 mt-0.5">{h.selectedSession.registerName}</p>
                 </div>
-                <button onClick={() => h.setShowViewModal(false)} className="relative z-10 text-white/70 hover:text-white transition-colors">
+                <button type="button" onClick={() => h.setShowViewModal(false)} aria-label="Cerrar el detalle del turno" className="relative z-10 text-white/70 hover:text-white transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -102,8 +103,8 @@ export function ModalVerSesion({ h }: { h: HistorialCaja }) {
                   Cerrar
                 </button>
               </div>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         )}
       </AnimatePresence>
     </>

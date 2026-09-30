@@ -6,13 +6,19 @@
  * Solo pinta: el estado y las acciones viven en `useCaja`.
  */
 import { Wallet, RefreshCw, TrendingUp, Printer } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+//  Lote 230: `m` y no `motion`; el `LazyMotion` lo pone la pagina.
+import { m } from 'framer-motion';
 import clsx from 'clsx';
 import { formatDateTimeDisplay } from '@/utils/fechasLocales';
 import { fmt, DENOMINATIONS } from '../caja';
 import type { Caja } from '../hooks/useCaja';
 
 export function VistaArqueo({ c }: { c: Caja }) {
+  //  Lote 230: la hora del arqueo es la de cuando se abrio la pestana, tomada una
+  //  vez. `new Date()` dentro del JSX cambiaba en cada tecla del conteo y daba un
+  //  valor distinto en el servidor y en el navegador (React Doctor).
+  const [ahora] = useState(() => new Date());
   return (
     <>
       {/* Header */}
@@ -24,7 +30,7 @@ export function VistaArqueo({ c }: { c: Caja }) {
         <div className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-lg">
           <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Fecha y Hora</p>
           <p className="font-mono text-sm font-bold text-[#001e40]">
-            {formatDateTimeDisplay(new Date())}
+            {formatDateTimeDisplay(ahora)}
           </p>
         </div>
       </div>
@@ -76,6 +82,7 @@ export function VistaArqueo({ c }: { c: Caja }) {
                           [d.value]: parseInt(e.target.value) || 0,
                         }))}
                         placeholder="0"
+                        aria-label={`Cantidad de ${d.label}`}
                         className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-center font-mono text-xs focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] outline-none transition text-slate-800"
                       />
                     </div>
@@ -95,10 +102,11 @@ export function VistaArqueo({ c }: { c: Caja }) {
 
             {/* Observations */}
             <div className="mt-4 border-t border-slate-200 pt-4">
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
+              <label htmlFor="caja-observaciones-cierre" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">
                 Observaciones del Cierre
               </label>
               <textarea
+                id="caja-observaciones-cierre"
                 value={c.closeObservations}
                 onChange={(e) => c.setCloseObservations(e.target.value)}
                 placeholder="Escriba cualquier novedad o discrepancia detectada..."
@@ -157,9 +165,9 @@ export function VistaArqueo({ c }: { c: Caja }) {
               className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm w-full"
             >
               {c.closing ? (
-                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                <m.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
                   <RefreshCw className="w-4 h-4" />
-                </motion.div>
+                </m.div>
               ) : (
                 <Printer className="w-4 h-4" />
               )}

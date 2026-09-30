@@ -23,7 +23,7 @@
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
-import { ficherosDePantallaDeCaja } from './pantallaDeCaja';
+
 
 const raiz = join(__dirname, '..');
 const leer = (p: string) => (existsSync(join(raiz, p)) ? readFileSync(join(raiz, p), 'utf8') : '');
@@ -88,7 +88,17 @@ async function main() {
     || !/<AnimatePresence mode="wait">/.test(pag0)) throw new Error('Precondicion: las vistas ya no se animan con su key en la pagina');
 
   console.log('\n1) Nada visible cambio\n');
-  const ahora = ficherosDePantallaDeCaja(raiz).map(leer).join('\n');
+  //  LOTE 230: se comparan los DOS COMMITS, no la carpeta. El 230 cambia marcado
+  //  a proposito (etiquetas con su campo, `aria-label` en los botones de cerrar,
+  //  el lector de respuestas), asi que "igual que antes del 229" ya no es cierto
+  //  del arbol de hoy -- pero la prueba del 229 sigue siendo la misma: entre
+  //  0078ab2 y el commit del 229 (0724cb7) no cambio nada visible.
+  const DESPUES = '0724cb7';
+  const mostrar = (ref: string, f: string) => {
+    try { return execSync(`git show ${ref}:${f}`, { cwd: raiz, encoding: 'utf8', maxBuffer: 1 << 24 }); } catch { return ''; }
+  };
+  const ahora = [PAGINA, ...NUEVOS].map((f) => mostrar(DESPUES, f)).join('\n');
+  if (!ahora.includes('export function VistaHistorico')) throw new Error(`Precondicion: no se pudo leer ${DESPUES}`);
   const hA = huella(antes);
   const dif = diferencia(hA, huella(ahora));
   invariante(`clases, textos, placeholders, titulos, avisos y API: los mismos, uno por uno (${hA.length})`,
