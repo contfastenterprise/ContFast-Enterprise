@@ -180,7 +180,9 @@ async function main() {
   ok('  ni suma las entradas y salidas al lado del formulario (eso ES el esperado)',
     !/Total Esperado/.test(sinComentarios(pantalla)));
   ok('el resultado del arqueo sale DESPUES de cerrar', /resultadoArqueo/.test(pantalla)
-    && /setResultadoArqueo\(data\.data\?\.summary/.test(pantalla));
+    //  Lote 230: la respuesta se lee con `leerRespuesta`, asi que el resumen llega
+    //  en `leido.cuerpo`; lo que importa es que salga de la respuesta del CIERRE.
+    && /setResultadoArqueo\((?:data|leido\.cuerpo)\.data\?\.summary/.test(pantalla));
   ok('la pantalla manda el conteo entero, con los ceros',
     /conteo = DENOMINATIONS\.map\(\(d\) => \(\{ denominacion: d\.value, cantidad: denomQty\[d\.value\] \|\| 0 \}\)\)/.test(pantalla));
   ok('el campo libre de monedas ya no existe',

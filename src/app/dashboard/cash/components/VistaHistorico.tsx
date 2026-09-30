@@ -48,8 +48,9 @@ export function VistaHistorico({ h }: { h: HistorialCaja }) {
       <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Desde Fecha</label>
+            <label htmlFor="caja-historico-desde" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Desde Fecha</label>
             <input
+              id="caja-historico-desde"
               type="date"
               value={h.histDateFrom}
               onChange={(e) => h.setHistDateFrom(e.target.value)}
@@ -57,8 +58,9 @@ export function VistaHistorico({ h }: { h: HistorialCaja }) {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado del Cierre</label>
+            <label htmlFor="caja-historico-estado" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado del Cierre</label>
             <select
+              id="caja-historico-estado"
               value={h.histStatus}
               onChange={(e) => h.setHistStatus(e.target.value)}
               className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
@@ -113,13 +115,11 @@ export function VistaHistorico({ h }: { h: HistorialCaja }) {
                   </td>
                 </tr>
               ) : (
-                h.history
-                  .filter((s) => {
-                    if (h.histStatus && s.status !== h.histStatus) return false;
-                    if (h.histDateFrom && new Date(s.createdAt) < new Date(h.histDateFrom)) return false;
-                    return true;
-                  })
-                  .map((s) => {
+                //  Lote 230: filtrar y pintar en UNA pasada (`flatMap`: lo que no
+                //  pasa el filtro devuelve []). Mismas dos condiciones de antes.
+                h.history.flatMap((s) => {
+                    if (h.histStatus && s.status !== h.histStatus) return [];
+                    if (h.histDateFrom && new Date(s.createdAt) < new Date(h.histDateFrom)) return [];
                     const diff = s.difference ? parseFloat(s.difference) : null;
                     return (
                       <tr key={s.id} className="hover:bg-amber-50/30 transition-colors group">

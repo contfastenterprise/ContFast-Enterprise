@@ -7,7 +7,8 @@
  */
 import { useRouter } from 'next/navigation';
 import { Wallet, Lock, RefreshCw, CheckCircle2, X, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+//  Lote 230: `m` y no `motion`; el `LazyMotion` lo pone la pagina.
+import { m, AnimatePresence } from 'framer-motion';
 import type { Caja } from '../hooks/useCaja';
 
 export function VistaApertura({ c }: { c: Caja }) {
@@ -40,7 +41,7 @@ export function VistaApertura({ c }: { c: Caja }) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0">
+                <label htmlFor="caja-terminal" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-0">
                   Punto de Venta <span className="text-red-500">*</span>
                 </label>
                 <button
@@ -56,6 +57,7 @@ export function VistaApertura({ c }: { c: Caja }) {
                 </button>
               </div>
               <select
+                id="caja-terminal"
                 value={c.selectedRegisterId}
                 onChange={(e) => c.setSelectedRegisterId(e.target.value)}
                 className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition text-slate-800"
@@ -70,10 +72,11 @@ export function VistaApertura({ c }: { c: Caja }) {
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              <label htmlFor="caja-fecha-apertura" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                 Fecha de Apertura
               </label>
               <input
+                id="caja-fecha-apertura"
                 type="date"
                 defaultValue={dateStr}
                 readOnly
@@ -85,10 +88,11 @@ export function VistaApertura({ c }: { c: Caja }) {
           {/* Time row */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              <label htmlFor="caja-hora-inicio" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                 Hora de Inicio
               </label>
               <input
+                id="caja-hora-inicio"
                 type="time"
                 defaultValue={timeStr}
                 readOnly
@@ -105,7 +109,7 @@ export function VistaApertura({ c }: { c: Caja }) {
 
           {/* Opening Balance */}
           <div className="space-y-1.5 pt-2">
-            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+            <label htmlFor="caja-fondo-inicial" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
               Monto de Apertura (Fondo de Caja) <span className="text-red-500">*</span>
             </label>
             <div className="relative">
@@ -113,6 +117,7 @@ export function VistaApertura({ c }: { c: Caja }) {
                 RD$
               </div>
               <input
+                id="caja-fondo-inicial"
                 type="number"
                 value={c.initialBalance}
                 onChange={(e) => c.setInitialBalance(e.target.value)}
@@ -143,9 +148,9 @@ export function VistaApertura({ c }: { c: Caja }) {
               className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               {c.submitting ? (
-                <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
+                <m.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
                   <RefreshCw className="w-4 h-4" />
-                </motion.div>
+                </m.div>
               ) : (
                 <Lock className="w-4 h-4" />
               )}
@@ -166,13 +171,13 @@ export function VistaApertura({ c }: { c: Caja }) {
       {/* ── New POS Terminal Modal ────────────────────────────────────── */}
       <AnimatePresence>
         {c.showNewRegisterModal && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -183,14 +188,15 @@ export function VistaApertura({ c }: { c: Caja }) {
                   <h3 className="text-sm font-bold text-slate-800">Nueva Terminal de Caja</h3>
                   <p className="text-xs text-slate-500 mt-0.5">Configure una nueva terminal para su empresa.</p>
                 </div>
-                <button onClick={() => c.setShowNewRegisterModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <button type="button" onClick={() => c.setShowNewRegisterModal(false)} aria-label="Cerrar la ventana de nueva terminal" className="text-slate-400 hover:text-slate-600 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
               <form onSubmit={c.handleCreateRegister} className="p-4 space-y-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Nombre de la Terminal <span className="text-red-500">*</span></label>
+                  <label htmlFor="caja-terminal-nombre" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Nombre de la Terminal <span className="text-red-500">*</span></label>
                   <input
+                    id="caja-terminal-nombre"
                     type="text"
                     required
                     value={c.newRegisterForm.name}
@@ -200,8 +206,9 @@ export function VistaApertura({ c }: { c: Caja }) {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Código Único <span className="text-red-500">*</span></label>
+                  <label htmlFor="caja-terminal-codigo" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Código Único <span className="text-red-500">*</span></label>
                   <input
+                    id="caja-terminal-codigo"
                     type="text"
                     required
                     value={c.newRegisterForm.code}
@@ -228,8 +235,8 @@ export function VistaApertura({ c }: { c: Caja }) {
                   </button>
                 </div>
               </form>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         )}
       </AnimatePresence>
     </>

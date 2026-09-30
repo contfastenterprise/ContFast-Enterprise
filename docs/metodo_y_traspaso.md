@@ -1072,6 +1072,38 @@ Además, fuera de la tabla:
   estados** (comprobado). Un mutante que esconde el error de carga del histórico
   sobrevive a `p2_37` —nunca miró la condición, tampoco en la página vieja— y lo mata el
   banco nuevo al dibujar.
+- **Lote 230: las advertencias de React Doctor de la pantalla de caja, cerradas.** Pedido
+  del dueño tras el 229. Eran **43** (las mismas que tenía la página vieja); medido después
+  con React Doctor en local, **0**. Las que cambian comportamiento:
+  · **diez lecturas sin mirar el estado** en los dos hooks pasan por `leerRespuesta`
+    (lote 227). Dos defectos que eso escondía, los dos **ejecutados** en el banco: si la
+    caja activa no se podía leer (un 403, un 5xx con JSON) la pantalla ofrecía **abrir
+    caja sin decir nada** — ahora lo dice, y sigue enseñando la apertura como hacía el
+    `catch` —; y con un 502 de página de error, "dar por revisada una diferencia"
+    enseñaba el mensaje del analizador de JSON (`Unexpected token '<'`);
+  · **accesibilidad**: cada etiqueta con su `htmlFor`/`id` (11), los tres botones de
+    cerrar con `aria-label` y `type="button"`, y cada cantidad del arqueo dice de qué
+    denominación es;
+  · **la hora del arqueo se toma una vez** al abrir la pestaña (`useState` perezoso):
+    `new Date()` en el JSX cambiaba en cada tecla del conteo;
+  · el CSV del histórico **suelta su memoria** (`revokeObjectURL`) tras descargarse.
+  Sin efecto visible: `m` con `LazyMotion` (la página lo pone, también en el esqueleto de
+  carga), el formateador de moneda creado una vez, las pestañas fuera del render y el
+  histórico filtrado y pintado en una pasada (`flatMap`).
+  Banco `verificar_avisos_caja.ts`: **captura las acciones de los hooks** dibujando en el
+  servidor un componente que solo los llama, y las ejecuta contra un `fetch` sustituido;
+  **dibuja** las vistas para comprobar que cada `for` tiene su `id`. 16 comprobaciones,
+  contraprueba **16 FALLA**, doce mutantes y doce muertos. Lo cierto antes y después (la
+  moneda se escribe igual, el filtro deja pasar las mismas filas, "sin caja abierta no hay
+  aviso") va como **invariante**. **Dos trampas del banco**: `toast` hay que sustituirlo
+  con `require('sonner')` y no con `import()` — el hook, transpilado por tsx, carga la
+  versión CommonJS y un `import()` da la ESM, **otro objeto**: los avisos no se veían y
+  todo parecía callado —; y dos comprobaciones sobrevivieron a la contraprueba (el 502 en
+  la carga ya lo decía bien el `catch` viejo): se cambió a la acción que sí fallaba y la
+  otra pasó a invariante.
+  Re-anclados: `verificar_arqueo_de_caja` (el resumen del cierre llega en `leido.cuerpo`)
+  y `verificar_partir_caja`, cuya equivalencia compara ahora **los dos commits** del 229
+  (`0078ab2` y `0724cb7`) y no la carpeta: este lote cambia marcado a propósito.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2261,5 +2293,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 229 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 230 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

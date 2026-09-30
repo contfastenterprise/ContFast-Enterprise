@@ -5,7 +5,8 @@
  * Salio de `cash/page.tsx` al partirla (lote 229), con el mismo marcado.
  */
 import { Plus, Minus, RefreshCw, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+//  Lote 230: `m` y no `motion`; el `LazyMotion` lo pone la pagina.
+import { m, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import type { Caja } from '../hooks/useCaja';
 
@@ -14,13 +15,13 @@ export function ModalMovimiento({ c }: { c: Caja }) {
     <>
       <AnimatePresence>
         {c.showMoveModal && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-[#001e40]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -36,7 +37,7 @@ export function ModalMovimiento({ c }: { c: Caja }) {
                     {c.moveType === 'cash_in' ? 'Entrada de Efectivo' : 'Salida de Efectivo'}
                   </h3>
                 </div>
-                <button onClick={() => c.setShowMoveModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <button type="button" onClick={() => c.setShowMoveModal(false)} aria-label="Cerrar la ventana del movimiento" className="text-slate-400 hover:text-slate-600 transition-colors">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -61,10 +62,11 @@ export function ModalMovimiento({ c }: { c: Caja }) {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Monto (RD$)</label>
+                  <label htmlFor="caja-movimiento-monto" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Monto (RD$)</label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-[10px]">RD$</span>
                     <input
+                      id="caja-movimiento-monto"
                       type="number"
                       value={c.moveAmount}
                       onChange={(e) => c.setMoveAmount(e.target.value)}
@@ -78,8 +80,9 @@ export function ModalMovimiento({ c }: { c: Caja }) {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Descripción / Concepto</label>
+                  <label htmlFor="caja-movimiento-concepto" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Descripción / Concepto</label>
                   <input
+                    id="caja-movimiento-concepto"
                     type="text"
                     value={c.moveDescription}
                     onChange={(e) => c.setMoveDescription(e.target.value)}
@@ -111,8 +114,8 @@ export function ModalMovimiento({ c }: { c: Caja }) {
                   </button>
                 </div>
               </form>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         )}
       </AnimatePresence>
     </>

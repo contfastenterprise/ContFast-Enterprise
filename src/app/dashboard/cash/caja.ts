@@ -51,12 +51,15 @@ export interface HistorySession {
 }
 
 // ─── Currency formatter ────────────────────────────────────────────────────────
+//  Lote 230: el formateador se crea UNA vez; antes se rehacia en cada importe
+//  pintado (React Doctor). Mismas opciones.
+const MONEDA = new Intl.NumberFormat('es-DO', {
+  style: 'currency',
+  currency: 'DOP',
+  minimumFractionDigits: 2,
+});
 export const fmt = (val: number | string) =>
-  new Intl.NumberFormat('es-DO', {
-    style: 'currency',
-    currency: 'DOP',
-    minimumFractionDigits: 2,
-  }).format(typeof val === 'string' ? parseFloat(val) : val);
+  MONEDA.format(typeof val === 'string' ? parseFloat(val) : val);
 
 // ─── Denomination data ─────────────────────────────────────────────────────────
 // Lote 172: la lista viene de `services/caja/conteoDeCaja.ts`, que es la misma

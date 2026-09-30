@@ -11,7 +11,9 @@
  * `hooks/useHistorialCaja`, y los tipos y ayudantes en `caja.ts`.
  */
 import { Wallet, Scale, History, RefreshCw } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+//  Lote 230: `m` dentro de `LazyMotion` y no `motion` (aviso de React Doctor:
+//  `motion` arrastra ~30 kb). Los componentes de `components/` usan `m` tambien.
+import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import type { CashView } from './caja';
 import { useCaja } from './hooks/useCaja';
@@ -24,6 +26,14 @@ import { ModalMovimiento } from './components/ModalMovimiento';
 import { ModalCierre } from './components/ModalCierre';
 import { ModalVerSesion } from './components/ModalVerSesion';
 
+//  Lote 230: fuera del componente; no depende de nada y no hace falta
+//  rehacerla en cada render (React Doctor).
+const TABS: { id: CashView; label: string; icon: React.ReactNode }[] = [
+  { id: 'gestion', label: 'Gestión de Caja', icon: <Wallet className="w-4 h-4" /> },
+  { id: 'arqueo', label: 'Arqueo y Cierre', icon: <Scale className="w-4 h-4" /> },
+  { id: 'historico', label: 'Histórico de Cierres', icon: <History className="w-4 h-4" /> },
+];
+
 export default function CashPage() {
   //  Cada hook necesita una accion del otro: se pasan como funciones que se
   //  llaman DESPUES, asi que da igual cual se declare primero.
@@ -33,29 +43,26 @@ export default function CashPage() {
   // ─── Loading skeleton ────────────────────────────────────────────────────
   if (caja.view === 'loading') {
     return (
+      <LazyMotion features={domAnimation}>
       <div className="flex items-center justify-center h-full min-h-[60vh] max-w-7xl mx-auto w-full">
-        <motion.div
+        <m.div
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
         >
           <RefreshCw className="w-8 h-8 text-blue-900" />
-        </motion.div>
+        </m.div>
       </div>
+      </LazyMotion>
     );
   }
 
   // ─── SESSION ACTIVE: Tab navigation ──────────────────────────────────────
-  const tabs: { id: CashView; label: string; icon: React.ReactNode }[] = [
-    { id: 'gestion', label: 'Gestión de Caja', icon: <Wallet className="w-4 h-4" /> },
-    { id: 'arqueo', label: 'Arqueo y Cierre', icon: <Scale className="w-4 h-4" /> },
-    { id: 'historico', label: 'Histórico de Cierres', icon: <History className="w-4 h-4" /> },
-  ];
-
   return (
+    <LazyMotion features={domAnimation}>
     <div className="space-y-0">
       {/* Sub-navigation tabs */}
       <div className="flex items-center gap-1 border-b border-slate-200 bg-white px-4 pt-2">
-        {tabs.map((tab) => (
+        {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => caja.handleTabChange(tab.id)}
@@ -75,7 +82,7 @@ export default function CashPage() {
       {/* ── GESTIÓN VIEW ──────────────────────────────────────────────── */}
       <AnimatePresence mode="wait">
         {caja.view === 'apertura' && (
-          <motion.div
+          <m.div
             key="apertura"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -83,10 +90,10 @@ export default function CashPage() {
             className="p-4 flex items-center justify-center min-h-[calc(100vh-240px)] bg-slate-50"
           >
             <VistaApertura c={caja} />
-          </motion.div>
+          </m.div>
         )}
         {caja.view === 'gestion' && (
-          <motion.div
+          <m.div
             key="gestion"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -94,12 +101,12 @@ export default function CashPage() {
             className="p-4 space-y-4"
           >
             <VistaGestion c={caja} />
-          </motion.div>
+          </m.div>
         )}
 
         {/* ── ARQUEO VIEW ─────────────────────────────────────────────── */}
         {caja.view === 'arqueo' && (
-          <motion.div
+          <m.div
             key="arqueo"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -107,12 +114,12 @@ export default function CashPage() {
             className="p-4 space-y-4"
           >
             <VistaArqueo c={caja} />
-          </motion.div>
+          </m.div>
         )}
 
         {/* ── HISTÓRICO VIEW ───────────────────────────────────────────── */}
         {caja.view === 'historico' && (
-          <motion.div
+          <m.div
             key="historico"
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -120,7 +127,7 @@ export default function CashPage() {
             className="p-4 space-y-4"
           >
             <VistaHistorico h={historial} />
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -136,5 +143,6 @@ export default function CashPage() {
       {/* Removed Global Print overlay */}
 
     </div>
+    </LazyMotion>
   );
 }

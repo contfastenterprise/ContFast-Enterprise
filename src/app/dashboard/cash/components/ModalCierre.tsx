@@ -5,7 +5,8 @@
  * Salio de `cash/page.tsx` al partirla (lote 229), con el mismo marcado.
  */
 import { CheckCircle2, Printer } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+//  Lote 230: `m` y no `motion`; el `LazyMotion` lo pone la pagina.
+import { m, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { fmt } from '../caja';
 import type { Caja } from '../hooks/useCaja';
@@ -15,13 +16,13 @@ export function ModalCierre({ c }: { c: Caja }) {
     <>
       <AnimatePresence>
         {c.showSuccessModal && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-[#001e40]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           >
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               className="bg-white p-6 rounded-xl max-w-sm w-full shadow-2xl text-center border-t-4 border-[#c5a059]"
@@ -89,8 +90,8 @@ export function ModalCierre({ c }: { c: Caja }) {
                   Volver al Inicio
                 </button>
               </div>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         )}
       </AnimatePresence>
     </>
