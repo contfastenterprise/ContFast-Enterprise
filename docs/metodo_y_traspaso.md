@@ -1020,6 +1020,25 @@ Además, fuera de la tabla:
   `verificar_partir_conduces`, cuya prueba de equivalencia compara ahora **los dos commits**
   (`a7b763c` y `21e3dab`) y no la carpeta: este lote cambia marcado a propósito, y así la
   prueba del 226 sigue valiendo para siempre.
+- **Lote 228: "Balance Actual" de Caja decía RD$0,00 con la caja abierta.** Reportado por
+  el dueño (2026-09-29): *"no da el resultado real"*. **Era mío, del lote 172**: el arqueo
+  ciego quitó el saldo esperado de `/cash/sessions/active` con la caja abierta, pero la
+  tarjeta "Balance Actual" y el pie "Total Neto en Caja" siguieron leyendo ese campo y,
+  sin él, pintaban `fmt('0')` — no ocultaban el dato, **decían uno falso**. Medido (solo
+  lectura): la caja abierta de Latin Doors en PRODUCCIÓN, desde el 23/09, tenía
+  **RD$328.719,58**, y el saldo guardado cuadra al centavo con fondo + movimientos (el
+  dato estaba bien; lo que fallaba era enseñarlo).
+  **Decisión del dueño**: administración y sistemas ven el saldo real; el resto cuenta a
+  ciegas y la pantalla dice "Se ve al cerrar la caja". La regla vive en
+  `services/caja/arqueoCiego.ts` y **reusa `esAdminOSistemas`** (la única fuente de esa
+  comparación desde P0-02); la ruta la aplica en el **servidor** y manda `saldoVisible`.
+  **La tarjeta EFECTIVO sigue la misma regla**: su suma es el saldo menos el fondo, así
+  que a ciegas se enseña "—" — sin eso, el ciego del 172 nunca lo fue del todo.
+  Banco `verificar_balance_de_caja.ts` (ejecuta la regla con los roles reales): 12
+  comprobaciones, contraprueba 12 FALLA, siete mutantes y siete muertos.
+  `verificar_arqueo_de_caja` (172) anclaba `expectedBalance: undefined` en la ruta:
+  re-anclado a la propiedad, ejecutada — a quien cuenta no le llega el esperado, y se
+  quita en el servidor.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2209,5 +2228,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 227 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 228 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
+import { TEXTO_SALDO_OCULTO } from '@/services/caja/arqueoCiego';
 import { formatDateDisplay, formatDateTimeDisplay, formatTimeDisplay } from '@/utils/fechasLocales';
 import { DENOMINACIONES } from '@/services/caja/conteoDeCaja';
 // La MISMA regla que decide si el panel avisa: si la pantalla usara otra, el
@@ -26,7 +27,10 @@ interface Session {
   id: string;
   status: string;
   initialBalance: string;
-  expectedBalance: string;
+  //  Lote 228: solo llega si quien mira puede verlo (arqueo ciego del 172);
+  //  `saldoVisible` dice cual de los dos casos es.
+  expectedBalance?: string;
+  saldoVisible?: boolean;
   cashRegisterId: string;
   createdAt: string;
 }
@@ -756,9 +760,14 @@ export default function CashPage() {
               <div className="col-span-12 md:col-span-4 bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
                 <div>
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Balance Actual</p>
-                  <p className="text-4xl font-extrabold text-[#001e40] tracking-tight">
-                    {fmt(session?.expectedBalance || '0')}
-                  </p>
+                  {/* Lote 228: con el saldo oculto se dice, en vez de pintar 0,00. */}
+                  {session?.saldoVisible ? (
+                    <p className="text-4xl font-extrabold text-[#001e40] tracking-tight">
+                      {fmt(session.expectedBalance || '0')}
+                    </p>
+                  ) : (
+                    <p className="text-sm font-semibold text-slate-500">{TEXTO_SALDO_OCULTO}</p>
+                  )}
                 </div>
                 <div className="mt-4 pt-4 border-t border-slate-200 grid grid-cols-2 gap-4">
                   <div>
@@ -779,8 +788,11 @@ export default function CashPage() {
                     icon: <Wallet className="w-5 h-5 text-amber-700" />,
                     label: 'EFECTIVO',
                     color: 'bg-amber-50',
-                    amount: movements.filter(m => !m.reference?.includes('card')).reduce((s, m) =>
-                      s + (m.type === 'sale' || m.type === 'cash_in' ? parseFloat(m.amount) : -parseFloat(m.amount)), 0),
+                    //  Lote 228: esta suma ES el saldo menos el fondo; a ciegas no se da hecha.
+                    amount: session?.saldoVisible
+                      ? movements.filter(m => !m.reference?.includes('card')).reduce((s, m) =>
+                        s + (m.type === 'sale' || m.type === 'cash_in' ? parseFloat(m.amount) : -parseFloat(m.amount)), 0)
+                      : null,
                     count: movements.filter(m => m.type === 'sale' || m.type === 'cash_in').length,
                   },
                   {
@@ -806,7 +818,7 @@ export default function CashPage() {
                       </span>
                     </div>
                     <div className="mt-auto">
-                      <p className="text-lg font-bold text-[#001e40]">{fmt(card.amount)}</p>
+                      <p className="text-lg font-bold text-[#001e40]">{card.amount === null ? '—' : fmt(card.amount)}</p>
                       <p className="text-xs text-slate-500">{card.count} Transacciones</p>
                     </div>
                   </div>
@@ -880,7 +892,7 @@ export default function CashPage() {
                           Total Neto en Caja
                         </td>
                         <td className="px-4 py-2.5 text-right font-mono text-sm">
-                          {fmt(session?.expectedBalance || '0')}
+                          {session?.saldoVisible ? fmt(session.expectedBalance || '0') : TEXTO_SALDO_OCULTO}
                         </td>
                         <td />
                       </tr>

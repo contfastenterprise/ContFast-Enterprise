@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { CashRepository } from '@/repositories/cashRepository';
+import { sesionParaMostrar } from '@/services/caja/arqueoCiego';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,12 +34,15 @@ export async function GET(req: NextRequest) {
     // vista lo deja igual de disponible en la respuesta de red. Al cerrar, la
     // respuesta del cierre si trae esperado, contado y diferencia; y el resumen
     // de una sesion ya cerrada los trae enteros.
-    const sinEsperado = activeSession
-      ? { ...activeSession, expectedBalance: undefined }
-      : null;
+    //
+    // LOTE 228 (decision del dueño, 2026-09-29): administracion y sistemas SI ven
+    // el saldo real; el resto sigue a ciegas. La regla vive en
+    // `services/caja/arqueoCiego.ts`, y `saldoVisible` le dice a la pantalla que
+    // pintar -- antes pintaba RD$0,00 donde faltaba el dato.
+    const paraMostrar = sesionParaMostrar(activeSession, auth.role);
 
     return NextResponse.json(
-      { success: true, data: sinEsperado },
+      { success: true, data: paraMostrar },
       { headers: resHeaders }
     );
   } catch (error: unknown) {

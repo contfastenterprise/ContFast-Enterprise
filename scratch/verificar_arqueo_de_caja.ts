@@ -157,8 +157,22 @@ async function main() {
 
   console.log('\n3) Arqueo ciego\n');
   const activa = leer(RUTA_ACTIVA);
-  ok('la sesion abierta no devuelve el saldo esperado', /expectedBalance: undefined/.test(activa));
-  ok('  y se hace en el SERVIDOR, no en la pantalla', /sinEsperado/.test(activa) && /data: sinEsperado/.test(activa));
+  //  LOTE 228: re-anclado a la PROPIEDAD, ahora ejecutada. El dueño decidio que
+  //  administracion y sistemas SI ven el saldo; el cajero sigue a ciegas. Lo que
+  //  este banco vigila no cambia: a quien cuenta no le llega el esperado, y se
+  //  quita en el SERVIDOR (`sesionParaMostrar`, en la ruta), no en la pantalla.
+  type ParaMostrar = (s: { expectedBalance?: unknown }, r: string) => Record<string, unknown> | null;
+  let paraMostrar: ParaMostrar | null = null;
+  try {
+    paraMostrar = (await import('../src/services/caja/arqueoCiego') as unknown as { sesionParaMostrar: ParaMostrar }).sesionParaMostrar;
+  } catch { paraMostrar = null; }
+  const abierta = { id: 's', expectedBalance: '328719.58' };
+  const alCajero: Record<string, unknown> | null = paraMostrar ? paraMostrar(abierta, 'cajero') : abierta;
+  ok('la sesion abierta no le devuelve el saldo esperado a quien cuenta',
+    !!alCajero && alCajero.expectedBalance === undefined);
+  ok('  y se hace en el SERVIDOR, no en la pantalla',
+    /import \{ sesionParaMostrar \} from '@\/services\/caja\/arqueoCiego';/.test(activa)
+    && /sesionParaMostrar\(activeSession, auth\.role\)/.test(activa) && /data: paraMostrar/.test(activa));
   ok('la pantalla ya no calcula el esperado ni la diferencia',
     !/getExpectedBalance/.test(pantalla) && !/getDifference/.test(pantalla));
   ok('  ni suma las entradas y salidas al lado del formulario (eso ES el esperado)',
