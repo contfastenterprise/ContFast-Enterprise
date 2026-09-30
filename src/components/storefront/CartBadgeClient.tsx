@@ -1,45 +1,45 @@
 "use client";
 
+/**
+ * El numero sobre el icono de Mi Cotizacion.
+ *
+ * Lote 231: el oyente de `storage` se ponia con una funcion anonima y nunca se
+ * quitaba, asi que cada montaje dejaba uno mas escuchando. Y la cuenta ignora
+ * lo que no es una cantidad: `storefront_cart` es texto que cualquiera puede
+ * tocar, y un renglon roto daba `NaN` en el icono.
+ */
 import { useState, useEffect } from 'react';
+
+function contar(): number {
+  try {
+    const cart: unknown = JSON.parse(localStorage.getItem('storefront_cart') || '[]');
+    if (!Array.isArray(cart)) return 0;
+    return cart.reduce((acc: number, item: { quantity?: unknown }) =>
+      acc + (typeof item?.quantity === 'number' && item.quantity > 0 ? item.quantity : 0), 0);
+  } catch {
+    return 0;
+  }
+}
 
 export default function CartBadgeClient() {
   const [count, setCount] = useState(0);
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    const updateCount = () => {
-      try {
-        const cart = JSON.parse(localStorage.getItem('storefront_cart') || '[]');
-        const totalItems = cart.reduce((acc: number, item: any) => acc + item.quantity, 0);
-        setCount(totalItems);
-      } catch (e) {
-        setCount(0);
-      }
-    };
-
-    // Carga inicial
-    updateCount();
-
-    // Escuchar actualizaciones
-    window.addEventListener('cart_updated', updateCount);
-    
-    // Escuchar cambios de otra pestaña
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'storefront_cart') {
-        updateCount();
-      }
-    });
-
+    const actualizar = () => setCount(contar());
+    const deOtraPestana = (e: StorageEvent) => { if (e.key === 'storefront_cart') actualizar(); };
+    actualizar();
+    window.addEventListener('cart_updated', actualizar);
+    window.addEventListener('storage', deOtraPestana);
     return () => {
-      window.removeEventListener('cart_updated', updateCount);
+      window.removeEventListener('cart_updated', actualizar);
+      window.removeEventListener('storage', deOtraPestana);
     };
   }, []);
 
-  if (!mounted || count === 0) return null;
+  if (count === 0) return null;
 
   return (
-    <span className="absolute -top-2 -right-2 bg-[#ba1a1a] text-white text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center shadow-sm border-2 border-white">
+    <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#001e40] px-1 text-[10px] font-bold text-white" aria-hidden="true">
       {count > 99 ? '99+' : count}
     </span>
   );

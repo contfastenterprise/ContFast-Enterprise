@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { products, productCategories } from '@/db/schema/products';
-import { eq, and, isNull, ilike } from 'drizzle-orm';
+import { eq, and, isNull, ilike, sql } from 'drizzle-orm';
 
 export interface StorefrontProduct {
   id: string;
@@ -131,7 +131,9 @@ export const StorefrontProductService = {
     }
 
     if (search) {
-      conditions.push(ilike(products.name, `%${search}%`));
+      //  Lote 231: `%` y `_` escritos por el visitante se buscan tal cual, no
+      //  como comodines (el mismo criterio que cotizaciones, lote 110).
+      conditions.push(ilike(products.name, `%${search.replace(/[\\%_]/g, (c) => `\\${c}`)}%`));
     }
 
     const results = await db
@@ -204,6 +206,34 @@ export const StorefrontProductService = {
       categoryName: p.categoryName,
       slug: createSlug(p.name, p.id),
     }));
+  },
+
+  /**
+   * Lote 231: lo que la cabecera necesita saber del catalogo sin traerse los
+   * productos: cuantos hay por categoria (para no enlazar una vacia) y cuantas
+   * OFERTAS de verdad (para no ofrecer "Promociones" que llevan a una pagina
+   * vacia: medido, hoy Latin Doors tiene 0). Oferta es la misma regla que
+   * `tieneOferta` de `catalogo.ts`: marcada, con precio y por debajo del de lista.
+   */
+  async getResumenDelCatalogo(companyId: string): Promise<{ porCategoria: Record<string, number>; ofertas: number; total: number }> {
+    const filas = await db
+      .select({
+        categoryId: products.categoryId,
+        cantidad: sql<number>`count(*)::int`,
+        ofertas: sql<number>`count(*) filter (where ${products.isOnSale} and ${products.promotionalPrice} > 0 and ${products.promotionalPrice} < ${products.priceConsumidor})::int`,
+      })
+      .from(products)
+      .where(and(eq(products.companyId, companyId), eq(products.status, 'active'), isNull(products.deletedAt)))
+      .groupBy(products.categoryId);
+    const porCategoria: Record<string, number> = {};
+    let ofertas = 0;
+    let total = 0;
+    for (const f of filas) {
+      total += Number(f.cantidad);
+      if (f.categoryId) porCategoria[f.categoryId] = Number(f.cantidad);
+      ofertas += Number(f.ofertas);
+    }
+    return { porCategoria, ofertas, total };
   },
 
   /**

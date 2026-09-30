@@ -1,110 +1,106 @@
 import Link from 'next/link';
-import { ArrowRight, ShoppingCart, ShieldCheck, Clock, Settings, Package } from 'lucide-react';
-import { Button } from '@/components/storefront/ui/client-button';
+import { notFound } from 'next/navigation';
+import { StorefrontCompanyService } from '@/services/storefront/companyService';
+import { StorefrontProductService } from '@/services/storefront/productService';
+import { categoriasConProductos, contarPorCategoria, inicialesDe, ordenarProductos } from '@/services/storefront/catalogo';
+import { RejillaDeProductos } from '@/components/storefront/TarjetaProducto';
 
+export const dynamic = 'force-dynamic';
+
+/** Cuantos productos ensena la portada; el resto, en el catalogo. */
+const PRODUCTOS_EN_PORTADA = 8;
+
+/**
+ * La portada de la tienda, al estilo de Spree (lote 231): el bloque partido
+ * (texto a la izquierda, imagen a la derecha), las categorias y una muestra
+ * del catalogo.
+ *
+ * Antes la portada decia "Fabricamos soluciones para tu espacio" y ofrecia
+ * Puertas, Ventanas, Closets y Gabinetes en las SEIS empresas, escrito a mano
+ * y con enlaces a identificadores que no eran de ninguna categoria. Ahora todo
+ * sale de lo que la empresa tiene. El titulo, el texto y la imagen propios de
+ * cada empresa llegan en el lote siguiente; mientras, el bloque lleva el logo.
+ */
 export default async function StorefrontHomePage({ params }: { params: Promise<{ empresa: string }> }) {
-  const resolvedParams = await params;
-  const empresaSlug = resolvedParams.empresa;
+  const { empresa: empresaSlug } = await params;
+  const company = await StorefrontCompanyService.resolveCompanyBySlug(empresaSlug);
+  if (!company) notFound();
+
+  const [categorias, productos] = await Promise.all([
+    StorefrontProductService.getActiveCategories(company.id),
+    StorefrontProductService.getActiveProducts(company.id),
+  ]);
+  const conProductos = categoriasConProductos(categorias, contarPorCategoria(productos));
+  const muestra = ordenarProductos(productos, 'relevancia').slice(0, PRODUCTOS_EN_PORTADA);
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Hero Section */}
-      <section className="relative bg-[#001e40] overflow-hidden py-20 lg:py-32">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-        </div>
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-7xl font-extrabold text-white mb-6 tracking-tight">
-            Fabricamos soluciones para <br className="hidden md:block" />
-            <span className="text-[#c5a059]">tu espacio</span>
-          </h1>
-          <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto mb-10">
-            Descubre nuestro catálogo de puertas, ventanas, closets y gabinetes. Cotiza en línea rápida y fácilmente.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href={`/${empresaSlug}/productos`}>
-              <Button size="lg" className="bg-[#c5a059] hover:bg-[#b08c4a] text-slate-950 font-bold h-12 px-8">
-                Ver productos
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-            <Link href={`/${empresaSlug}/mi-cotizacion`}>
-              <Button size="lg" variant="outline" className="text-white border-slate-600 hover:bg-slate-800 h-12 px-8">
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                Mi cotización
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#001e40] mb-4">¿Por qué elegirnos?</h2>
-            <p className="text-slate-500 max-w-2xl mx-auto">Nuestro compromiso es brindarte productos excepcionales y un servicio de primera calidad en cada proyecto.</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-            <div className="flex flex-col items-center text-center p-6 rounded-2xl bg-slate-50 border border-slate-100">
-              <div className="h-14 w-14 rounded-full bg-[#001e40]/5 flex items-center justify-center mb-6 text-[#001e40]">
-                <ShieldCheck className="h-7 w-7" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">Calidad Garantizada</h3>
-              <p className="text-slate-600">Materiales seleccionados y acabados perfectos para asegurar la durabilidad de tus espacios.</p>
-            </div>
-            <div className="flex flex-col items-center text-center p-6 rounded-2xl bg-slate-50 border border-slate-100">
-              <div className="h-14 w-14 rounded-full bg-[#c5a059]/10 flex items-center justify-center mb-6 text-[#c5a059]">
-                <Settings className="h-7 w-7" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">Diseños a Medida</h3>
-              <p className="text-slate-600">Soluciones adaptadas a tus necesidades. Cotiza tus productos estándar y solicita ajustes especiales.</p>
-            </div>
-            <div className="flex flex-col items-center text-center p-6 rounded-2xl bg-slate-50 border border-slate-100">
-              <div className="h-14 w-14 rounded-full bg-[#001e40]/5 flex items-center justify-center mb-6 text-[#001e40]">
-                <Clock className="h-7 w-7" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">Tiempos de Entrega</h3>
-              <p className="text-slate-600">Compromiso real con los plazos acordados para la fabricación e instalación.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Categorías Principales */}
-      <section className="py-20 bg-slate-50">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#001e40] mb-4">Nuestras Categorías</h2>
-            <p className="text-slate-500 max-w-2xl mx-auto">
-              Explora nuestra selección de productos diseñados para cada rincón de tu hogar o proyecto.
+    <div>
+      {/* Portada partida, como la de Spree */}
+      <section className="grid min-h-[70vh] grid-cols-1 lg:grid-cols-2">
+        <div className="flex items-center px-6 py-16 sm:px-10 lg:px-16 xl:px-24">
+          <div className="max-w-xl">
+            <h1 className="text-4xl font-medium leading-tight tracking-tight text-slate-900 md:text-5xl">
+              Bienvenido a {company.name}
+            </h1>
+            <p className="mt-6 text-lg leading-relaxed text-slate-600">
+              Explora nuestro catálogo, arma tu selección y solicita tu cotización en línea. Te respondemos con precios y tiempos de entrega.
             </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Categoría Placeholder */}
-            {[
-              { title: 'Puertas', desc: 'Interiores y principales', id: 'puertas' },
-              { title: 'Ventanas', desc: 'Corredizas y de aluminio', id: 'ventanas' },
-              { title: 'Closets', desc: 'Organización a medida', id: 'closets' },
-              { title: 'Gabinetes', desc: 'Cocinas y baños', id: 'gabinetes' },
-            ].map((cat, i) => (
-              <Link key={i} href={`/${empresaSlug}/productos?categoria=${cat.id}`} className="group relative rounded-2xl overflow-hidden aspect-[4/5] bg-white shadow-sm border border-slate-200">
-                <div className="absolute inset-0 bg-slate-100 group-hover:scale-105 transition-transform duration-300 flex items-center justify-center text-slate-300">
-                   {/* Imagen Placeholder */}
-                   <Package className="h-20 w-20 opacity-20" />
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                <div className="absolute bottom-0 left-0 p-6">
-                  <h3 className="text-2xl font-bold text-white mb-1">{cat.title}</h3>
-                  <p className="text-white/80 text-sm">{cat.desc}</p>
-                </div>
+            <div className="mt-10 flex flex-wrap gap-3">
+              <Link href={`/${empresaSlug}/productos`}
+                className="rounded-full bg-[#001e40] px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.15em] text-white transition-colors hover:bg-[#00142a]">
+                Ver productos
               </Link>
-            ))}
+              <Link href={`/${empresaSlug}/mi-cotizacion`}
+                className="rounded-full border border-slate-900 px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.15em] text-slate-900 transition-colors hover:bg-slate-900 hover:text-white">
+                Mi cotización
+              </Link>
+            </div>
           </div>
         </div>
+        <div className="flex min-h-[320px] items-center justify-center bg-[#f4f4f3] p-12">
+          {company.logoUrl ? (
+            //  `mix-blend-multiply`: los logos suelen traer fondo blanco, y sobre el
+            //  gris quedaba un rectangulo blanco (visto al dibujarlo, lote 231).
+            <img src={company.logoUrl} alt="" className="max-h-64 w-auto max-w-[70%] object-contain mix-blend-multiply" />
+          ) : (
+            <span className="text-8xl font-light tracking-[0.2em] text-slate-300" aria-hidden="true">{inicialesDe(company.name)}</span>
+          )}
+        </div>
       </section>
+
+      {conProductos.length > 0 && (
+        <section className="mx-auto max-w-[1400px] px-4 py-20 sm:px-6 lg:px-10">
+          <h2 className="mb-10 text-center text-2xl font-medium uppercase tracking-[0.15em] text-slate-900">Compra por categoría</h2>
+          <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
+            {conProductos.slice(0, 8).map((c) => (
+              <li key={c.id}>
+                {/* Sin fotos de categoria, el nombre va DENTRO de la tarjeta: una
+                    inicial suelta en un cuadrado grande no decia nada (visto al
+                    dibujarlo). */}
+                <Link href={`/${empresaSlug}/productos?categoria=${c.id}`}
+                  className="group flex aspect-[4/3] flex-col items-center justify-center gap-2 bg-[#f4f4f3] px-4 text-center transition-colors hover:bg-[#ebebea]">
+                  <span className="text-lg uppercase tracking-[0.15em] text-slate-900 underline-offset-8 group-hover:underline">{c.name}</span>
+                  <span className="text-sm text-slate-500">{c.cantidad} {c.cantidad === 1 ? 'producto' : 'productos'}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {muestra.length > 0 && (
+        <section className="border-t border-slate-200">
+          <div className="mx-auto max-w-[1400px] px-4 py-20 sm:px-6 lg:px-10">
+            <div className="mb-10 flex items-end justify-between gap-4">
+              <h2 className="text-2xl font-medium uppercase tracking-[0.15em] text-slate-900">Nuestros productos</h2>
+              <Link href={`/${empresaSlug}/productos`} className="text-sm uppercase tracking-[0.15em] text-slate-900 underline underline-offset-8 hover:opacity-70">
+                Ver todos
+              </Link>
+            </div>
+            <RejillaDeProductos productos={muestra} empresaSlug={empresaSlug} />
+          </div>
+        </section>
+      )}
     </div>
   );
 }

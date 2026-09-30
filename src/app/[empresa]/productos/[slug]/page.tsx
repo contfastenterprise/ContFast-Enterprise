@@ -1,9 +1,12 @@
 import { StorefrontProductService } from '@/services/storefront/productService';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Package, Check, ShieldCheck, Clock, Tag } from 'lucide-react';
+import { Check, ShieldCheck, Clock } from 'lucide-react';
 import AddToCartClient from '@/components/storefront/AddToCartClient';
 import ProductRecommendations from '@/components/storefront/ProductRecommendations';
+import BotonFavorito from '@/components/storefront/BotonFavorito';
+import { MarcadorDeProducto, PrecioDeTienda } from '@/components/storefront/TarjetaProducto';
+import { precioVigente, tieneOferta } from '@/services/storefront/catalogo';
 import { StorefrontCompanyService } from '@/services/storefront/companyService';
 import { Metadata } from 'next';
 
@@ -14,15 +17,20 @@ export async function generateMetadata({ params }: { params: Promise<{ empresa: 
   const company = await StorefrontCompanyService.resolveCompanyBySlug(resolvedParams.empresa);
   if (!company) return { title: 'Producto no encontrado' };
   const product = await StorefrontProductService.getProductBySlug(resolvedParams.slug, company.id);
-  
+
   if (!product) return { title: 'Producto no encontrado' };
-  
+
   return {
     title: `${product.name} | ${company?.name || 'Tienda en Línea'}`,
     description: product.description || `Comprar ${product.name}`,
   };
 }
 
+/**
+ * La ficha de producto, al estilo de Spree (lote 231): la foto grande sobre
+ * gris a la izquierda; a la derecha el nombre en mayusculas, el precio, la
+ * cantidad, el boton redondeado con el corazon al lado y la descripcion.
+ */
 export default async function StorefrontProductDetailPage({
   params
 }: {
@@ -30,7 +38,7 @@ export default async function StorefrontProductDetailPage({
 }) {
   const resolvedParams = await params;
   const empresaSlug = resolvedParams.empresa;
-  
+
   const company = await StorefrontCompanyService.resolveCompanyBySlug(empresaSlug);
   if (!company) {
     notFound();
@@ -42,120 +50,69 @@ export default async function StorefrontProductDetailPage({
     notFound();
   }
 
-  // Desestructuramos para la vista
-  const { id, name, description, price, imageUrl, categoryName, categoryId } = product;
-  
-  // Obtenemos recomendaciones (Fase 5)
+  const { id, name, description, imageUrl, categoryName, categoryId } = product;
+
   const recommended = await StorefrontProductService.getRecommendations(company.id, 4, id, categoryId || undefined);
 
   return (
-    <div className="bg-slate-50 min-h-screen py-10">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
-        {/* Breadcrumb / Back button */}
-        <div className="mb-8">
-          <Link href={`/${empresaSlug}/productos`} className="inline-flex items-center text-sm font-medium text-slate-500 hover:text-[#001e40] transition-colors">
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Volver al catálogo
-          </Link>
+    <div className="mx-auto max-w-[1400px] px-4 pb-20 pt-8 sm:px-6 lg:px-10">
+      <nav aria-label="Ruta" className="mb-8 text-xs uppercase tracking-[0.15em] text-slate-500">
+        <ol className="flex flex-wrap items-center gap-2">
+          <li><Link href={`/${empresaSlug}/productos`} className="hover:text-slate-900">Productos</Link></li>
+          {categoryName && categoryId && (
+            <>
+              <li aria-hidden="true">/</li>
+              <li><Link href={`/${empresaSlug}/productos?categoria=${categoryId}`} className="hover:text-slate-900">{categoryName}</Link></li>
+            </>
+          )}
+          <li aria-hidden="true">/</li>
+          <li aria-current="page" className="text-slate-900">{name}</li>
+        </ol>
+      </nav>
+
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
+        <div className="relative aspect-square overflow-hidden bg-[#f4f4f3]">
+          {tieneOferta(product) && (
+            <span className="absolute left-4 top-4 z-10 rounded-full bg-red-600 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-white">
+              Oferta
+            </span>
+          )}
+          {imageUrl ? (
+            <img src={imageUrl} alt={name} className="h-full w-full object-cover" />
+          ) : (
+            <MarcadorDeProducto nombre={name} categoria={categoryName} grande />
+          )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-0">
-            {/* Image Gallery Area */}
-            <div className="relative aspect-square md:aspect-auto md:h-full bg-slate-100 flex items-center justify-center p-8 border-b md:border-b-0 md:border-r border-slate-200">
-              {imageUrl ? (
-                <img 
-                  src={imageUrl} 
-                  alt={name} 
-                  className="max-w-full max-h-full object-contain mix-blend-multiply drop-shadow-md"
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center text-slate-300">
-                  <Package className="h-32 w-32 mb-4" />
-                  <span className="text-sm font-medium">Sin imagen disponible</span>
-                </div>
-              )}
-              {/* Badge de Promoción estático por ahora */}
-              {/* <div className="absolute top-4 left-4 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full">
-                OFERTA
-              </div> */}
-            </div>
+        <div className="flex flex-col">
+          {categoryName && <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{categoryName}</p>}
+          <h1 className="mt-2 text-2xl font-medium uppercase tracking-[0.08em] text-slate-900 md:text-3xl">{name}</h1>
 
-            {/* Product Details */}
-            <div className="p-8 md:p-12 flex flex-col">
-              <div className="mb-2">
-                <span className="inline-block py-1 px-3 rounded-full bg-[#001e40]/5 text-[#001e40] text-xs font-bold uppercase tracking-wider">
-                  {categoryName || 'Sin categoría'}
-                </span>
-              </div>
-              
-              <h1 className="text-3xl md:text-4xl font-bold text-[#001e40] mb-4">
-                {name}
-              </h1>
+          <div className="mt-5">
+            <PrecioDeTienda producto={product} grande />
+            <p className="mt-1 text-sm text-slate-500">Precio sugerido al detalle. No incluye impuestos.</p>
+          </div>
 
-              <div className="mb-6 flex flex-col">
-                {product.isOnSale ? (
-                  <>
-                    <span className="text-xl text-slate-400 line-through mb-1">
-                      RD$ {product.price.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
-                    </span>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-4xl font-extrabold text-red-600 tracking-tight">
-                        RD$ {product.promotionalPrice.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
-                      </span>
-                      <span className="text-sm text-slate-400 font-bold uppercase tracking-wider">+ ITBIS</span>
-                    </div>
-                    <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-red-50 border border-red-100 text-red-600 text-sm font-semibold w-fit">
-                      <Tag className="h-4 w-4" />
-                      ¡En Oferta Especial!
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-extrabold text-slate-900">
-                      RD$ {product.price.toLocaleString('es-DO', { minimumFractionDigits: 2 })}
-                    </span>
-                    <span className="text-sm text-slate-400 font-bold uppercase tracking-wider">+ ITBIS</span>
-                  </div>
-                )}
-                <p className="text-sm text-slate-500 mt-2">Precio sugerido detallista (No incluye impuestos)</p>
-              </div>
+          <div className="mt-8">
+            <AddToCartClient productId={id} name={name} price={precioVigente(product)} imageUrl={imageUrl}>
+              <BotonFavorito empresaSlug={empresaSlug} productId={id} nombre={name} grande />
+            </AddToCartClient>
+          </div>
 
-              <div className="prose prose-sm text-slate-600 mb-8 max-w-none">
-                <p>{description || 'Este producto no tiene una descripción detallada en este momento.'}</p>
-                
-                {/* Nota: Material, Color, etc. no están en DB actualmente, se deja documentado para la regla 4 */}
-                <div className="mt-6 space-y-2">
-                  <div className="flex items-center text-sm">
-                    <Check className="h-4 w-4 text-green-500 mr-2 shrink-0" />
-                    <span>Disponibilidad sujeta a verificación de inventario</span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <ShieldCheck className="h-4 w-4 text-[#c5a059] mr-2 shrink-0" />
-                    <span>Garantía de fabricación estándar</span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <Clock className="h-4 w-4 text-[#001e40] mr-2 shrink-0" />
-                    <span>Tiempo de entrega a confirmar en cotización final</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-auto border-t border-slate-100 pt-6">
-                <AddToCartClient 
-                  productId={product.id} 
-                  name={product.name} 
-                  price={product.isOnSale ? Number(product.promotionalPrice) : Number(product.price)} 
-                  imageUrl={product.imageUrl} 
-                />
-              </div>
-            </div>
+          <div className="mt-10 border-t border-slate-200 pt-8">
+            <p className="text-[15px] leading-relaxed text-slate-700">
+              {description || 'Este producto no tiene una descripción detallada en este momento.'}
+            </p>
+            <ul className="mt-6 space-y-2.5 text-sm text-slate-600">
+              <li className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0 text-slate-900" aria-hidden="true" />Disponibilidad sujeta a verificación de inventario</li>
+              <li className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 shrink-0 text-slate-900" aria-hidden="true" />Garantía de fabricación estándar</li>
+              <li className="flex items-center gap-2"><Clock className="h-4 w-4 shrink-0 text-slate-900" aria-hidden="true" />Tiempo de entrega a confirmar en la cotización</li>
+            </ul>
           </div>
         </div>
-
-        {/* Recomendaciones (Fase 5) */}
-        <ProductRecommendations products={recommended} empresaSlug={empresaSlug} />
       </div>
+
+      <ProductRecommendations products={recommended} empresaSlug={empresaSlug} />
     </div>
   );
 }
