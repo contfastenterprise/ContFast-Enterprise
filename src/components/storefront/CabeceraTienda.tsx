@@ -10,7 +10,7 @@
  * portada enlazaba a cuatro categorias escritas a mano (Puertas, Ventanas,
  * Closets, Gabinetes) con identificadores que no eran de ninguna categoria.
  */
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { Search, Menu, X, Heart, ShoppingBag } from 'lucide-react';
@@ -22,6 +22,51 @@ import { useFavoritos } from './useFavoritos';
 export type EnlaceDelMenu = { href: string; etiqueta: string };
 
 const icono = 'relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full text-slate-900 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#001e40]';
+
+/**
+ * Los enlaces del menu, con el de la pagina actual subrayado: misma ruta y
+ * misma categoria (sin mirar la categoria, en "Ventanas" seguia subrayado
+ * "Todos los productos"; visto al dibujarlo).
+ *
+ * Es lo UNICO de la cabecera que lee la direccion (`useSearchParams`), y va en
+ * su propio `<Suspense>`: sin el, Next pinta TODA la tienda en el navegador en
+ * vez de en el servidor (React Doctor lo marco en el lote 231). Mientras se
+ * resuelve, los mismos enlaces sin subrayar.
+ */
+type PropsDeEnlaces = { enlaces: EnlaceDelMenu[]; claseLista: string; claseEnlace: (activo: boolean) => string; alPulsar?: () => void };
+
+function Enlaces({ enlaces, claseLista, claseEnlace, alPulsar, activo }: PropsDeEnlaces & { activo: (href: string) => boolean }) {
+  return (
+    <ul className={claseLista}>
+      {enlaces.map((e) => (
+        <li key={e.href}>
+          <Link href={e.href} onClick={alPulsar} aria-current={activo(e.href) ? 'page' : undefined} className={claseEnlace(activo(e.href))}>
+            {e.etiqueta}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function EnlacesConActivo(props: PropsDeEnlaces) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activo = (href: string) => {
+    const [ruta, consulta] = href.split('?');
+    if (pathname !== ruta) return false;
+    return (new URLSearchParams(consulta).get('categoria') ?? null) === (searchParams.get('categoria') ?? null);
+  };
+  return <Enlaces {...props} activo={activo} />;
+}
+
+function MenuDeEnlaces(props: PropsDeEnlaces) {
+  return (
+    <Suspense fallback={<Enlaces {...props} activo={() => false} />}>
+      <EnlacesConActivo {...props} />
+    </Suspense>
+  );
+}
 
 function Favoritos({ empresaSlug }: { empresaSlug: string }) {
   const { lista, listo } = useFavoritos(empresaSlug);
@@ -42,17 +87,16 @@ export default function CabeceraTienda({ empresaSlug, nombre, logoUrl, enlaces }
   empresaSlug: string; nombre: string; logoUrl: string | null; enlaces: EnlaceDelMenu[];
 }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [buscando, setBuscando] = useState(false);
   const [cajon, setCajon] = useState(false);
   const campo = useRef<HTMLInputElement>(null);
 
   //  Al navegar se cierran el buscador y el cajon: si no, el cajon del movil se
-  //  quedaria abierto tapando la pagina a la que se acaba de ir.
-  //  La direccion ENTERA: cambiar de categoria no cambia la ruta, solo `?categoria=`.
-  const lugar = `${pathname}?${searchParams.toString()}`;
-  const [lugarVisto, setLugarVisto] = useState(lugar);
-  if (lugarVisto !== lugar) { setLugarVisto(lugar); setBuscando(false); setCajon(false); }
+  //  quedaria abierto tapando la pagina a la que se acaba de ir. Cambiar de
+  //  categoria no cambia la ruta (solo `?categoria=`), asi que los enlaces del
+  //  cajon ademas lo cierran al pulsarlos.
+  const [rutaVista, setRutaVista] = useState(pathname);
+  if (rutaVista !== pathname) { setRutaVista(pathname); setBuscando(false); setCajon(false); }
 
   useEffect(() => { if (buscando) campo.current?.focus(); }, [buscando]);
 
@@ -63,15 +107,6 @@ export default function CabeceraTienda({ empresaSlug, nombre, logoUrl, enlaces }
     window.addEventListener('keydown', alPulsar);
     return () => window.removeEventListener('keydown', alPulsar);
   }, [buscando, cajon]);
-
-  //  Subrayado el enlace de la pagina en la que se esta: misma ruta y misma
-  //  categoria. Sin mirar la categoria, en "Ventanas" seguia subrayado "Todos
-  //  los productos" (visto al dibujarlo).
-  const activo = (href: string) => {
-    const [ruta, consulta] = href.split('?');
-    if (pathname !== ruta) return false;
-    return (new URLSearchParams(consulta).get('categoria') ?? null) === (searchParams.get('categoria') ?? null);
-  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white">
@@ -111,17 +146,8 @@ export default function CabeceraTienda({ empresaSlug, nombre, logoUrl, enlaces }
         </div>
 
         <nav aria-label="Catálogo" className="hidden justify-center pb-4 md:flex">
-          <ul className="flex flex-wrap items-center justify-center gap-x-10 gap-y-2">
-            {enlaces.map((e) => (
-              <li key={e.href}>
-                <Link href={e.href} aria-current={activo(e.href) ? 'page' : undefined}
-                  className={clsx('text-[13px] uppercase tracking-[0.18em] text-slate-900 underline-offset-8 hover:underline',
-                    activo(e.href) && 'underline')}>
-                  {e.etiqueta}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <MenuDeEnlaces enlaces={enlaces} claseLista="flex flex-wrap items-center justify-center gap-x-10 gap-y-2"
+            claseEnlace={(a) => clsx('text-[13px] uppercase tracking-[0.18em] text-slate-900 underline-offset-8 hover:underline', a && 'underline')} />
         </nav>
       </div>
 
@@ -141,15 +167,8 @@ export default function CabeceraTienda({ empresaSlug, nombre, logoUrl, enlaces }
 
       {cajon && (
         <nav id="menu-tienda-movil" aria-label="Catálogo" className="border-t border-slate-200 bg-white md:hidden">
-          <ul className="flex flex-col px-4 py-2">
-            {enlaces.map((e) => (
-              <li key={e.href}>
-                <Link href={e.href} className="block border-b border-slate-100 py-3 text-sm uppercase tracking-[0.15em] text-slate-900">
-                  {e.etiqueta}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <MenuDeEnlaces enlaces={enlaces} claseLista="flex flex-col px-4 py-2" alPulsar={() => setCajon(false)}
+            claseEnlace={(a) => clsx('block border-b border-slate-100 py-3 text-sm uppercase tracking-[0.15em] text-slate-900', a && 'font-semibold')} />
         </nav>
       )}
     </header>

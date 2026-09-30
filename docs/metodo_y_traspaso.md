@@ -1146,12 +1146,17 @@ Además, fuera de la tabla:
   montan de nuevo con una `key` de la dirección); y en el móvil la insignia del carrito
   desbordaba 3 px y el panel de filtros salía estrecho empujando el orden. Retirado
   `AnimateOnScroll`, que quedó sin uso.
+  **Y React Doctor cazó uno que no se ve**: el subrayado leía la dirección con
+  `useSearchParams` en la cabecera, sin `<Suspense>`, y así Next pinta **toda la tienda en
+  el navegador** en vez de en el servidor (peor para buscadores y más lento). Ahora solo los
+  enlaces del menú leen la dirección, envueltos en su `<Suspense>` (mientras, los mismos
+  enlaces sin subrayar); comprobado que el HTML sale del servidor con los productos.
   **Lo que no toca**: el interior de Mi cotización, iniciar sesión, registro y mi cuenta
   conserva su estilo (heredan la cabecera y el pie nuevos); y la tienda sigue siendo de
   **cotización**, no de compra.
   Banco `verificar_tienda_spree.ts` (ejecuta las reglas y **dibuja** la tarjeta y los
-  filtros): 33 comprobaciones, contraprueba **33 FALLA**, dieciocho mutantes y dieciocho
-  muertos. El precio se escribe igual que antes (invariante).
+  filtros): 34 comprobaciones, contraprueba **33 FALLA** (la del `<Suspense>` se añadió
+  después, con sus dos mutantes), veinte mutantes y veinte muertos. El precio se escribe igual que antes (invariante).
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás

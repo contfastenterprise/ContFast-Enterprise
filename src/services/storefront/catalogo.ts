@@ -79,10 +79,12 @@ export function categoriasConProductos(
   categorias: StorefrontCategory[],
   cuenta: Record<string, number>,
 ): (StorefrontCategory & { cantidad: number })[] {
-  return categorias
-    .map((c) => ({ ...c, cantidad: cuenta[c.id] ?? 0 }))
-    .filter((c) => c.cantidad > 0)
-    .sort((a, b) => b.cantidad - a.cantidad || porNombre(a, b));
+  const conProductos: (StorefrontCategory & { cantidad: number })[] = [];
+  for (const c of categorias) {
+    const cantidad = cuenta[c.id] ?? 0;
+    if (cantidad > 0) conProductos.push({ ...c, cantidad });
+  }
+  return conProductos.sort((a, b) => b.cantidad - a.cantidad || porNombre(a, b));
 }
 
 /** "Puerta Roble 90*210" -> "PR"; una sola palabra, su primera letra. */

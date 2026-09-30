@@ -178,6 +178,14 @@ async function main() {
     /addEventListener\('storage', deOtraPestana\)/.test(insignia) && /removeEventListener\('storage', deOtraPestana\)/.test(insignia));
   const cab = sinComentarios(leer(`${SF}/CabeceraTienda.tsx`));
   ok('la cabecera subraya por ruta Y categoria', /searchParams\.get\('categoria'\)/.test(cab) && /aria-current=\{activo\(e\.href\) \? 'page' : undefined\}/.test(cab));
+  //  Sin <Suspense>, `useSearchParams` hace que Next pinte TODA la tienda en el
+  //  navegador (React Doctor, lote 231). Se lee la direccion en un solo sitio, y
+  //  ese sitio va envuelto.
+  const lecturas = cab.match(/useSearchParams\(\)/g) ?? [];
+  const envoltura = (() => { const i = cab.indexOf('function MenuDeEnlaces'); return i < 0 ? '' : cab.slice(i, cab.indexOf('\n}', i)); })();
+  ok('  y lee la direccion en UN sitio, envuelto en <Suspense> (si no, toda la tienda se pinta en el navegador)',
+    lecturas.length === 1 && /<Suspense fallback=\{<Enlaces \{\.\.\.props\} activo=\{\(\) => false\} \/>\}>\s*<EnlacesConActivo \{\.\.\.props\} \/>\s*<\/Suspense>/.test(envoltura)
+    && (cab.match(/<MenuDeEnlaces\b/g) ?? []).length === 2 && !/function CabeceraTienda[\s\S]*useSearchParams\(\)/.test(cab), `${lecturas.length} lecturas`);
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
   process.exit(fallos === 0 ? 0 : 1);

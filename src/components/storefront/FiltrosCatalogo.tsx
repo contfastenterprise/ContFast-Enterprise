@@ -15,13 +15,14 @@ import type { StorefrontCategory } from '@/services/storefront/productService';
 
 type Actual = { categoria?: string; q?: string; orden: ClaveDeOrden };
 
+const item = (activo: boolean) => clsx(
+  'flex items-center justify-between gap-3 py-1.5 text-sm transition-colors',
+  activo ? 'font-semibold text-slate-900' : 'text-slate-600 hover:text-slate-900',
+);
+
 export function ListaDeFiltros({ empresaSlug, categorias, total, actual }: {
   empresaSlug: string; categorias: (StorefrontCategory & { cantidad: number })[]; total: number; actual: Actual;
 }) {
-  const item = (activo: boolean) => clsx(
-    'flex items-center justify-between gap-3 py-1.5 text-sm transition-colors',
-    activo ? 'font-semibold text-slate-900' : 'text-slate-600 hover:text-slate-900',
-  );
   return (
     <div className="space-y-8">
       {actual.q && (
