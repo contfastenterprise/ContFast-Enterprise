@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
+import { leerPantallaDeCaja } from './pantallaDeCaja';
 
 const RAIZ = join(__dirname, '..');
 
@@ -80,7 +81,11 @@ const PANTALLAS: [string, string, string, number][] = [
   ['src/app/dashboard/products/barcodes/page.tsx', 'codigos de barras', 'fetchProducts', 1],
 ];
 for (const [ruta, nombre, recarga, sitios] of PANTALLAS) {
-  const tc = sinComentarios(crudo(ruta) ?? '');
+  //  Lote 229: la pantalla de caja se partio; el estado del error vive en
+  //  `hooks/useHistorialCaja` y se pinta en `VistaHistorico` como `h.errorCarga`.
+  const esCaja = ruta === 'src/app/dashboard/cash/page.tsx';
+  const tc = sinComentarios(esCaja ? leerPantallaDeCaja(RAIZ).replace(/\r\n/g, '\n') : crudo(ruta) ?? '');
+  const pre = esCaja && tc.includes('h.errorCarga') ? 'h.' : '';
   ok(
     `${nombre}: guarda el fallo en un estado que no se limpia solo`,
     tc.includes('const [errorCarga, setErrorCarga] = useState<string | null>(null);') && tc.includes('setErrorCarga(null);')
@@ -93,7 +98,7 @@ for (const [ruta, nombre, recarga, sitios] of PANTALLAS) {
   // Cubrir uno solo deja el fallo disfrazado en la mitad de los casos.
   ok(
     `${nombre}: el error se pinta en sus ${sitios} vista(s), con su recarga`,
-    tc.split(`<ErrorDeCarga mensaje={errorCarga} onReintentar={${recarga}} />`).length - 1 === sitios
+    tc.split(`<ErrorDeCarga mensaje={${pre}errorCarga} onReintentar={${pre}${recarga}} />`).length - 1 === sitios
   );
 }
 

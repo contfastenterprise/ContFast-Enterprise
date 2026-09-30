@@ -25,6 +25,7 @@
  */
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { leerPantallaDeCaja } from './pantallaDeCaja';
 
 const raiz = join(__dirname, '..');
 const leer = (p: string) => (existsSync(join(raiz, p)) ? readFileSync(join(raiz, p), 'utf8') : '');
@@ -60,7 +61,8 @@ async function main() {
   for (const f of [RUTA_CIERRE, RUTA_ACTIVA, SERVICIO, REPO, PANTALLA, FACTURA, COBRO]) {
     if (!existsSync(join(raiz, f))) throw new Error(`Precondicion: falta ${f}`);
   }
-  const pantalla = leer(PANTALLA);
+  //  Lote 229: la pantalla esta partida; se lee entera.
+  const pantalla = leerPantallaDeCaja(raiz);
   // Vale en los dos estados: lo que cambia es QUE se ve, no que exista.
   if (!/Resumen de Auditoría/.test(pantalla)) throw new Error('Precondicion: la pantalla de cierre ya no tiene el resumen de auditoria');
 

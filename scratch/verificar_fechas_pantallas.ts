@@ -24,6 +24,7 @@
  */
 import fs from 'fs';
 import path from 'path';
+import { leerPantallaDeCaja } from './pantallaDeCaja';
 
 let fallos = 0;
 function ok(t: string, x: boolean): void {
@@ -229,10 +230,13 @@ ok('CxC: el vencimiento de la factura',
 ok('nomina: el periodo y la fecha de pago',
    tiene('src/app/dashboard/hr/payroll/page.tsx', 'formatDateDisplay(pr.periodStart)')
    && tiene('src/app/dashboard/hr/payroll/page.tsx', 'formatDateDisplay(pr.paymentDate)'));
+//  Lote 229: la pantalla de caja esta partida (hooks y componentes); se lee
+//  entera, y la sesion se llama `c.session` desde que vive en `useCaja`.
+const cajaEntera = leerPantallaDeCaja(path.join(__dirname, '..'));
 ok('caja: la hora de apertura, sin fecha al lado',
-   tiene('src/app/dashboard/cash/page.tsx', 'formatTimeDisplay(session.createdAt)'));
+   /formatTimeDisplay\((?:c\.)?session\.createdAt\)/.test(cajaEntera));
 ok('caja: el historial, con fecha y hora',
-   tiene('src/app/dashboard/cash/page.tsx', 'formatDateTimeDisplay(h.createdAt)'));
+   cajaEntera.includes('formatDateTimeDisplay(h.createdAt)'));
 ok('vacaciones: fuera el timeZone: UTC, que era otro apaño',
    tiene('src/app/dashboard/hr/vacations/page.tsx', 'formatDateDisplay(v)')
    && !tiene('src/app/dashboard/hr/vacations/page.tsx', "timeZone: 'UTC'"));
