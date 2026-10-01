@@ -8,6 +8,7 @@ import { checkRateLimit } from '@/middleware/rateLimiter';
 // El esquema vivia aqui, y su gemelo en `../route.ts`. El parcial es el mismo
 // objeto con todo opcional: ausente sigue queriendo decir "no lo toques".
 import { esquemaProductoParcial, completarPrecios, erroresPorCampo } from '@/schemas/producto';
+import { esFotoAdmisible } from '@/services/productos/fotoDeProducto';
 
 type RouteContext = {
   params: Promise<any>;
@@ -101,6 +102,17 @@ export async function PUT(req: NextRequest, context: RouteContext) {
       const campos = erroresPorCampo(result.error);
       return NextResponse.json(
         { success: false, error: { code: 'VALIDATION_ERROR', message: result.error.issues[0].message, fields: campos } },
+        { status: 400, headers: resHeaders }
+      );
+    }
+
+    // Lote 234: la foto solo puede ser una SUBIDA por esta empresa (o ninguna).
+    // El esquema acepta cualquier texto; con la tienda publica, una direccion
+    // ajena serviria para rastrear visitantes o colgar cualquier imagen.
+    if (!esFotoAdmisible(result.data.imageUrl, process.env.SUPABASE_URL || '', auth.companyId)) {
+      const mensaje = 'La imagen no es válida. Súbela desde el formulario.';
+      return NextResponse.json(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: mensaje, fields: { imageUrl: mensaje } } },
         { status: 400, headers: resHeaders }
       );
     }

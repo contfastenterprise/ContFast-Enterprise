@@ -66,6 +66,18 @@ const aTexto = (v: unknown): unknown => {
   return t === '' ? undefined : t;
 };
 
+/**
+ * Como `aTexto`, pero distingue "no vino" de "viene vacio": `undefined` sigue
+ * siendo "no lo toques" y vacio o `null` es `null`, o sea BORRALO (lote 234).
+ */
+const aTextoBorrable = (v: unknown): unknown => {
+  if (v === undefined) return undefined;
+  if (v === null) return null;
+  if (typeof v !== 'string') return v;
+  const t = v.trim();
+  return t === '' ? null : t;
+};
+
 const dinero = (que: string) =>
   z.preprocess(aCantidad, z.number({
     error: (iss) => iss.input === undefined ? `${que} es requerido.` : `${que} debe ser un número.`,
@@ -114,8 +126,11 @@ const camposProducto = z.looseObject({
   promotionalPrice: dineroOpcional('El precio promocional'),
 
   sku: textoOpcional(100, 'El SKU'),
-  description: z.preprocess(aTexto, z.string().nullish()),
-  imageUrl: z.preprocess(aTexto, z.string().nullish()),
+  // Lote 234: estos dos se pueden BORRAR desde el formulario (quitar la foto,
+  // vaciar la descripcion). Con `aTexto`, vacio se volvia "no lo toques" y al
+  // editar no habia forma de quitar una foto ya puesta: el servidor la dejaba.
+  description: z.preprocess(aTextoBorrable, z.string().max(2000, 'La descripción no puede pasar de 2.000 caracteres.').nullish()),
+  imageUrl: z.preprocess(aTextoBorrable, z.string().max(500).nullish()),
   barcode: textoOpcional(100, 'El código de barra'),
 
   status: z.preprocess(aTexto, z.enum(['active', 'inactive'], {
