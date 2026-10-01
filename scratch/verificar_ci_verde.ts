@@ -107,6 +107,12 @@ function main() {
   const pnpm = /pnpm\/action-setup@v\d+[\s\S]*?version:\s*['"]?(\d+)/.exec(yaml);
   const pnpmMayor = pnpm ? Number(pnpm[1]) : 0;
   ok('pnpm >= 10: la que lee los overrides de pnpm-workspace.yaml', pnpmMayor >= 10, `pnpm ${pnpmMayor || '?'}`);
+  //  Lote 232: y EXACTA (x.y.z). Con `version: 11` el CI tomo sola la 11.28.3 el
+  //  2026-09-30 y `build` revento en `main` sin que cambiara una linea (un enlace
+  //  simbolico en bucle en rolldown). Una version que cambia sola no es un pipeline
+  //  que se pueda repetir.
+  const exacta = /pnpm\/action-setup@v\d+[\s\S]*?version:\s*['"]?(\d+\.\d+\.\d+)['"]?\s*$/m.exec(yaml);
+  ok('  y fijada a una version exacta, no a la ultima de una serie', !!exacta, exacta ? `pnpm ${exacta[1]}` : 'version flotante');
   const node = /setup-node@v\d+[\s\S]*?node-version:\s*['"]?(\d+)(?:\.(\d+))?/.exec(yaml);
   const nodeMayor = node ? Number(node[1]) : 0;
   const nodeMenor = node?.[2] !== undefined ? Number(node[2]) : 99;

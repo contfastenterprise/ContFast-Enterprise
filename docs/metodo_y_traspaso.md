@@ -1157,6 +1157,16 @@ Además, fuera de la tabla:
   Banco `verificar_tienda_spree.ts` (ejecuta las reglas y **dibuja** la tarjeta y los
   filtros): 34 comprobaciones, contraprueba **33 FALLA** (la del `<Suspense>` se añadió
   después, con sus dos mutantes), veinte mutantes y veinte muertos. El precio se escribe igual que antes (invariante).
+- **Lote 232: el CI fija pnpm a una versión EXACTA.** El PR 21 (lote 231) salió en rojo en
+  `build` con `TurbopackInternalError: ... rolldown@1.1.5/.../binding-freebsd-x64 is a
+  symlink causes that causes an infinite loop`, y **`main` también** —la fusión del lote
+  230, cuyo contenido había pasado el CI esa misma mañana—. No era el código: el CI pedía
+  `version: 11` y entre una ejecución y otra salió **pnpm 11.28.3** (la buena usó la
+  11.28.2), que deja ese enlace en bucle y Turbopack revienta al recorrerlo. Ahora
+  `version: 11.28.2`, y `verificar_ci_verde.ts` exige una versión x.y.z: una herramienta que
+  cambia sola no deja repetir un pipeline. **Subir pnpm es una decisión**: se cambia el
+  número a mano y se mira el CI. Va en la rama del PR 21 porque sin él ese PR no podía
+  pasar.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2346,5 +2356,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 231 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 232 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
