@@ -1317,6 +1317,30 @@ Además, fuera de la tabla:
   retroceso y `\n` como salto real dentro de una cadena) y `verificar_portada_tienda.ts`
   **ni arrancaba**; el `grep` de "FALLA" no enseñaba nada y parecía verde. **Tras tocar un
   banco con un guion, contar sus OK, no buscar sus FALLA.**
+- **Lote 237: la foto se ve ENTERA en su recuadro, y el catálogo va a cuatro columnas.**
+  Pedido del dueño (2026-10-01): *"no importa que sea grande o pequeña, debe verse ajustada
+  al espacio"*; preguntado, eligió **entera, sin recortar**, en las tres familias (tienda,
+  portada y vistas previas del panel), y añadió las cuatro columnas en pantalla grande.
+  Las seis fotos — tarjeta del catálogo, ficha, portada, cotización y las dos vistas previas —
+  llenaban el recuadro **recortando** (`object-cover`): en un cuadrado, una puerta perdía la
+  cabeza y el pie. Ahora comparten **una** regla, `FOTO_ENTERA` (`src/utils/fotoEntera.ts`),
+  para que la vista previa del panel enseñe lo mismo que verá el visitante.
+  **Se miró en el navegador, y salió lo que un banco no ve**: con márgenes a la vista, una
+  foto de fondo blanco deja un rectángulo blanco sobre el gris. La regla lleva
+  `mix-blend-multiply`, lo mismo que el logo en el 231.
+  La rejilla junto a los filtros pasa a **3 en pantalla mediana y 4 en grande** (`xl`): a
+  1.024 px, con el panel al lado, cuatro tarjetas quedarían de 155 px. Medido: 4 columnas a
+  1.440, 3 a 1.100, sin desborde.
+  **De paso, lo que el 235 dejó sin probar ya está probado**: el dueño aplicó la 0016 y subió
+  su imagen de portada — el depósito `product_images` existe y sirve las fotos.
+  Banco `verificar_foto_entera.ts`: 10 comprobaciones, contraprueba 10 FALLA, trece mutantes
+  y trece muertos (entre ellos "usa la regla **y** recorta").
+  **El barrido cazó dos rojos, ninguno una regresión**: `verificar_avisos_portada` (236)
+  comparaba la huella del 235 contra la **carpeta**, y este lote cambia a propósito la clase de
+  la foto — compara ahora los **dos commits** (`d31b8d8` y `88ac3c8`), como se hizo en el 227 y
+  el 230; debió nacer así. Y `verificar_foto_de_producto_db` murió con el fallo de libuv
+  (salida −1073740791, 0 FALLA): le faltaba el respiro antes de salir que ya llevaba el banco
+  de la portada.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2506,5 +2530,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 236 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 237 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

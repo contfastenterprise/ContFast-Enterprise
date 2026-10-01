@@ -9,6 +9,7 @@ import { MarcadorDeProducto, PrecioDeTienda } from '@/components/storefront/Tarj
 import { precioVigente, tieneOferta } from '@/services/storefront/catalogo';
 import { StorefrontCompanyService } from '@/services/storefront/companyService';
 import { Metadata } from 'next';
+import { FOTO_ENTERA } from '@/utils/fotoEntera';
 
 export const dynamic = 'force-dynamic';
 
@@ -78,7 +79,7 @@ export default async function StorefrontProductDetailPage({
             </span>
           )}
           {imageUrl ? (
-            <img src={imageUrl} alt={name} className="h-full w-full object-cover" />
+            <img src={imageUrl} alt={name} className={FOTO_ENTERA} />
           ) : (
             <MarcadorDeProducto nombre={name} categoria={categoryName} grande />
           )}

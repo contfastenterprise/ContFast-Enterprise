@@ -10,6 +10,7 @@
  */
 import Link from 'next/link';
 import BotonFavorito from './BotonFavorito';
+import { FOTO_ENTERA } from '@/utils/fotoEntera';
 import CatalogAddButton from './CatalogAddButton';
 import { inicialesDe, precioDeTienda, precioVigente, tieneOferta } from '@/services/storefront/catalogo';
 import type { StorefrontProduct } from '@/services/storefront/productService';
@@ -61,7 +62,7 @@ export default function TarjetaProducto({ producto, empresaSlug }: { producto: S
             src={producto.imageUrl}
             alt={producto.name}
             loading="lazy"
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            className={`${FOTO_ENTERA} transition-transform duration-500 group-hover:scale-105`}
           />
         ) : (
           <MarcadorDeProducto nombre={producto.name} categoria={producto.categoryName} />
@@ -88,13 +89,18 @@ export default function TarjetaProducto({ producto, empresaSlug }: { producto: S
   );
 }
 
-/** La rejilla de 4 columnas de Spree (2 en movil). */
+/**
+ * La rejilla de 4 columnas de Spree (2 en movil). Junto al panel de filtros
+ * (`columnas = 3`) son 3 en pantalla mediana y 4 en pantalla GRANDE (lote 237,
+ * pedido del dueño): a 1024 px, con el panel al lado, cuatro tarjetas quedarian
+ * de 155 px.
+ */
 export function RejillaDeProductos({ productos, empresaSlug, columnas = 4 }: {
   productos: StorefrontProduct[]; empresaSlug: string; columnas?: 3 | 4;
 }) {
   return (
     <div className={columnas === 3
-      ? 'grid grid-cols-2 gap-x-4 gap-y-10 md:gap-x-6 lg:grid-cols-3'
+      ? 'grid grid-cols-2 gap-x-4 gap-y-10 md:gap-x-6 lg:grid-cols-3 xl:grid-cols-4'
       : 'grid grid-cols-2 gap-x-4 gap-y-10 md:gap-x-6 lg:grid-cols-4'}>
       {productos.map((p) => <TarjetaProducto key={p.id} producto={p} empresaSlug={empresaSlug} />)}
     </div>

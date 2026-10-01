@@ -20,6 +20,7 @@ import { Trash2, Plus, Minus, Printer } from 'lucide-react';
 import { armarCotizacion, cambiarCantidad, CLAVE_CARRITO, leerCarrito, type ProductoCotizable, type RenglonGuardado } from '@/services/storefront/cotizacion';
 import { precioDeTienda, inicialesDe } from '@/services/storefront/catalogo';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { FOTO_ENTERA } from '@/utils/fotoEntera';
 
 type Empresa = { name: string; rnc: string; phone: string | null; email: string | null; address: string | null };
 
@@ -102,7 +103,7 @@ export default function CartPageClient({ empresaSlug, catalogo, empresa }: {
             <li key={r.productId} className="flex items-center gap-4 py-5 sm:gap-6 print:py-2">
               <div className="flex h-20 w-20 shrink-0 items-center justify-center bg-[#f4f4f3] print:hidden">
                 {r.imageUrl
-                  ? <img src={r.imageUrl} alt="" className="h-full w-full object-cover" />
+                  ? <img src={r.imageUrl} alt="" className={FOTO_ENTERA} />
                   : <span className="text-xl font-light tracking-[0.2em] text-slate-300" aria-hidden="true">{inicialesDe(r.nombre)}</span>}
               </div>
               <div className="min-w-0 flex-1">

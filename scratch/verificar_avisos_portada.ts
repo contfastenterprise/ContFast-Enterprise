@@ -42,8 +42,9 @@ const invariante = (t: string, c: boolean, d = '') => {
 const DIR = 'src/app/dashboard/settings';
 const TARJETA = `${DIR}/components/PortadaDeLaTienda.tsx`;
 const PIEZAS = [TARJETA, `${DIR}/components/CamposDeLaPortada.tsx`, `${DIR}/components/ImagenDeLaPortada.tsx`, `${DIR}/hooks/usePortadaDeLaTienda.ts`];
-/** La tarjeta tal como quedo en el lote 235, antes de partirla. */
+/** La tarjeta tal como quedo en el lote 235, antes de partirla; y el commit del 236, ya partida. */
 const ANTES = 'd31b8d8';
+const DESPUES = '88ac3c8';
 
 type AnyRec = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 type Fn = (p: unknown) => unknown;
@@ -210,7 +211,10 @@ async function main() {
   console.log('\n4) Lo que se ve no cambio\n');
   //  Cierto antes y despues por definicion: como `ok()` regalaria un OK en la contraprueba.
   const deAntes = execSync(`git show ${ANTES}:${TARJETA}`, { cwd: raiz, encoding: 'utf8' });
-  const deAhora = PIEZAS.map(leer).join('\n');
+  //  Se comparan los DOS COMMITS y no la carpeta (como en los lotes 227 y 230): lo que el 236 no
+  //  cambio es un hecho de entonces. El 237 cambio a proposito la clase de la foto, y con la
+  //  carpeta esta prueba se rompia sin que el 236 hubiera hecho nada.
+  const deAhora = PIEZAS.map((f) => execSync(`git show ${DESPUES}:${f}`, { cwd: raiz, encoding: 'utf8' })).join('\n');
   const huella = (src: string) => [...new Set([
     ...[...src.matchAll(/className="([^"]+)"/g)].map((m) => `clase:${m[1]}`),
     ...[...src.matchAll(/placeholder="([^"]+)"/g)].map((m) => `ejemplo:${m[1]}`),
