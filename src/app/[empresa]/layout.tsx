@@ -3,6 +3,8 @@ import { StorefrontProductService } from '@/services/storefront/productService';
 import { categoriasConProductos } from '@/services/storefront/catalogo';
 import CabeceraTienda, { type EnlaceDelMenu } from '@/components/storefront/CabeceraTienda';
 import PieTienda from '@/components/storefront/PieTienda';
+import { BarraDeAnuncio } from '@/components/storefront/PortadaTienda';
+import { leerPortadaDeLaTienda } from '@/services/storefront/portadaRepositorio';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 
@@ -38,9 +40,10 @@ export default async function StorefrontLayout({
     notFound();
   }
 
-  const [categories, resumen] = await Promise.all([
+  const [categories, resumen, portada] = await Promise.all([
     StorefrontProductService.getActiveCategories(company.id),
     StorefrontProductService.getResumenDelCatalogo(company.id),
+    leerPortadaDeLaTienda(company.id),
   ]);
   const conProductos = categoriasConProductos(categories, resumen.porCategoria);
 
@@ -55,6 +58,9 @@ export default async function StorefrontLayout({
 
   return (
     <div className="flex min-h-screen flex-col bg-white font-sans text-slate-900">
+      {/* Lote 235: el anuncio de la empresa, si lo configuro. Va ENCIMA de la
+          cabecera y no se queda pegado al bajar (la cabecera si). */}
+      <BarraDeAnuncio portada={portada} nombre={company.name} />
       <CabeceraTienda empresaSlug={empresaSlug} nombre={company.name} logoUrl={company.logoUrl ?? null} enlaces={enlaces} />
       <main className="flex-grow">
         {children}

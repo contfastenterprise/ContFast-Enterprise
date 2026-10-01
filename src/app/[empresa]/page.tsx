@@ -2,7 +2,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { StorefrontCompanyService } from '@/services/storefront/companyService';
 import { StorefrontProductService } from '@/services/storefront/productService';
-import { categoriasConProductos, contarPorCategoria, inicialesDe, ordenarProductos } from '@/services/storefront/catalogo';
+import { categoriasConProductos, contarPorCategoria, ordenarProductos } from '@/services/storefront/catalogo';
+import { leerPortadaDeLaTienda } from '@/services/storefront/portadaRepositorio';
+import { PortadaTienda } from '@/components/storefront/PortadaTienda';
 import { RejillaDeProductos } from '@/components/storefront/TarjetaProducto';
 
 export const dynamic = 'force-dynamic';
@@ -18,55 +20,26 @@ const PRODUCTOS_EN_PORTADA = 8;
  * Antes la portada decia "Fabricamos soluciones para tu espacio" y ofrecia
  * Puertas, Ventanas, Closets y Gabinetes en las SEIS empresas, escrito a mano
  * y con enlaces a identificadores que no eran de ninguna categoria. Ahora todo
- * sale de lo que la empresa tiene. El titulo, el texto y la imagen propios de
- * cada empresa llegan en el lote siguiente; mientras, el bloque lleva el logo.
+ * sale de lo que la empresa tiene. Desde el lote 235 el titulo, el texto y la
+ * imagen son de cada empresa (Configuracion > Tienda); sin configurar, lo de
+ * siempre: "Bienvenido a <empresa>", el texto neutro y el logo.
  */
 export default async function StorefrontHomePage({ params }: { params: Promise<{ empresa: string }> }) {
   const { empresa: empresaSlug } = await params;
   const company = await StorefrontCompanyService.resolveCompanyBySlug(empresaSlug);
   if (!company) notFound();
 
-  const [categorias, productos] = await Promise.all([
+  const [categorias, productos, portada] = await Promise.all([
     StorefrontProductService.getActiveCategories(company.id),
     StorefrontProductService.getActiveProducts(company.id),
+    leerPortadaDeLaTienda(company.id),
   ]);
   const conProductos = categoriasConProductos(categorias, contarPorCategoria(productos));
   const muestra = ordenarProductos(productos, 'relevancia').slice(0, PRODUCTOS_EN_PORTADA);
 
   return (
     <div>
-      {/* Portada partida, como la de Spree */}
-      <section className="grid min-h-[70vh] grid-cols-1 lg:grid-cols-2">
-        <div className="flex items-center px-6 py-16 sm:px-10 lg:px-16 xl:px-24">
-          <div className="max-w-xl">
-            <h1 className="text-4xl font-medium leading-tight tracking-tight text-slate-900 md:text-5xl">
-              Bienvenido a {company.name}
-            </h1>
-            <p className="mt-6 text-lg leading-relaxed text-slate-600">
-              Explora nuestro catálogo, arma tu selección y solicita tu cotización en línea. Te respondemos con precios y tiempos de entrega.
-            </p>
-            <div className="mt-10 flex flex-wrap gap-3">
-              <Link href={`/${empresaSlug}/productos`}
-                className="rounded-full bg-[#001e40] px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.15em] text-white transition-colors hover:bg-[#00142a]">
-                Ver productos
-              </Link>
-              <Link href={`/${empresaSlug}/mi-cotizacion`}
-                className="rounded-full border border-slate-900 px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.15em] text-slate-900 transition-colors hover:bg-slate-900 hover:text-white">
-                Mi cotización
-              </Link>
-            </div>
-          </div>
-        </div>
-        <div className="flex min-h-[320px] items-center justify-center bg-[#f4f4f3] p-12">
-          {company.logoUrl ? (
-            //  `mix-blend-multiply`: los logos suelen traer fondo blanco, y sobre el
-            //  gris quedaba un rectangulo blanco (visto al dibujarlo, lote 231).
-            <img src={company.logoUrl} alt="" className="max-h-64 w-auto max-w-[70%] object-contain mix-blend-multiply" />
-          ) : (
-            <span className="text-8xl font-light tracking-[0.2em] text-slate-300" aria-hidden="true">{inicialesDe(company.name)}</span>
-          )}
-        </div>
-      </section>
+      <PortadaTienda empresaSlug={empresaSlug} nombre={company.name} logoUrl={company.logoUrl ?? null} portada={portada} />
 
       {conProductos.length > 0 && (
         <section className="mx-auto max-w-[1400px] px-4 py-20 sm:px-6 lg:px-10">
