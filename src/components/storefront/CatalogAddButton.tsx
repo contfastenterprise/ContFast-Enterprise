@@ -1,7 +1,6 @@
 "use client";
 
-import { Button } from '@/components/storefront/ui/client-button';
-import { ShoppingCart, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CatalogAddButtonProps {
@@ -42,17 +41,20 @@ export default function CatalogAddButton({ productId, name, price, imageUrl }: C
     }
   };
 
+  //  Lote 231: el boton de Spree, fino y en mayusculas; se rellena de azul
+  //  marino al pasar. Dice QUE producto anade: en la rejilla hay 87 iguales.
   return (
-    <Button 
-      size="sm" 
+    <button
+      type="button"
       onClick={(e) => {
         e.preventDefault(); // Por si está envuelto en un Link
         handleAddToCart();
       }}
-      className="bg-[#c5a059] hover:bg-[#b08c4a] text-slate-950 font-semibold px-4 rounded-full flex items-center shadow-md hover:shadow-lg transition active:scale-95"
+      aria-label={`Añadir ${name} a mi cotización`}
+      className="inline-flex items-center gap-1.5 rounded-full border border-slate-900 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-900 transition-colors hover:border-[#001e40] hover:bg-[#001e40] hover:text-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#001e40] focus-visible:ring-offset-2"
     >
-      <ShoppingCart className="h-4 w-4 mr-1.5" />
-      Agregar
-    </Button>
+      <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+      Cotizar
+    </button>
   );
 }

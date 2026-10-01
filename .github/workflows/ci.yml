@@ -53,7 +53,13 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 11
+          # Lote 232: version EXACTA. Con `version: 11` el CI cogia la ultima 11.x
+          # y el 2026-09-30 salio la 11.28.3, que deja un enlace simbolico en bucle
+          # en `rolldown` (binding-freebsd-x64): Turbopack revienta al recorrerlo y
+          # `build` falla sin que cambie una linea (main y el PR 21 a la vez; la
+          # misma fusion habia pasado horas antes con la 11.28.2). Subirla es una
+          # decision, no algo que pase solo.
+          version: 11.28.2
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

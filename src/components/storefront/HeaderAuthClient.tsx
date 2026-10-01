@@ -1,54 +1,47 @@
 "use client";
 
+/**
+ * El icono de la cuenta en la cabecera de la tienda.
+ *
+ * Lote 231: pasa a ser un icono, como en Spree (antes era un boton azul con
+ * texto que no cabia junto a los demas). Lo que decia el texto lo dice ahora la
+ * etiqueta: "Mi cuenta (Nombre)" o "Iniciar sesión". Y la respuesta se lee por
+ * su estado (`leerRespuesta`, lote 227): antes un 5xx con pagina de error hacia
+ * lanzar a `json()`.
+ */
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { User, LogOut } from 'lucide-react';
-import { Button } from '@/components/storefront/ui/client-button';
+import { User } from 'lucide-react';
+import { leerRespuesta } from '@/utils/leerRespuesta';
 
 export default function HeaderAuthClient({ empresaSlug }: { empresaSlug: string }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
 
-  const checkAuth = async () => {
-    try {
-      const res = await fetch('/api/v1/auth/me');
-      const data = await res.json();
-      if (res.ok && data.success && data.data?.user) {
-        setIsAuthenticated(true);
-        const firstName = data.data.user.name.split(' ')[0];
-        setUserName(firstName);
-      } else {
-        setIsAuthenticated(false);
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const leido = await leerRespuesta<{ data?: { user?: { name?: string } } }>(await fetch('/api/v1/auth/me'));
+        const nombre = leido.bien ? leido.cuerpo.data?.user?.name : undefined;
+        setUserName(nombre ? nombre.split(' ')[0] : null);
+      } catch {
         setUserName(null);
       }
-    } catch (e) {
-      setIsAuthenticated(false);
-    }
-  };
-
-  useEffect(() => {
+    };
     checkAuth();
     window.addEventListener('auth_updated', checkAuth);
     return () => window.removeEventListener('auth_updated', checkAuth);
   }, []);
 
-  if (isAuthenticated) {
-    return (
-      <Link href={`/${empresaSlug}/mi-cuenta`}>
-        <Button className="bg-[#001e40] hover:bg-[#00142a] text-white">
-          <User className="h-4 w-4 mr-2" />
-          Hola, {userName}
-        </Button>
-      </Link>
-    );
-  }
-
+  const entrado = userName !== null;
   return (
-    <Link href={`/${empresaSlug}/login`}>
-      <Button className="bg-[#001e40] hover:bg-[#00142a] text-white">
-        <User className="h-4 w-4 mr-2" />
-        Iniciar Sesión
-      </Button>
+    <Link
+      href={`/${empresaSlug}/${entrado ? 'mi-cuenta' : 'login'}`}
+      aria-label={entrado ? `Mi cuenta (${userName})` : 'Iniciar sesión'}
+      title={entrado ? `Hola, ${userName}` : 'Iniciar sesión'}
+      className="relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full text-slate-900 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#001e40]"
+    >
+      <User className="h-5 w-5" strokeWidth={1.5} />
+      {entrado && <span className="absolute bottom-1.5 right-1.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white" aria-hidden="true" />}
     </Link>
   );
 }

@@ -1104,6 +1104,69 @@ Además, fuera de la tabla:
   Re-anclados: `verificar_arqueo_de_caja` (el resumen del cierre llega en `leido.cuerpo`)
   y `verificar_partir_caja`, cuya equivalencia compara ahora **los dos commits** del 229
   (`0078ab2` y `0724cb7`) y no la carpeta: este lote cambia marcado a propósito.
+- **Lote 231: la tienda pública, al estilo de Spree.** Pedido del dueño (2026-09-30), con la
+  referencia de Spree clonada en el commit `3e25db3` (fuera del repositorio). En ese commit
+  Spree ya no trae su tienda como código (es API y paneles); el diseño se tomó de las capturas
+  de su documentación (`docs/images/`): barra fina arriba, logo centrado, menú en mayúsculas
+  espaciadas, "Buscar" a la izquierda y cuenta / favoritos / carrito a la derecha, portada
+  partida en texto e imagen, rejilla de 4 con foto cuadrada sobre gris y corazón, ficha con
+  la foto grande y un botón ancho redondeado, pie blanco en columnas.
+  **Medido antes (PRODUCCIÓN, solo lectura, `medir_tienda_publica.ts`)**: solo Latin Doors
+  tiene productos (87), **ninguno con foto ni descripción**, 0 ofertas, 7 categorías con
+  productos; y el formulario de productos **no deja subir foto** (`pasos.ts`: `imageUrl` no
+  está en el formulario). El diseño de Spree vive de fotos, así que eso lo decidió el dueño:
+  **diseño ya, con marcador donde falte la foto, y subir foto y descripción en un lote
+  aparte**; **portada configurable por empresa** (lote aparte, con migración) y mientras,
+  automática; **filtro por categoría, ordenar por precio o nombre y favoritos** en el
+  navegador; colores de Spree **con el azul marino** de la marca; y, a media obra, *"el
+  sidebar solo para los filtros"* (el panel de secciones de las capturas es el editor de
+  temas de Spree, no la tienda).
+  **Lo que estaba mal y no se veía**: la portada decía "Fabricamos soluciones para tu
+  espacio" y ofrecía Puertas, Ventanas, Closets y Gabinetes **en las seis empresas**, escrito
+  a mano y con enlaces a identificadores que no eran de ninguna categoría; el botón
+  "Filtros" del catálogo **no hacía nada**; no se podía ordenar; la búsqueda no escapaba
+  `%` ni `_` (lo que el 110 cerró en cotizaciones); "Promociones" se ofrecía sin ninguna
+  oferta; y el contador de la cotización dejaba un oyente de `storage` por montaje.
+  Las reglas viven fuera de los componentes, puras: `services/storefront/catalogo.ts`
+  (orden, **precio vigente** —el de oferta si la hay; ordenar por el de lista pondría una
+  oferta de 500 detrás de uno de 800—, qué es una oferta de verdad, categorías con productos,
+  iniciales del marcador, enlaces que conservan búsqueda y orden) y `favoritos.ts` (la clave
+  lleva la **empresa** —las seis tiendas comparten `localStorage`—, lo leído se valida y un
+  favorito de un producto retirado no se borra, solo no sale; criterio del lote 191). El menú
+  se **deriva**: categorías con productos y "Promociones" solo si hay ofertas
+  (`getResumenDelCatalogo`, con la misma regla de oferta). La tarjeta es **una**
+  (`TarjetaProducto`): antes catálogo, promociones y recomendaciones llevaban cada una su copia.
+  Los favoritos se leen en un **efecto** (la hidratación del 195) y la página no dice "no
+  tienes favoritos" hasta haber leído.
+  **Se miró en el navegador, y eso cazó cinco cosas que ningún banco ve**: el logo con fondo
+  blanco era un rectángulo sobre el gris (`mix-blend-multiply`); las categorías como
+  cuadrados enormes con una letra no decían nada (el nombre va dentro); en "Ventanas" seguía
+  subrayado "Todos los productos" (el subrayado mira ruta **y** categoría); "Ordenar" y
+  "Filtrar" se quedaban **abiertos** tras elegir (la navegación conserva el `<details>`: se
+  montan de nuevo con una `key` de la dirección); y en el móvil la insignia del carrito
+  desbordaba 3 px y el panel de filtros salía estrecho empujando el orden. Retirado
+  `AnimateOnScroll`, que quedó sin uso.
+  **Y React Doctor cazó uno que no se ve**: el subrayado leía la dirección con
+  `useSearchParams` en la cabecera, sin `<Suspense>`, y así Next pinta **toda la tienda en
+  el navegador** en vez de en el servidor (peor para buscadores y más lento). Ahora solo los
+  enlaces del menú leen la dirección, envueltos en su `<Suspense>` (mientras, los mismos
+  enlaces sin subrayar); comprobado que el HTML sale del servidor con los productos.
+  **Lo que no toca**: el interior de Mi cotización, iniciar sesión, registro y mi cuenta
+  conserva su estilo (heredan la cabecera y el pie nuevos); y la tienda sigue siendo de
+  **cotización**, no de compra.
+  Banco `verificar_tienda_spree.ts` (ejecuta las reglas y **dibuja** la tarjeta y los
+  filtros): 34 comprobaciones, contraprueba **33 FALLA** (la del `<Suspense>` se añadió
+  después, con sus dos mutantes), veinte mutantes y veinte muertos. El precio se escribe igual que antes (invariante).
+- **Lote 232: el CI fija pnpm a una versión EXACTA.** El PR 21 (lote 231) salió en rojo en
+  `build` con `TurbopackInternalError: ... rolldown@1.1.5/.../binding-freebsd-x64 is a
+  symlink causes that causes an infinite loop`, y **`main` también** —la fusión del lote
+  230, cuyo contenido había pasado el CI esa misma mañana—. No era el código: el CI pedía
+  `version: 11` y entre una ejecución y otra salió **pnpm 11.28.3** (la buena usó la
+  11.28.2), que deja ese enlace en bucle y Turbopack revienta al recorrerlo. Ahora
+  `version: 11.28.2`, y `verificar_ci_verde.ts` exige una versión x.y.z: una herramienta que
+  cambia sola no deja repetir un pipeline. **Subir pnpm es una decisión**: se cambia el
+  número a mano y se mira el CI. Va en la rama del PR 21 porque sin él ese PR no podía
+  pasar.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2293,5 +2356,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 230 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 232 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
