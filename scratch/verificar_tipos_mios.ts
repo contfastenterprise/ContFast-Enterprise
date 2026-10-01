@@ -1,4 +1,6 @@
 import { crudo as crudoCrudo } from './_fuente';
+import { existsSync } from 'fs';
+import { join } from 'path';
 
 const crudo = (rutaRelativa: string): string => crudoCrudo(rutaRelativa).replace(/\r\n/g, '\n');
 
@@ -89,15 +91,9 @@ const FIRMAS: [string, number][] = [
   ok('products: sin el array vacio sin tipo', !s.includes('let dataWithInventory = [];'));
 }
 
-{
-  const s = crudo('src/services/storefront/quoteService.ts');
-  ok(
-    'quoteService: quoteLinesData lleva tipo explicito y sin any',
-    s.includes('const quoteLinesData: {\n      productId: string;\n      quantity: string;\n') &&
-      !s.includes('quoteLinesData: any')
-  );
-  ok('quoteService: sin el array vacio sin tipo', !s.includes('const quoteLinesData = [];'));
-}
+//  LOTE 233: el `quoteService` de la tienda se RETIRO (la tienda dejo de enviar
+//  cotizaciones; 0 usos medidos). Leerlo reventaba el banco con ENOENT.
+ok('quoteService (tienda): retirado en el lote 233', !existsSync(join(__dirname, '..', 'src/services/storefront/quoteService.ts')));
 
 // ─────────── GRUPO C: el cast de msellerClient (1 error) ───────────
 {

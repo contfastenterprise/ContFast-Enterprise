@@ -1,4 +1,6 @@
 import { fuente, crudo as crudoCrudo } from './_fuente';
+import { existsSync } from 'fs';
+import { join } from 'path';
 
 // Normaliza CRLF -> LF antes de comparar: algunos ficheros del repo (ej. entries/route.ts,
 // admin/users/route.ts) tienen fin de linea CRLF, y las comprobaciones multilinea de este
@@ -30,13 +32,16 @@ const CAST = 'Error & { status?: number; code?: string }';
 //  `verificar_modulo_documentos_retirado.ts`; aqui no queda nada que tipar.
 
 // ═══════════════════ storefront/quotes/route.ts ═══════════════════
-console.log('\n=== storefront/quotes/route.ts ===\n');
+//  LOTE 233: la ruta se RETIRO (la tienda dejo de tener cuentas y la cotizacion
+//  ya no se envia; medido, 0 usos). Leerla hacia reventar el banco con ENOENT,
+//  como las de `documents/` del lote 100. Lo que queda que vigilar es que se
+//  fue y que nadie la llama.
+console.log('\n=== storefront/quotes/route.ts (retirada en el lote 233) ===\n');
 {
-  const src = crudo('src/app/api/storefront/quotes/route.ts');
-  ok("0 ocurrencias de ': any' (1 antes)", sinAny(src) === 0, `quedan ${sinAny(src)}`);
-  ok('catch tipado unknown, cast puntual a Error (conserva el || de fallback)',
-    src.includes('} catch (error: unknown) {') &&
-    src.includes("message: (error as Error).message || 'Error interno del servidor' } }, { status: 500 });"));
+  ok('la ruta ya no existe', !existsSync(join(__dirname, '..', 'src/app/api/storefront/quotes/route.ts')));
+  const cotizacion = crudo('src/app/[empresa]/mi-cotizacion/CartPageClient.tsx');
+  ok('  y la cotizacion de la tienda no la llama (se arma en el navegador)',
+    !cotizacion.includes('/api/storefront/quotes') && cotizacion.includes('armarCotizacion('));
 }
 
 // ═══════════════════ v1/accounting/accounts/route.ts ═══════════════════

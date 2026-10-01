@@ -16,7 +16,7 @@ export default function PieTienda({ empresaSlug, empresa, enlaces }: {
   enlaces: EnlaceDelMenu[];
 }) {
   return (
-    <footer className="border-t border-slate-200 bg-white">
+    <footer className="border-t border-slate-200 bg-white print:hidden">
       <div className="mx-auto grid max-w-[1400px] grid-cols-1 gap-10 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-10">
         <div>
           <p className="mb-4 text-base font-semibold uppercase tracking-[0.15em] text-slate-900">{empresa.name}</p>
@@ -44,12 +44,11 @@ export default function PieTienda({ empresaSlug, empresa, enlaces }: {
         </div>
 
         <div>
-          <p className={titulo}>Mi cuenta</p>
+          {/* Lote 233: sin cuentas; lo del visitante vive en su navegador. */}
+          <p className={titulo}>Lo tuyo</p>
           <ul className="space-y-2.5">
-            <li><Link href={`/${empresaSlug}/mi-cuenta`} className={enlace}>Mi cuenta</Link></li>
             <li><Link href={`/${empresaSlug}/mi-cotizacion`} className={enlace}>Mi cotización</Link></li>
             <li><Link href={`/${empresaSlug}/favoritos`} className={enlace}>Favoritos</Link></li>
-            <li><Link href={`/${empresaSlug}/registro`} className={enlace}>Crear cuenta</Link></li>
           </ul>
         </div>
 

@@ -85,7 +85,8 @@ const PENDIENTES = new Set([
   // Las tres rutas `documents/*` salieron de aqui en el lote 100, no por
   // haberse corregido sino porque se retiro el modulo entero: no se llegaba a
   // el desde ninguna parte. La lista solo puede encoger.
-  'storefront/quotes/route.ts',
+  // `storefront/quotes` salio en el lote 233 por lo mismo: la tienda dejo de
+  // tener cuentas y la cotizacion ya no se envia (0 usos medidos).
   'v1/admin/permissions/route.ts',
   'v1/admin/sessions/route.ts',
   'v1/auth/audit/route.ts',
