@@ -1281,6 +1281,42 @@ Además, fuera de la tabla:
   **Para el dueño**: aplicar la 0016 cuando quiera configurar la portada
   (`npx tsx --env-file=.env scratch/_to_delete/aplicar_migracion.ts drizzle/0016_portada_de_la_tienda.sql --aplicar`).
   Sin aplicarla, todo sigue como hoy.
+- **Lote 236: las advertencias de React Doctor de la portada, cerradas.** Pedido del dueño
+  tras el 235. Eran cuatro en la tarjeta de Configuración > Tienda; medido después en local,
+  **0** en sus ficheros. Las que cambian comportamiento:
+  · **dos clics seguidos en "Guardar portada" mandaban dos PUT**: la guarda miraba el estado,
+    que aún no ha cambiado cuando llega el segundo clic. Ahora es un `useRef` (lo mismo que
+    "Aplicar Despacho" en el 227);
+  · **la portada se pide al PULSAR la pestaña**, no en un efecto al montar la tarjeta. El
+    estado pasa a `settings/hooks/usePortadaDeLaTienda.ts`, que crea la **página**, y de ahí
+    salen dos cosas que antes no había: **lo escrito sin guardar sobrevive a cambiar de**
+    **pestaña** (antes la tarjeta se desmontaba y se perdía) — por eso `cargar` no vuelve a
+    pedir lo que ya tiene —, y un fallo de carga ofrece **Reintentar** (antes había que salir
+    y volver a entrar).
+  La tarjeta queda partida: hook, `CamposDeLaPortada` e `ImagenDeLaPortada`; ninguna pieza
+  pasa de 130 líneas y la tarjeta solo pinta.
+  **Lo que NO se cierra, a propósito**: los tres `<img>` (la tienda y la vista previa); la
+  regla pide `next/image`. Toda la tienda usa `<img>` (P3-47), y pasar a `next/image` es
+  configurar los dominios y consumir la optimización de imágenes de Vercel: una decisión del
+  dueño, no un arreglo. Las demás advertencias de `settings/page.tsx` (1.300 líneas, 60 y
+  pico) son deuda vieja de ese fichero, no de la portada.
+  Banco `verificar_avisos_portada.ts`: **ejecuta** las acciones del hook contra un `fetch`
+  sustituido y **dibuja** la tarjeta en sus tres estados. 15 comprobaciones, contraprueba
+  **15 FALLA** (worktree en HEAD), diecinueve mutantes y diecinueve muertos. La huella
+  visible de la tarjeta del 235 (52 clases, ejemplos, avisos y textos) va como
+  **invariante**, con la única clase cambiada a propósito anotada.
+  **Tres lecciones del banco, las tres de las que dan un verde falso**:
+  (1) **un banco colgado sale con 0.** Sin la guarda había dos PUT en vuelo y el banco solo
+  soltaba el último: la primera promesa no se resolvía nunca, Node se quedaba sin nada que
+  esperar y salía **con código 0 a media lista**. Dos mutantes "sobrevivieron" así. Ahora se
+  sueltan todas, y un `beforeExit` da FALLA si el banco no llegó al final;
+  (2) **una expresión que empieza en "cualquier botón inactivo"** saltaba desde "Quitar"
+  (inactivo mientras se sube) hasta el texto de "Guardar portada" — la trampa del
+  `[\s\S]*?` del lote 181, entre hermanos. Se mira la etiqueta del propio botón;
+  (3) **el guion de re-anclaje volvió a corromper escapes** (`\b` acabó como el carácter de
+  retroceso y `\n` como salto real dentro de una cadena) y `verificar_portada_tienda.ts`
+  **ni arrancaba**; el `grep` de "FALLA" no enseñaba nada y parecía verde. **Tras tocar un
+  banco con un guion, contar sus OK, no buscar sus FALLA.**
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2470,5 +2506,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 235 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 236 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
