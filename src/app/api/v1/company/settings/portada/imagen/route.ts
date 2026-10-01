@@ -6,13 +6,12 @@ import { Logger } from '@/utils/logger';
 import { subirFotoDeLaEmpresa } from '@/services/productos/subirFoto';
 
 /**
- * Lote 234: subir la FOTO de un producto. Devuelve su direccion publica; el
- * formulario la guarda con el producto (`imageUrl`), igual al crear que al
- * editar -- por eso esta ruta no toca ningun producto: al crear aun no existe.
+ * Lote 235: subir la IMAGEN de la portada de la tienda. Devuelve su direccion;
+ * se guarda con la portada al pulsar Guardar (`PUT ../portada`).
  *
- * Mismo permiso que crear o editar un producto (`catalogo:write`). Las reglas
- * de la subida (peso, bytes, nombre) viven en `subirFotoDeLaEmpresa`, que
- * comparte con la imagen de la portada (lote 235).
+ * Mismo permiso que el resto de Configuracion (`administracion:write`) y la
+ * misma subida que la foto de un producto (`subirFotoDeLaEmpresa`): los bytes
+ * mandan, tope de 1 MB y nombre puesto por el servidor bajo la empresa.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -28,7 +27,7 @@ export async function POST(req: NextRequest) {
     if (!auth) {
       return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No autenticado.' } }, { status: 401 });
     }
-    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'catalogo', 'write');
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'administracion', 'write');
 
     const subida = await subirFotoDeLaEmpresa(auth.companyId, (await req.formData()).get('file'));
     if (!subida.bien) {
@@ -40,7 +39,7 @@ export async function POST(req: NextRequest) {
     if (e.status === 403) {
       return NextResponse.json({ success: false, error: { code: e.code || 'FORBIDDEN', message: e.message } }, { status: 403 });
     }
-    Logger.error('[products/image] no se pudo subir la foto', { motivo: e.message });
+    Logger.error('[portada/imagen] no se pudo subir la imagen', { motivo: e.message });
     return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: 'No se pudo subir la imagen.' } }, { status: 500 });
   }
 }

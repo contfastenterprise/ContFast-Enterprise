@@ -157,9 +157,18 @@ async function main() {
   //  Tambien cierto antes: la tienda ya leia `image_url`. Lo nuevo es que haya foto.
   exige('el catalogo publico devuelve la foto y la descripcion del producto', enTienda?.imageUrl === nuestra && enTienda?.description === 'Caoba maciza.', JSON.stringify(enTienda?.imageUrl));
 
-  almacen.close();
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
-  process.exit(fallos === 0 ? 0 : 1);
+  salir(fallos === 0 ? 0 : 1);
 }
 
-main().catch((e) => { console.error(e); almacen.close(); process.exit(1); });
+/**
+ * Salir DESPUES de que el almacen falso haya cerrado (lote 235). `close()` y
+ * `process.exit` seguidos disparan en Windows un fallo de libuv
+ * (UV_HANDLE_CLOSING) que deja el banco en rojo con todo en verde.
+ */
+function salir(codigo: number) {
+  almacen.closeAllConnections();
+  almacen.close(() => process.exit(codigo));
+}
+
+main().catch((e) => { console.error(e); salir(1); });

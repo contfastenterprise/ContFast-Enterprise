@@ -117,11 +117,16 @@ async function main() {
   ok('  y el campo esta en el paso 1, escribiendo en el formulario',
     /<FotoYDescripcion\s+imageUrl=\{formData\.imageUrl\}\s+description=\{formData\.description\}/.test(pagina)
     && /alCambiarFoto=\{\(url\) => \{ setFormData\(\(prev\) => \(\{ \.\.\.prev, imageUrl: url \}\)\)/.test(pagina));
-  const subida = sinComentarios(leer('src/app/api/v1/products/image/route.ts'));
+  //  LOTE 235: las reglas de la subida salieron de la ruta a `subirFotoDeLaEmpresa`
+  //  (las comparte la imagen de la portada). La ruta pone el permiso y delega;
+  //  el peso y el nombre se miran donde viven. En el estado de antes, todo estaba
+  //  en la ruta: por eso se leen los dos ficheros juntos.
+  const ruta = sinComentarios(leer('src/app/api/v1/products/image/route.ts'));
+  const subida = `${ruta}\n${sinComentarios(leer('src/services/productos/subirFoto.ts'))}`;
   ok('subir pide el mismo permiso que guardar un producto, y mira el peso ANTES de leer el fichero',
-    /enforcePermission\([^)]*'catalogo', 'write'\)/.test(subida)
+    /enforcePermission\([^)]*'catalogo', 'write'\)/.test(ruta)
     && subida.indexOf('file.size > PESO_MAXIMO_DE_FOTO') > 0 && subida.indexOf('file.size > PESO_MAXIMO_DE_FOTO') < subida.indexOf('file.arrayBuffer()'));
-  ok('  el nombre no sale del fichero subido', /rutaDeFoto\(auth\.companyId, randomUUID\(\), tipo\.ext\)/.test(subida) && !/file\.name/.test(subida));
+  ok('  el nombre no sale del fichero subido', /rutaDeFoto\((?:auth\.)?companyId, randomUUID\(\), tipo\.ext\)/.test(subida) && !/file\.name/.test(subida));
   const guardas = ['src/app/api/v1/products/route.ts', 'src/app/api/v1/products/[id]/route.ts'].map((f) => sinComentarios(leer(f)));
   ok('crear y editar rechazan una foto que no sea nuestra',
     guardas.every((g) => /if \(!esFotoAdmisible\(result\.data\.imageUrl, process\.env\.SUPABASE_URL \|\| '', auth\.companyId\)\)/.test(g)));

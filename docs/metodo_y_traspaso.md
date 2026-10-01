@@ -1243,6 +1243,44 @@ Además, fuera de la tabla:
   depósito `product_images` y servir la foto). La clave de servicio lista y crea depósitos
   (medido en lectura), pero la primera foto de verdad la sube el dueño. Las fotos que se
   sustituyen o se quitan **no se borran** del almacén (quedan huérfanas, ~150 KB cada una).
+- **Lote 235: la portada de la tienda, configurable por empresa.** Lo que el dueño eligió al
+  rediseñar la tienda (lote 231): anuncio de arriba, título, texto e imagen, distintos por
+  empresa. Y a media obra: *"que sea en una pestaña nueva"* — Configuración gana la pestaña
+  **Tienda** (administración y sistemas), con una tarjeta que carga y guarda lo suyo.
+  **MIGRACIÓN `drizzle/0016_portada_de_la_tienda.sql`** (cuatro columnas en `company_settings`,
+  solo añade). **Esta vez NO hay que aplicarla antes de desplegar, y es a propósito**: las
+  columnas **no están en el esquema de Drizzle**. Declaradas, toda consulta que lea la fila
+  entera (`select()`, `.returning()`: ajustes, logo, impresión de comprobantes) las pediría, y
+  un despliegue hecho antes de aplicarla tumbaría media aplicación — que es lo que pasaba con
+  las 0013 y 0015. Las lee y escribe solo `services/storefront/portadaRepositorio.ts`, con SQL
+  propio: **leer nunca lanza** (sin la migración, la tienda enseña la portada de siempre) y
+  **guardar lo dice** (409, nombrando la migración). Comprobado de verdad: el `dev` local usa
+  la base de producción, donde no está aplicada, y la tienda respondió 200.
+  **Vacío no es un error**: cada campo vacío usa lo de siempre (sin barra de anuncio,
+  "Bienvenido a <empresa>", el texto neutro, el logo), y la pantalla lo enseña como ejemplo.
+  Reglas puras en `services/storefront/portada.ts`: anuncio y título en **una línea** (un
+  salto pegado rompería la barra), el texto conserva párrafos, topes únicos para pantalla y
+  servidor (120 / 80 / 400). La imagen pasa por la misma subida que la foto de producto —
+  `subirFotoDeLaEmpresa`, que sale de la ruta del 234 a `services/productos/subirFoto.ts` —,
+  reducida en el navegador a 1.600 px, y solo se admite una subida por esa empresa.
+  **Por qué una ruta propia** (`/api/v1/company/settings/portada`) y no un campo más en
+  `admin/settings`: allí un ajuste nuevo tiene seis sitios que tocar y ya se quedó uno sin
+  escribir dos veces (el "parámetro sordo" de los lotes 178 y 200). Aquí lo que se manda es
+  lo que se guarda, y el banco de integración lo ejecuta (un mutante que deja de escribir el
+  título muere). Y la tarjeta va **fuera** del `<form>` de Empresa: dentro, Enter en el título
+  enviaba el formulario de la empresa.
+  Dos bancos: `verificar_portada_tienda.ts` (reglas ejecutadas, portada y anuncio dibujados;
+  19) y `verificar_portada_tienda_db.ts` (integración: rutas de verdad, almacén falso y la
+  prueba de **quitar una columna** para simular la migración sin aplicar; 10). Contraprueba 19
+  y 10 FALLA, dieciocho mutantes y dieciocho muertos. Se miró dibujado (portada configurada y
+  tarjeta) en una página temporal.
+  **Trampa del entorno**: un banco con servidor HTTP propio que hace `close()` y
+  `process.exit()` seguidos muere en Windows con un fallo de libuv (`UV_HANDLE_CLOSING`) y
+  queda en rojo con todo en verde. Se sale en el `callback` del cierre, y tras consultas que
+  fallan a propósito, con un respiro.
+  **Para el dueño**: aplicar la 0016 cuando quiera configurar la portada
+  (`npx tsx --env-file=.env scratch/_to_delete/aplicar_migracion.ts drizzle/0016_portada_de_la_tienda.sql --aplicar`).
+  Sin aplicarla, todo sigue como hoy.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2432,5 +2470,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 234 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 235 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

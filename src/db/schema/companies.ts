@@ -54,6 +54,14 @@ export const companySettings = pgTable('company_settings', {
   //  igual que el numero de WhatsApp. Existe porque por WhatsApp hoy NO puede salir
   //  ninguno: el numero de la cuenta es el de prueba de Meta y rechaza todo (#131037).
   avisosCorreo: varchar('avisos_correo', { length: 255 }),
+  //  LOTE 235: la tabla tiene ademas `tienda_anuncio`, `tienda_titulo`,
+  //  `tienda_texto` y `tienda_imagen_url` (migracion 0016), la portada de la
+  //  tienda publica. NO se declaran aqui A PROPOSITO: declaradas, toda consulta
+  //  que lea la fila entera (`select()`, `.returning()`) las pediria, y un
+  //  despliegue hecho ANTES de aplicar la migracion tumbaria media aplicacion
+  //  -- ajustes, logo, impresion de comprobantes --. Las lee y escribe solo
+  //  `services/storefront/portadaRepositorio.ts`, con SQL propio y a prueba de
+  //  que falten.
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
