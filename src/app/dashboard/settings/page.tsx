@@ -8,6 +8,7 @@ import { useConfirm } from '@/providers/confirm-provider';
 import { esAdministracion, esSistemas } from '@/utils/rolMatch';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 import { PortadaDeLaTienda } from './components/PortadaDeLaTienda';
+import { usePortadaDeLaTienda } from './hooks/usePortadaDeLaTienda';
 import { GRUPOS_DE_PUENTES } from '@/services/accounting/cuentasDelSistema';import { correoValido, correoDeLaEmpresaParaAvisos, usaElCorreoDeLaEmpresa } from '@/services/avisos/avisoPorCorreo';
 
 export default function SettingsPage() {
@@ -15,6 +16,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<'perfil' | 'empresa' | 'tienda' | 'puente' | 'suscripcion' | 'gastos'>('perfil');
+  const portada = usePortadaDeLaTienda();
 
   // Expense Types States
   const [expenseTypes, setExpenseTypes] = useState<any[]>([]);
@@ -418,7 +420,7 @@ export default function SettingsPage() {
             )}
             {(isAdministracion || isSistemas) && (
               <button
-                onClick={() => setActiveTab('tienda')}
+                onClick={() => { setActiveTab('tienda'); void portada.cargar(); }}
                 className={`px-4 py-2 text-xs font-semibold cursor-pointer border-b-2 transition-colors -mb-px ${
                   activeTab === 'tienda'
                     ? 'border-[#003366] text-[#003366]'
@@ -1057,10 +1059,11 @@ export default function SettingsPage() {
         ) : null}
 
         {/* TAB: Tienda (lote 235). Pedido del dueno: la portada en una pestana
-            NUEVA, no dentro de Empresa. La tarjeta se vale sola: carga y guarda
-            lo suyo, sin pasar por el formulario grande de la empresa. */}
+            NUEVA, no dentro de Empresa. Carga y guarda lo suyo, sin pasar por
+            el formulario grande de la empresa; se pide al pulsar la pestana y
+            lo escrito sobrevive a cambiar de pestana (lote 236). */}
         {!loading && activeTab === 'tienda' && (isAdministracion || isSistemas) && (
-          <PortadaDeLaTienda />
+          <PortadaDeLaTienda portada={portada} />
         )}
 
         {/* TAB: Plan & Suscripción */}

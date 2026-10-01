@@ -100,18 +100,20 @@ async function main() {
   console.log('\n4) Configuracion: una pestana propia\n');
   const ajustes = sinComentarios(leer('src/app/dashboard/settings/page.tsx'));
   ok('la portada tiene su pestana "Tienda", para administracion y sistemas',
-    /onClick=\{\(\) => setActiveTab\('tienda'\)\}/.test(ajustes) && />\s*Tienda\s*<\/button>/.test(ajustes)
-    && /activeTab === 'tienda' && \(isAdministracion \|\| isSistemas\) && \(\s*<PortadaDeLaTienda \/>/.test(ajustes));
+    /setActiveTab\('tienda'\)/.test(ajustes) && />\s*Tienda\s*<\/button>/.test(ajustes)
+    && /activeTab === 'tienda' && \(isAdministracion \|\| isSistemas\) && \(\s*<PortadaDeLaTienda\b[^>]*\/>/.test(ajustes));
   //  Dentro del <form> de Empresa, Enter en el titulo enviaria el formulario de la empresa.
   const formEmpresa = (() => { const i = ajustes.indexOf('<form onSubmit={handleSave}'); return i < 0 ? 'X' : ajustes.slice(i, ajustes.indexOf('</form>', i)); })();
-  ok('  y NO va dentro del formulario de la empresa', /<PortadaDeLaTienda \/>/.test(ajustes) && !/<PortadaDeLaTienda/.test(formEmpresa));
-  const tarjeta = sinComentarios(leer('src/app/dashboard/settings/components/PortadaDeLaTienda.tsx'));
+  ok('  y NO va dentro del formulario de la empresa', /<PortadaDeLaTienda\b[^>]*\/>/.test(ajustes) && !/<PortadaDeLaTienda/.test(formEmpresa));
+  //  Desde el lote 236 la tarjeta esta partida: el estado en su hook, y los campos y la imagen aparte.
+  const tarjeta = ['components/PortadaDeLaTienda.tsx', 'components/CamposDeLaPortada.tsx', 'components/ImagenDeLaPortada.tsx', 'hooks/usePortadaDeLaTienda.ts']
+    .map((x) => sinComentarios(leer(`src/app/dashboard/settings/${x}`))).join('\n');
   ok('la tarjeta guarda lo que se ve, y se queda con lo GUARDADO',
     /method: 'PUT', headers: \{ 'Content-Type': 'application\/json' \}, body: JSON\.stringify\(f\)/.test(tarjeta)
-    && /const p = leido\.cuerpo\.data\.portada;\s*setF\(/.test(tarjeta));
+    && /setF\(aFormulario\(leido\.cuerpo\.data\.portada\)\)/.test(tarjeta));
   ok('  la imagen se reduce antes de subir, y "Quitar" la deja vacia',
     /reducida = await reducirImagen\(file, LADO_DE_LA_PORTADA\)/.test(tarjeta) && /cuerpo\.append\('file', reducida\)/.test(tarjeta)
-    && /onClick=\{\(\) => cambiar\('imagenUrl', ''\)\}/.test(tarjeta));
+    && /quitar=\{\(\) => p\.cambiar\('imagenUrl', ''\)\}/.test(tarjeta) && /onClick=\{quitar\}/.test(tarjeta));
   ok('  y los topes de la pantalla son los del servidor (uno solo)',
     /tope=\{LIMITES_DE_PORTADA\.anuncio\}/.test(tarjeta) && /tope=\{LIMITES_DE_PORTADA\.titulo\}/.test(tarjeta) && /tope=\{LIMITES_DE_PORTADA\.texto\}/.test(tarjeta)
     && !/maxLength=/.test(tarjeta));
