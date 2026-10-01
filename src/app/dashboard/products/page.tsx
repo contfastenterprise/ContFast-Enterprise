@@ -8,6 +8,7 @@ import BarcodeRenderer from '@/components/ui/BarcodeRenderer';
 import { toast } from 'sonner';
 import { esquemaProducto, erroresPorCampo } from '@/schemas/producto';
 import { PASOS, campoDelPaso, primerPasoConFallo } from './pasos';
+import { FotoYDescripcion } from './components/FotoYDescripcion';
 
 /**
  * Los campos que tienen su propio hueco debajo del control.
@@ -36,6 +37,7 @@ interface Product {
   barcode: string | null;
   name: string;
   description: string | null;
+  imageUrl?: string | null;
   unitOfMeasure: string;
   cost: string;
   price: string;
@@ -166,7 +168,10 @@ export default function ProductsPage() {
     status: 'active',
     isOnSale: false,
     tracksInventory: true,
-    promotionalPrice: ''
+    promotionalPrice: '',
+    // Lote 234: lo que la tienda ensena del producto.
+    description: '',
+    imageUrl: ''
   });
 
   // Autocálculo de precios cuando cambia el costo (si no están manuales)
@@ -380,7 +385,7 @@ export default function ProductsPage() {
     setSecondaryBarcodes([]);
     setBarcodeType('code128');
     setShowSecondarySection(false);
-    setFormData({ sku: '', barcode: '', categoryId: '', name: '', unitOfMeasure: 'unidad', cost: '', price: '', priceConsumidor: '', priceMayorista: '', priceProveedor: '', status: 'active', isOnSale: false, tracksInventory: true, promotionalPrice: '' });
+    setFormData({ sku: '', barcode: '', categoryId: '', name: '', unitOfMeasure: 'unidad', cost: '', price: '', priceConsumidor: '', priceMayorista: '', priceProveedor: '', status: 'active', isOnSale: false, tracksInventory: true, promotionalPrice: '', description: '', imageUrl: '' });
     setShowModal(true);
   };
 
@@ -406,7 +411,9 @@ export default function ProductsPage() {
       // Por defecto lleva inventario: los productos anteriores a este campo
       // vienen sin el y no deben cambiar de comportamiento.
       tracksInventory: product.tracksInventory !== false,
-      promotionalPrice: product.promotionalPrice || ''
+      promotionalPrice: product.promotionalPrice || '',
+      description: product.description || '',
+      imageUrl: product.imageUrl || ''
     });
     setErrores({});
     // La edicion NO va por pasos: quien reabre un producto viene a corregir UN
@@ -974,6 +981,14 @@ export default function ProductsPage() {
           />
           {err('sku')}
         </div>
+
+        <FotoYDescripcion
+          imageUrl={formData.imageUrl}
+          description={formData.description}
+          error={errores.imageUrl || errores.description}
+          alCambiarFoto={(url) => { setFormData((prev) => ({ ...prev, imageUrl: url })); quitarError('imageUrl'); }}
+          alCambiarDescripcion={(texto) => { setFormData((prev) => ({ ...prev, description: texto })); quitarError('description'); }}
+        />
       </div>
   );
 

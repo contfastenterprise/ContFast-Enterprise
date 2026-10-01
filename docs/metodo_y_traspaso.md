@@ -1199,6 +1199,50 @@ Además, fuera de la tabla:
   y `verificar_p2_25_26` leían las rutas retiradas y reventaban con ENOENT — pasan a vigilar
   que se fueron; y `permisosRutas.vitest.ts` quita `storefront/quotes` de PENDIENTES (la lista
   solo encoge).
+- **Lote 234: la foto y la descripción del producto, para la tienda.** Reportado por el dueño
+  (2026-10-01): *"la página de productos no hay opción para agregar imagen, para que se pueda
+  ver en el catálogo"*. Era lo que el 231 dejó anotado (0 de 87 productos con foto): la base, el
+  repositorio y el esquema ya aceptaban `imageUrl` y `description`, pero el formulario no tenía
+  los campos y no existía forma de subir un fichero.
+  **Ahora**: en el paso 1 del producto, imagen (con vista previa, Cambiar y Quitar) y
+  descripción (`products/components/FotoYDescripcion.tsx`, aparte porque `page.tsx` pasa de
+  2.500 líneas). La foto se sube con `POST /api/v1/products/image` (permiso `catalogo:write`, el
+  de guardar un producto) a un depósito **público** propio, `product_images` — medido antes:
+  solo existían `company_logos` y `avatars` públicos —, y su dirección se guarda con el producto.
+  **A media obra el dueño pidió "codificar la imagen para que el servidor no se llene
+  rápido"**: la foto se **reduce en el navegador** antes de subir (`utils/reducirImagen.ts`:
+  lado mayor 1.200 px, WebP, bajando la calidad hasta caber) y **el servidor no guarda nada de
+  más de 1 MB**. Medido en Chromium: un JPEG de 8 MB y 12 megapíxeles sale en 236 KB; por el
+  componente de verdad, 3,4 MB → 142 KB. Sin dependencias nuevas: `sharp` solo está de rebote
+  (lo trae Next) y el proyecto lo tiene en `allowBuilds: false`; usarlo directo era añadir una
+  dependencia nativa. **El tope del servidor es lo que limita el almacenamiento**; reducir en el
+  navegador es lo que hace que una foto normal quepa.
+  **Tres cosas que no se veían, las tres en `services/productos/fotoDeProducto.ts` (puro):**
+  · **qué es una foto lo dicen sus bytes**, no el nombre ni el tipo que declara quien sube.
+    JPEG, PNG y WebP; **SVG no** (puede llevar código y esto se enseña en una página pública);
+  · **`imageUrl` aceptaba cualquier texto.** Con la tienda pública, una dirección ajena servía
+    para rastrear a los visitantes o colgar cualquier imagen con el nombre de la empresa. Ahora
+    solo vale una foto del depósito, **de esa empresa** y con el nombre que pone el servidor
+    (la contraprueba lo enseña: antes, 201);
+  · **no se podía QUITAR una foto**: el esquema convertía vacío en "no lo toques"
+    (`aTexto`), y al editar el servidor la dejaba. Foto y descripción usan `aTextoBorrable`
+    (vacío = `null` = bórralo; ausente sigue siendo "no lo toques"). Los demás textos, igual que antes.
+  Tres bancos. `verificar_foto_de_producto.ts` (reglas ejecutadas, el campo dibujado; 19).
+  `verificar_reducir_imagen.ts`: **empaqueta la función de verdad y la ejecuta en Chromium**
+  (`createImageBitmap` y `canvas.toBlob` no existen en Node). `verificar_foto_de_producto_db.ts`
+  (**integración**): las rutas de verdad contra la base desechable y un **almacén falso
+  levantado en 127.0.0.1** — así se prueba la subida sin escribir un byte en el almacenamiento
+  de producción. Contraprueba en un worktree en HEAD: 15 FALLA el de código y 9 el de
+  integración; veinte mutantes y veinte muertos. **Lecciones**: la imagen de prueba de bloques
+  de color plano daba un rojo falso (el PNG la comprime a casi nada; una foto de cámara no) —
+  hace falta textura con grano y un original en JPEG —; dos comprobaciones del banco de
+  integración ya eran ciertas antes (la API guardaba la foto, la tienda la leía) y pasan a
+  precondición; y un worktree creado con `git -C repo worktree add nombre` cae **dentro** del
+  repositorio, no al lado.
+  **Lo que no se pudo probar, y hay que saberlo**: la subida contra el Supabase real (crear el
+  depósito `product_images` y servir la foto). La clave de servicio lista y crea depósitos
+  (medido en lectura), pero la primera foto de verdad la sube el dueño. Las fotos que se
+  sustituyen o se quitan **no se borran** del almacén (quedan huérfanas, ~150 KB cada una).
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2388,5 +2432,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 233 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 234 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

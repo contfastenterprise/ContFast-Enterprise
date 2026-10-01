@@ -84,6 +84,27 @@ export class StorageService {
   }
 
   /**
+   * Lote 234: sube un fichero a un deposito PUBLICO (lo crea publico si falta)
+   * y devuelve su ruta. Para lo que tiene que verse sin sesion -- las fotos de
+   * producto en la tienda --. `upsert: false`: el nombre lo pone el servidor y
+   * es unico, asi que pisar un fichero existente seria un error, no una subida.
+   */
+  static async uploadPublicFile(bucketName: string, filePath: string, content: Buffer, contentType: string): Promise<string> {
+    if (!this.client) {
+      Logger.error('[StorageService] Supabase client is not initialized because environment variables are missing.');
+      throw new Error('Supabase client not initialized.');
+    }
+    await this.ensureBucket(bucketName, true);
+    const cleanPath = filePath.replace(/^[./\\]+/, '').replace(/\\/g, '/');
+    const { error } = await this.client.storage.from(bucketName).upload(cleanPath, content, { contentType, upsert: false });
+    if (error) {
+      Logger.error(`[StorageService] Upload failed for ${cleanPath} in ${bucketName}:`, error.message);
+      throw error;
+    }
+    return cleanPath;
+  }
+
+  /**
    * Downloads a file from Supabase Storage and returns it as a Buffer.
    */
   static async downloadFile(bucketName: string, filePath: string): Promise<Buffer> {
