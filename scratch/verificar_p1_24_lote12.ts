@@ -1,4 +1,6 @@
 import { crudo as crudoCrudo } from './_fuente';
+import { existsSync } from 'fs';
+import { join } from 'path';
 
 // Normaliza CRLF -> LF antes de comparar: igual que en lotes anteriores.
 const crudo = (rutaRelativa: string): string => crudoCrudo(rutaRelativa).replace(/\r\n/g, '\n');
@@ -181,11 +183,9 @@ ok(
 sinAny(SS);
 
 // ─────────────────── quoteService.ts ───────────────────
-const QS = 'src/services/storefront/quoteService.ts';
-//  f7b5cd8 le dio tipo explicito a quoteLinesData.
-ok('quoteService: quoteLinesData sin anotacion any[]', /const quoteLinesData: \{/.test(crudo(QS)));
-ok('quoteService: sin quoteLinesData: any[]', !crudo(QS).includes('quoteLinesData: any[]'));
-sinAny(QS);
+//  LOTE 233: el servicio se RETIRO (la tienda dejo de enviar cotizaciones; 0 usos
+//  medidos). Leerlo reventaba el banco con ENOENT; lo que queda es que se fue.
+ok('quoteService (tienda): retirado en el lote 233', !existsSync(join(__dirname, '..', 'src/services/storefront/quoteService.ts')));
 
 // ─────────────────── middleware/auth.ts ───────────────────
 const MA = 'src/middleware/auth.ts';

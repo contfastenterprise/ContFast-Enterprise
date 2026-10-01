@@ -2,8 +2,11 @@
 
 /**
  * La cabecera de la tienda, al estilo de Spree (lote 231): logo centrado,
- * "Buscar" a la izquierda, cuenta / favoritos / cotizacion a la derecha y el
- * menu en mayusculas espaciadas debajo. En movil el menu va en un cajon.
+ * "Buscar" a la izquierda, favoritos / cotizacion a la derecha y el menu en
+ * mayusculas espaciadas debajo. En movil el menu va en un cajon.
+ *
+ * Lote 233: sin icono de cuenta. La tienda no tiene cuentas (decision del
+ * dueno): se ven productos y precios y el carrito es la cotizacion del visitante.
  *
  * El menu NO se escribe aqui: llega del layout, que solo ofrece categorias con
  * productos y "Promociones" si hay ofertas (`getResumenDelCatalogo`). Antes la
@@ -16,7 +19,6 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { Search, Menu, X, Heart, ShoppingBag } from 'lucide-react';
 import clsx from 'clsx';
 import CartBadgeClient from './CartBadgeClient';
-import HeaderAuthClient from './HeaderAuthClient';
 import { useFavoritos } from './useFavoritos';
 
 export type EnlaceDelMenu = { href: string; etiqueta: string };
@@ -109,7 +111,7 @@ export default function CabeceraTienda({ empresaSlug, nombre, logoUrl, enlaces }
   }, [buscando, cajon]);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white print:hidden">
       <div className="mx-auto max-w-[1400px] px-4 sm:px-6 lg:px-10">
         <div className="grid h-16 grid-cols-[1fr_auto_1fr] items-center md:h-20">
           <div className="flex items-center">
@@ -136,7 +138,6 @@ export default function CabeceraTienda({ empresaSlug, nombre, logoUrl, enlaces }
             <button type="button" onClick={() => setBuscando((v) => !v)} className={clsx(icono, 'md:hidden')} aria-label="Buscar productos">
               <Search className="h-5 w-5" strokeWidth={1.5} />
             </button>
-            <HeaderAuthClient empresaSlug={empresaSlug} />
             <Favoritos empresaSlug={empresaSlug} />
             <Link href={`/${empresaSlug}/mi-cotizacion`} className={icono} aria-label="Mi cotización">
               <ShoppingBag className="h-5 w-5" strokeWidth={1.5} />

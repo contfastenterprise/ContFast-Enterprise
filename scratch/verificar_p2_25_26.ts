@@ -1,4 +1,6 @@
 import { crudo as crudoCrudo } from './_fuente';
+import { existsSync } from 'fs';
+import { join } from 'path';
 
 const crudo = (rutaRelativa: string): string => crudoCrudo(rutaRelativa).replace(/\r\n/g, '\n');
 
@@ -14,23 +16,16 @@ function ok(t: string, c: boolean): void {
 // y, sobre todo, enumerar correos: responde distinto segun el correo exista o no.
 // v1/auth/register ya usaba el preset 'auth' (5/min), el UNICO con respaldo en
 // memoria cuando Redis esta caido -- que es justo cuando mas falta hace.
+//
+// LOTE 233: la ruta se RETIRO entera -- la tienda dejo de tener cuentas
+// (decision del dueno; medido, nunca creo una). El mejor limite para un
+// registro publico que crea usuarios es que no exista. Lo que queda: que se
+// fue, y con ella las paginas que la usaban.
 {
-  const s = crudo('src/app/api/storefront/auth/register/route.ts');
-  ok(
-    'storefront/register: importa checkRateLimit',
-    s.includes("import { checkRateLimit } from '@/middleware/rateLimiter';")
-  );
-  ok(
-    'storefront/register: limita por IP antes de leer el cuerpo',
-    s.includes("const permitido = await checkRateLimit(ip, 'auth');") &&
-      s.indexOf('checkRateLimit(ip') < s.indexOf('await req.json()')
-  );
-  ok(
-    "storefront/register: usa el preset 'auth', el unico con respaldo sin Redis",
-    s.includes("checkRateLimit(ip, 'auth')")
-  );
-  ok('storefront/register: responde 429 al pasarse', s.includes('{ status: 429 }'));
-  ok('storefront/register: la nota dice por que importa aqui', s.includes('enumerar correos'));
+  const raizRepo = join(__dirname, '..');
+  ok('storefront/register: la ruta ya no existe', !existsSync(join(raizRepo, 'src/app/api/storefront/auth/register/route.ts')));
+  ok('storefront/register: tampoco las paginas que la usaban (registro, login, mi cuenta)',
+    ['registro', 'login', 'mi-cuenta'].every((d) => !existsSync(join(raizRepo, `src/app/[empresa]/${d}`))));
 }
 
 // ═══════════ P2-26: validacion manual en categories y warehouses ═══════════

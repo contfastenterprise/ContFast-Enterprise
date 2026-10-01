@@ -1167,6 +1167,38 @@ Además, fuera de la tabla:
   cambia sola no deja repetir un pipeline. **Subir pnpm es una decisión**: se cambia el
   número a mano y se mira el CI. Va en la rama del PR 21 porque sin él ese PR no podía
   pasar.
+- **Lote 233: la tienda sin cuentas — el carrito es la cotización del visitante.** Decisión del
+  dueño (2026-09-30): *"No quiero inicio de sesión, solo quiero que el usuario pueda ver los
+  productos y precios disponibles. Puede tener la opción de añadir al carrito pero ese
+  carrito solo funcionaría como cotización para el usuario"*. **Medido antes (PRODUCCIÓN,
+  solo lectura)**: 0 usuarios con rol `cliente` y 0 cotizaciones llegadas de la tienda — lo
+  que se retira nunca se usó.
+  **Se retiran**: iniciar sesión, registro y mi cuenta; la ruta pública que creaba usuarios
+  (`api/storefront/auth/register`); la que guardaba la cotización en el sistema
+  (`api/storefront/quotes`) y su servicio; el icono de cuenta; y `client-button`, que quedó
+  sin uso. **El cerrojo ISO-02 del middleware SE QUEDA**, anotado: si alguna vez aparece un
+  usuario `cliente`, sigue sin poder tocar el ERP; quitarlo no ahorra nada.
+  **La cotización** (`services/storefront/cotizacion.ts`, pura): el **precio sale del
+  catálogo** en cada visita, no del navegador — antes enseñaba el del momento de añadir y se
+  podía editar a mano en `localStorage` —; lo que ya no se vende se avisa con su nombre y
+  **no suma**; cantidades validadas y repetidos sumados; ITBIS 18 % con subtotal + ITBIS =
+  total al centavo. Se **imprime** (o se guarda en PDF desde el diálogo del navegador) con la
+  empresa, RNC, contacto, fecha y *"no es una factura ni un comprobante fiscal"*; cabecera, pie
+  y botones no salen en el papel. El dueño no eligió qué hacer con la cotización: se tomó la
+  opción recomendada (imprimir).
+  **Se miró el papel**: generado con el Chromium del proyecto contra los datos de Latin Doors
+  y abierto (`scratch/_to_delete/imprimir233.mjs`).
+  Banco `verificar_tienda_sin_cuentas.ts`: 16 comprobaciones, contraprueba **16 FALLA** (en un
+  worktree en HEAD), once mutantes y once muertos. **Dos sobrevivieron primero, y los dos
+  enseñan algo**: el del "precio del navegador" porque el banco pasaba el carrito por
+  `leerCarrito`, que ya descarta el precio — la segunda barrera no se probaba —; y otro
+  porque el mutante estaba mal escrito y no cambiaba nada (un `void 0`): **un mutante que no
+  cambia el comportamiento no mide el banco**.
+  Retirar obliga a mirar los bancos (lección del lote 100): `verificar_micuenta` (integración,
+  vigilaba la página) se retira con ella y sale de `deuda_bancos.txt`; `verificar_p1_24_lote8`
+  y `verificar_p2_25_26` leían las rutas retiradas y reventaban con ENOENT — pasan a vigilar
+  que se fueron; y `permisosRutas.vitest.ts` quita `storefront/quotes` de PENDIENTES (la lista
+  solo encoge).
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2356,5 +2388,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 232 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 233 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

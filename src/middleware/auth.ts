@@ -75,6 +75,12 @@ export async function fetchAllowedWarehouses(userId: string, roleName: string): 
 // endpoint. La tienda solo necesita /api/storefront/* y estas rutas de sesion.
 // Todo lo demas se deniega: verifyAuth devuelve null y cada ruta responde su
 // propio 401 sin cambios.
+//
+// LOTE 233: el registro de la tienda se RETIRO (la tienda ya no tiene cuentas,
+// decision del dueno) y nunca llego a crear una (medido: 0 usuarios `cliente`).
+// Este cerrojo se queda a proposito: si alguna vez aparece un usuario con ese
+// rol -- un registro que vuelva, un dato puesto a mano --, sigue sin poder
+// tocar el ERP. Quitarlo no ahorra nada y abriria la puerta que cerro ISO-02.
 const STOREFRONT_ROLE = 'cliente';
 const STOREFRONT_ALLOWED_PREFIXES = ['/api/storefront/'];
 const STOREFRONT_ALLOWED_PATHS = new Set([
