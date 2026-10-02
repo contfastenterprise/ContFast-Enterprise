@@ -68,6 +68,7 @@ async function main() {
     'avisa si el precio de oferta queda por debajo del costo nuevo, sin tocarla',
     'la confirmacion vale solo para la tasa que se vio',
     'la variacion del precio base, en porcentaje',
+    'la tasa se ensena con dos decimales al menos, y lo ensenado se puede volver a escribir',
   ];
   if (!r) falta(E1, 'no existe services/precios/preciosEnDolares.ts');
   else {
@@ -102,6 +103,11 @@ async function main() {
 
     ok(E1[8], r.mismaTasa('63.50', 63.5) && r.mismaTasa(63.5, 63.5) && !r.mismaTasa(63.51, 63.5) && !r.mismaTasa(undefined, 63.5),
       'misma, distinta y sin tasa');
+    //  Vale antes y despues por definicion de "se puede volver a escribir": lo que se ensena, leido, da lo mismo.
+    const idaYVuelta = [63.5, 63, 63.1235, 1000, 0.5].every((n) => r!.leerTasa(r!.escribirTasa(n)).valor === n);
+    ok(E1[10],
+      r.escribirTasa(63.5) === '63.50' && r.escribirTasa(63.1235) === '63.1235' && r.escribirTasa(1000) === '1000.00' && idaYVuelta,
+      `${r.escribirTasa(63.5)} ${r.escribirTasa(1000)}`);
     ok(E1[9], r.variacion(c) === 20 && r.variacion(r.calcular({ ...base, price: 0 }, 60)) === null, String(r.variacion(c)));
   }
 

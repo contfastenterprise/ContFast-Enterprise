@@ -183,8 +183,14 @@ export function diasDeLaTasa(fecha: string, hoy: string): number {
   return Math.max(0, Math.round((b - a) / 86_400_000));
 }
 
-/** Una tasa o un costo en dolares para ensenar: cuatro decimales como mucho, sin ceros de relleno. */
-export const escribirTasa = (t: number): string => String(Number(t.toFixed(4)));
+const TASA = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4, useGrouping: false });
+
+/**
+ * Una tasa o un costo en dolares para ensenar: dos decimales siempre (es dinero:
+ * "63.5" se lee raro) y hasta cuatro si los tiene. Sin separador de miles, para
+ * que lo que se ensena se pueda volver a escribir en el campo tal cual.
+ */
+export const escribirTasa = (t: number): string => TASA.format(t);
 
 const PESOS = new Intl.NumberFormat('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
