@@ -1339,8 +1339,9 @@ Además, fuera de la tabla:
   su mitad lleva `overflow-hidden`. Medido en el navegador con la imagen del dueño (1.024 ×
   1.024) y con una de 6.000 × 9.000: las dos ocupan el mismo marco, sin tocar la cabecera ni
   el borde, y sin desborde en el móvil.
-  Banco `verificar_foto_entera.ts`: 11 comprobaciones, contraprueba 10 FALLA (antes del
-  marco), quince mutantes y quince muertos (entre ellos "usa la regla **y** recorta").
+  Y el fondo de esa mitad es **blanco**, no el gris de la tienda (pedido del dueño al verlo).
+  Banco `verificar_foto_entera.ts`: 12 comprobaciones, contraprueba 10 FALLA (antes del
+  marco), dieciséis mutantes y dieciséis muertos (entre ellos "usa la regla **y** recorta").
   **El barrido cazó dos rojos, ninguno una regresión**: `verificar_avisos_portada` (236)
   comparaba la huella del 235 contra la **carpeta**, y este lote cambia a propósito la clase de
   la foto — compara ahora los **dos commits** (`d31b8d8` y `88ac3c8`), como se hizo en el 227 y

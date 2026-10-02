@@ -78,6 +78,7 @@ async function main() {
   ok('  dentro de un marco con margen: por grande que sea, no sobrepasa los bordes',
     fuera.includes('relative') && fuera.includes('overflow-hidden') && dentro.includes('absolute')
     && dentro.some((c) => /^inset-[1-9]\d*$/.test(c)) && !dentro.includes('inset-0'), `${marco?.[1] ?? '-'} | ${marco?.[2] ?? '-'}`);
+  ok('  y el fondo de la imagen es blanco, no el gris de la tienda', fuera.includes('bg-white') && !fuera.some((c) => c.startsWith('bg-[')), marco?.[1] ?? '-');
 
   const T = (await import('../src/components/storefront/TarjetaProducto')) as unknown as Record<string, Fn>;
   const rejilla = (columnas: number) => renderToStaticMarkup(React.createElement(T.RejillaDeProductos as never, { productos: [], empresaSlug: 'latin', columnas }));

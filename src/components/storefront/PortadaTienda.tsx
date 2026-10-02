@@ -53,7 +53,9 @@ export function PortadaTienda({ empresaSlug, nombre, logoUrl, portada }: {
         //  sobrepasar los bordes". La imagen vive dentro de un espacio fijo, con margen a los
         //  cuatro lados, y `overflow-hidden` corta lo que por lo que sea se saliera. Mida lo
         //  que mida, se ajusta ENTERA a ese espacio: ni toca la cabecera ni el borde de la pagina.
-        <div className="relative min-h-[320px] overflow-hidden bg-[#f4f4f3]">
+        //  El fondo es BLANCO y no el gris del resto de la tienda (pedido del dueño): con la
+        //  imagen entera quedan margenes a la vista, y los quiere blancos.
+        <div className="relative min-h-[320px] overflow-hidden bg-white">
           <div className="absolute inset-6 sm:inset-10 lg:inset-14">
             {/* Decorativa: lo que dice la portada ya lo dicen el titulo y el texto. */}
             <img src={p.imagenUrl} alt="" className={FOTO_ENTERA} />
