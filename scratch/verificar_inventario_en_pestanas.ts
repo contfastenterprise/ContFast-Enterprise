@@ -98,6 +98,13 @@ async function main() {
   ok('  la lista y el formulario no se pintan a la vez, y el formulario ya no es un modal',
     /<SearchBar/.test(listaCat) && /<Pagination/.test(listaCat) && !/<form onSubmit=\{handleSubmit\}/.test(listaCat)
     && /<PanelDeRegistro/.test(formCat) && /<form onSubmit=\{handleSubmit\}/.test(formCat) && !/fixed inset-0|bg-black\/|backdrop-blur/.test(cat));
+  //  Pedido del dueño al verlo: los campos se veian en gris oscuro (el estilo que traian del modal).
+  const ids = ['categoria-nombre', 'categoria-descripcion', 'categoria-estado'];
+  //  La clase de cada campo es la que sigue a su `id` (no vale `[^>]*`: el `onChange` lleva una flecha `=>` dentro de la etiqueta).
+  const campos = [...formCat.matchAll(/\bid="categoria-[a-z]+"[\s\S]*?className="([^"]*)"/g)].map((m) => m[1]);
+  ok('  sus tres campos llevan el estilo de la casa (fondo claro), y cada etiqueta apunta al suyo',
+    campos.length === 3 && campos.every((c) => /\bbg-slate-50\b/.test(c) && /\bborder-slate-200\b/.test(c) && /\btext-xs\b/.test(c)) && !/bg-surface-container-highest/.test(formCat)
+    && ids.every((i) => formCat.includes(`htmlFor="${i}"`) && formCat.includes(`id="${i}"`)), `${campos.length} campos`);
 
   console.log('\n4) Conduces\n');
   const todas = [...con.matchAll(/<PestanasDeRegistro\b[\s\S]*?\/>/g)].map((m) => m[0].replace(/\s+/g, ' '));

@@ -325,26 +325,26 @@ export default function CategoriesPage() {
         <PanelDeRegistro titulo={editId ? 'Editar Categoría' : 'Nueva Categoría'}>
             <form onSubmit={handleSubmit} className="space-y-4 max-w-2xl">
               <div>
-                <label className="block text-xs font-bold text-primary mb-1">Nombre</label>
+                <label htmlFor="categoria-nombre" className="block text-xs font-semibold text-[#001e40] mb-1">Nombre</label>
                 <input 
-                  type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none"
+                  id="categoria-nombre" type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                 />
               </div>
               
               <div>
-                <label className="block text-xs font-bold text-primary mb-1">Descripción</label>
+                <label htmlFor="categoria-descripcion" className="block text-xs font-semibold text-[#001e40] mb-1">Descripción</label>
                 <textarea 
-                  rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}
-                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none"
+                  id="categoria-descripcion" rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-primary mb-1">Estado</label>
+                <label htmlFor="categoria-estado" className="block text-xs font-semibold text-[#001e40] mb-1">Estado</label>
                 <select 
-                  value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}
-                  className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none"
+                  id="categoria-estado" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                 >
                   <option value="active">Activo</option>
                   <option value="inactive">Inactivo</option>
