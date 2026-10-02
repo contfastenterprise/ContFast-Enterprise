@@ -7,6 +7,7 @@
  */
 import { useRef } from 'react';
 import { ImagePlus, Loader2, Trash2 } from 'lucide-react';
+import { FOTO_ENTERA } from '@/utils/fotoEntera';
 
 const TIPOS = 'image/jpeg,image/png,image/webp';
 
@@ -23,7 +24,7 @@ export function ImagenDeLaPortada({ imagenUrl, subiendo, subir, quitar }: {
       <span id="etiqueta-portada-imagen" className="block text-xs font-semibold text-[#001e40]">Imagen</span>
       <div className="relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
         {imagenUrl
-          ? <img src={imagenUrl} alt="Imagen de la portada" className="h-full w-full object-cover" />
+          ? <img src={imagenUrl} alt="Imagen de la portada" className={FOTO_ENTERA} />
           : <div className="flex flex-col items-center text-slate-400"><ImagePlus className="h-7 w-7 opacity-40" aria-hidden="true" /><span className="mt-1 text-[10px]">Vacía: el logo</span></div>}
         {subiendo && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/70" role="status" aria-label="Subiendo la imagen">

@@ -18,6 +18,7 @@ import { ImagePlus, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { leerRespuesta } from '@/utils/leerRespuesta';
 import { reducirImagen } from '@/utils/reducirImagen';
+import { FOTO_ENTERA } from '@/utils/fotoEntera';
 import { PESO_MAXIMO_DEL_ORIGINAL } from '@/services/productos/fotoDeProducto';
 
 const TIPOS = 'image/jpeg,image/png,image/webp';
@@ -77,7 +78,7 @@ export function FotoYDescripcion({ imageUrl, description, error, alCambiarFoto, 
         </span>
         <div className="relative flex aspect-square w-full max-w-[140px] items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
           {imageUrl ? (
-            <img src={imageUrl} alt="Imagen del producto" className="h-full w-full object-cover" />
+            <img src={imageUrl} alt="Imagen del producto" className={FOTO_ENTERA} />
           ) : (
             <ImagePlus className="h-7 w-7 text-slate-300" aria-hidden="true" />
           )}

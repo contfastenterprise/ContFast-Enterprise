@@ -5,11 +5,13 @@
  * el banco los dibuja sin base ni red.
  *
  * La portada partida es la del lote 231 (texto a la izquierda, imagen a la
- * derecha). Con imagen propia, llena su mitad; sin ella, el logo sobre gris
- * (o las iniciales si tampoco hay logo).
+ * derecha). Con imagen propia, se ve ENTERA en su mitad (lote 237: sin
+ * recortar, sobre el gris); sin ella, el logo sobre gris (o las iniciales si
+ * tampoco hay logo).
  */
 import Link from 'next/link';
 import { inicialesDe } from '@/services/storefront/catalogo';
+import { FOTO_ENTERA } from '@/utils/fotoEntera';
 import { portadaParaMostrar, type PortadaGuardada } from '@/services/storefront/portada';
 
 /** La barra fina de arriba. Sin anuncio configurado, no hay barra. */
@@ -47,9 +49,17 @@ export function PortadaTienda({ empresaSlug, nombre, logoUrl, portada }: {
         </div>
       </div>
       {p.imagenUrl ? (
-        <div className="relative min-h-[320px] bg-[#f4f4f3]">
-          {/* Decorativa: lo que dice la portada ya lo dicen el titulo y el texto. */}
-          <img src={p.imagenUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        //  El MARCO de la imagen (pedido del dueño, lote 237): "si es muy grande no puede
+        //  sobrepasar los bordes". La imagen vive dentro de un espacio fijo, con margen a los
+        //  cuatro lados, y `overflow-hidden` corta lo que por lo que sea se saliera. Mida lo
+        //  que mida, se ajusta ENTERA a ese espacio: ni toca la cabecera ni el borde de la pagina.
+        //  El fondo es BLANCO y no el gris del resto de la tienda (pedido del dueño): con la
+        //  imagen entera quedan margenes a la vista, y los quiere blancos.
+        <div className="relative min-h-[320px] overflow-hidden bg-white">
+          <div className="absolute inset-6 sm:inset-10 lg:inset-14">
+            {/* Decorativa: lo que dice la portada ya lo dicen el titulo y el texto. */}
+            <img src={p.imagenUrl} alt="" className={FOTO_ENTERA} />
+          </div>
         </div>
       ) : (
         <div className="flex min-h-[320px] items-center justify-center bg-[#f4f4f3] p-12">

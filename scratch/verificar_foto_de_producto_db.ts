@@ -168,7 +168,9 @@ async function main() {
  */
 function salir(codigo: number) {
   almacen.closeAllConnections();
-  almacen.close(() => process.exit(codigo));
+  //  Y un respiro (lote 237): sin el, el fallo de libuv volvio a salir en el barrido
+  //  completo -- salida -1073740791 con 0 FALLA --, como en el banco de la portada.
+  almacen.close(() => setTimeout(() => process.exit(codigo), 300));
 }
 
 main().catch((e) => { console.error(e); salir(1); });
