@@ -1470,6 +1470,15 @@ Además, fuera de la tabla:
   `node node_modules/typescript/bin/tsc`, `node node_modules/tsx/dist/cli.mjs`. (2) El barrido
   de bancos entero ya no cabe en los 10 minutos de una tarea en segundo plano: se corre con
   `scratch/_to_delete/barrer_bancos.sh`, **reanudable** y en dos mitades a la vez.
+- **Lote 242: productos usa el componente compartido de pestañas.** Pedido del dueño tras el
+  241, que dejó anotado que productos llevaba sus pestañas escritas a mano (lote 240). Ahora
+  usa `PestanasDeRegistro` y `PanelDeRegistro`, como almacenes, categorías y conduces: las
+  cuatro pantallas de Inventario con alta comparten un solo conmutador. Sin cambio visible (las
+  mismas clases; el relleno del formulario pasa del `<form>` a la caja).
+  `verificar_producto_en_pestana.ts` se re-ancla: lo que el componente dibuja lo ejecuta el
+  banco del 241, y aquí se mira lo que productos le pasa — y que no quede una copia a mano
+  (ningún `aria-pressed` en la página). Contraprueba 4 FALLA, cinco mutantes y cinco muertos.
+  No se volvió a abrir en el navegador: es el mismo componente que se miró en el 241.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2659,5 +2668,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 241 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 242 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
