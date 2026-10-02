@@ -168,7 +168,9 @@ async function main() {
   ok('las sumas internas van acotadas por empresa',
     (dr.match(/eq\(deliveryNotes\.companyId, companyId\),\r?\n\s*eq\(deliveryNotes\.status, 'approved'\)/g) || []).length === 2);
   ok('la ruta del listado pasa el entorno',
-    /list\(auth\.companyId, auth\.modo, page, perPage\)/.test(
+    //  Lote 245: el listado gano los filtros como quinto argumento. Lo que se vigila es
+    //  que el ENTORNO vaya, y en su sitio (el segundo), no cuantos argumentos lleva detras.
+    /DeliveryRepository\.list\(auth\.companyId, auth\.modo, page, perPage\b/.test(
       fuente('src/app/api/v1/delivery-notes/route.ts')));
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);

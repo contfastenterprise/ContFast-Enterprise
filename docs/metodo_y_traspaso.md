@@ -1578,6 +1578,10 @@ Además, fuera de la tabla:
   **Trampa del entorno**: añadir un banco de integración a `deuda_bancos.txt` **antes** de que
   su fichero exista en la rama de la carpeta lo deja en ROJO (salida 1, 0 FALLA) en el barrido
   de otro lote. Se añade cuando el banco llega a la carpeta.
+  **Y el barrido de integración cazó un banco que el del lote no ve**: `verificar_conduces`
+  anclaba la llamada del listado **entera**, con sus cuatro argumentos (la trampa de copiar una
+  línea literal, sección 7). Vigila ahora que el entorno vaya en su sitio, no cuántos
+  argumentos lleva detrás; comprobado con un mutante que deja de pasarlo.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
