@@ -11,14 +11,14 @@ export function ModalTipoDeGasto({ g }: { g: TiposDeGasto }) {
             <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
               <div className="bg-[#001733] border-b border-[#003366] px-4 py-3 flex items-center justify-between text-white">
                 <h3 className="font-bold">{g.editingType ? 'Editar Tipo de Gasto' : 'Crear Tipo de Gasto'}</h3>
-                <button onClick={() => g.setShowTypeModal(false)} className="text-slate-400 hover:text-white cursor-pointer">
+                <button type="button" aria-label="Cerrar" onClick={() => g.setShowTypeModal(false)} className="text-slate-400 hover:text-white cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
               </div>
               <form onSubmit={g.handleSaveType} className="p-4 space-y-4">
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700 uppercase">Código DGII</label>
-                  <input
+                  <label htmlFor="ajuste-codigo-dgii" className="block text-xs font-bold text-slate-700 uppercase">Código DGII</label>
+                  <input id="ajuste-codigo-dgii"
                     type="text"
                     value={g.typeCode}
                     onChange={e => g.setTypeCode(e.target.value)}
@@ -30,8 +30,8 @@ export function ModalTipoDeGasto({ g }: { g: TiposDeGasto }) {
                   {!g.editingType && <p className="text-[10px] text-slate-400">Debe tener exactamente 2 dígitos numéricos.</p>}
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-xs font-bold text-slate-700 uppercase">Nombre</label>
-                  <input
+                  <label htmlFor="ajuste-nombre" className="block text-xs font-bold text-slate-700 uppercase">Nombre</label>
+                  <input id="ajuste-nombre"
                     type="text"
                     value={g.typeName}
                     onChange={e => g.setTypeName(e.target.value)}
@@ -41,10 +41,10 @@ export function ModalTipoDeGasto({ g }: { g: TiposDeGasto }) {
                 </div>
                 {g.editingType && (
                   <div className="space-y-1">
-                    <label className="block text-xs font-bold text-slate-700 uppercase">Estado</label>
-                    <select
+                    <label htmlFor="ajuste-estado" className="block text-xs font-bold text-slate-700 uppercase">Estado</label>
+                    <select id="ajuste-estado"
                       value={g.typeStatus}
-                      onChange={e => g.setTypeStatus(e.target.value as any)}
+                      onChange={e => g.setTypeStatus(e.target.value === 'inactive' ? 'inactive' : 'active')}
                       className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 bg-slate-50 text-slate-800 outline-none"
                     >
                       <option value="active">Activo</option>

@@ -191,7 +191,7 @@ export async function PATCH(req: NextRequest) {
     // mirar (es la forma del defecto del lote 135).
     if (avisosCorreo !== undefined && avisosCorreo !== null && avisosCorreo.trim() !== '' && !correoValido(avisosCorreo)) {
       return NextResponse.json(
-        { success: false, error: 'El correo para avisos no es una direccion valida. Escriba una sola direccion, por ejemplo avisos@miempresa.com' },
+        { success: false, error: { message: 'El correo para avisos no es una dirección válida. Escriba una sola dirección, por ejemplo avisos@miempresa.com' } },
         { status: 400 },
       );
     }

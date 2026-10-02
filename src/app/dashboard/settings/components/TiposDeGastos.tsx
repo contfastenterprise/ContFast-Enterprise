@@ -4,6 +4,7 @@
  */
 import { RefreshCw, Layers, Plus, Trash2, Edit } from 'lucide-react';
 import type { TiposDeGasto } from '../hooks/useTiposDeGasto';
+import { esTipoEstandar } from '../ajustes';
 
 export function TiposDeGastos({ g }: { g: TiposDeGasto }) {
   return (
@@ -14,6 +15,7 @@ export function TiposDeGastos({ g }: { g: TiposDeGasto }) {
                 <h3 className="font-bold text-[#003366]">Administración de Tipos de Gastos</h3>
               </div>
               <button
+                type="button"
                 onClick={() => g.handleOpenTypeModal()}
                 className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
@@ -34,7 +36,7 @@ export function TiposDeGastos({ g }: { g: TiposDeGasto }) {
                   {/* Mobile View */}
                   <div className="md:hidden flex flex-col divide-y divide-slate-100 bg-white">
                     {g.expenseTypes.map((type) => {
-                      const isStandard = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10'].includes(type.code);
+                      const isStandard = esTipoEstandar(type.code);
                       return (
                         <div key={type.id} className="flex flex-col p-4 gap-3">
                           <div className="flex justify-between items-start">
@@ -83,7 +85,7 @@ export function TiposDeGastos({ g }: { g: TiposDeGasto }) {
                       </thead>
                       <tbody className="divide-y divide-slate-100 text-xs">
                         {g.expenseTypes.map((type) => {
-                          const isStandard = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10'].includes(type.code);
+                          const isStandard = esTipoEstandar(type.code);
                           return (
                             <tr key={type.id} className="hover:bg-slate-50/50">
                               <td className="px-4 py-2.5 font-mono font-bold text-slate-700">{type.code}</td>

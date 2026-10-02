@@ -71,7 +71,7 @@ process.on('beforeExit', () => { if (!terminado) { console.log(' FALLA  el banco
 async function main() {
   //  Vale en los dos estados: la pestana "Tienda" del lote 235.
   const pagina = sinComentarios(leer(`${DIR}/page.tsx`));
-  if (!/activeTab === 'tienda'/.test(pagina) || !leer(TARJETA)) throw new Error('Precondicion: no existe la pestana Tienda con su tarjeta (lote 235)');
+  if (!/'tienda'/.test(pagina) || !leer(TARJETA)) throw new Error('Precondicion: no existe la pestana Tienda con su tarjeta (lote 235)');
 
   const React = await import('react');
   const { renderToStaticMarkup } = await import('react-dom/server');
@@ -193,8 +193,10 @@ async function main() {
 
   console.log('\n3) Como esta enchufada\n');
   ok('la portada se pide al PULSAR la pestana, y el estado es de la pagina',
-    /const portada = usePortadaDeLaTienda\(\);/.test(pagina) && /onClick=\{\(\) => \{ setActiveTab\('tienda'\); void portada\.cargar\(\); \}\}/.test(pagina)
-    && /<PortadaDeLaTienda portada=\{portada\} \/>/.test(pagina));
+    //  Lote 239: la pagina atiende TODAS las pestanas en `elegir`, y lo que pinta cada una vive en `ContenidoDeLaPestana`.
+    /const portada = usePortadaDeLaTienda\(\);/.test(pagina) && /if \(pestana === 'tienda'\) void portada\.cargar\(\);/.test(pagina)
+    && /alElegir=\{elegir\}/.test(pagina) && /<ContenidoDeLaPestana [^>]*portada=\{portada\}/.test(pagina)
+    && /<PortadaDeLaTienda portada=\{portada\} \/>/.test(sinComentarios(leer(`${DIR}/components/ContenidoDeLaPestana.tsx`))));
   ok('  y "Reintentar" vuelve a pedirla', /<button type="button" onClick=\{p\.cargar\}[^>]*>Reintentar<\/button>/.test(sinComentarios(leer(TARJETA))));
   const hook = sinComentarios(leer(PIEZAS[3]));
   const piezasDeVista = PIEZAS.slice(0, 3).map((p) => sinComentarios(leer(p)));

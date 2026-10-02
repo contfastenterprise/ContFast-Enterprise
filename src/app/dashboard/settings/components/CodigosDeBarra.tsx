@@ -19,8 +19,8 @@ export function CodigosDeBarra({ a }: { a: Ajustes }) {
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Tipo Predeterminado</label>
-                      <select
+                      <label htmlFor="ajuste-tipo-predeterminado" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Tipo Predeterminado</label>
+                      <select id="ajuste-tipo-predeterminado"
                         value={a.formData.barcodeDefaultType}
                         onChange={e => a.setFormData({ ...a.formData, barcodeDefaultType: e.target.value })}
                         className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-medium text-slate-900 bg-slate-50"
@@ -34,8 +34,8 @@ export function CodigosDeBarra({ a }: { a: Ajustes }) {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Prefijo para Auto-Generación</label>
-                      <input
+                      <label htmlFor="ajuste-prefijo-para-auto-generacion" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Prefijo para Auto-Generación</label>
+                      <input id="ajuste-prefijo-para-auto-generacion"
                         type="text"
                         value={a.formData.barcodePrefix}
                         onChange={e => a.setFormData({ ...a.formData, barcodePrefix: e.target.value })}
@@ -45,8 +45,8 @@ export function CodigosDeBarra({ a }: { a: Ajustes }) {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Longitud de Código Automático</label>
-                      <input
+                      <label htmlFor="ajuste-longitud-de-codigo-automatico" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Longitud de Código Automático</label>
+                      <input id="ajuste-longitud-de-codigo-automatico"
                         type="number"
                         min="4"
                         max="20"

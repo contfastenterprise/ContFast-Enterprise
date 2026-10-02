@@ -17,8 +17,8 @@ export function AvisosDelSistema({ a }: { a: Ajustes }) {
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Correo de destino</label>
-                        <input
+                        <label htmlFor="ajuste-correo-de-destino" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Correo de destino</label>
+                        <input id="ajuste-correo-de-destino"
                           type="email"
                           value={a.formData.avisosCorreo || ''}
                           onChange={e => a.setFormData({ ...a.formData, avisosCorreo: e.target.value })}

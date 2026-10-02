@@ -15,8 +15,8 @@ export function IdentidadFiscal({ a }: { a: Ajustes }) {
               </div>
               <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Nombre Comercial</label>
-                  <input
+                  <label htmlFor="ajuste-nombre-comercial" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Nombre Comercial</label>
+                  <input id="ajuste-nombre-comercial"
                     type="text"
                     disabled={a.isNameDisabled}
                     value={a.formData.name || ''}
@@ -25,8 +25,8 @@ export function IdentidadFiscal({ a }: { a: Ajustes }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">RNC</label>
-                  <input
+                  <label htmlFor="ajuste-rnc" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">RNC</label>
+                  <input id="ajuste-rnc"
                     type="text"
                     disabled={a.isRncDisabled}
                     value={a.formData.rnc || ''}
@@ -35,8 +35,8 @@ export function IdentidadFiscal({ a }: { a: Ajustes }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Dirección de la Empresa</label>
-                  <input
+                  <label htmlFor="ajuste-direccion-de-la-empresa" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Dirección de la Empresa</label>
+                  <input id="ajuste-direccion-de-la-empresa"
                     type="text"
                     value={a.formData.address || ''}
                     onChange={e => a.setFormData({ ...a.formData, address: e.target.value })}
@@ -44,8 +44,8 @@ export function IdentidadFiscal({ a }: { a: Ajustes }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Teléfono de la Empresa</label>
-                  <input
+                  <label htmlFor="ajuste-telefono-de-la-empresa" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Teléfono de la Empresa</label>
+                  <input id="ajuste-telefono-de-la-empresa"
                     type="text"
                     value={a.formData.phone || ''}
                     onChange={e => a.setFormData({ ...a.formData, phone: e.target.value })}
@@ -53,8 +53,8 @@ export function IdentidadFiscal({ a }: { a: Ajustes }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Correo Electrónico de la Empresa</label>
-                  <input
+                  <label htmlFor="ajuste-correo-electronico-de-la-empresa" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Correo Electrónico de la Empresa</label>
+                  <input id="ajuste-correo-electronico-de-la-empresa"
                     type="email"
                     value={a.formData.email || ''}
                     onChange={e => a.setFormData({ ...a.formData, email: e.target.value })}
@@ -62,7 +62,7 @@ export function IdentidadFiscal({ a }: { a: Ajustes }) {
                   />
                 </div>
                 <div className="col-span-1 md:col-span-2 border-t border-slate-100 pt-6">
-                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Logo de la Empresa (Facturas y Reportes)</label>
+                  <p className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1.5">Logo de la Empresa (Facturas y Reportes)</p>
                   <div className="flex items-start gap-4 mt-2">
                     {/* Botón de Subida (Izquierda, Pequeño) */}
                     <div className="w-24 h-24 flex-shrink-0">
@@ -86,7 +86,7 @@ export function IdentidadFiscal({ a }: { a: Ajustes }) {
                         )}
                       </div>
                       {a.formData.logoUrl && (
-                        <button type="button" onClick={() => a.setFormData({ ...a.formData, logoUrl: '' })} className="absolute -top-2 -right-2 bg-rose-100 text-rose-600 rounded-full p-1.5 hover:bg-rose-200 shadow-sm transition-colors opacity-0 group-hover:opacity-100" title="Remover Logo">
+                        <button type="button" onClick={() => a.setFormData({ ...a.formData, logoUrl: '' })} className="absolute -top-2 -right-2 bg-rose-100 text-rose-600 rounded-full p-1.5 hover:bg-rose-200 shadow-sm transition-colors opacity-0 group-hover:opacity-100" title="Remover Logo" aria-label="Remover logo">
                           <X className="w-3.5 h-3.5" />
                         </button>
                       )}

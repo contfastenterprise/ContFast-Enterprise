@@ -8,9 +8,16 @@
  * `cargarPuentes` es la carga de las cuentas puente (`useCuentasPuente`): la
  * pagina la pedia en el mismo sitio, despues de leer los ajustes y solo si se
  * habian podido leer. Sin ese cruce compila igual y la pestana sale vacia.
+ *
+ * Lote 239: las respuestas se leen con `leerRespuesta`, que mira el ESTADO antes
+ * que el cuerpo. Lo que cambia para quien usa la pantalla: un 5xx con pagina de
+ * error al guardar decia "Error de conexion" -- falso: la red funciono, fallo el
+ * servidor --; ahora dice "Error al guardar". Y guardar lleva guarda de
+ * re-entrada en un `useRef` (dos clics seguidos mandaban dos PATCH).
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
+import { leerRespuesta } from '@/utils/leerRespuesta';
 import { esAdministracion, esSistemas } from '@/utils/rolMatch';
 import { correoValido } from '@/services/avisos/avisoPorCorreo';
 
@@ -84,23 +91,28 @@ export function useAjustes(cargarPuentes: () => Promise<void>) {
   const isNameDisabled = !(isSistemas || (isAdministracion && !initialCompanyInfo.name));
   const isRncDisabled = !(isSistemas || (isAdministracion && !initialCompanyInfo.rnc));
 
-  async function fetchSettings() {
+  const guardandoYa = useRef(false);
+
+  const fetchSettings = useCallback(async () => {
     try {
       // Cargar rol de usuario y perfil
       try {
-        const userRes = await fetch('/api/v1/auth/me');
-        const userData = await userRes.json();
-        if (userData.success && userData.data?.user) {
-          setUserRole(userData.data.user.role);
-          setCurrentUser(userData.data.user);
+        const perfil = await leerRespuesta<{ data?: { user?: NonNullable<typeof currentUser> & { role: string } } }>(await fetch('/api/v1/auth/me'));
+        if (perfil.bien && perfil.cuerpo.data?.user) {
+          setUserRole(perfil.cuerpo.data.user.role);
+          setCurrentUser(perfil.cuerpo.data.user);
         }
       } catch (userErr) {
         console.error('Error al obtener perfil de usuario', userErr);
       }
 
-      const res = await fetch('/api/v1/admin/settings');
-      const data = await res.json();
-      if (data.success && data.data) {
+      //  `any`: la forma de los ajustes la da la ruta; aqui solo se reparte en el formulario.
+      const leido = await leerRespuesta<{ data?: any }>(await fetch('/api/v1/admin/settings'));
+      //  Un 4xx aqui es lo NORMAL para quien no administra (solo ve "Mi Perfil"): se calla,
+      //  como antes. Un 5xx no: antes reventaba el `json()` y salia este mismo aviso.
+      if (!leido.bien && leido.estado >= 500) toast.error('Error al cargar configuración');
+      const data = leido.bien ? leido.cuerpo : null;
+      if (data?.data) {
         const nameVal = data.data.company.name || '';
         const rncVal = data.data.company.rnc || '';
         setInitialCompanyInfo({ name: nameVal, rnc: rncVal });
@@ -138,29 +150,30 @@ export function useAjustes(cargarPuentes: () => Promise<void>) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [cargarPuentes]);
 
   useEffect(() => {
     fetchSettings();
-  }, []);
+  }, [fetchSettings]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (guardandoYa.current) return;
+    guardandoYa.current = true;
     setSubmitting(true);
     try {
-      const res = await fetch('/api/v1/admin/settings', {
+      const leido = await leerRespuesta<{ avisos?: string[] }>(await fetch('/api/v1/admin/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         // Auditoria ISO-16: el ambiente viaja con las credenciales. Sin el, el
         // servidor no sabe a cual pertenecen y no las guarda.
         body: JSON.stringify({ ...formData, msellerCredencialesEntorno: credencialesEntorno })
-      });
-      const data = await res.json();
-      if (data.success) {
+      }));
+      if (leido.bien) {
         toast.success('Configuración guardada exitosamente');
         // Guardar y surtir efecto no son lo mismo: si la copia en cache no se
         // pudo tirar, lo que acabas de escribir no esta activo todavia.
-        for (const aviso of (data.avisos ?? []) as string[]) {
+        for (const aviso of leido.cuerpo.avisos ?? []) {
           toast.warning(aviso, { duration: 12000 });
         }
         // Auditoria ISO-16: los campos de credenciales no se quedan escritos
@@ -189,11 +202,12 @@ export function useAjustes(cargarPuentes: () => Promise<void>) {
         //  motivo por el que los avisos no pueden salir.
         await fetchSettings();
       } else {
-        toast.error(data.error?.message || 'Error al guardar');
+        toast.error(leido.mensaje || 'Error al guardar');
       }
     } catch (error) {
       toast.error('Error de conexión');
     } finally {
+      guardandoYa.current = false;
       setSubmitting(false);
     }
   };

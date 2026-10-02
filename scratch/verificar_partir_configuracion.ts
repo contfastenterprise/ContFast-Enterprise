@@ -35,8 +35,9 @@ let terminado = false;
 process.on('beforeExit', () => { if (!terminado) { console.log(' FALLA  el banco se quedo colgado y no llego al final'); process.exit(1); } });
 
 const DIR = 'src/app/dashboard/settings';
-/** La pagina entera, antes de partirla. */
+/** La pagina entera, antes de partirla; y el commit del corte. */
 const ANTES = '5600b9e';
+const DESPUES = 'aa43cbb';
 const HOOKS = ['useAjustes.ts', 'useCuentasPuente.ts', 'useTiposDeGasto.ts'];
 const PIEZAS = ['MiPerfil', 'FormularioEmpresa', 'IdentidadFiscal', 'AvisosDelSistema', 'IntegracionMseller', 'ParametrosOperativos', 'CodigosDeBarra',
   'PlanYSuscripcion', 'CuentasPuente', 'TiposDeGastos', 'ModalTipoDeGasto'];
@@ -67,7 +68,7 @@ const nada = () => {};
 async function main() {
   //  Vale en los dos estados: la pagina de Configuracion con su pestana de cuentas puente.
   const pagina = leer(`${DIR}/page.tsx`);
-  if (!/activeTab === 'puente'/.test(pagina) || !/activeTab === 'gastos'/.test(pagina)) throw new Error('Precondicion: la pagina de Configuracion ya no tiene sus pestanas');
+  if (!/'gastos'/.test(pagina) || !/'tienda'/.test(pagina)) throw new Error('Precondicion: la pagina de Configuracion ya no tiene sus pestanas');
 
   console.log('\n1) La pagina es el armazon\n');
   const lineas = (f: string) => leer(f).split(/\r?\n/).length;
@@ -75,21 +76,26 @@ async function main() {
   const largas = AHORA.slice(1).filter((f) => lineas(f) <= 1 || lineas(f) > 240);
   ok('  y ninguna pieza pasa de 240', largas.length === 0, largas.map((f) => `${f.split('/').pop()} ${lineas(f)}`).join(', ') || AHORA.slice(1).map((f) => lineas(f)).join(' '));
   const pag = sinComentarios(pagina);
+  const contenido = sinComentarios(leer(`${DIR}/components/ContenidoDeLaPestana.tsx`));
   ok('el estado lo crea la PAGINA: lo escrito en una pestana sobrevive a cambiar a otra',
     /const p = useCuentasPuente\(\);/.test(pag) && /const a = useAjustes\(p\.cargar\);/.test(pag) && /const g = useTiposDeGasto\(\);/.test(pag)
-    && /<FormularioEmpresa a=\{a\} \/>/.test(pag) && /<CuentasPuente p=\{p\} \/>/.test(pag) && /<TiposDeGastos g=\{g\} \/>/.test(pag));
+    //  Lote 239: lo que pinta cada pestana pasa a `ContenidoDeLaPestana`; la pagina le da los tres hooks.
+    && /<ContenidoDeLaPestana pestana=\{activeTab\} a=\{a\} p=\{p\} g=\{g\}/.test(pag)
+    && /<FormularioEmpresa a=\{a\} \/>/.test(contenido) && /<CuentasPuente p=\{p\} \/>/.test(contenido) && /<TiposDeGastos g=\{g\} \/>/.test(contenido));
   const vistas = PIEZAS.map((p) => sinComentarios(leer(`${DIR}/components/${p}.tsx`)));
   ok('  y las piezas solo pintan: ni estado, ni efectos, ni red', vistas.every((v) => v.length > 0 && !/\buse(State|Effect|Ref)\b/.test(v) && !/\bfetch\(/.test(v)));
 
   console.log('\n2) Lo que cruza de un hook a otro\n');
   const ajustes = sinComentarios(leer(`${DIR}/hooks/useAjustes.ts`));
-  const carga = (() => { const i = ajustes.indexOf('async function fetchSettings()'); return i < 0 ? '' : ajustes.slice(i, ajustes.indexOf('useEffect(', i)); })();
+  //  Lote 239: la carga es un `useCallback` y lee con `leerRespuesta`; lo que se vigila es DONDE se piden las cuentas puente.
+  const carga = (() => { const i = ajustes.indexOf('const fetchSettings = useCallback('); return i < 0 ? '' : ajustes.slice(i, ajustes.indexOf('useEffect(', i)); })();
   ok('las cuentas puente se cargan al terminar de leer los ajustes, y solo si se pudieron leer',
     /export function useAjustes\(cargarPuentes: \(\) => Promise<void>\)/.test(ajustes)
-    && /if \(data\.success && data\.data\) \{[\s\S]*setAvailablePlans\([\s\S]*await cargarPuentes\(\);\s*\}\s*\} catch/.test(carga));
+    && /if \(data\?\.data\) \{[\s\S]*setAvailablePlans\([\s\S]*await cargarPuentes\(\);\s*\}\s*\} catch/.test(carga)
+    && (carga.match(/cargarPuentes\(\)/g) ?? []).length === 1);
   const guardar = (() => { const i = ajustes.indexOf('const handleSave = async'); return i < 0 ? '' : ajustes.slice(i, ajustes.indexOf('const handleLogoUpload', i)); })();
-  ok('  y guardar los ajustes sigue releyendo del servidor (con ellas)', /if \(data\.success\) \{[\s\S]*await fetchSettings\(\);\s*\} else \{/.test(guardar));
-  ok('los tipos de gasto se piden al abrir su pestana', /const \{ fetchExpenseTypes \} = g;/.test(pag) && /if \(activeTab === 'gastos'\) \{\s*fetchExpenseTypes\(\);/.test(pag));
+  ok('  y guardar los ajustes sigue releyendo del servidor (con ellas)', /if \(leido\.bien\) \{[\s\S]*await fetchSettings\(\);\s*\} else \{/.test(guardar));
+  ok('los tipos de gasto se piden al abrir su pestana', /if \(pestana === 'gastos'\) void g\.fetchExpenseTypes\(\);/.test(pag) && /alElegir=\{elegir\}/.test(pag));
 
   console.log('\n3) Dibujadas\n');
   const React = await import('react');
@@ -117,7 +123,7 @@ async function main() {
     const pos = ['Identidad Fiscal', 'Avisos del sistema', 'Integración mSeller API', 'Parámetros Operativos', 'Códigos de Barra', 'Guardar Cambios'].map((t) => h.indexOf(t));
     ok(E3[0], pos.every((x, i) => x > 0 && (i === 0 || x > pos[i - 1])) && (h.match(/<form\b/g) ?? []).length === 1 && (h.match(/type="submit"/g) ?? []).length === 1, pos.join(' '));
     ok(E3[1], /value="Latin Doors"/.test(h) && /Se enviará a avisos@latin\.do/.test(h) && /eCF — ambiente REAL/.test(h) && /Con clave: TesteCF\./.test(h)
-      && /<input type="text" disabled=""[^>]*value="https:\/\/ecf\.api\.mseller\.app\/v1"/.test(h) && /placeholder="•••••••• \(Configurada\)"/.test(h)
+      && /<input[^>]*type="text" disabled=""[^>]*value="https:\/\/ecf\.api\.mseller\.app\/v1"/.test(h) && /placeholder="•••••••• \(Configurada\)"/.test(h)
       && /Cantidad de Copias/.test(h));
   }
   const Puentes = await cargar('CuentasPuente');
@@ -154,13 +160,15 @@ async function main() {
     const crear = dibujar(Modal, { g });
     const editar = dibujar(Modal, { g: { ...g, editingType: g.expenseTypes[0], typeCode: '02', typeName: 'Gastos por trabajos' } });
     ok(E5[1], /Crear Tipo de Gasto/.test(crear) && !/<select\b/.test(crear) && !/disabled=""[^>]*maxLength/.test(crear)
-      && /Editar Tipo de Gasto/.test(editar) && /<select\b/.test(editar) && /<input type="text" disabled=""[^>]*value="02"/.test(editar));
+      && /Editar Tipo de Gasto/.test(editar) && /<select\b/.test(editar) && /<input[^>]*type="text"[^>]*disabled=""[^>]*value="02"/.test(editar));
   }
 
   console.log('\n4) Lo que se ve y lo que se pide no cambio\n');
   //  Cierto antes y despues por definicion: como `ok()` regalaria un OK en la contraprueba.
   const antes = huella(execSync(`git show ${ANTES}:${DIR}/page.tsx`, { cwd: raiz, encoding: 'utf8', maxBuffer: 1 << 26 }));
-  const ahora = huella(AHORA.map(leer).join('\n'));
+  //  Se comparan los DOS COMMITS y no la carpeta (como en los lotes 227, 230 y 237): el lote 239 cambia
+  //  marcado a proposito, y asi la prueba del corte sigue valiendo para siempre.
+  const ahora = huella(AHORA.map((f) => execSync(`git show ${DESPUES}:${f}`, { cwd: raiz, encoding: 'utf8', maxBuffer: 1 << 26 })).join('\n'));
   const resto = [...ahora];
   const perdidas = antes.filter((x) => { const i = resto.indexOf(x); if (i < 0) return true; resto.splice(i, 1); return false; });
   invariante(`las ${antes.length} clases, textos, ejemplos, titulos, avisos y direcciones de la pagina de antes siguen ahi, una por una`,

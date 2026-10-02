@@ -5,35 +5,35 @@
  * se pinta en cada una. El estado vive en cuatro hooks que crea ELLA (ajustes,
  * cuentas puente, tipos de gasto y portada de la tienda), para que lo escrito
  * en una pestana sobreviva a cambiar a otra, como antes de partirla.
+ *
+ * Lote 239: lo que una pestana necesita pedir se pide AL ELEGIRLA (`elegir`),
+ * no en un efecto que mira cual esta activa: la portada de la tienda y los
+ * tipos de gasto. Es una accion del usuario, y se atiende en esa accion.
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Settings as SettingsIcon, RefreshCw } from 'lucide-react';
-import { PortadaDeLaTienda } from './components/PortadaDeLaTienda';
 import { usePortadaDeLaTienda } from './hooks/usePortadaDeLaTienda';
 import { useAjustes } from './hooks/useAjustes';
 import { useCuentasPuente } from './hooks/useCuentasPuente';
 import { useTiposDeGasto } from './hooks/useTiposDeGasto';
-import { MiPerfil } from './components/MiPerfil';
-import { FormularioEmpresa } from './components/FormularioEmpresa';
-import { PlanYSuscripcion } from './components/PlanYSuscripcion';
-import { CuentasPuente } from './components/CuentasPuente';
-import { TiposDeGastos } from './components/TiposDeGastos';
+import type { PestanaDeAjustes } from './ajustes';
+import { PestanasDeAjustes } from './components/PestanasDeAjustes';
+import { ContenidoDeLaPestana } from './components/ContenidoDeLaPestana';
 import { ModalTipoDeGasto } from './components/ModalTipoDeGasto';
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<'perfil' | 'empresa' | 'tienda' | 'puente' | 'suscripcion' | 'gastos'>('perfil');
+  const [activeTab, setActiveTab] = useState<PestanaDeAjustes>('perfil');
   const portada = usePortadaDeLaTienda();
   const p = useCuentasPuente();
   const a = useAjustes(p.cargar);
   const g = useTiposDeGasto();
-  const { loading } = a;
-  const { fetchExpenseTypes } = g;
+  const puedeConfigurar = a.isAdministracion || a.isSistemas;
 
-  useEffect(() => {
-    if (activeTab === 'gastos') {
-      fetchExpenseTypes();
-    }
-  }, [activeTab]);
+  const elegir = (pestana: PestanaDeAjustes) => {
+    setActiveTab(pestana);
+    if (pestana === 'tienda') void portada.cargar();
+    if (pestana === 'gastos') void g.fetchExpenseTypes();
+  };
 
   return (
 
@@ -55,112 +55,15 @@ export default function SettingsPage() {
             </p>
           </div>
 
-          {/* Tabs de Configuración */}
-          <div className="flex border-b border-slate-200">
-            <button
-              onClick={() => setActiveTab('perfil')}
-              className={`px-4 py-2 text-xs font-semibold cursor-pointer border-b-2 transition-colors -mb-px ${
-                activeTab === 'perfil'
-                  ? 'border-[#003366] text-[#003366]'
-                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-              }`}
-            >
-              Mi Perfil
-            </button>
-            {(a.isAdministracion || a.isSistemas) && (
-              <button
-                onClick={() => setActiveTab('empresa')}
-                className={`px-4 py-2 text-xs font-semibold cursor-pointer border-b-2 transition-colors -mb-px ${
-                  activeTab === 'empresa'
-                    ? 'border-[#003366] text-[#003366]'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                Configuración Empresa
-              </button>
-            )}
-            {(a.isAdministracion || a.isSistemas) && (
-              <button
-                onClick={() => { setActiveTab('tienda'); void portada.cargar(); }}
-                className={`px-4 py-2 text-xs font-semibold cursor-pointer border-b-2 transition-colors -mb-px ${
-                  activeTab === 'tienda'
-                    ? 'border-[#003366] text-[#003366]'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                Tienda
-              </button>
-            )}
-            {(a.isAdministracion || a.isSistemas) && (
-              <button
-                onClick={() => setActiveTab('puente')}
-                className={`px-4 py-2 text-xs font-semibold cursor-pointer border-b-2 transition-colors -mb-px ${
-                  activeTab === 'puente'
-                    ? 'border-[#003366] text-[#003366]'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                Cuentas Puente
-              </button>
-            )}
-            {(a.isAdministracion || a.isSistemas) && (
-              <button
-                onClick={() => setActiveTab('suscripcion')}
-                className={`px-4 py-2 text-xs font-semibold cursor-pointer border-b-2 transition-colors -mb-px ${
-                  activeTab === 'suscripcion'
-                    ? 'border-[#003366] text-[#003366]'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                Plan & Suscripción
-              </button>
-            )}
-            {(a.isAdministracion || a.isSistemas) && (
-              <button
-                onClick={() => setActiveTab('gastos')}
-                className={`px-4 py-2 text-xs font-semibold cursor-pointer border-b-2 transition-colors -mb-px ${
-                  activeTab === 'gastos'
-                    ? 'border-[#003366] text-[#003366]'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                Tipos de Gastos
-              </button>
-            )}
-          </div>
+          <PestanasDeAjustes activa={activeTab} puedeConfigurar={puedeConfigurar} alElegir={elegir} />
         </div>
 
-        {loading ? (
+        {a.loading ? (
           <div className="flex justify-center py-12">
             <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
           </div>
-        ) : activeTab === 'perfil' && a.currentUser ? (
-          <MiPerfil a={a} usuario={a.currentUser} />
-        ) : activeTab === 'empresa' ? (
-          <FormularioEmpresa a={a} />
-        ) : null}
-
-        {/* TAB: Tienda (lote 235). Pedido del dueno: la portada en una pestana
-            NUEVA, no dentro de Empresa. Carga y guarda lo suyo, sin pasar por
-            el formulario grande de la empresa; se pide al pulsar la pestana y
-            lo escrito sobrevive a cambiar de pestana (lote 236). */}
-        {!loading && activeTab === 'tienda' && (a.isAdministracion || a.isSistemas) && (
-          <PortadaDeLaTienda portada={portada} />
-        )}
-
-        {/* TAB: Plan & Suscripción */}
-        {!loading && activeTab === 'suscripcion' && (
-          <PlanYSuscripcion subscription={a.subscription} availablePlans={a.availablePlans} />
-        )}
-
-        {/* TAB: Cuentas Puente */}
-        {!loading && activeTab === 'puente' && (
-          <CuentasPuente p={p} />
-        )}
-
-        {/* TAB: Tipos de Gastos */}
-        {!loading && activeTab === 'gastos' && (
-          <TiposDeGastos g={g} />
+        ) : (
+          <ContenidoDeLaPestana pestana={activeTab} a={a} p={p} g={g} portada={portada} puedeConfigurar={puedeConfigurar} />
         )}
 
         {/* Modal: Crear/Editar Tipo de Gasto */}

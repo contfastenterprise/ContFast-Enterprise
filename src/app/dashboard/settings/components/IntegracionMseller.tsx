@@ -38,8 +38,8 @@ export function IntegracionMseller({ a }: { a: Ajustes }) {
                   {/* ── Cuenta de la empresa ── */}
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">URL del Servidor</label>
-                      <input
+                      <label htmlFor="ajuste-url-del-servidor" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">URL del Servidor</label>
+                      <input id="ajuste-url-del-servidor"
                         type="text"
                         disabled={!a.isSistemas}
                         value={a.formData.msellerUrl}
@@ -50,8 +50,8 @@ export function IntegracionMseller({ a }: { a: Ajustes }) {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Correo Electrónico (Usuario)</label>
-                      <input
+                      <label htmlFor="ajuste-correo-electronico-usuario" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Correo Electrónico (Usuario)</label>
+                      <input id="ajuste-correo-electronico-usuario"
                         type="email"
                         disabled={!a.isSistemas}
                         value={a.formData.msellerEmail}
@@ -62,9 +62,9 @@ export function IntegracionMseller({ a }: { a: Ajustes }) {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Contraseña mSeller</label>
+                      <label htmlFor="ajuste-contrasena-mseller" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Contraseña mSeller</label>
                       <div className="relative">
-                        <input
+                        <input id="ajuste-contrasena-mseller"
                           type={a.showMsellerPassword ? "text" : "password"}
                           disabled={!a.isSistemas}
                           value={a.formData.msellerPassword}
@@ -75,6 +75,7 @@ export function IntegracionMseller({ a }: { a: Ajustes }) {
                         <button
                           type="button"
                           onClick={() => a.setShowMsellerPassword(!a.showMsellerPassword)}
+                          aria-label={a.showMsellerPassword ? 'Ocultar la contraseña' : 'Mostrar la contraseña'}
                           className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 focus:outline-none"
                         >
                           {a.showMsellerPassword ? (
@@ -93,10 +94,10 @@ export function IntegracionMseller({ a }: { a: Ajustes }) {
                   {/* ── Lo que cambia por ambiente ── */}
                   <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-3 space-y-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">
+                      <label htmlFor="ajuste-ambiente-de-esta-clave" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">
                         Ambiente de esta clave
                       </label>
-                      <select
+                      <select id="ajuste-ambiente-de-esta-clave"
                         disabled={!a.isSistemas}
                         value={a.credencialesEntorno}
                         onChange={e => {
@@ -115,8 +116,8 @@ export function IntegracionMseller({ a }: { a: Ajustes }) {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Token de API (API Key)</label>
-                      <input
+                      <label htmlFor="ajuste-token-de-api-api-key" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Token de API (API Key)</label>
+                      <input id="ajuste-token-de-api-api-key"
                         type="password"
                         disabled={!a.isSistemas}
                         value={a.formData.msellerApiKey}

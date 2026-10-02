@@ -94,8 +94,9 @@ const REPO = 'src/repositories/companyRepository.ts';
 {
   const p = fuente('src/app/dashboard/settings/page.tsx');
   ok('la pantalla de configuracion ensena el aviso (guardar != surtir efecto)',
-    p.includes('for (const aviso of (data.avisos ?? []) as string[]) {')
-    && p.includes('toast.warning(aviso, { duration: 12000 });'));
+    //  Lote 239: la respuesta se lee con `leerRespuesta`, asi que los avisos llegan en `leido.cuerpo.avisos`.
+    //  Lo que se vigila es que se recorran y se ensenen, no en que variable vienen.
+    /for \(const aviso of [^)]*\bavisos \?\? \[\][^)]*\) \{\s*toast\.warning\(aviso, \{ duration: 12000 \}\);/.test(p));
 }
 
 // ─── la copia ilegible no se queda ──────────────────────────────────────

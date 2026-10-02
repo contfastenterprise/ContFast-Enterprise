@@ -46,8 +46,9 @@ export function CuentasPuente({ p }: { p: Puentes }) {
                   (acc.isTransactional && acc.type === puente.tipo) || acc.id === valor);
                 return (
                   <div key={puente.codigo} className="space-y-1">
-                    <label className="block text-xs font-bold text-slate-700 uppercase">{puente.etiqueta}</label>
+                    <label htmlFor={`puente-${puente.codigo}`} className="block text-xs font-bold text-slate-700 uppercase">{puente.etiqueta}</label>
                     <select
+                      id={`puente-${puente.codigo}`}
                       value={valor}
                       onChange={e => p.setDraftMappings(prev => ({
                         ...prev,

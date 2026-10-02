@@ -4,6 +4,7 @@
  */
 import { Building, FileText, Truck, Printer, Zap, Copy } from 'lucide-react';
 import type { Ajustes } from '../hooks/useAjustes';
+import { importeDelCampo } from '../ajustes';
 import { CodigosDeBarra } from './CodigosDeBarra';
 
 export function ParametrosOperativos({ a }: { a: Ajustes }) {
@@ -16,8 +17,8 @@ export function ParametrosOperativos({ a }: { a: Ajustes }) {
               <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
 
                 <div className="col-span-1 md:col-span-2">
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Actividad Económica</label>
-                  <input type="text" value={a.formData.businessActivity} onChange={e => a.setFormData({ ...a.formData, businessActivity: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50" />
+                  <label htmlFor="ajuste-actividad-economica" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Actividad Económica</label>
+                  <input id="ajuste-actividad-economica" type="text" value={a.formData.businessActivity} onChange={e => a.setFormData({ ...a.formData, businessActivity: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 text-slate-900 bg-slate-50" />
                 </div>
 
                 {/*
@@ -35,8 +36,8 @@ export function ParametrosOperativos({ a }: { a: Ajustes }) {
                   todavia: el resto del sistema aun supone dos modos.
                 */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Zap className="w-3 h-3" /> Modo del sistema</label>
-                  <select
+                  <label htmlFor="ajuste-modo-del-sistema" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Zap className="w-3 h-3" /> Modo del sistema</label>
+                  <select id="ajuste-modo-del-sistema"
                     disabled={!a.isSistemas}
                     value={a.formData.dgiiEnv}
                     onChange={e => a.setFormData({ ...a.formData, dgiiEnv: e.target.value })}
@@ -59,8 +60,8 @@ export function ParametrosOperativos({ a }: { a: Ajustes }) {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Printer className="w-3 h-3" /> Formato de Impresión Predeterminado</label>
-                  <select value={a.formData.printLayout} onChange={e => a.setFormData({ ...a.formData, printLayout: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-medium uppercase text-slate-900 bg-slate-50">
+                  <label htmlFor="ajuste-formato-de-impresion-predeterminado" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Printer className="w-3 h-3" /> Formato de Impresión Predeterminado</label>
+                  <select id="ajuste-formato-de-impresion-predeterminado" value={a.formData.printLayout} onChange={e => a.setFormData({ ...a.formData, printLayout: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-medium uppercase text-slate-900 bg-slate-50">
                     <option value="carta">Carta (8.5 x 11)</option>
                     <option value="80mm">Ticket 80mm</option>
                     <option value="58mm">Ticket 58mm</option>
@@ -69,10 +70,10 @@ export function ParametrosOperativos({ a }: { a: Ajustes }) {
 
                 {a.formData.printLayout === 'carta' && (
                   <div>
-                    <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                    <label htmlFor="ajuste-cantidad-de-copias-solo-formato-carta" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5 flex items-center gap-1">
                       <Copy className="w-3 h-3" /> Cantidad de Copias (Solo Formato Carta)
                     </label>
-                    <select
+                    <select id="ajuste-cantidad-de-copias-solo-formato-carta"
                       value={a.formData.printCopies}
                       onChange={e => a.setFormData({ ...a.formData, printCopies: parseInt(e.target.value) || 2 })}
                       className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-medium text-slate-900 bg-slate-50"
@@ -94,18 +95,18 @@ export function ParametrosOperativos({ a }: { a: Ajustes }) {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Límite para Notas de Crédito Automáticas (DOP)</label>
+                  <label htmlFor="ajuste-limite-para-notas-de-credito-automaticas-dop" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Límite para Notas de Crédito Automáticas (DOP)</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold">$</span>
-                    <input type="number" min="0" step="0.01" value={a.formData.maxCreditNoteApprovalAmount} onChange={e => a.setFormData({ ...a.formData, maxCreditNoteApprovalAmount: Number(e.target.value) })} className="w-full h-8 pl-8 pr-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-mono text-slate-900 bg-slate-50" />
+                    <input id="ajuste-limite-para-notas-de-credito-automaticas-dop" type="number" min="0" step="0.01" value={a.formData.maxCreditNoteApprovalAmount} onChange={e => a.setFormData({ ...a.formData, maxCreditNoteApprovalAmount: importeDelCampo(e.target.value) })} className="w-full h-8 pl-8 pr-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-mono text-slate-900 bg-slate-50" />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Límite para Retiro de Caja Chica (DOP)</label>
+                  <label htmlFor="ajuste-limite-para-retiro-de-caja-chica-dop" className="block text-xs font-bold text-slate-500/70 uppercase tracking-widest mb-1.5">Límite para Retiro de Caja Chica (DOP)</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold">$</span>
-                    <input type="number" min="0" step="0.01" value={a.formData.maxCashOutApprovalAmount} onChange={e => a.setFormData({ ...a.formData, maxCashOutApprovalAmount: Number(e.target.value) })} className="w-full h-8 pl-8 pr-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-mono text-slate-900 bg-slate-50" />
+                    <input id="ajuste-limite-para-retiro-de-caja-chica-dop" type="number" min="0" step="0.01" value={a.formData.maxCashOutApprovalAmount} onChange={e => a.setFormData({ ...a.formData, maxCashOutApprovalAmount: importeDelCampo(e.target.value) })} className="w-full h-8 pl-8 pr-3 py-1.5 text-xs rounded-lg border-slate-200 outline-none focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 font-mono text-slate-900 bg-slate-50" />
                   </div>
                 </div>
 
@@ -113,6 +114,9 @@ export function ParametrosOperativos({ a }: { a: Ajustes }) {
                   <button
                     type="button"
                     onClick={() => a.setFormData({ ...a.formData, autoDeliveryNotes: !a.formData.autoDeliveryNotes })}
+                    role="switch"
+                    aria-checked={a.formData.autoDeliveryNotes}
+                    aria-label="Conduces automáticos"
                     className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${a.formData.autoDeliveryNotes ? 'bg-amber-500' : 'bg-slate-300'
                       }`}
                   >
