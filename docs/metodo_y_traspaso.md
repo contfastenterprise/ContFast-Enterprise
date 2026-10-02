@@ -1549,6 +1549,35 @@ Además, fuera de la tabla:
   a caer en cada una.
   El barrido completo se corrió **una vez, con el lote 245 encima** (los dos lotes juntos en
   la carpeta), porque cada barrido tarda media hora; cada uno pasó además su CI por separado.
+- **Lote 245: filtros en la lista de conduces, por estado y por rango de fecha.** Pedido del
+  dueño (2026-10-02): *"pon filtros en la página dashboard/delivery-notes por estado y rango de
+  fecha"*. La lista solo sabía paginar.
+  `services/inventario/filtrosDeConduces.ts` (puro) lleva los tres estados y la regla de las
+  fechas, **los mismos para la pantalla y para la ruta**. Tres decisiones:
+  · **la fecha es la de ENTREGA** (`delivery_date`), la que enseña la tabla. Es una columna
+    `date`: se compara como día, sin convertir zona (la regla del lote 205), y los dos extremos
+    del rango entran;
+  · **un filtro que no se entiende se RECHAZA con 400**, no se ignora: un parámetro que nadie
+    lee devuelve la lista entera en silencio (el "parámetro sordo" del lote 135), y quien
+    filtró por "Despachado" creería que todos lo están;
+  · **una sola condición para el total y para la página** (`donde`): con dos copias, filtrar
+    la lista sin filtrar el total dejaría "Mostrando 1-15 de 70" sobre tres conduces.
+  En la pantalla: una barra sobre la tabla (`FiltrosDeConduces`), "Quitar filtros" solo cuando
+  hay alguno, cambiar un filtro vuelve a la página 1, y una lista vacía por los filtros dice
+  "Ningún conduce cumple esos filtros", no "no hay conduces registrados".
+  Dos bancos. `verificar_filtros_de_conduces.ts` (reglas ejecutadas, la barra dibujada): 16
+  comprobaciones, contraprueba 16 FALLA, dieciocho mutantes y dieciocho muertos.
+  `verificar_filtros_de_conduces_db.ts` (**integración**, base desechable): nueve conduces
+  sembrados — con otro modo y uno borrado entre ellos — y el listado de verdad; 7
+  comprobaciones, contraprueba 7 FALLA.
+  **Se miró en el navegador** con la página temporal: elegir un estado pide
+  `estado=approved` y deja solo los despachados; elegir un día pide `desde` y `hasta`; "Quitar
+  filtros" vuelve a pedir sin ellos.
+  **Sin índice nuevo**: la tabla tiene decenas de filas por empresa y ya filtra por
+  `company_id` con su índice. Si crece, el candidato es `(company_id, modo, delivery_date)`.
+  **Trampa del entorno**: añadir un banco de integración a `deuda_bancos.txt` **antes** de que
+  su fichero exista en la rama de la carpeta lo deja en ROJO (salida 1, 0 FALLA) en el barrido
+  de otro lote. Se añade cuando el banco llega a la carpeta.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2738,5 +2767,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 244 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 245 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
