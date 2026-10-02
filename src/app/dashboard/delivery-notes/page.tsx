@@ -29,6 +29,8 @@ import { FormularioDeConduce } from './components/FormularioDeConduce';
 import { BuscadorDeFacturas } from './components/BuscadorDeFacturas';
 import { useFormularioConduce } from './hooks/useFormularioConduce';
 import { leerRespuesta } from '@/utils/leerRespuesta';
+import { FiltrosDeConduces } from './components/FiltrosDeConduces';
+import { hayFiltros, parametrosDeFiltros, SIN_FILTROS, type FiltrosEscritos } from '@/services/inventario/filtrosDeConduces';
 
 /** Imprimir no depende de nada del componente (lote 227: al ambito del modulo). */
 function imprimirConduce(noteId: string) {
@@ -53,6 +55,11 @@ export default function DeliveryNotesPage() {
   // conduces", que es cuantos caben, no cuantos hay (lote 131).
   const [totalItems, setTotalItems] = useState(0);
   const itemsPerPage = 15;
+  //  Lote 245: filtros por estado y por rango de fecha de entrega. Cambiar un filtro vuelve a la
+  //  pagina 1: quedarse en la 4 de una lista que ahora tiene dos paginas ensenaria una tabla vacia.
+  const [filtros, setFiltros] = useState<FiltrosEscritos>(SIN_FILTROS);
+  const cambiarFiltros = (cambio: Partial<FiltrosEscritos>) => { setFiltros((f) => ({ ...f, ...cambio })); setPage(1); };
+  const limpiarFiltros = () => { setFiltros(SIN_FILTROS); setPage(1); };
 
   // Creation Flow
   const [showForm, setShowForm] = useState(false);
@@ -65,6 +72,7 @@ export default function DeliveryNotesPage() {
       const params = new URLSearchParams({
         page: page.toString(),
         per_page: String(itemsPerPage),
+        ...parametrosDeFiltros(filtros),
       });
       const res = await fetch(`/api/v1/delivery-notes?${params.toString()}`);
       const leido = await leerRespuesta<{ data: any[]; meta?: { total_pages?: number; total?: number } }>(res);
@@ -84,7 +92,7 @@ export default function DeliveryNotesPage() {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, filtros]);
 
   useEffect(() => {
     loadDeliveryNotes();
@@ -202,6 +210,7 @@ export default function DeliveryNotesPage() {
 
                 {/* Table list */}
                 <div className="bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
+                  <FiltrosDeConduces filtros={filtros} alCambiar={cambiarFiltros} alLimpiar={limpiarFiltros} />
                   {loading ? (
                     <div className="flex justify-center py-16">
                       <RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" />
@@ -211,7 +220,7 @@ export default function DeliveryNotesPage() {
                   ) : notes.length === 0 ? (
                     <div className="flex flex-col items-center py-20 text-slate-400 gap-3">
                       <Truck className="h-12 w-12 opacity-30" />
-                      <span className="text-sm">No se encontraron conduces registrados.</span>
+                      <span className="text-sm">{hayFiltros(filtros) ? 'Ningún conduce cumple esos filtros.' : 'No se encontraron conduces registrados.'}</span>
                     </div>
                   ) : (
                     <TablaDeConduces

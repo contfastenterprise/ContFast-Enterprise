@@ -1,7 +1,8 @@
 import { db, deliveryNotes, deliveryNoteLines, invoices, invoiceLines, journalEntries, products, inventoryLevels, type DbOTx, type DbTransaction } from '@/db';
 import { repartoDelDespacho } from '@/services/inventario/faltanteDelConduce';
 import type { ModoOperativo } from '@/services/dgii/modoPeticion';
-import { eq, and, isNull, desc, count, like, inArray } from 'drizzle-orm';
+import type { FiltrosDeConduces } from '@/services/inventario/filtrosDeConduces';
+import { eq, and, isNull, desc, count, like, inArray, gte, lte } from 'drizzle-orm';
 import { checkStockBatch, deductStock } from '@/services/inventoryService';
 import { AccountRepository } from '@/repositories/accountRepository';
 import { resolverCuentaPorMapeo, resolverCuentaDeInventario } from '@/services/accounting/resolverCuentas';
@@ -168,36 +169,39 @@ export class DeliveryRepository {
 
   /**
    * Lists delivery notes with pagination and tenancy isolation.
+   *
+   * Lote 245: `filtros` (estado y rango de fecha de ENTREGA). La condicion es
+   * UNA para el total y para la pagina: con dos copias, filtrar la lista sin
+   * filtrar el total dejaria "Mostrando 1-15 de 70" sobre tres conduces.
+   * `delivery_date` es una columna `date`: se compara como dia, sin zona.
    */
   static async list(
     companyId: string,
-    modo: 'PRODUCCION' | 'PRUEBA',
+    modo: ModoOperativo,
     page = 1,
-    perPage = 20
+    perPage = 20,
+    filtros: FiltrosDeConduces = {}
   ) {
     const offset = (page - 1) * perPage;
+
+    const donde = and(
+      eq(deliveryNotes.companyId, companyId),
+      eq(deliveryNotes.modo, modo),
+      isNull(deliveryNotes.deletedAt),
+      filtros.estado ? eq(deliveryNotes.status, filtros.estado) : undefined,
+      filtros.desde ? gte(deliveryNotes.deliveryDate, filtros.desde) : undefined,
+      filtros.hasta ? lte(deliveryNotes.deliveryDate, filtros.hasta) : undefined,
+    );
 
     const [totalResult] = await db
       .select({ value: count() })
       .from(deliveryNotes)
-      .where(
-        and(
-          eq(deliveryNotes.companyId, companyId),
-          eq(deliveryNotes.modo, modo),
-          isNull(deliveryNotes.deletedAt)
-        )
-      );
+      .where(donde);
 
     const data = await db
       .select()
       .from(deliveryNotes)
-      .where(
-        and(
-          eq(deliveryNotes.companyId, companyId),
-          eq(deliveryNotes.modo, modo),
-          isNull(deliveryNotes.deletedAt)
-        )
-      )
+      .where(donde)
       .orderBy(desc(deliveryNotes.createdAt))
       .limit(perPage)
       .offset(offset);
