@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { Users, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Building2, MapPin, Mail, Phone, ShieldCheck, Eye, Printer } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { SearchBar } from '@/components/ui/search-bar';
+import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { BotonBuscarDgii } from '@/components/ui/boton-buscar-dgii';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -323,22 +324,18 @@ export default function CustomersPage() {
           </p>
         </div>
         <div className="flex gap-2 w-full md:w-auto shrink-0">
-          <button
-            onClick={handlePrintList}
-            className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-          >
-            <Printer className="h-4 w-4 text-slate-950" /> Imprimir
-          </button>
-          <button
-            onClick={openNewModal}
-            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-          >
-            <Plus className="h-4 w-4" />
-            Nuevo Cliente
-          </button>
+          {/* En la cabecera, SOLO las pestanas (como en Compras): los botones de la lista viven en su barra. */}
+          <PestanasDeRegistro
+            enFormulario={showModal}
+            lista="Clientes"
+            editando={!!editId}
+            alVerLista={() => setShowModal(false)}
+            alRegistrar={openNewModal}
+          />
         </div>
       </div>
 
+      {!showModal && (<>
       {/* SEARCH BAR */}
       <div className="flex items-center gap-2">
         <SearchBar
@@ -352,6 +349,12 @@ export default function CustomersPage() {
             <RefreshCw className="h-5 w-5 animate-spin" />
           </div>
         )}
+        <button
+          onClick={handlePrintList}
+          className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+        >
+          <Printer className="h-4 w-4 text-slate-950" /> Imprimir
+        </button>
       </div>
 
       {/* CUSTOMERS TABLE */}
@@ -547,32 +550,12 @@ export default function CustomersPage() {
         )}
       </div>
 
-      {/* MODAL */}
-      <AnimatePresence>
-        {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowModal(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-3xl bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col z-10"
-            >
-              <div className="flex justify-between items-center p-4 border-b border-[#003366] bg-[#001733]">
-                <h2 className="text-lg font-bold text-white font-display flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-[#c5a059]" />
-                  {editId ? 'Editar Cliente' : 'Registrar Nuevo Cliente'}
-                </h2>
-                <button onClick={() => setShowModal(false)} className="text-white/70 hover:text-white cursor-pointer">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
+      </>)}
 
-              <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
+      {/* Registrar / editar: era un modal con su propia barra de desplazamiento; ahora es la segunda pestana. */}
+      {showModal && (
+        <PanelDeRegistro titulo={editId ? 'Editar Cliente' : 'Registrar Nuevo Cliente'}>
+              <form onSubmit={handleSubmit} className="space-y-4 max-w-4xl">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1 col-span-1 md:col-span-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
                     <div className="flex items-center justify-between mb-1">
@@ -718,10 +701,8 @@ export default function CustomersPage() {
                   </button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+        </PanelDeRegistro>
+      )}
     </div>
   );
 }
