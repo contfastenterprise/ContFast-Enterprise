@@ -172,20 +172,13 @@ async function main() {
   const ANCLA_SUP = /\{editId \? 'Editar Suplidor' : 'Registrar Nuevo Suplidor'\}/;
   if (!ANCLA_CLI.test(cli) || !ANCLA_SUP.test(sup)) throw new Error('Precondición: no se encuentra el título de alguna ventana');
 
-  const par = (ancla: RegExp, src: string, etiqueta: RegExp) => claseTras(src, new RegExp(ancla.source), etiqueta);
-  const DIV = /<div className="([^"]*)">/g;
-  const H2 = /<h2 className="([^"]*)">/g;
-  const ICONO = /<Building2 className="([^"]*)"/g;
-  const cabCli = par(ANCLA_CLI, cli, DIV);
-  const cabSup = par(ANCLA_SUP, sup, DIV);
-  ok('la cabecera tiene las mismas clases', cabCli !== null && cabCli === cabSup, `${cabSup} / ${cabCli}`);
-  ok('  y es la azul oscura', /bg-\[#001733\]/.test(cabSup ?? ''));
-  ok('  el título, igual', par(ANCLA_CLI, cli, H2) !== null && par(ANCLA_CLI, cli, H2) === par(ANCLA_SUP, sup, H2));
-  ok('  el icono, igual', par(ANCLA_CLI, cli, ICONO) !== null && par(ANCLA_CLI, cli, ICONO) === par(ANCLA_SUP, sup, ICONO));
-
-  const cerrar = (src: string) =>
-    /<button onClick=\{\(\) => setShowModal\(false\)\} className="([^"]*)"/.exec(src)?.[1] ?? null;
-  ok('  la X de cerrar, igual (blanca sobre el fondo oscuro)', cerrar(cli) !== null && cerrar(cli) === cerrar(sup) && /text-white/.test(cerrar(sup) ?? ''));
+  //  LOTE 244: las dos ventanas dejaron de ser modales con la cabecera pintada a mano (azul oscura, su icono
+  //  y su X): el formulario es la segunda pestana de la pagina y su caja es `PanelDeRegistro`. Lo que este
+  //  banco vigilaba --que las dos se vean IGUAL-- lo garantiza ahora que las dos usen el mismo componente,
+  //  y que ninguna conserve una cabecera propia.
+  const panel = (src: string) => /<PanelDeRegistro titulo=\{editId \? '[^']+' : '[^']+'\}>/.test(src);
+  ok('la caja del formulario es la misma en las dos: el componente compartido', panel(cli) && panel(sup));
+  ok('  y ninguna conserva una cabecera pintada a mano', !/bg-\[#001733\]/.test(cli) && !/bg-\[#001733\]/.test(sup) && !/fixed inset-0/.test(cli) && !/fixed inset-0/.test(sup));
 
   const asterisco = (src: string) => /Nombre o Razón Social <span className="([^"]*)">\*<\/span>/.exec(src)?.[1] ?? null;
   ok('el asterisco de obligatorio, del mismo color', asterisco(cli) !== null && asterisco(cli) === asterisco(sup));
