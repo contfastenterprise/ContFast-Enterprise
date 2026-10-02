@@ -1439,6 +1439,37 @@ Además, fuera de la tabla:
   y cancelar cierran, los modales pequeños siguen siéndolo) va como invariante.
   **Sigue**: el dueño pidió lo mismo para **todas las pantallas de Inventario con alta**
   (almacenes, categorías y conduces son las que la tienen).
+- **Lote 241: almacenes, categorías y conduces, con pestañas como compras.** Pedido del dueño
+  (2026-10-02): *"todas las páginas de la sección de inventario que lleven nuevo registro, que
+  sean con tab, al igual que compras"*. **Medido antes (solo lectura)**: el grupo Inventario
+  del menú tiene nueve pantallas, y con alta de registro son productos (lote 240) y estas tres;
+  transferencias, movimientos, ajustes, reorden y códigos de barra no abren un formulario de
+  alta aparte.
+  · **Almacenes y Categorías** abrían un modal: el formulario es ahora la segunda pestaña y
+    ocupa la página.
+  · **Conduces** ya enseñaba su formulario en la página; le faltaban las pestañas (tenía un
+    botón "Nuevo Conduce" y, para volver, solo "Cancelar"). Salen en la lista **y** en el alta.
+  Las dos pestañas y la caja del formulario son **un** componente,
+  `components/ui/pestanas-de-registro.tsx` (`PestanasDeRegistro`, `PanelDeRegistro`). Productos
+  lleva todavía las suyas escritas a mano, del lote 240: pasarlo al componente queda para
+  cuando se toque esa página.
+  **Lo que el cambio podía romper sin verse**: el formulario de almacenes usa `defaultValue`.
+  En el modal se desmontaba al cerrar; en la página, editar un almacén y luego otro habría
+  dejado a la vista los datos del primero. Lleva una `key` con el almacén.
+  **Se miró en el navegador**, con la página temporal del 240 (las tres pantallas, la red
+  sustituida): las pestañas cambian, la lista y el formulario no se pintan a la vez, no queda
+  ninguna capa sobre la página, y editar ALM-01 y luego ALM-02 enseña el segundo.
+  Banco `verificar_inventario_en_pestanas.ts`: dibuja las pestañas y el panel y mira las tres
+  pantallas. 11 comprobaciones, contraprueba 10 FALLA, diecisiete mutantes y diecisiete muertos.
+  **Al verlo, el dueño pidió igualar los campos de Categorías**: traían del modal el fondo gris
+  oscuro (`bg-surface-container-highest`). Llevan el estilo de la casa, y de paso cada etiqueta
+  su `htmlFor`.
+  **Trampas del entorno, las dos nuevas**: (1) `pnpm exec` dentro de un worktree con
+  `node_modules` como enlace intenta **reinstalar** (y borrar el `node_modules` enlazado; se
+  abortó solo por no tener terminal). En un worktree se llama a los binarios directamente:
+  `node node_modules/typescript/bin/tsc`, `node node_modules/tsx/dist/cli.mjs`. (2) El barrido
+  de bancos entero ya no cabe en los 10 minutos de una tarea en segundo plano: se corre con
+  `scratch/_to_delete/barrer_bancos.sh`, **reanudable** y en dos mitades a la vez.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2628,5 +2659,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 240 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 241 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

@@ -11,7 +11,7 @@ import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Modal } from '@/components/ui/dialog';
+import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { FormField } from '@/components/ui/form-field';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay } from '@/utils/fechasLocales';
@@ -262,19 +262,20 @@ export default function WarehousesPage() {
           >
             <Printer className="h-4 w-4 text-slate-950" /> Imprimir
           </button>
-          <button
-            onClick={() => {
+          <PestanasDeRegistro
+            enFormulario={isModalOpen}
+            lista="Almacenes"
+            editando={!!currentWarehouse}
+            alVerLista={() => setIsModalOpen(false)}
+            alRegistrar={() => {
               setCurrentWarehouse(null);
               setIsModalOpen(true);
             }}
-            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-          >
-            <Plus className="h-4 w-4" />
-            Nuevo Almacén
-          </button>
+          />
         </div>
       </div>
 
+      {!isModalOpen && (<>
       {/* Search Bar */}
       <SearchBar
         placeholder="Buscar por nombre o código..."
@@ -355,34 +356,15 @@ export default function WarehousesPage() {
         </div>
       )}
 
-      {/* Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        maxWidth="lg"
-        title={currentWarehouse ? 'Editar Almacén' : 'Nuevo Almacén'}
-        description="Ingresa los detalles de la ubicación física o sucursal."
-        footer={
-          <>
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              form="warehouse-form"
-              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              Guardar Cambios
-            </button>
-          </>
-        }
-      >
-        <form id="warehouse-form" onSubmit={handleSave} className="space-y-4">
+      </>)}
+
+      {/* Registrar / editar un almacen (lote 241): era un modal; ahora es la segunda pestana. */}
+      {isModalOpen && (
+        <PanelDeRegistro
+          titulo={currentWarehouse ? 'Editar Almacén' : 'Nuevo Almacén'}
+          descripcion="Ingresa los detalles de la ubicación física o sucursal."
+        >
+        <form id="warehouse-form" key={currentWarehouse?.id ?? 'nuevo'} onSubmit={handleSave} className="space-y-4 max-w-2xl">
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Código" required>
               <Input
@@ -426,7 +408,25 @@ export default function WarehousesPage() {
             </FormField>
           </div>
         </form>
-      </Modal>
+          <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-slate-200 max-w-2xl">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              form="warehouse-form"
+              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              Guardar Cambios
+            </button>
+          </div>
+        </PanelDeRegistro>
+      )}
     </div>
   );
 }
