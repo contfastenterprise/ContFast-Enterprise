@@ -53,7 +53,7 @@ function main() {
   //  aqui se mira que productos le pase lo suyo.
   const pestanas = (/<PestanasDeRegistro\b[\s\S]*?\n\s*\/>/.exec(p)?.[0] ?? '').replace(/\s+/g, ' ');
   ok('dos pestanas: "Catálogo" vuelve a la lista y "Registrar" abre un producto nuevo',
-    /lista="Catálogo"/.test(pestanas) && /alVerLista=\{\(\) => \{ setErrores\(\{\}\); setShowModal\(false\); \}\}/.test(pestanas)
+    /lista="Catálogo"/.test(pestanas) && /alVerLista=\{\(\) => \{ setErrores\(\{\}\); setShowModal\(false\);[^}]*\}\}/.test(pestanas)
     && /alRegistrar=\{openNewModal\}/.test(pestanas), pestanas.slice(0, 110));
   ok('  la activa sale de si el formulario esta abierto, y al editar lo dice',
     /enFormulario=\{showModal\}/.test(pestanas) && /editando=\{!!editId\}/.test(pestanas));
@@ -65,7 +65,7 @@ function main() {
     pestanas.length > 0 && !/\n\s*Nuevo Producto\s*<\/button>/.test(p));
 
   console.log('\n3) El catalogo y el formulario no se pintan a la vez\n');
-  const iLista = p.indexOf('{!showModal && (<>');
+  const iLista = p.indexOf('{!showModal && !enDolar && (<>'); // lote 247: tampoco mientras se ven los precios en dolares
   const iFin = p.indexOf('</>)}', iLista);
   const lista = iLista < 0 || iFin < 0 ? '' : p.slice(iLista, iFin);
   ok('las tarjetas, el buscador, la tabla y la paginacion solo salen en la pestana del catalogo',

@@ -1635,11 +1635,15 @@ Además, fuera de la tabla:
   empty", y `next` dejó de existir. Se recuperó con `pnpm install --frozen-lockfile --offline
   --force` (2,5 min; sin `--force` dice "Already up to date" y no repone nada). **El enlace se
   quita PRIMERO** — `(Get-Item ...\node_modules).Delete()` — **y después el árbol.**
+  **El barrido cazó dos bancos, ninguno una regresión**: `verificar_pestanas_solas` (243) y
+  `verificar_producto_en_pestana` (240) anclaban la condición **literal** de la lista de
+  productos (`{!showModal && (<>`) y el cuerpo literal de "volver a la lista"; la lista gana
+  una condición y volver cierra también esta pantalla. Re-anclados, con un mutante.
+  **La 0017 la aplicó el dueño el 2026-10-02**; comprobado en solo lectura: las tres tablas,
+  sus restricciones y sus índices están.
   **Lo que no hace, anotado**: no redondea a pesos enteros, no hay umbral ("solo si cambia más
   de X %") ni la tasa se trae de ningún banco. La tienda pública enseña el precio del catálogo,
   así que cambia con él.
-  **Para el dueño**: aplicar la 0017
-  (`npx tsx --env-file=.env scratch/_to_delete/aplicar_migracion.ts drizzle/0017_precios_en_dolares.sql --aplicar`).
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
