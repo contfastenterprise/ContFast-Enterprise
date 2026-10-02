@@ -34,7 +34,9 @@ ok(
   'invoices: pregunta a la MISMA ruta que usa el boton de sincronizar',
   s.includes('await fetch(`/api/v1/ecf/${invoiceId}/dgii-status`)')
 );
-ok('invoices: espera unos segundos, sin bloquear al que factura', s.includes('}, 5000);'));
+//  LOTE 246: la consulta unica a los 5 s paso a ser un seguimiento con varios huecos (`seguirVeredicto`), y el
+//  resultado ya no llega en `est.data.status` sino en `fin.veredicto`. Lo que se vigila no cambia.
+ok('invoices: espera unos segundos, sin bloquear al que factura', /void seguirVeredicto\(\{/.test(s) && !/await seguirVeredicto\(/.test(s));
 ok(
   'invoices: guarda el NCF antes de la espera (el formulario ya se reinicio)',
   s.includes('const ncfEmitido = data.data.ncf;')
@@ -43,8 +45,8 @@ ok(
 //  rama del rechazo y encuentra SU `loadInvoices()`: un mutante que quitaba la
 //  recarga del aceptado sobrevivio asi. Se corta el trozo y se mira dentro.
 const ramaAceptado = (() => {
-  const i = s.indexOf("if (est.data?.status === 'accepted') {");
-  const j = s.indexOf("} else if (est.data?.status === 'rejected')", i);
+  const i = s.indexOf("if (fin.veredicto === 'accepted') {");
+  const j = s.indexOf("} else if (fin.veredicto === 'rejected')", i);
   return i < 0 || j < 0 ? '' : s.slice(i, j);
 })();
 // LOTE 181: la aceptacion YA NO SE ANUNCIA (decision del dueño, 2026-09-22).
@@ -53,15 +55,15 @@ const ramaAceptado = (() => {
 // RECARGAR el listado, porque es ahi donde consta el estado nuevo.
 ok(
   'invoices: al aceptar recarga el listado y NO molesta con un aviso',
-  s.includes("if (est.data?.status === 'accepted') {") &&
+  s.includes("if (fin.veredicto === 'accepted') {") &&
     !s.includes("toast.success('La DGII aceptó el comprobante'") &&
-    ramaAceptado.includes('loadInvoices();')
+    ramaAceptado.includes('recargarLista.current();')
 );
 // La PROPIEDAD es que dé tiempo a leerlo, no el numero exacto: en el lote 180
 // subio a 20 s porque ahora el aviso lleva ademas que el papel impreso no vale.
 ok(
   'invoices: avisa si la DGII rechazo, con tiempo para leerlo',
-  s.includes("else if (est.data?.status === 'rejected') {") &&
+  s.includes("else if (fin.veredicto === 'rejected') {") &&
     s.includes("toast.error('La DGII rechazó el comprobante', {") &&
     (Number((/toast\.error\('La DGII rechazó el comprobante'[\s\S]*?duration: (\d+)/.exec(s) || [])[1]) || 0) >= 15000
 );
@@ -72,8 +74,8 @@ ok(
 //  avisos (aceptado, rechazado, imprimir pendiente) y ningun `else` a secas que
 //  avise a todo pendiente. (Lote 116.)
 const bloqueVeredicto = (() => {
-  const i = s.indexOf("if (est.data?.status === 'accepted') {");
-  const j = s.indexOf('} catch {', i);
+  const i = s.indexOf("if (fin.veredicto === 'accepted') {");
+  const j = s.indexOf('        });\n      }\n', i);
   return i < 0 || j < 0 ? '' : s.slice(i, j);
 })();
 // LOTE 180: la TERCERA rama se fue, y es correcto. Existia para decirle a quien
@@ -86,7 +88,9 @@ ok(
   !/\}\s*else\s*\{/.test(bloqueVeredicto) &&
     (bloqueVeredicto.match(/toast\.\w+\(/g) || []).length === 1
 );
-ok('invoices: un fallo de la consulta no molesta a quien ya termino', s.includes('no puede molestar a quien ya'));
+//  Lote 246: eso lo garantiza ahora el seguimiento, que atrapa el fallo de cada consulta y sigue con la siguiente.
+ok('invoices: un fallo de la consulta no molesta a quien ya termino',
+  /try \{ r = await o\.consultar\(\); \} catch \{ r = null; \}/.test(crudo('src/services/invoice/seguimientoDelVeredicto.ts')));
 ok(
   'invoices: recarga el listado tambien cuando la DGII rechaza',
   //  La recarga del rechazo ya no va seguida del comentario, sino de la rama de
@@ -95,7 +99,7 @@ ok(
   //  avisa). Aqui se vigila la del RECHAZO, que es la que nadie mas mira: sin su
   //  recarga el listado seguiria diciendo "Enviado" para un comprobante que la
   //  DGII ya rechazo.
-  /toast\.error\('La DGII rechazó el comprobante'[\s\S]*?\}\);\s*loadInvoices\(\);/.test(bloqueVeredicto)
+  /toast\.error\('La DGII rechazó el comprobante'[\s\S]*?\}\);\s*recargarLista\.current\(\);/.test(bloqueVeredicto)
 );
 ok(
   "invoices: la nota explica por que 'submitted' al emitir es correcto",

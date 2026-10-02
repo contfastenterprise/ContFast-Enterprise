@@ -16,6 +16,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { estadoDelCorreo } from '@/services/correo/registroCorreo';
 import { toast } from 'sonner';
+import { seguirVeredicto } from '@/services/invoice/seguimientoDelVeredicto';
+import { leerRespuesta } from '@/utils/leerRespuesta';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { esquemaFactura } from '@/schemas/factura';
 import { formatDateDisplay, formatDateTimeDisplay } from '@/utils/fechasLocales';
@@ -735,6 +737,15 @@ function InvoicesList() {
     loadInvoices();
   }, [loadInvoices]);
 
+  //  LOTE 246: el seguimiento del veredicto dura hasta tres minutos. Para entonces los filtros o la
+  //  pagina pueden haber cambiado: se recarga con la `loadInvoices` DE AHORA, no con la del momento
+  //  de emitir (que devolveria la lista a los filtros de entonces). Y si se sale de la pantalla, deja
+  //  de consultar.
+  const recargarLista = useRef(loadInvoices);
+  useEffect(() => { recargarLista.current = loadInvoices; }, [loadInvoices]);
+  const montada = useRef(true);
+  useEffect(() => { montada.current = true; return () => { montada.current = false; }; }, []);
+
   // Reset to page 1 when filter states change
   useEffect(() => {
     setPage(1);
@@ -1389,7 +1400,7 @@ function InvoicesList() {
         });
       } else if (estadoEmitido === 'submitted') {
         toast.success('Comprobante e-CF emitido', {
-          description: `NCF: ${data.data.ncf} — enviado a la DGII, pendiente de su confirmación. Se actualiza al sincronizar.`
+          description: `NCF: ${data.data.ncf} — enviado a la DGII, pendiente de su confirmación. La lista se actualiza sola cuando responda.`
         });
       } else if (estadoEmitido === 'signed') {
         toast.warning('Comprobante emitido localmente', {
@@ -1447,47 +1458,43 @@ function InvoicesList() {
       // No bloquea nada: la factura ya esta emitida y el formulario ya se cerro.
       if (estadoEmitido === 'submitted') {
         const ncfEmitido = data.data.ncf;
-        setTimeout(async () => {
-          try {
-            const estRes = await fetch(`/api/v1/ecf/${invoiceId}/dgii-status`);
-            const est = await estRes.json();
-            if (!est.success) return;
-
-            if (est.data?.status === 'accepted') {
-              // LOTE 181: LA ACEPTACION NO SE ANUNCIA, a proposito (decision del
-              // dueño, 2026-09-22). Es lo que tiene que pasar: el comprobante
-              // salio bien y el papel ya esta impreso desde el clic (lote 180),
-              // asi que un aviso verde no le dice a nadie nada que no sepa. El
-              // listado se recarga y ahi consta.
-              //
-              // Lo que NO se calla es el rechazo: eso si es noticia, y mas ahora
-              // que el papel pudo salir antes del veredicto.
-              //
-              // Tampoco se imprime aqui (lote 180): serian dos copias del mismo
-              // comprobante, una rotulada "Pendiente" y otra "Firma Digital
-              // Valida". Quien quiera el papel con la leyenda definitiva lo
-              // reimprime desde el listado.
-              loadInvoices();
-            } else if (est.data?.status === 'rejected') {
-              // Y aqui hay que decir algo mas que antes: si se imprimio, ese
-              // papel ya esta fuera y NO vale. Callarlo seria dejar circulando un
-              // comprobante rechazado sin que nadie lo sepa.
-              toast.error('La DGII rechazó el comprobante', {
-                description: postAction === 'print'
-                  ? `NCF: ${ncfEmitido} — ${est.data?.message || 'revisa el detalle en la pantalla de e-CF'}. El papel que se imprimió NO tiene validez fiscal: recupéralo.`
-                  : `NCF: ${ncfEmitido} — ${est.data?.message || 'revisa el detalle en la pantalla de e-CF'}`,
-                duration: 20000,
-              });
-              loadInvoices();
-            }
-            // Si sigue en 'submitted' y no se pidio imprimir no se dice nada: el
-            // aviso de la emision ya explico que queda pendiente, y repetirlo solo
-            // seria ruido.
-          } catch {
-            // Una consulta de cortesia que falla no puede molestar a quien ya
-            // termino de facturar. La factura esta emitida y el cron insiste.
+        //  LOTE 246: se INSISTE hasta que hay veredicto (antes: una sola consulta a los 5 s, cuando
+        //  solo ha resuelto el 15 %; la factura se quedaba en ENVIADO hasta recargar la pagina). La
+        //  escalera y sus huecos, en `seguimientoDelVeredicto.ts`.
+        void seguirVeredicto({
+          sigue: () => montada.current,
+          consultar: async () => {
+            const leido = await leerRespuesta<{ data?: { status?: string; message?: string } }>(await fetch(`/api/v1/ecf/${invoiceId}/dgii-status`));
+            return leido.bien ? leido.cuerpo.data ?? null : null;
+          },
+        }).then((fin) => {
+          if (!montada.current) return;
+          if (fin.veredicto === 'accepted') {
+            // LOTE 181: LA ACEPTACION NO SE ANUNCIA, a proposito (decision del
+            // dueño, 2026-09-22). Es lo que tiene que pasar: el comprobante
+            // salio bien y el papel ya esta impreso desde el clic (lote 180),
+            // asi que un aviso verde no le dice a nadie nada que no sepa. El
+            // listado se recarga y ahi consta.
+            //
+            // Tampoco se imprime aqui (lote 180): serian dos copias del mismo
+            // comprobante. Quien quiera el papel con la leyenda definitiva lo
+            // reimprime desde el listado.
+            recargarLista.current();
+          } else if (fin.veredicto === 'rejected') {
+            // Lo que NO se calla es el rechazo, y mas ahora que el papel pudo
+            // salir antes del veredicto: si se imprimio, ese papel ya esta
+            // fuera y NO vale.
+            toast.error('La DGII rechazó el comprobante', {
+              description: postAction === 'print'
+                ? `NCF: ${ncfEmitido} — ${fin.mensaje || 'revisa el detalle en la pantalla de e-CF'}. El papel que se imprimió NO tiene validez fiscal: recupéralo.`
+                : `NCF: ${ncfEmitido} — ${fin.mensaje || 'revisa el detalle en la pantalla de e-CF'}`,
+              duration: 20000,
+            });
+            recargarLista.current();
           }
-        }, 5000);
+          // Sin veredicto al acabar la escalera no se dice nada: el aviso de la
+          // emision ya explico que queda pendiente, y lo recoge el barrido.
+        });
       }
 
       if (editingDraftId) {
