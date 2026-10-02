@@ -46,8 +46,9 @@ const sinComentarios = (src: string) =>
  * aceptado. Cortar el trozo es lo unico que lo caza.
  */
 const ramaAceptado = (src: string) => {
-  const i = src.indexOf("if (est.data?.status === 'accepted') {");
-  const j = src.indexOf("} else if (est.data?.status === 'rejected')", i);
+  //  Lote 246: el veredicto llega del seguimiento (`fin.veredicto`), y la lista se recarga con la `loadInvoices` de AHORA.
+  const i = src.indexOf("if (fin.veredicto === 'accepted') {");
+  const j = src.indexOf("} else if (fin.veredicto === 'rejected')", i);
   return i < 0 || j < 0 ? '' : src.slice(i, j);
 };
 
@@ -211,7 +212,7 @@ async function main() {
   // es el unico sitio donde consta el estado nuevo.
   ok('  al aceptar no se anuncia nada, solo se recarga el listado',
     !/toast\.success\('La DGII aceptó el comprobante'/.test(pantalla)
-    && ramaAceptado(pantalla).includes('loadInvoices();'));
+    && ramaAceptado(pantalla).includes('recargarLista.current();'));
   // Lo que se imprimio antes del veredicto puede acabar rechazado: ese papel
   // esta fuera y no vale. Callarlo seria dejarlo circular.
   ok('si la DGII rechaza despues de imprimir, se avisa de que el papel no vale',
