@@ -4,6 +4,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { DeliveryRepository } from '@/repositories/deliveryRepository';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
+import { leerFiltrosDeConduces } from '@/services/inventario/filtrosDeConduces';
 
 const createDeliveryNoteSchema = z.object({
   invoiceId: z.string().uuid('ID de factura inválido'),
@@ -45,7 +46,17 @@ export async function GET(req: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const perPage = parseInt(searchParams.get('per_page') || '20', 10);
 
-    const list = await DeliveryRepository.list(auth.companyId, auth.modo, page, perPage);
+    //  Lote 245: `estado`, `desde` y `hasta`. Un filtro que no se entiende se RECHAZA: ignorarlo
+    //  devolveria la lista entera, y quien filtro creeria que eso es lo que pidio.
+    const leidos = leerFiltrosDeConduces(searchParams);
+    if (!leidos.bien) {
+      return NextResponse.json(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: leidos.mensaje } },
+        { status: 400, headers: resHeaders }
+      );
+    }
+
+    const list = await DeliveryRepository.list(auth.companyId, auth.modo, page, perPage, leidos.filtros);
 
     return NextResponse.json(
       { success: true, ...list },
