@@ -1498,6 +1498,31 @@ Además, fuera de la tabla:
   alta. **No entran**, a propósito: registrar un pago o un cobro (es una acción sobre una fila,
   no un registro nuevo de la pantalla) y las pantallas que ya tienen sus propias pestañas de
   contenido (contabilidad, administración), que se miran aparte.
+- **Lote 246: tras emitir, la lista se actualiza sola cuando la DGII responde.** Reportado por
+  el dueño (2026-10-02): *"cuando emito una factura y vuelve al historial, el estado de dicha
+  factura no se actualiza; tengo que actualizar la página para ver el estado correcto, ya que
+  se queda en ENVIADO"*.
+  **La causa estaba medida desde hace dos semanas y nadie la había juntado**: la pantalla
+  preguntaba el veredicto **una** vez, a los 5 segundos (la "consulta de cortesía" del 181), y
+  a los 5 s solo ha resuelto el **15 %** (lote 180, mediana 20 s); las e-32 tardan 6-9 s y las
+  e-31 entre 73 y 119 s (lote 219). El servidor sí persigue el veredicto y lo guarda (lotes
+  102 y 219), pero nadie le decía a la pantalla que ya estaba.
+  Ahora `services/invoice/seguimientoDelVeredicto.ts` (puro) **insiste** con huecos que se
+  alargan — 5, 10, 20, 40, 60 y 60 s: 3 min 15 s, seis consultas como mucho — hasta que hay
+  veredicto. Pregunta a la misma ruta que el botón de sincronizar, así que cada consulta
+  además empuja. Una consulta que falla no corta el seguimiento.
+  **Dos cosas que una espera de tres minutos obliga a cuidar** y con 5 s no importaban: (1) la
+  lista se recarga con la `loadInvoices` **de ahora** (`recargarLista`, un `ref`), no con la
+  del momento de emitir — que devolvería la lista a los filtros y la página de entonces —; y
+  (2) si se sale de la pantalla deja de consultar (`montada`).
+  Lo que no cambia: la aceptación **sigue sin anunciarse** (lote 181) y el rechazo sí.
+  Banco `verificar_estado_tras_emitir.ts`: ejecuta el seguimiento con un reloj y una ruta de
+  mentira. 10 comprobaciones, contraprueba 10 FALLA, doce mutantes y doce muertos — uno hizo
+  **reventar** el banco en vez de dar FALLA (quitar el `try` de la consulta) y se envolvió.
+  `verificar_sync_ecf` y `verificar_timbre_inmediato` anclaban `}, 5000);` y
+  `est.data?.status`: re-anclados a la propiedad.
+  **No se probó con una emisión de verdad**: emitir es un comprobante fiscal. La primera
+  factura que emita el dueño es la prueba.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2687,5 +2712,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 243 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 246 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
