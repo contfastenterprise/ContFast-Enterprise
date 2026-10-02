@@ -1540,6 +1540,13 @@ Además, fuera de la tabla:
   `verificar_boton_buscar_dgii` (lote 210) comparaba las cabeceras de los dos modales — azul
   oscura, su icono, su X —, que ya no existen: mira ahora que las dos usen la misma caja
   (`PanelDeRegistro`) y que ninguna conserve una cabecera pintada a mano.
+  **Y el barrido cazó uno que no leía estas pantallas**: `verificar_fondo_confirmacion` (lote
+  216) derivaba el fondo de las confirmaciones **contando** los modales escritos a mano, y al
+  quitar los dos de aquí la cuenta cambió de ganador (`bg-black/40`, seis veces) sin que nadie
+  tocara la confirmación. Un recuento que se mueve solo no es una convención: la oscuridad se
+  toma ahora del **modal compartido** (`dialog.tsx`); el desenfoque sigue derivado por recuento
+  (19 usos). Dos mutantes, dos muertos. Con más pantallas por pasar a pestañas, habría vuelto
+  a caer en cada una.
   El barrido completo se corrió **una vez, con el lote 245 encima** (los dos lotes juntos en
   la carpeta), porque cada barrido tarda media hora; cada uno pasó además su CI por separado.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la

@@ -12,8 +12,9 @@
  *     `border-t` sin color toma `currentColor` (en la 3 era un gris claro).
  *
  * Lo que se vigila es la PROPIEDAD:
- *   - el fondo de la confirmacion es el MAS USADO por los modales de la aplicacion,
- *     DERIVADO contando en src/ -- si la convencion cambia, el banco la sigue;
+ *   - el fondo de la confirmacion oscurece como el MODAL COMPARTIDO (dialog.tsx) y
+ *     desenfoca como la mayoria de los fondos, DERIVADO contando en src/ (lote 244: la
+ *     oscuridad dejo de contarse, ver abajo);
  *   - todo borde del dialogo lleva su color (la trampa de Tailwind 4);
  *   - ni la ventana ni el pie usan colores del tema que aqui no corresponden.
  */
@@ -33,6 +34,7 @@ const ok = (t: string, c: boolean, d = '') => {
 
 const ALERTA = 'src/components/ui/alert-dialog.tsx';
 const CONFIRMACION = 'src/components/ui/confirm-dialog.tsx';
+const DIALOGO = 'src/components/ui/dialog.tsx';
 const PROVEEDOR = 'src/providers/confirm-provider.tsx';
 
 function ficheros(dir: string): string[] {
@@ -72,21 +74,27 @@ function main() {
   const fondo = clasesDe(alerta, 'AlertDialogOverlay');
   const oscuridad = (s: string) => /\bbg-black\/(\d+)\b/.exec(s)?.[1] ?? null;
   const desenfoque = (s: string) => /backdrop-blur-(\w+)\b/.exec(s)?.[1] ?? null;
-  // Los fondos de los modales de la aplicacion, FUERA de este fichero: el par
-  // oscuridad + desenfoque que mas se repite es la convencion de la casa.
+  // LA OSCURIDAD, la del modal compartido (`dialog.tsx`, lote 214). Hasta el lote 244 se
+  // derivaba CONTANDO los modales escritos a mano, y dejo de valer: cada pantalla que pasa
+  // su alta a pestanas quita un modal, y al quitar los de clientes y suplidores la cuenta
+  // cambio de ganador (bg-black/40, seis veces) sin que nadie tocara la confirmacion. Un
+  // recuento que se mueve solo no es una convencion; el modal compartido si lo es.
+  // Su fondo es el primer `className` tras el comentario que lo rotula.
+  const compartido = /\{\/\* Backdrop \*\/\}[^]*?className="([^"]*)"/.exec(leer(DIALOGO))?.[1] ?? '';
+  if (!oscuridad(compartido)) throw new Error('Precondicion: el modal compartido (dialog.tsx) ya no declara su fondo');
+  ok('oscurece como el modal compartido', oscuridad(fondo) === oscuridad(compartido), `bg-black/${oscuridad(fondo)} frente a bg-black/${oscuridad(compartido)}`);
+  // EL DESENFOQUE si se sigue derivando por recuento, FUERA de los dos componentes
+  // compartidos: el que mas se repite entre los fondos de la aplicacion.
   const cuenta = new Map<string, number>();
   for (const f of [...ficheros('src/app'), ...ficheros('src/components')]) {
-    if (f === ALERTA) continue;
-    for (const m of leer(f).matchAll(/\bbg-black\/(\d+)\s+(?:[\w:-]+\s+)*?backdrop-blur-(\w+)\b/g)) {
-      const clave = `${m[1]}|${m[2]}`;
-      cuenta.set(clave, (cuenta.get(clave) ?? 0) + 1);
+    if (f === ALERTA || f === DIALOGO) continue;
+    for (const m of leer(f).matchAll(/\bbg-black\/\d+\s+(?:[\w:-]+\s+)*?backdrop-blur-(\w+)\b/g)) {
+      cuenta.set(m[1], (cuenta.get(m[1]) ?? 0) + 1);
     }
   }
-  const [casa, veces] = [...cuenta.entries()].sort((a, b) => b[1] - a[1])[0] ?? ['', 0];
-  if (veces < 5) throw new Error(`Precondicion: no hay convencion clara de fondo en los modales (${casa} x${veces})`);
-  const [oscCasa, desCasa] = casa.split('|');
-  ok('oscurece como los demas modales', oscuridad(fondo) === oscCasa, `bg-black/${oscuridad(fondo)} frente a bg-black/${oscCasa} (usado ${veces} veces)`);
-  ok('  y desenfoca como ellos', desenfoque(fondo) === desCasa, `blur-${desenfoque(fondo)} frente a blur-${desCasa}`);
+  const [desCasa, veces] = [...cuenta.entries()].sort((x, y) => y[1] - x[1])[0] ?? ['', 0];
+  if (veces < 5) throw new Error(`Precondicion: no hay convencion clara de desenfoque en los fondos (${desCasa} x${veces})`);
+  ok('  y desenfoca como los demas fondos', desenfoque(fondo) === desCasa, `blur-${desenfoque(fondo)} frente a blur-${desCasa} (usado ${veces} veces)`);
 
   // ───────────────────────────────────────────────────────────────────────────
   console.log('\n2) La ventana y el pie\n');
