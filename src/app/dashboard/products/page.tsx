@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import { esquemaProducto, erroresPorCampo } from '@/schemas/producto';
 import { PASOS, campoDelPaso, primerPasoConFallo } from './pasos';
 import { FotoYDescripcion } from './components/FotoYDescripcion';
+import { PreciosEnDolares } from './components/PreciosEnDolares';
+import { usePreciosEnDolares } from './hooks/usePreciosEnDolares';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 
 /**
@@ -98,6 +100,9 @@ export default function ProductsPage() {
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
+  // Lote 247: "Precios en dolares" ocupa el sitio de la lista, como el formulario.
+  const dolar = usePreciosEnDolares();
+  const enDolar = dolar.abierta;
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [inventoryLevels, setInventoryLevels] = useState<{ warehouseId: string, warehouseName: string, quantity: string, availableQuantity?: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -1365,13 +1370,17 @@ export default function ProductsPage() {
             lista="Catálogo"
             icono={<Package className="h-4 w-4 inline mr-1.5" />}
             editando={!!editId}
-            alVerLista={() => { setErrores({}); setShowModal(false); }}
+            alVerLista={() => { setErrores({}); setShowModal(false); dolar.cerrar(); }}
             alRegistrar={openNewModal}
           />
         </div>
       </div>
 
-      {!showModal && (<>
+      {!showModal && enDolar && (
+        <PreciosEnDolares d={dolar} alVolver={() => { dolar.cerrar(); fetchProducts(search, selectedCategory, page); }} />
+      )}
+
+      {!showModal && !enDolar && (<>
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Card 1: Total Catálogo (Blue) */}
@@ -1427,6 +1436,14 @@ export default function ProductsPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={dolar.abrir}
+              className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-[#003366] px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition justify-center text-sm"
+            >
+              <DollarSign className="h-4 w-4" />
+              Precios en dólares
+            </button>
             <button
               onClick={() => router.push('/dashboard/products/barcodes')}
               className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"

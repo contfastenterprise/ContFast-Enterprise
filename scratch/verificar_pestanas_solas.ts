@@ -69,7 +69,7 @@ function main() {
   const una = (src: string, re: RegExp) => (src.match(re) ?? []).length === 1;
   const prod = sinComentarios(leer(`${PANEL}/products/page.tsx`));
   ok('productos: "Gestión de Códigos" va en la barra del catalogo, con "Imprimir"',
-    /router\.push\('\/dashboard\/products\/barcodes'\)[\s\S]{0,500}Gestión de Códigos[\s\S]{0,900}Imprimir listado filtrado/.test(tramoLista(prod, '{!showModal && (<>'))
+    /router\.push\('\/dashboard\/products\/barcodes'\)[\s\S]{0,500}Gestión de Códigos[\s\S]{0,900}Imprimir listado filtrado/.test(tramoLista(prod, '{!showModal && !enDolar && (<>'))
     && una(prod, /Gestión de Códigos/g));
   const alm = sinComentarios(leer(`${PANEL}/warehouses/page.tsx`));
   ok('almacenes: "Imprimir" va junto al buscador', /<SearchBar[\s\S]{0,400}onClick=\{handlePrintList\}[\s\S]{0,500}Imprimir/.test(tramoLista(alm, '{!isModalOpen && (<>')) && una(alm, /onClick=\{handlePrintList\}/g));

@@ -1582,6 +1582,68 @@ Además, fuera de la tabla:
   anclaba la llamada del listado **entera**, con sus cuatro argumentos (la trampa de copiar una
   línea literal, sección 7). Vigila ahora que el entorno vaya en su sitio, no cuántos
   argumentos lleva detrás; comprobado con un mutante que deja de pasarlo.
+- **Lote 247: precios atados al dólar.** Pedido del dueño (2026-10-02): *"la mayoría de los
+  productos se compran en dólares, pero la tasa a peso dominicano varía constantemente"*. Sus
+  cuatro decisiones: **una tasa propia**, que **escribe él cada día**; los precios **se aplican
+  con su confirmación**; y un **costo en dólares fijado por producto**.
+  En Productos, botón "Precios en dólares" (en la barra de la lista, no junto a las pestañas):
+  la tasa vigente y la de hoy, los productos que siguen al dólar con su costo en US$, y por
+  cada uno lo que tiene hoy **tachado** y lo que tendría, con la variación. "Aplicar precios"
+  pide confirmación y cambia solo los marcados.
+  **Lo que hace una actualización, y lo que no** (`services/precios/preciosEnDolares.ts`, puro):
+  · el **costo de catálogo** pasa a `costo en dólares × tasa`. Es el de reposición, el que frena
+    una venta por debajo del costo (`invoiceDbBooker`). **No es el costo promedio del kardex**,
+    que es el que se asienta como costo de venta y solo lo mueven las compras;
+  · **cada precio conserva su margen** sobre el costo anterior; sin costo anterior, los márgenes
+    de fábrica del formulario (25, 20, 15 y 10 %), y lo dice; un nivel de precio en cero se
+    queda en cero;
+  · el **precio de oferta no se toca**: si queda por debajo del costo nuevo, se avisa;
+  · aplicar dos veces la misma tasa no cambia nada, y **nada de lo ya emitido cambia**.
+  **La confirmación viaja con la tasa que se vio, sin importes**: los calcula el servidor con la
+  misma regla, y si la tasa ya no es la vigente se rechaza (409) en vez de aplicar unos precios
+  que nadie miró. Los productos se bloquean antes de leerlos, todo o nada. Cada cambio queda en
+  `cambios_de_precio` con su antes y su después. Escribir la tasa, atar, soltar y aplicar son de
+  **administración y sistemas**; ver, de quien ve el catálogo.
+  **MIGRACIÓN `drizzle/0017_precios_en_dolares.sql`**: tres tablas nuevas (`tasas_de_cambio`,
+  `productos_en_dolares`, `cambios_de_precio`) y **ninguna columna en `products`**, a propósito
+  (la lección de las 0013 y 0015: una columna declarada la pide toda consulta que lee la fila
+  entera). **No hace falta aplicarla antes de desplegar**: sin ella todo sigue como hoy y solo
+  esta pantalla dice que falta, con su nombre. Sin `modo`: el catálogo tampoco lo lleva.
+  Dos bancos. `verificar_precios_en_dolares.ts` (reglas y acciones del hook ejecutadas, tabla y
+  tasa dibujadas): 28 comprobaciones, contraprueba 28 FALLA, 32 mutantes y 32 muertos —
+  **uno sobrevivió primero**: quitar el redondeo del costo, porque 2 × 60,005 da 120,01 exacto en
+  coma flotante; hizo falta un caso con milésimas (3,3333 × 63,5).
+  `verificar_precios_en_dolares_db.ts` (**integración**): las rutas de verdad — escribir la tasa
+  no cambia precios, aplicar sí y solo a los elegidos, el registro, la tasa vieja rechazada, el
+  producto de otra empresa, y la migración sin aplicar (renombrando las tablas); 16
+  comprobaciones, contraprueba 16 FALLA, trece mutantes y trece muertos. **Uno sobrevivió
+  primero**: soltar un producto borrando TODOS los atados de la empresa — el banco solo miraba
+  que el soltado ya no saliera, no que los demás siguieran. Y nació `mutar_db.ps1`, el lanzador
+  de mutantes para bancos de integración: dos trampas de PowerShell al escribirlo — .NET no
+  sigue el `Set-Location` (`ReadAllText` buscaba en otra carpeta y los trece salieron "no
+  aplica"), y `2>&1` no captura `Write-Host` (hace falta `*>&1`): sin eso, todo mutante sale
+  "VIVO" aunque el banco esté en rojo.
+  **React Doctor, medido en el gancho**: los formularios usan `action` (no `onSubmit` con
+  `preventDefault`), la tabla busca en un `Set`, y "abierta" vive en el hook para no sumar otro
+  `useState` a una página que ya tiene demasiados (ese aviso es deuda vieja de `page.tsx`).
+  **Se miró en el navegador** con la página temporal: escribir la tasa, la vista previa con lo
+  de hoy tachado, la confirmación y los precios ya aplicados; de mirarla salió que "RD$ 63.5" se
+  lee raro (es dinero: ahora siempre dos decimales, y hasta cuatro si los tiene).
+  **Un susto del entorno, y la regla que deja**: `git worktree remove --force` sobre un árbol
+  aparte que tiene `node_modules` como **enlace** (junction) **sigue el enlace y borra el**
+  **`node_modules` de verdad**: se llevó `.bin` y 256 paquetes antes de pararse en "Directory not
+  empty", y `next` dejó de existir. Se recuperó con `pnpm install --frozen-lockfile --offline
+  --force` (2,5 min; sin `--force` dice "Already up to date" y no repone nada). **El enlace se
+  quita PRIMERO** — `(Get-Item ...\node_modules).Delete()` — **y después el árbol.**
+  **El barrido cazó dos bancos, ninguno una regresión**: `verificar_pestanas_solas` (243) y
+  `verificar_producto_en_pestana` (240) anclaban la condición **literal** de la lista de
+  productos (`{!showModal && (<>`) y el cuerpo literal de "volver a la lista"; la lista gana
+  una condición y volver cierra también esta pantalla. Re-anclados, con un mutante.
+  **La 0017 la aplicó el dueño el 2026-10-02**; comprobado en solo lectura: las tres tablas,
+  sus restricciones y sus índices están.
+  **Lo que no hace, anotado**: no redondea a pesos enteros, no hay umbral ("solo si cambia más
+  de X %") ni la tasa se trae de ningún banco. La tienda pública enseña el precio del catálogo,
+  así que cambia con él.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2771,5 +2833,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 245 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 247 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
