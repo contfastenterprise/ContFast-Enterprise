@@ -1523,6 +1523,25 @@ Además, fuera de la tabla:
   `est.data?.status`: re-anclados a la propiedad.
   **No se probó con una emisión de verdad**: emitir es un comprobante fiscal. La primera
   factura que emita el dueño es la prueba.
+- **Lote 244: Clientes y Suplidores, con pestañas como compras.** Primer lote del pedido
+  *"haz lo mismo con las demás secciones que tengan nuevo registro"* (2026-10-02). Las dos
+  pantallas eran gemelas: cabecera con "Imprimir" y "Nuevo …", y un modal de 768 px con
+  `max-h-[90vh]` y barra de desplazamiento propia. Ahora, en la cabecera **solo** las pestañas;
+  "Imprimir" junto al buscador; y el formulario es la segunda pestaña.
+  **La conversión la hace un guion**, `scratch/_to_delete/patron_a.py`, para las pantallas de
+  ese molde (cabecera con dos botones, buscador, lista, modal con `AnimatePresence`): el
+  formulario se mueve tal cual, sin tocar un campo. Sirve para las que vengan con la misma
+  forma; las demás (bancos, RRHH, empresas, autorizaciones) están hechas cada una a su manera.
+  **Se miró en el navegador** con la página temporal: lista, alta y edición de las dos, sin
+  capas sobre la página; el formulario de cliente entero acaba en el píxel 692 a 1.440 × 900.
+  Banco `verificar_clientes_suplidores_en_pestanas.ts`: 8 comprobaciones, contraprueba 8
+  FALLA, doce mutantes y doce muertos. **El banco cazó un resto del guion**: las dos páginas
+  seguían importando `AnimatePresence` sin usarlo (las filas de la tabla sí usan `motion`).
+  `verificar_boton_buscar_dgii` (lote 210) comparaba las cabeceras de los dos modales — azul
+  oscura, su icono, su X —, que ya no existen: mira ahora que las dos usen la misma caja
+  (`PanelDeRegistro`) y que ninguna conserve una cabecera pintada a mano.
+  El barrido completo se corrió **una vez, con el lote 245 encima** (los dos lotes juntos en
+  la carpeta), porque cada barrido tarda media hora; cada uno pasó además su CI por separado.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2712,5 +2731,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 246 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 244 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
