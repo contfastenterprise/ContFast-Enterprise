@@ -33,9 +33,13 @@
  */
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { leerPantallaDeAjustesSinPrefijo } from './pantallaDeAjustes';
 
 const raiz = join(__dirname, '..');
-const leer = (p: string) => (existsSync(join(raiz, p)) ? readFileSync(join(raiz, p), 'utf8') : '');
+//  Lote 238: la pagina de Configuracion se partio en hooks y componentes. Este banco lee la
+//  pantalla ENTERA y sin el prefijo del hook (`a.formData` -> `formData`): ver pantallaDeAjustes.ts.
+const leer = (p: string) => (p === 'src/app/dashboard/settings/page.tsx' ? leerPantallaDeAjustesSinPrefijo(raiz)
+  : existsSync(join(raiz, p)) ? readFileSync(join(raiz, p), 'utf8') : '');
 const sinComentarios = (src: string) =>
   src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 
@@ -88,11 +92,20 @@ async function main() {
   //  Se queda lo que no era del canal y sigue siendo del lote 187: el ORDEN de las
   //  tarjetas que pidio el dueño, los codigos de barra dentro de Parametros Operativos,
   //  y -- abajo -- que guardar relea lo GUARDADO y no lo escrito.
+  //  LOTE 238: cada tarjeta es un componente, asi que el ORDEN ya no es la posicion de los
+  //  titulos en un fichero (leidos juntos salen en orden alfabetico, que aqui coincide por
+  //  casualidad): es el orden en que el formulario las pinta. Y "dentro" es que la tarjeta de
+  //  parametros pinte los codigos de barra y el formulario no.
+  const formulario = leer('src/app/dashboard/settings/components/FormularioEmpresa.tsx');
+  const parametros = leer('src/app/dashboard/settings/components/ParametrosOperativos.tsx');
+  const en = (s: string, x: string) => s.indexOf(x);
   ok('el orden es identidad, mSeller, parametros',
-    codigo.indexOf('Identidad Fiscal') < codigo.indexOf('Integración mSeller API')
-    && codigo.indexOf('Integración mSeller API') < codigo.indexOf('Parámetros Operativos'));
+    en(formulario, '<IdentidadFiscal ') > 0 && en(formulario, '<IdentidadFiscal ') < en(formulario, '<IntegracionMseller ')
+    && en(formulario, '<IntegracionMseller ') < en(formulario, '<ParametrosOperativos ')
+    && codigo.includes('Identidad Fiscal') && codigo.includes('Integración mSeller API') && codigo.includes('Parámetros Operativos'));
   ok('los codigos de barra van DENTRO de parametros operativos, no sueltos',
-    codigo.indexOf('Parámetros Operativos') < codigo.indexOf('Códigos de Barra'));
+    en(parametros, 'Parámetros Operativos') > 0 && en(parametros, 'Parámetros Operativos') < en(parametros, '<CodigosDeBarra ')
+    && !formulario.includes('<CodigosDeBarra') && codigo.includes('Códigos de Barra'));
   ok('  y dice que pertenecen a la configuracion de los productos',
     codigo.includes('productos'));
 

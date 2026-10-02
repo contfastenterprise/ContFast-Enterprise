@@ -1348,6 +1348,73 @@ Además, fuera de la tabla:
   el 230; debió nacer así. Y `verificar_foto_de_producto_db` murió con el fallo de libuv
   (salida −1073740791, 0 FALLA): le faltaba el respiro antes de salir que ya llevaba el banco
   de la portada.
+- **Lote 238: la página de Configuración, partida en componentes sin cambiar lo que hace.**
+  Pedido del dueño: cerrar las advertencias de React Doctor de esa pantalla. Dos de ellas
+  (componente gigante, complejidad alta) solo se van partiéndola, y se hace antes y aparte,
+  como con conduces (226) y caja (229). `settings/page.tsx` tenía **1.481 líneas**; queda el
+  armazón (174) y salen tres hooks —`useAjustes`, `useCuentasPuente`, `useTiposDeGasto`— y once
+  componentes; ninguna pieza pasa de 226. El código se **movió tal cual**, cortado por rangos
+  de líneas con un guion (`scratch/_to_delete/partir238.py`); solo cambia el prefijo
+  `a.` / `p.` / `g.` de lo que viene de cada hook.
+  **Lo que el corte podía romper sin verse**: las cuentas puente se cargaban *dentro* de la
+  carga de los ajustes (y otra vez al guardar). Ahora son dos hooks y esa llamada cruza
+  (`useAjustes(p.cargar)`); si se pierde, compila igual y la pestaña sale con los desplegables
+  vacíos. Lo vigila el banco.
+  Banco `verificar_partir_configuracion.ts`: la huella de la página de `5600b9e` contra el
+  commit del corte (`aa43cbb`) — **423** clases, textos, ejemplos, títulos, avisos y direcciones
+  de la API, **una por una y con repetidos** — como invariante; y dibuja el formulario, las
+  cuentas puente y los tipos de gasto. 12 comprobaciones, contraprueba 12 FALLA, dieciocho
+  mutantes y dieciocho muertos (uno sobrevivió primero: "el desplegable ofrece cualquier
+  cuenta", porque la prueba no traía ninguna cuenta que NO debiera salir).
+  **Seis bancos leían la página y se quedaban mirando solo las pestañas**: leen ahora la
+  pantalla entera con `scratch/pantallaDeAjustes.ts`, que además les quita el prefijo del hook
+  (sus expresiones nombran las variables a pelo; lo que eso deja de vigilar lo vigila `tsc`).
+  Uno pasaba **por casualidad**: "el orden es identidad, mSeller, parámetros" miraba la
+  posición de los títulos, y leídos los ficheros juntos salen en orden *alfabético*, que
+  coincide. Ahora mira el orden en que el formulario pinta las tarjetas.
+  **La trampa del guion, por tercera vez en dos días**: un `python - <<EOF` con expresiones
+  regulares dentro corrompe los escapes (`\b` → retroceso). **Los guiones que tocan código
+  se escriben a fichero, no en un heredoc.**
+- **Lote 239: las advertencias de React Doctor de Configuración, cerradas.** Eran unas **65**
+  (las mismas que tenía la página vieja); medido después en local, **0** en la carpeta. Va en
+  el mismo PR que el 238, en su propio commit. Las que cambian comportamiento:
+  · **guardar las cuentas puente decía "guardadas exitosamente" sin mirar una sola**
+    **respuesta**: mandaba una petición por cuenta y no leía ninguna, así que con un 403 o un
+    500 en todas el aviso era el mismo verde. No lo marcaba React Doctor; salió al leer el
+    hook. Ahora dice cuántas no se guardaron y por qué (`avisoDeCuentasPuente`, pura);
+  · **seis lecturas sin mirar el estado** pasan por `leerRespuesta`: un 5xx con página de
+    error al guardar decía "Error de conexión" (la red funcionó), y si los tipos de gasto no se
+    podían leer la pantalla decía "No hay tipos de gastos registrados";
+  · **el error del correo de avisos llegaba como texto** (`error: '...'`) y la pantalla busca
+    `error.message`: se leía "Error al guardar" a secas. Era la única respuesta de esa ruta con
+    otra forma; se arregla en la ruta;
+  · **dos clics seguidos en Guardar mandaban dos peticiones** (ajustes, cuentas puente y tipos
+    de gasto): guarda en `useRef`, como en el 227;
+  · **un importe a medio escribir se guardaba vacío**: `Number('-')` es `NaN`, y `NaN` viaja en
+    el JSON como `null`. `importeDelCampo`: lo que no es un importe válido, o es negativo, es 0;
+  · **lo que una pestaña pide se pide al elegirla** (`elegir`), no en un efecto que mira cuál
+    está activa; la página queda sin efectos. La carga inicial sigue en un efecto, que es lo que
+    es — con su `useCallback` y sus dependencias, como en caja;
+  · **accesibilidad**: 23 etiquetas con su `htmlFor`/`id` (más las 16 de las cuentas puente),
+    "Logo de la Empresa" pasa a `<p>` (encabeza un botón, no etiqueta un campo), el interruptor
+    de conduces automáticos es un `role="switch"` con su estado, y el ojo de la contraseña, el
+    cerrar del modal y el quitar el logo dicen qué hacen.
+  Sin efecto visible: las seis pestañas salen de una lista (`PESTANAS`) en vez de seis botones
+  con su copia de las clases; "estándar" es una regla (`esTipoEstandar`) y no tres copias de
+  los diez códigos; lo que pinta cada pestaña es `ContenidoDeLaPestana`.
+  **Una cosa que se pensó antes de tocar**: quien no administra recibe un **403 normal** al
+  cargar los ajustes (solo ve "Mi Perfil"). Con `leerRespuesta` habría sido fácil ponerle un
+  aviso de error cada vez que abre su perfil; se calla, como antes, y solo se avisa de un 5xx.
+  Banco `verificar_avisos_configuracion.ts`: **ejecuta** las reglas y las acciones de los hooks
+  contra un `fetch` sustituido, y **dibuja** las piezas para mirar las etiquetas en el HTML. 20
+  comprobaciones, contraprueba **20 FALLA** (worktree en el commit del corte), treinta y cinco
+  mutantes y treinta y cinco muertos. Tres comprobaciones seguían en OK en la contraprueba —
+  ya eran ciertas antes: el motivo de un rechazo, el 403 callado al cargar, y dónde se cargan
+  las cuentas puente — y pasan a **invariante**, con la huella visible del 238 (457 clases,
+  ejemplos y textos). **Un mutante sobrevivió primero**: cambiar una clase que vive en dos
+  tarjetas; la huella se comparaba como *conjunto* y bastaba que quedara una. Ahora, con
+  repetidos y una por una.
+  **No se miró dentro de la aplicación corriendo**: entrar exige la cuenta del dueño.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2537,5 +2604,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 237 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 239 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

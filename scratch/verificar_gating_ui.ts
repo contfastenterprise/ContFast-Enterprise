@@ -1,6 +1,11 @@
 import { crudo as crudoCrudo } from './_fuente';
+import { join } from 'path';
+import { leerPantallaDeAjustesSinPrefijo } from './pantallaDeAjustes';
 
-const crudo = (rutaRelativa: string): string => crudoCrudo(rutaRelativa).replace(/\r\n/g, '\n');
+//  Lote 238: la pagina de Configuracion se partio en hooks y componentes. Este banco lee la
+//  pantalla ENTERA y sin el prefijo del hook (`a.formData` -> `formData`): ver pantallaDeAjustes.ts.
+const crudo = (rutaRelativa: string): string => (rutaRelativa === 'src/app/dashboard/settings/page.tsx'
+  ? leerPantallaDeAjustesSinPrefijo(join(__dirname, '..')) : crudoCrudo(rutaRelativa)).replace(/\r\n/g, '\n');
 
 let fallos = 0;
 

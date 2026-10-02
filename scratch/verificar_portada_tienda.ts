@@ -12,9 +12,13 @@
  */
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { leerPantallaDeAjustesSinPrefijo } from './pantallaDeAjustes';
 
 const raiz = join(__dirname, '..');
-const leer = (p: string) => (existsSync(join(raiz, p)) ? readFileSync(join(raiz, p), 'utf8') : '');
+//  Lote 238: la pagina de Configuracion se partio en hooks y componentes. Este banco lee la
+//  pantalla ENTERA y sin el prefijo del hook (`a.formData` -> `formData`): ver pantallaDeAjustes.ts.
+const leer = (p: string) => (p === 'src/app/dashboard/settings/page.tsx' ? leerPantallaDeAjustesSinPrefijo(raiz)
+  : existsSync(join(raiz, p)) ? readFileSync(join(raiz, p), 'utf8') : '');
 const sinComentarios = (src: string) =>
   src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 
@@ -100,8 +104,10 @@ async function main() {
   console.log('\n4) Configuracion: una pestana propia\n');
   const ajustes = sinComentarios(leer('src/app/dashboard/settings/page.tsx'));
   ok('la portada tiene su pestana "Tienda", para administracion y sistemas',
-    /setActiveTab\('tienda'\)/.test(ajustes) && />\s*Tienda\s*<\/button>/.test(ajustes)
-    && /activeTab === 'tienda' && \(isAdministracion \|\| isSistemas\) && \(\s*<PortadaDeLaTienda\b[^>]*\/>/.test(ajustes));
+    //  Lote 239: las pestanas salen de `PESTANAS` y lo que pinta cada una, de `ContenidoDeLaPestana`.
+    /\{ id: 'tienda', nombre: 'Tienda', deConfiguracion: true \}/.test(leer('src/app/dashboard/settings/ajustes.ts'))
+    && /const puedeConfigurar = isAdministracion \|\| isSistemas;/.test(ajustes)
+    && /case 'tienda':\s*return puedeConfigurar \? <PortadaDeLaTienda\b[^>]*\/> : null;/.test(ajustes));
   //  Dentro del <form> de Empresa, Enter en el titulo enviaria el formulario de la empresa.
   const formEmpresa = (() => { const i = ajustes.indexOf('<form onSubmit={handleSave}'); return i < 0 ? 'X' : ajustes.slice(i, ajustes.indexOf('</form>', i)); })();
   ok('  y NO va dentro del formulario de la empresa', /<PortadaDeLaTienda\b[^>]*\/>/.test(ajustes) && !/<PortadaDeLaTienda/.test(formEmpresa));

@@ -31,8 +31,12 @@
 import { fuente as fuenteCruda, crudo as crudoCrudo, bloque } from './_fuente';
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
+import { leerPantallaDeAjustesSinPrefijo } from './pantallaDeAjustes';
 
-const fuente = (r: string): string => fuenteCruda(r).replace(/\r\n/g, '\n');
+//  Lote 238: la pagina de Configuracion se partio en hooks y componentes. Este banco lee la
+//  pantalla ENTERA y sin el prefijo del hook (`a.formData` -> `formData`): ver pantallaDeAjustes.ts.
+const fuente = (r: string): string => (r === 'src/app/dashboard/settings/page.tsx'
+  ? leerPantallaDeAjustesSinPrefijo(join(__dirname, '..')) : fuenteCruda(r)).replace(/\r\n/g, '\n');
 const crudo = (r: string): string => crudoCrudo(r).replace(/\r\n/g, '\n');
 
 let fallos = 0;
@@ -90,8 +94,9 @@ const REPO = 'src/repositories/companyRepository.ts';
 {
   const p = fuente('src/app/dashboard/settings/page.tsx');
   ok('la pantalla de configuracion ensena el aviso (guardar != surtir efecto)',
-    p.includes('for (const aviso of (data.avisos ?? []) as string[]) {')
-    && p.includes('toast.warning(aviso, { duration: 12000 });'));
+    //  Lote 239: la respuesta se lee con `leerRespuesta`, asi que los avisos llegan en `leido.cuerpo.avisos`.
+    //  Lo que se vigila es que se recorran y se ensenen, no en que variable vienen.
+    /for \(const aviso of [^)]*\bavisos \?\? \[\][^)]*\) \{\s*toast\.warning\(aviso, \{ duration: 12000 \}\);/.test(p));
 }
 
 // ─── la copia ilegible no se queda ──────────────────────────────────────
