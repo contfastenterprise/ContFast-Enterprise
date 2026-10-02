@@ -70,7 +70,14 @@ async function main() {
   const portada = renderToStaticMarkup(React.createElement(P.PortadaTienda as never, { empresaSlug: 'latin', nombre: 'Latin Doors', logoUrl: 'https://x/logo.png',
     portada: { anuncio: null, titulo: null, texto: null, imagenUrl: 'https://x/portada.webp' } }));
   const img = /<img[^>]*src="https:\/\/x\/portada\.webp"[^>]*>/.exec(portada)?.[0] ?? '';
-  ok('la imagen de la portada sale entera en su mitad', /class="absolute inset-0 h-full w-full object-contain mix-blend-multiply"/.test(img), img);
+  ok('la imagen de la portada sale entera en su mitad', /class="h-full w-full object-contain mix-blend-multiply"/.test(img), img);
+  //  El marco: la imagen va DENTRO de un espacio con margen a los cuatro lados, y su mitad corta lo que se salga.
+  const marco = /<div class="([^"]*)"><div class="([^"]*)"><img[^>]*src="https:\/\/x\/portada\.webp"/.exec(portada);
+  const fuera = (marco?.[1] ?? '').split(' ');
+  const dentro = (marco?.[2] ?? '').split(' ');
+  ok('  dentro de un marco con margen: por grande que sea, no sobrepasa los bordes',
+    fuera.includes('relative') && fuera.includes('overflow-hidden') && dentro.includes('absolute')
+    && dentro.some((c) => /^inset-[1-9]\d*$/.test(c)) && !dentro.includes('inset-0'), `${marco?.[1] ?? '-'} | ${marco?.[2] ?? '-'}`);
 
   const T = (await import('../src/components/storefront/TarjetaProducto')) as unknown as Record<string, Fn>;
   const rejilla = (columnas: number) => renderToStaticMarkup(React.createElement(T.RejillaDeProductos as never, { productos: [], empresaSlug: 'latin', columnas }));

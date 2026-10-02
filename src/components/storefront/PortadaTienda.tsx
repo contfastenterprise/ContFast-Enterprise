@@ -49,9 +49,15 @@ export function PortadaTienda({ empresaSlug, nombre, logoUrl, portada }: {
         </div>
       </div>
       {p.imagenUrl ? (
-        <div className="relative min-h-[320px] bg-[#f4f4f3]">
-          {/* Decorativa: lo que dice la portada ya lo dicen el titulo y el texto. */}
-          <img src={p.imagenUrl} alt="" className={`absolute inset-0 ${FOTO_ENTERA}`} />
+        //  El MARCO de la imagen (pedido del dueño, lote 237): "si es muy grande no puede
+        //  sobrepasar los bordes". La imagen vive dentro de un espacio fijo, con margen a los
+        //  cuatro lados, y `overflow-hidden` corta lo que por lo que sea se saliera. Mida lo
+        //  que mida, se ajusta ENTERA a ese espacio: ni toca la cabecera ni el borde de la pagina.
+        <div className="relative min-h-[320px] overflow-hidden bg-[#f4f4f3]">
+          <div className="absolute inset-6 sm:inset-10 lg:inset-14">
+            {/* Decorativa: lo que dice la portada ya lo dicen el titulo y el texto. */}
+            <img src={p.imagenUrl} alt="" className={FOTO_ENTERA} />
+          </div>
         </div>
       ) : (
         <div className="flex min-h-[320px] items-center justify-center bg-[#f4f4f3] p-12">
