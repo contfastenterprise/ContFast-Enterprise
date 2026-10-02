@@ -26,9 +26,13 @@
  */
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { leerPantallaDeAjustesSinPrefijo } from './pantallaDeAjustes';
 
 const raiz = join(__dirname, '..');
-const leer = (p: string) => (existsSync(join(raiz, p)) ? readFileSync(join(raiz, p), 'utf8') : '');
+//  Lote 238: la pagina de Configuracion se partio en hooks y componentes. Este banco lee la
+//  pantalla ENTERA y sin el prefijo del hook (`a.formData` -> `formData`): ver pantallaDeAjustes.ts.
+const leer = (p: string) => (p === 'src/app/dashboard/settings/page.tsx' ? leerPantallaDeAjustesSinPrefijo(raiz)
+  : existsSync(join(raiz, p)) ? readFileSync(join(raiz, p), 'utf8') : '');
 const sinComentarios = (src: string) =>
   src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
 
