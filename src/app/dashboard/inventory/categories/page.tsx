@@ -222,12 +222,7 @@ export default function CategoriesPage() {
           <p className="font-body-lg text-on-surface-variant/80 mt-1">Clasifica y organiza tu catálogo de productos.</p>
         </div>
         <div className="flex gap-2 w-full md:w-auto">
-          <button
-            onClick={handlePrintList}
-            className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-          >
-            <Printer className="h-4 w-4 text-amber-500" /> Imprimir
-          </button>
+          {/* Lote 243: en la cabecera, SOLO las pestanas (como en Compras). Los botones de la lista viven en la barra de la lista. */}
           <PestanasDeRegistro
             enFormulario={showModal}
             lista="Categorías"
@@ -252,6 +247,12 @@ export default function CategoriesPage() {
             <RefreshCw className="h-5 w-5 animate-spin" />
           </div>
         )}
+        <button
+          onClick={handlePrintList}
+          className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+        >
+          <Printer className="h-4 w-4 text-amber-500" /> Imprimir
+        </button>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden">

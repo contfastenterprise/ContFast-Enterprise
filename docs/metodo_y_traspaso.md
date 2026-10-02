@@ -1479,6 +1479,25 @@ Además, fuera de la tabla:
   banco del 241, y aquí se mira lo que productos le pasa — y que no quede una copia a mano
   (ningún `aria-pressed` en la página). Contraprueba 4 FALLA, cinco mutantes y cinco muertos.
   No se volvió a abrir en el navegador: es el mismo componente que se miró en el 241.
+- **Lote 243: junto a las pestañas no va ningún botón.** Pedido del dueño (2026-10-02): *"los
+  botones no pueden estar al lado de los tab, coge de referencia la página de compras para que
+  sepas cómo organizar esos botones"*. **Medido en Compras**: la cabecera lleva el título y, a
+  la derecha, **solo** el conmutador; "Imprimir Reporte" y "Buscar Registros" viven dentro de
+  la pestaña de la lista, en su barra. En los lotes 240-242 las pestañas se pusieron donde
+  estaba el botón "Nuevo …", al lado de "Imprimir" o de "Gestión de Códigos". Ahora esos
+  botones bajan a la barra de la lista: en productos junto a "Imprimir", en almacenes y
+  categorías junto al buscador. Conduces no tenía ninguno.
+  **La regla se barre**: `verificar_pestanas_solas.ts` recorre **todas** las pantallas del
+  panel que usen `PestanasDeRegistro` y falla si la fila de las pestañas lleva un botón — la
+  próxima pantalla que se convierta la cumple o el banco lo dice. 4 comprobaciones,
+  contraprueba 4 FALLA (una quinta seguía en OK, "cada botón una sola vez": cierta antes, se
+  fundió con las otras). Se miró en el navegador con la página temporal.
+  **Sigue** (mismo pedido): *"haz lo mismo con las demás secciones que tengan nuevo
+  registro"*. Medido: clientes, suplidores, retenciones, bancos, departamentos, empleados,
+  horas extra, liquidaciones, empresas, autorizaciones de e-CF y pedidos a suplidor tienen un
+  alta. **No entran**, a propósito: registrar un pago o un cobro (es una acción sobre una fila,
+  no un registro nuevo de la pantalla) y las pantallas que ya tienen sus propias pestañas de
+  contenido (contabilidad, administración), que se miran aparte.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2668,5 +2687,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 242 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 243 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
