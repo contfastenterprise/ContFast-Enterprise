@@ -13,6 +13,7 @@
  * sobrevivia a cancelar, y asi sigue.
  */
 import { useState, useEffect, useCallback } from 'react';
+import { PestanasDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { Plus, RefreshCw, Truck } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
 //  Lote 227: `m` dentro de `LazyMotion` y no `motion` (aviso de React Doctor):
@@ -193,12 +194,7 @@ export default function DeliveryNotesPage() {
                       Controle la salida física de mercancías asociadas a facturas de venta.
                     </p>
                   </div>
-                  <button
-                    onClick={() => setShowForm(true)}
-                    className="bg-[#003366] hover:bg-[#002244] text-white font-bold h-8 px-3 py-1.5 rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 text-xs"
-                  >
-                    <Plus className="h-4 w-4" /> Nuevo Conduce
-                  </button>
+                  <PestanasDeRegistro enFormulario={showForm} lista="Conduces" alVerLista={salirDelFormulario} alRegistrar={() => setShowForm(true)} />
                 </div>
 
                 {/* Quick Action: Apply Delivery Note or Invoice Stock Deduction */}
@@ -248,6 +244,10 @@ export default function DeliveryNotesPage() {
                 exit={{ opacity: 0, y: -15 }}
                 className="space-y-6"
               >
+                {/* Las mismas pestanas que en la lista (lote 241): desde aqui se vuelve con "Conduces". */}
+                <div className="flex justify-end">
+                  <PestanasDeRegistro enFormulario={showForm} lista="Conduces" alVerLista={salirDelFormulario} alRegistrar={() => setShowForm(true)} />
+                </div>
                 <FormularioDeConduce formulario={formulario} onSalir={salirDelFormulario} />
               </m.div>
             )}

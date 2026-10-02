@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { Plus, Edit2, Trash2, Tag, RefreshCw, X, Save, Printer, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { SearchBar } from '@/components/ui/search-bar';
@@ -227,16 +228,17 @@ export default function CategoriesPage() {
           >
             <Printer className="h-4 w-4 text-amber-500" /> Imprimir
           </button>
-          <button
-            onClick={openNewModal}
-            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-          >
-            <Plus className="h-4 w-4" />
-            <span className="font-bold">Nueva Categoría</span>
-          </button>
+          <PestanasDeRegistro
+            enFormulario={showModal}
+            lista="Categorías"
+            editando={!!editId}
+            alVerLista={() => setShowModal(false)}
+            alRegistrar={openNewModal}
+          />
         </div>
       </header>
 
+      {!showModal && (<>
       {/* SEARCH BAR */}
       <div className="flex items-center gap-2">
         <SearchBar
@@ -316,17 +318,12 @@ export default function CategoriesPage() {
       )}
     </div>
 
+      </>)}
+
+      {/* Registrar / editar una categoria (lote 241): era un modal; ahora es la segunda pestana. */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface rounded-3xl w-full max-w-md shadow-2xl flex flex-col">
-            <div className="flex justify-between items-center p-6 border-b border-outline-variant/20">
-              <h2 className="font-display-sm text-2xl text-primary font-bold">{editId ? 'Editar Categoría' : 'Nueva Categoría'}</h2>
-              <button onClick={() => setShowModal(false)} className="text-on-surface-variant hover:text-primary p-2 rounded-full hover:bg-surface-container">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <PanelDeRegistro titulo={editId ? 'Editar Categoría' : 'Nueva Categoría'}>
+            <form onSubmit={handleSubmit} className="space-y-4 max-w-2xl">
               <div>
                 <label className="block text-xs font-bold text-primary mb-1">Nombre</label>
                 <input 
@@ -365,8 +362,7 @@ export default function CategoriesPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </PanelDeRegistro>
       )}
     </div>
   );
