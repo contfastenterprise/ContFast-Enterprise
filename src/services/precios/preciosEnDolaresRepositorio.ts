@@ -127,13 +127,15 @@ export const PreciosEnDolaresRepositorio = {
 
   /** Los productos atados, cada uno con lo que cambiaria a la tasa vigente. */
   listar: (companyId: string): Promise<{ tasa: Tasa | null; renglones: Renglon[] }> => conMigracion(async () => {
-    const tasa = await tasaVigente(companyId);
-    const filas = await db
-      .select(columnas)
-      .from(productosEnDolares)
-      .innerJoin(products, and(eq(products.id, productosEnDolares.productId), eq(products.companyId, productosEnDolares.companyId)))
-      .where(and(eq(productosEnDolares.companyId, companyId), isNull(products.deletedAt)))
-      .orderBy(asc(products.name));
+    const [tasa, filas] = await Promise.all([
+      tasaVigente(companyId),
+      db
+        .select(columnas)
+        .from(productosEnDolares)
+        .innerJoin(products, and(eq(products.id, productosEnDolares.productId), eq(products.companyId, productosEnDolares.companyId)))
+        .where(and(eq(productosEnDolares.companyId, companyId), isNull(products.deletedAt)))
+        .orderBy(asc(products.name)),
+    ]);
     return { tasa, renglones: filas.map((f) => renglon(f, tasa?.tasa ?? null)) };
   }),
 
@@ -225,6 +227,8 @@ export const PreciosEnDolaresRepositorio = {
 
       let aplicados = 0;
       const ahora = new Date();
+      //  Uno a uno y en orden, a proposito: es UNA transaccion, o sea una sola conexion;
+      //  lanzarlos a la vez no los haria ir en paralelo.
       for (const f of filas) {
         const r = renglon(f, tasa.tasa);
         const c = r.calculo as Calculo;

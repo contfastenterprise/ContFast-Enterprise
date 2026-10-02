@@ -49,8 +49,7 @@ function CostoUsd({ r, puedeEditar, ocupado, alGuardar }: {
   }
   const leido = leerCostoUsd(escrito);
   return (
-    <form className="inline-flex items-center gap-1" onSubmit={async (e) => {
-      e.preventDefault();
+    <form className="inline-flex items-center gap-1" action={async () => {
       if (leido.bien && await alGuardar(r.productId, escrito)) setEscrito(null);
     }}>
       <input type="text" inputMode="decimal" autoComplete="off" value={escrito} onChange={(e) => setEscrito(e.target.value)}
@@ -78,8 +77,9 @@ export function TablaDePreciosEnDolares({ renglones, marcados, puedeAplicar, ocu
       </p>
     );
   }
+  const elegidos = new Set(marcados);
   const cambian = renglones.filter((r) => r.calculo?.cambia);
-  const todos = cambian.length > 0 && cambian.every((r) => marcados.includes(r.productId));
+  const todos = cambian.length > 0 && cambian.every((r) => elegidos.has(r.productId));
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
@@ -109,7 +109,7 @@ export function TablaDePreciosEnDolares({ renglones, marcados, puedeAplicar, ocu
               <tr key={r.productId} className={c?.cambia ? 'bg-amber-50/40' : undefined}>
                 {puedeAplicar && (
                   <td className={td}>
-                    <input type="checkbox" checked={marcados.includes(r.productId)} disabled={!c?.cambia}
+                    <input type="checkbox" checked={elegidos.has(r.productId)} disabled={!c?.cambia}
                       onChange={(e) => alMarcar(r.productId, e.target.checked)} aria-label={`Aplicar el precio nuevo a ${r.name}`} />
                   </td>
                 )}

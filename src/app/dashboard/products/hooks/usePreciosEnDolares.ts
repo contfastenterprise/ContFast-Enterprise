@@ -35,9 +35,11 @@ const json = (method: string, cuerpo: unknown): RequestInit =>
 
 /** Los que se marcan al cargar: los que cambiarian. Lo que no cambia no hace falta confirmarlo. */
 export const losQueCambian = (renglones: Renglon[]) =>
-  renglones.filter((r) => r.calculo?.cambia).map((r) => r.productId);
+  renglones.flatMap((r) => (r.calculo?.cambia ? [r.productId] : []));
 
 export function usePreciosEnDolares() {
+  /** La pantalla esta abierta (ocupa el sitio de la lista de productos). */
+  const [abierta, setAbierta] = useState(false);
   const [datos, setDatos] = useState<DatosDeDolares | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [marcados, setMarcados] = useState<string[]>([]);
@@ -57,6 +59,10 @@ export function usePreciosEnDolares() {
       setError('No se pudieron cargar los precios en dólares. Revisa la conexión.');
     }
   }, []);
+
+  /** Abrir la pantalla la CARGA: se pide al pulsar, no en un efecto al montar. */
+  const abrir = useCallback(() => { setAbierta(true); void cargar(); }, [cargar]);
+  const cerrar = useCallback(() => setAbierta(false), []);
 
   /** Una escritura y, si salio, recargar: los precios nuevos los calcula el servidor. */
   const escribir = useCallback(async (peticion: () => Promise<Response>, fallo: string, bien: string): Promise<boolean> => {
@@ -123,7 +129,7 @@ export function usePreciosEnDolares() {
     }
   }, []);
 
-  return { datos, error, marcados, ocupado, encontrados, cargar, guardarTasa, atar, soltar, aplicar, aplicarCon, marcar, marcarTodos, buscar };
+  return { abierta, abrir, cerrar, datos, error, marcados, ocupado, encontrados, cargar, guardarTasa, atar, soltar, aplicar, aplicarCon, marcar, marcarTodos, buscar };
 }
 
 export type PreciosEnDolaresDeProductos = ReturnType<typeof usePreciosEnDolares>;

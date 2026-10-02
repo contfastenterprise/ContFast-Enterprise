@@ -25,8 +25,7 @@ export function AtarProductoAlDolar({ encontrados, ocupado, alBuscar, alAtar }: 
   return (
     <form
       className="p-4 border-b border-slate-200 bg-slate-50/50 flex flex-col gap-2"
-      onSubmit={async (e) => {
-        e.preventDefault();
+      action={async () => {
         if (!elegido || !leido.bien) return;
         if (await alAtar(elegido.id, costo)) { setElegido(null); setCosto(''); setTexto(''); }
       }}

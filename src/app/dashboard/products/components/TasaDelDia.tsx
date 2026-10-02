@@ -43,8 +43,7 @@ export function TasaDelDia({ tasa, historial, hoy, puedeEscribir, ocupado, alGua
       {puedeEscribir ? (
         <form
           className="flex flex-col gap-1"
-          onSubmit={async (e) => {
-            e.preventDefault();
+          action={async () => {
             if (!leida.bien) return;
             if (await alGuardar(escrita)) setEscrita('');
           }}

@@ -101,8 +101,8 @@ export default function ProductsPage() {
   // Modal state
   const [showModal, setShowModal] = useState(false);
   // Lote 247: "Precios en dolares" ocupa el sitio de la lista, como el formulario.
-  const [enDolar, setEnDolar] = useState(false);
   const dolar = usePreciosEnDolares();
+  const enDolar = dolar.abierta;
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [inventoryLevels, setInventoryLevels] = useState<{ warehouseId: string, warehouseName: string, quantity: string, availableQuantity?: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -1370,14 +1370,14 @@ export default function ProductsPage() {
             lista="Catálogo"
             icono={<Package className="h-4 w-4 inline mr-1.5" />}
             editando={!!editId}
-            alVerLista={() => { setErrores({}); setShowModal(false); setEnDolar(false); }}
+            alVerLista={() => { setErrores({}); setShowModal(false); dolar.cerrar(); }}
             alRegistrar={openNewModal}
           />
         </div>
       </div>
 
       {!showModal && enDolar && (
-        <PreciosEnDolares d={dolar} alVolver={() => { setEnDolar(false); fetchProducts(search, selectedCategory, page); }} />
+        <PreciosEnDolares d={dolar} alVolver={() => { dolar.cerrar(); fetchProducts(search, selectedCategory, page); }} />
       )}
 
       {!showModal && !enDolar && (<>
@@ -1438,7 +1438,7 @@ export default function ProductsPage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => { setEnDolar(true); void dolar.cargar(); }}
+              onClick={dolar.abrir}
               className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-[#003366] px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition justify-center text-sm"
             >
               <DollarSign className="h-4 w-4" />

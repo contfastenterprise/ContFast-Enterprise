@@ -252,13 +252,16 @@ async function main() {
   // ───────────────────────────────────────────────────────────────────────────
   console.log('\n5) La pagina de productos\n');
   // ───────────────────────────────────────────────────────────────────────────
-  ok('el boton "Precios en dolares" vive en la barra de la lista, no junto a las pestanas',
-    /onClick=\{\(\) => \{ setEnDolar\(true\); void dolar\.cargar\(\); \}\}/.test(pagina) &&
+  const hook = sinComentarios(leer(`${DIR}/hooks/usePreciosEnDolares.ts`));
+  //  Abrir la pantalla la carga en la misma pulsacion (no en un efecto al montar).
+  const abreYCarga = /const abrir = useCallback\(\(\) => \{ setAbierta\(true\); void cargar\(\); \}/.test(hook) && !/useEffect/.test(hook);
+  ok('el boton "Precios en dolares" vive en la barra de la lista, no junto a las pestanas, y al pulsarlo carga',
+    /onClick=\{dolar\.abrir\}/.test(pagina) && abreYCarga &&
     pagina.indexOf('Precios en dólares') > pagina.indexOf('<SearchBar'));
   ok('mientras se ven los precios en dolares, la lista no se pinta', /\{!showModal && !enDolar && \(<>/.test(pagina) &&
     /\{!showModal && enDolar && \(\s*<PreciosEnDolares d=\{dolar\}/.test(pagina));
   ok('al volver, el catalogo se vuelve a pedir (puede tener precios nuevos)',
-    /alVolver=\{\(\) => \{ setEnDolar\(false\); fetchProducts\(search, selectedCategory, page\); \}\}/.test(pagina));
+    /alVolver=\{\(\) => \{ dolar\.cerrar\(\); fetchProducts\(search, selectedCategory, page\); \}\}/.test(pagina));
 
   terminado = true;
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLA(S)`}`);
