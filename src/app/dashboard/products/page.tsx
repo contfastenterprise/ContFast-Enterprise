@@ -1046,7 +1046,7 @@ export default function ProductsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-2 gap-2">
             <div className="relative">
               <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Base (+25%)</label>
               <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
@@ -1363,16 +1363,29 @@ export default function ProductsPage() {
             <Printer className="h-4 w-4" />
             Gestión de Códigos
           </button>
-          <button
-            onClick={openNewModal}
-            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-          >
-            <Plus className="h-4 w-4" />
-            Nuevo Producto
-          </button>
+          {/* Las pestanas, como en Compras: el catalogo, y registrar (o editar). */}
+          <div className="bg-slate-50 p-1 rounded-lg flex gap-1 border border-slate-200">
+            <button
+              type="button"
+              onClick={() => { setErrores({}); setShowModal(false); }}
+              aria-pressed={!showModal}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition ${!showModal ? 'bg-white text-[#003366] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            >
+              <Package className="h-4 w-4 inline mr-1.5" /> Catálogo
+            </button>
+            <button
+              type="button"
+              onClick={openNewModal}
+              aria-pressed={showModal}
+              className={`px-4 py-2 rounded-lg text-xs font-bold transition ${showModal ? 'bg-white text-[#003366] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            >
+              <Plus className="h-4 w-4 inline mr-1.5" /> {showModal && editId ? 'Editando' : 'Registrar'}
+            </button>
+          </div>
         </div>
       </div>
 
+      {!showModal && (<>
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Card 1: Total Catálogo (Blue) */}
@@ -1762,32 +1775,19 @@ export default function ProductsPage() {
           hideControlsWhenSinglePage
         />
       </div>
+      </>)}
 
-      {/* Create/Edit Modal */}
-      <AnimatePresence>
-        {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setShowModal(false)}
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-3xl bg-white border border-[#003366] rounded-xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
-            >
-              <div className="flex justify-between items-center p-4 border-b border-[#003366] bg-[#001733]">
-                <h2 className="text-lg font-bold text-white font-display">
-                  {editId ? 'Editar Producto' : 'Registrar Nuevo Producto'}
-                </h2>
-                <button onClick={() => setShowModal(false)} className="text-white/70 hover:text-white cursor-pointer">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
+      {/* Registrar / editar un producto (lote 240). ERA UN MODAL con su propia barra de
+          desplazamiento; pedido del dueño: "ponlo igual que compras, con tab". Ahora es
+          una pestana de la pagina: ocupa el ancho entero y no tiene desplazamiento propio. */}
+      {showModal && (
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
+          <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/50 rounded-t-xl">
+            <h2 className="text-lg font-bold text-[#003366] font-display">
+              {editId ? 'Editar Producto' : 'Registrar Nuevo Producto'}
+            </h2>
+          </div>
+              <form onSubmit={handleSubmit} className="p-4 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3 pb-1">
                   {vistaCompleta ? (
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -1800,17 +1800,24 @@ export default function ProductsPage() {
                 </div>
 
                 {vistaCompleta ? (
-                  <>
-                    {paso1()}
-                    {paso2()}
-                    {paso3()}
-                  </>
+                  //  Todo a la vista, EN COLUMNAS en pantalla grande: a la izquierda que es
+                  //  y sus codigos de barra, a la derecha precios y existencia. Asi cabe sin
+                  //  la barra de desplazamiento que tenia el modal.
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                    <section className="space-y-4">
+                      {paso1()}
+                      {paso3()}
+                    </section>
+                    <section className="space-y-4">
+                      {paso2()}
+                    </section>
+                  </div>
                 ) : (
-                  <>
+                  <div className="max-w-4xl mx-auto w-full">
                     {paso === 1 && paso1()}
                     {paso === 2 && paso2()}
                     {paso === 3 && paso3()}
-                  </>
+                  </div>
                 )}
 
                 {/* La red de debajo: cualquier fallo que no tenga su propio sitio
@@ -1873,10 +1880,8 @@ export default function ProductsPage() {
                   </div>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
 
       {/* Sub-Modal New Category */}
       <AnimatePresence>
