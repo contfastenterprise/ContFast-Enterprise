@@ -1357,13 +1357,7 @@ export default function ProductsPage() {
           <p className="text-slate-500 text-sm mt-1">Gestiona tu inventario, precios y servicios facturables.</p>
         </div>
         <div className="flex gap-2.5 flex-wrap">
-          <button
-            onClick={() => router.push('/dashboard/products/barcodes')}
-            className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-          >
-            <Printer className="h-4 w-4" />
-            Gestión de Códigos
-          </button>
+          {/* Lote 243: en la cabecera, SOLO las pestanas (como en Compras). Los botones de la lista viven en la barra de la lista. */}
           {/* Las pestanas, como en Compras: el catalogo, y registrar (o editar). Desde el lote 242,
               el mismo componente que almacenes, categorias y conduces. */}
           <PestanasDeRegistro
@@ -1433,6 +1427,13 @@ export default function ProductsPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push('/dashboard/products/barcodes')}
+              className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+            >
+              <Printer className="h-4 w-4" />
+              Gestión de Códigos
+            </button>
             <div className="relative flex items-center h-9 z-20 shadow-sm rounded-lg">
               <button
                 type="button"

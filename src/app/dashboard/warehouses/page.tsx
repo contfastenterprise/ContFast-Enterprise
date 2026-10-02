@@ -256,12 +256,7 @@ export default function WarehousesPage() {
           </p>
         </div>
         <div className="flex gap-2 w-full md:w-auto shrink-0">
-          <button
-            onClick={handlePrintList}
-            className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-          >
-            <Printer className="h-4 w-4 text-slate-950" /> Imprimir
-          </button>
+          {/* Lote 243: en la cabecera, SOLO las pestanas (como en Compras). Los botones de la lista viven en la barra de la lista. */}
           <PestanasDeRegistro
             enFormulario={isModalOpen}
             lista="Almacenes"
@@ -277,11 +272,21 @@ export default function WarehousesPage() {
 
       {!isModalOpen && (<>
       {/* Search Bar */}
-      <SearchBar
-        placeholder="Buscar por nombre o código..."
-        value={searchTerm}
-        onChange={setSearchTerm}
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div className="flex-1">
+          <SearchBar
+            placeholder="Buscar por nombre o código..."
+            value={searchTerm}
+            onChange={setSearchTerm}
+          />
+        </div>
+        <button
+          onClick={handlePrintList}
+          className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+        >
+          <Printer className="h-4 w-4 text-slate-950" /> Imprimir
+        </button>
+      </div>
 
       {/* List */}
       {loading ? (
