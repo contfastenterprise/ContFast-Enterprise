@@ -1415,6 +1415,30 @@ Además, fuera de la tabla:
   tarjetas; la huella se comparaba como *conjunto* y bastaba que quedara una. Ahora, con
   repetidos y una por una.
   **No se miró dentro de la aplicación corriendo**: entrar exige la cuenta del dueño.
+- **Lote 240: registrar o editar un producto es una PESTAÑA, no un modal.** Pedido del dueño
+  (2026-10-02): *"el formulario de producto ponlo más grande, para que no sea necesario usar
+  scroll, por lo menos en pantalla grande"*, y enseguida: *"o mejor ponlo igual que compras,
+  con tab"*. Era un modal de 768 px con `max-h-[90vh]` y su propia barra de desplazamiento.
+  Ahora la cabecera lleva dos pestañas, **Catálogo** y **Registrar**, y el formulario ocupa
+  el ancho de la página: por pasos, un paso cada vez; y "todo de una vez" — que es como se
+  **edita** — en **dos columnas** en pantalla grande (qué es y sus códigos de barra | precios
+  y existencia). El estado no cambia de nombre (`showModal` sigue siendo "el formulario está
+  abierto"): lo anclan ocho bancos, y renombrarlo era ruido.
+  **Se midió en el navegador con la página de verdad**, sin entrar con una cuenta: una página
+  temporal que monta `ProductsPage` con la red sustituida (borrada antes de commitear). A
+  1.440 × 900 el formulario entero acaba en el píxel 813 y no hay ninguna caja con barra
+  propia; a 1.280 × 720 se desplaza la **página**, no una caja; en el móvil, sin desborde.
+  **Y mirarlo cazó lo que no se veía leyendo**: en media columna, los cuatro precios de venta
+  de cuatro en cuatro partían una etiqueta en dos líneas y descolocaban su campo. Van de dos
+  en dos en pantalla grande.
+  **Esa página temporal es el camino para mirar cualquier pantalla del panel** sin la cuenta
+  del dueño: `'use client'`, `window.fetch` sustituido antes de pintar, `ConfirmProvider`
+  alrededor y la página importada tal cual.
+  Banco `verificar_producto_en_pestana.ts`: 8 comprobaciones, contraprueba 8 FALLA (contra
+  `git show HEAD:`), doce mutantes y doce muertos; lo que no cambia (un paso cada vez, guardar
+  y cancelar cierran, los modales pequeños siguen siéndolo) va como invariante.
+  **Sigue**: el dueño pidió lo mismo para **todas las pantallas de Inventario con alta**
+  (almacenes, categorías y conduces son las que la tienen).
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2604,5 +2628,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 239 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 240 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
