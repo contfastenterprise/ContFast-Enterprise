@@ -48,14 +48,18 @@ function main() {
     iCond > 0 && !/fixed inset-0|bg-black\/|backdrop-blur/.test(envoltorio) && /Registrar Nuevo Producto/.test(envoltorio));
 
   console.log('\n2) Las pestanas, como en Compras\n');
-  const iCat = p.indexOf('Catálogo\n');
-  const pestanas = (() => { const i = p.lastIndexOf('<div className="bg-slate-50 p-1 rounded-lg flex gap-1', iCat); return i < 0 || iCat < 0 ? '' : p.slice(i, p.indexOf('</div>', iCat)); })();
-  const botones = [...pestanas.matchAll(/<button\b[\s\S]*?<\/button>/g)].map((m) => m[0]);
+  //  Lote 242: las pestanas son el componente compartido (`pestanas-de-registro.tsx`, lote 241). Que dibuja --dos
+  //  botones, cual es la activa, que ninguno envia un formulario-- lo ejecuta `verificar_inventario_en_pestanas.ts`;
+  //  aqui se mira que productos le pase lo suyo.
+  const pestanas = (/<PestanasDeRegistro\b[\s\S]*?\n\s*\/>/.exec(p)?.[0] ?? '').replace(/\s+/g, ' ');
   ok('dos pestanas: "Catálogo" vuelve a la lista y "Registrar" abre un producto nuevo',
-    botones.length === 2 && /onClick=\{\(\) => \{ setErrores\(\{\}\); setShowModal\(false\); \}\}/.test(botones[0]) && /Catálogo/.test(botones[0])
-    && /onClick=\{openNewModal\}/.test(botones[1]) && /'Registrar'/.test(botones[1]), `${botones.length} botones`);
-  ok('  cada una dice si es la activa, y ninguna envia un formulario',
-    botones.length === 2 && /aria-pressed=\{!showModal\}/.test(botones[0]) && /aria-pressed=\{showModal\}/.test(botones[1]) && botones.every((b) => /type="button"/.test(b)));
+    /lista="Catálogo"/.test(pestanas) && /alVerLista=\{\(\) => \{ setErrores\(\{\}\); setShowModal\(false\); \}\}/.test(pestanas)
+    && /alRegistrar=\{openNewModal\}/.test(pestanas), pestanas.slice(0, 110));
+  ok('  la activa sale de si el formulario esta abierto, y al editar lo dice',
+    /enFormulario=\{showModal\}/.test(pestanas) && /editando=\{!!editId\}/.test(pestanas));
+  ok('  y son las del componente compartido, no una copia a mano',
+    /import \{ PestanasDeRegistro, PanelDeRegistro \} from '@\/components\/ui\/pestanas-de-registro';/.test(p) && !/aria-pressed=/.test(p)
+    && /<PanelDeRegistro titulo=\{editId \? 'Editar Producto' : 'Registrar Nuevo Producto'\}>/.test(p));
   ok('  y el boton suelto "Nuevo Producto" ya no esta (seria la misma accion dos veces)', 
     //  El texto del BOTON, no el titulo del formulario ("Registrar Nuevo Producto").
     pestanas.length > 0 && !/\n\s*Nuevo Producto\s*<\/button>/.test(p));

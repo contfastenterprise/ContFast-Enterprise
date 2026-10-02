@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { esquemaProducto, erroresPorCampo } from '@/schemas/producto';
 import { PASOS, campoDelPaso, primerPasoConFallo } from './pasos';
 import { FotoYDescripcion } from './components/FotoYDescripcion';
+import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 
 /**
  * Los campos que tienen su propio hueco debajo del control.
@@ -1363,25 +1364,16 @@ export default function ProductsPage() {
             <Printer className="h-4 w-4" />
             Gestión de Códigos
           </button>
-          {/* Las pestanas, como en Compras: el catalogo, y registrar (o editar). */}
-          <div className="bg-slate-50 p-1 rounded-lg flex gap-1 border border-slate-200">
-            <button
-              type="button"
-              onClick={() => { setErrores({}); setShowModal(false); }}
-              aria-pressed={!showModal}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition ${!showModal ? 'bg-white text-[#003366] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-            >
-              <Package className="h-4 w-4 inline mr-1.5" /> Catálogo
-            </button>
-            <button
-              type="button"
-              onClick={openNewModal}
-              aria-pressed={showModal}
-              className={`px-4 py-2 rounded-lg text-xs font-bold transition ${showModal ? 'bg-white text-[#003366] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
-            >
-              <Plus className="h-4 w-4 inline mr-1.5" /> {showModal && editId ? 'Editando' : 'Registrar'}
-            </button>
-          </div>
+          {/* Las pestanas, como en Compras: el catalogo, y registrar (o editar). Desde el lote 242,
+              el mismo componente que almacenes, categorias y conduces. */}
+          <PestanasDeRegistro
+            enFormulario={showModal}
+            lista="Catálogo"
+            icono={<Package className="h-4 w-4 inline mr-1.5" />}
+            editando={!!editId}
+            alVerLista={() => { setErrores({}); setShowModal(false); }}
+            alRegistrar={openNewModal}
+          />
         </div>
       </div>
 
@@ -1781,13 +1773,8 @@ export default function ProductsPage() {
           desplazamiento; pedido del dueño: "ponlo igual que compras, con tab". Ahora es
           una pestana de la pagina: ocupa el ancho entero y no tiene desplazamiento propio. */}
       {showModal && (
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
-          <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/50 rounded-t-xl">
-            <h2 className="text-lg font-bold text-[#003366] font-display">
-              {editId ? 'Editar Producto' : 'Registrar Nuevo Producto'}
-            </h2>
-          </div>
-              <form onSubmit={handleSubmit} className="p-4 space-y-4">
+        <PanelDeRegistro titulo={editId ? 'Editar Producto' : 'Registrar Nuevo Producto'}>
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3 pb-1">
                   {vistaCompleta ? (
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -1880,7 +1867,7 @@ export default function ProductsPage() {
                   </div>
                 </div>
               </form>
-        </div>
+        </PanelDeRegistro>
       )}
 
       {/* Sub-Modal New Category */}
