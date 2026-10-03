@@ -2000,6 +2000,29 @@ Además, fuera de la tabla:
   guarda UTC; convertirlo con `AT TIME ZONE 'America/Santo_Domingo'` a secas lo interpreta como hora
   de RD y lo corre cuatro horas **hacia adelante** (salía "00:44 del día siguiente"). Hace falta el
   doble `AT TIME ZONE` del lote 174.
+- **Lote 263: el XML del e-CF descuenta `cantidad × descuento por unidad`.** Salió revisando, a
+  petición del dueño (2026-10-03), cómo calcula la factura. **El orden del cálculo es el correcto**
+  (costo sin ITBIS; precio de venta sin ITBIS; descuento sobre el precio; ITBIS sobre lo descontado;
+  total), y el servidor recalcula los totales sin fiarse de la pantalla. Pero el XML que firma mSeller
+  restaba el descuento **una vez por línea** aunque el campo es **por unidad** ("Desc. Unit."): con
+  cantidad > 1, `MontoItem`, `DescuentoMonto`, `MontoGravadoTotal` y los `MontoGravadoI*` salían con un
+  descuento menor que el que descuentan `TotalITBIS` y `MontoTotal` (que vienen de la calculadora, que
+  sí multiplica). El comprobante se contradecía por dentro.
+  **Medido en PRODUCCIÓN, solo lectura** (`scratch/_to_delete/medir_descuento_en_xml.ts`): de 449
+  líneas, 12 llevan descuento y **4 tienen además cantidad > 1**, en tres comprobantes **ACEPTADOS** de
+  Latin Doors: `E320000000043` (04/07; 200 de descuento real, 100 en el XML; y 3,90 / 1,30),
+  `E320000000046` (09/07; 266 / 133) y `E310000000012` (28/07; 40 × 440: **4.020 / 100,50**). **No se
+  tocan**: ya están emitidos; qué hacer con ellos es del contador. La factura impresa ya multiplicaba
+  bien (`documentTemplates`, `qty × discUnit`); el 607, la contabilidad y los totales, también.
+  La regla de la línea sube a `services/invoice/importesDeLinea.ts` (subtotal, descuento total y base,
+  con los mismos `roundMoney`) y la usan **la calculadora y el XML**: escrita dos veces fue como se
+  separaron. Con cantidad 1 o sin descuento, el XML sale igual que antes (invariantes del banco).
+  Banco `verificar_descuento_del_xml.ts` (ejecuta la calculadora y arma el XML como
+  `invoiceSubmissionService`, con el caso real de `E310000000012`): 10 comprobaciones y tres
+  invariantes, contraprueba **10 FALLA**, seis mutantes y seis muertos. **Una comprobación pasaba
+  antes del arreglo**: "el total es gravado + ITBIS" comparaba `MontoTotal` con números fijos, y ese
+  total siempre salió bien; ahora compara el total con el gravado y el ITBIS **del propio XML**.
+  `verificar_mseller` y `verificar_itbis_por_linea` (integración, arman XML de verdad) en verde.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3189,5 +3212,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 262 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 263 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
