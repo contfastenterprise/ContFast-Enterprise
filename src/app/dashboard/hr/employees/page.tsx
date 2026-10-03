@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Building2, Briefcase, Mail, Phone, Calendar, UserCheck } from 'lucide-react';
+import { Users, Search, Edit2, Trash2, RefreshCw, AlertTriangle, Building2, Briefcase, Mail, Phone, Calendar, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 import { SearchBar } from '@/components/ui/search-bar';
+import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { Pagination } from '@/components/ui/pagination';
 
 interface Employee {
@@ -227,13 +228,17 @@ export default function EmployeesPage() {
             Administración de ficha de datos personales y laborales del personal.
           </p>
         </div>
-        <button
-          onClick={handleOpenCreate}
-          className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm shrink-0 self-start md:self-auto"
-        >
-          <Plus className="h-4 w-4" /> Agregar Empleado
-        </button>
+        {/* Lote 249: en la cabecera, SOLO las pestanas (como en Compras). */}
+        <PestanasDeRegistro
+          enFormulario={showModal}
+          lista="Empleados"
+          editando={!!editId}
+          alVerLista={() => setShowModal(false)}
+          alRegistrar={handleOpenCreate}
+        />
       </div>
+
+      {!showModal && (<>
 
       {/* Filters */}
       <div className="flex items-center gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
@@ -393,242 +398,231 @@ export default function EmployeesPage() {
         </div>
       )}
 
-      {/* Modal Form */}
+      </>)}
+
+      {/* Alta / edicion: era un modal con su propia barra de desplazamiento; desde el lote 249 es la segunda pestana. */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl p-4 relative">
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute right-4 top-4 p-1 rounded-full hover:bg-slate-100 transition-colors text-slate-500"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2 border-b border-slate-200 pb-2">
-              <Users className="h-5 w-5 text-[#c5a059]" /> {editId ? 'Editar Empleado' : 'Registrar Nuevo Empleado'}
-            </h2>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Personal Section */}
-              <div className="space-y-3">
-                <h3 className="text-[10px] font-bold text-[#c5a059] uppercase tracking-wider">1. Datos Personales</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.firstName}
-                      onChange={e => setFormData({ ...formData, firstName: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Apellido</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.lastName}
-                      onChange={e => setFormData({ ...formData, lastName: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cédula Dominicana</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ej. 00112345678"
-                      value={formData.cedula}
-                      onChange={e => setFormData({ ...formData, cedula: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs font-mono rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha de Nacimiento</label>
-                    <input
-                      type="date"
-                      required
-                      value={formData.birthDate}
-                      onChange={e => setFormData({ ...formData, birthDate: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Género</label>
-                    <select
-                      value={formData.gender}
-                      onChange={e => setFormData({ ...formData, gender: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
-                    >
-                      <option value="masculino">Masculino</option>
-                      <option value="femenino">Femenino</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado Civil</label>
-                    <select
-                      value={formData.civilStatus}
-                      onChange={e => setFormData({ ...formData, civilStatus: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
-                    >
-                      <option value="soltero">Soltero/a</option>
-                      <option value="casado">Casado/a</option>
-                      <option value="divorciado">Divorciado/a</option>
-                      <option value="viudo">Viudo/a</option>
-                      <option value="union_libre">Unión Libre</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Correo Electrónico</label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={e => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Teléfono</label>
-                    <input
-                      type="text"
-                      value={formData.phone}
-                      onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
-                    />
-                  </div>
+        <PanelDeRegistro titulo={editId ? 'Editar Empleado' : 'Registrar Nuevo Empleado'}>
+          <form onSubmit={handleSubmit} className="space-y-4 max-w-3xl">
+            {/* Personal Section */}
+            <div className="space-y-3">
+              <h3 className="text-[10px] font-bold text-[#c5a059] uppercase tracking-wider">1. Datos Personales</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.firstName}
+                    onChange={e => setFormData({ ...formData, firstName: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
+                  />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Dirección Completa</label>
-                  <textarea
-                    rows={2}
-                    value={formData.address}
-                    onChange={e => setFormData({ ...formData, address: e.target.value })}
-                    className="w-full min-h-[60px] px-3 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Apellido</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.lastName}
+                    onChange={e => setFormData({ ...formData, lastName: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cédula Dominicana</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. 00112345678"
+                    value={formData.cedula}
+                    onChange={e => setFormData({ ...formData, cedula: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs font-mono rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha de Nacimiento</label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.birthDate}
+                    onChange={e => setFormData({ ...formData, birthDate: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Género</label>
+                  <select
+                    value={formData.gender}
+                    onChange={e => setFormData({ ...formData, gender: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
+                  >
+                    <option value="masculino">Masculino</option>
+                    <option value="femenino">Femenino</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado Civil</label>
+                  <select
+                    value={formData.civilStatus}
+                    onChange={e => setFormData({ ...formData, civilStatus: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
+                  >
+                    <option value="soltero">Soltero/a</option>
+                    <option value="casado">Casado/a</option>
+                    <option value="divorciado">Divorciado/a</option>
+                    <option value="viudo">Viudo/a</option>
+                    <option value="union_libre">Unión Libre</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Correo Electrónico</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={e => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Teléfono</label>
+                  <input
+                    type="text"
+                    value={formData.phone}
+                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
                   />
                 </div>
               </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Dirección Completa</label>
+                <textarea
+                  rows={2}
+                  value={formData.address}
+                  onChange={e => setFormData({ ...formData, address: e.target.value })}
+                  className="w-full min-h-[60px] px-3 py-2 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
+                />
+              </div>
+            </div>
 
-              {/* Job Section */}
-              <div className="space-y-3 pt-2 border-t border-slate-200">
-                <h3 className="text-[10px] font-bold text-[#c5a059] uppercase tracking-wider">2. Datos Laborales</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Código Empleado</label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.employeeCode}
-                      onChange={e => setFormData({ ...formData, employeeCode: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo Contrato</label>
-                    <select
-                      value={formData.contractType}
-                      onChange={e => setFormData({ ...formData, contractType: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
-                    >
-                      <option value="fijo">Fijo</option>
-                      <option value="indefinido">Indefinido</option>
-                      <option value="temporal">Temporal</option>
-                      <option value="por_obra">Por Obra</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Departamento</label>
-                    <select
-                      value={formData.departmentId}
-                      onChange={e => setFormData({ ...formData, departmentId: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
-                    >
-                      <option value="">Ninguno / General</option>
-                      {departments.map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cargo / Puesto</label>
-                    <select
-                      value={formData.positionId}
-                      onChange={e => setFormData({ ...formData, positionId: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
-                    >
-                      <option value="">Ninguno / General</option>
-                      {positions.map(p => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Salario Base Mensual (DOP)</label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.salary}
-                      onChange={e => setFormData({ ...formData, salary: parseFloat(e.target.value) || 0 })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Frecuencia de Pago</label>
-                    <select
-                      value={formData.paymentFrequency}
-                      onChange={e => setFormData({ ...formData, paymentFrequency: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
-                    >
-                      <option value="mensual">Mensual</option>
-                      <option value="quincenal">Quincenal</option>
-                      <option value="semanal">Semanal</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha de Ingreso</label>
-                    <input
-                      type="date"
-                      required
-                      value={formData.hireDate}
-                      onChange={e => setFormData({ ...formData, hireDate: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado Laboral</label>
-                    <select
-                      value={formData.status}
-                      onChange={e => setFormData({ ...formData, status: e.target.value })}
-                      className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
-                    >
-                      <option value="active">Activo</option>
-                      <option value="inactive">Inactivo</option>
-                      <option value="suspended">Suspendido</option>
-                      <option value="cancelled">Cancelado</option>
-                    </select>
-                  </div>
+            {/* Job Section */}
+            <div className="space-y-3 pt-2 border-t border-slate-200">
+              <h3 className="text-[10px] font-bold text-[#c5a059] uppercase tracking-wider">2. Datos Laborales</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Código Empleado</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.employeeCode}
+                    onChange={e => setFormData({ ...formData, employeeCode: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo Contrato</label>
+                  <select
+                    value={formData.contractType}
+                    onChange={e => setFormData({ ...formData, contractType: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
+                  >
+                    <option value="fijo">Fijo</option>
+                    <option value="indefinido">Indefinido</option>
+                    <option value="temporal">Temporal</option>
+                    <option value="por_obra">Por Obra</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Departamento</label>
+                  <select
+                    value={formData.departmentId}
+                    onChange={e => setFormData({ ...formData, departmentId: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
+                  >
+                    <option value="">Ninguno / General</option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cargo / Puesto</label>
+                  <select
+                    value={formData.positionId}
+                    onChange={e => setFormData({ ...formData, positionId: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
+                  >
+                    <option value="">Ninguno / General</option>
+                    {positions.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Salario Base Mensual (DOP)</label>
+                  <input
+                    type="number"
+                    required
+                    value={formData.salary}
+                    onChange={e => setFormData({ ...formData, salary: parseFloat(e.target.value) || 0 })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Frecuencia de Pago</label>
+                  <select
+                    value={formData.paymentFrequency}
+                    onChange={e => setFormData({ ...formData, paymentFrequency: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
+                  >
+                    <option value="mensual">Mensual</option>
+                    <option value="quincenal">Quincenal</option>
+                    <option value="semanal">Semanal</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha de Ingreso</label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.hireDate}
+                    onChange={e => setFormData({ ...formData, hireDate: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado Laboral</label>
+                  <select
+                    value={formData.status}
+                    onChange={e => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
+                  >
+                    <option value="active">Activo</option>
+                    <option value="inactive">Inactivo</option>
+                    <option value="suspended">Suspendido</option>
+                    <option value="cancelled">Cancelado</option>
+                  </select>
                 </div>
               </div>
+            </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                >
-                  {submitting ? 'Guardando...' : 'Guardar Empleado'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+              >
+                {submitting ? 'Guardando...' : 'Guardar Empleado'}
+              </button>
+            </div>
+          </form>
+        </PanelDeRegistro>
       )}
     </div>
 
