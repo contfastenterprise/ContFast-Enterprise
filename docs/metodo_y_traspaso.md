@@ -1750,6 +1750,11 @@ Además, fuera de la tabla:
   FALLA, trece mutantes y trece muertos (una comprobación era cierta antes —las etiquetas de
   Retenciones, del 248— y salió). `verificar_cancelar_pedido_db.ts` (**integración**): 4
   comprobaciones, contraprueba 4 FALLA, tres mutantes y tres muertos.
+  **El barrido cazó dos bancos de Bancos, ninguno una regresión**: `verificar_banco_al_mayor` y
+  `verificar_p2_39_40` anclaban líneas literales que el lote cambió a propósito (el `id` del
+  select de la contrapartida, las lecturas por `leerRespuesta`). Re-anclados a la propiedad —que
+  la contrapartida siga siendo obligatoria, que la meta se recoja—, y comprobado con un mutante
+  cada uno.
   **Lo que no se cierra, a propósito**: los seis "componente gigante" (partir, en lotes propios);
   `async-await-in-loop` en `aplicar` de precios en dólares (es una transacción: una conexión, ir a
   la vez no ganaría nada, y lo dice el comentario); y dos "esperas independientes" en el banco de
