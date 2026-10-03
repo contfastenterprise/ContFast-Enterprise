@@ -13,6 +13,9 @@ import { camposDeFirma, leerEstado, motivoDgii } from '@/services/dgii/estadoEnv
 import { enviarFacturaPorCorreo } from '@/services/invoice/correoFactura';
 import { Logger } from '@/utils/logger';
 import { baseUrlMseller } from '@/services/dgii/urlMseller';
+import { filtroDelCuerpo } from '@/services/dgii/filtroDelListadoEcf';
+import { facturasParaConsultar, type FacturaParaConsultar } from '@/services/dgii/facturasParaConsultar';
+import { MAXIMO_POR_CONSULTA, enTandas, estadoTrasConsultar } from '@/services/dgii/consultaDeEstado';
 
 export async function POST(req: NextRequest) {
   const resHeaders = new Headers();
@@ -31,49 +34,75 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const { invoiceIds } = body;
 
-    if (!invoiceIds || !Array.isArray(invoiceIds) || invoiceIds.length === 0) {
+    //  DOS FORMAS DE DECIR QUE CONSULTAR (lote 260).
+    //
+    //  `invoiceIds`: las que alguien eligio (la seleccion de la tabla).
+    //  `filtro`: TODAS las del filtro de la pantalla, no solo la pagina que se
+    //  ve. Antes el boton mandaba los ids de la pagina visible, asi que con el
+    //  filtro "Enviado" y tres paginas, dos se quedaban sin consultar sin que
+    //  nada lo dijera. El filtro se resuelve AQUI, con las mismas condiciones
+    //  que el listado (`condicionesDelFiltro`).
+    const filtro = Array.isArray(invoiceIds) ? null : filtroDelCuerpo(body?.filtro);
+
+    if (!filtro && (!invoiceIds || !Array.isArray(invoiceIds) || invoiceIds.length === 0)) {
       return NextResponse.json(
-        { success: false, error: { code: 'BAD_REQUEST', message: 'Debe proveer una lista de invoiceIds.' } },
+        { success: false, error: { code: 'BAD_REQUEST', message: 'Debe proveer una lista de invoiceIds o un filtro.' } },
         { status: 400, headers: resHeaders }
       );
     }
 
-    if (invoiceIds.length > 100) {
+    if (!filtro && invoiceIds.length > MAXIMO_POR_CONSULTA) {
       return NextResponse.json(
-        { success: false, error: { code: 'BAD_REQUEST', message: 'El límite máximo es de 100 facturas por consulta.' } },
+        { success: false, error: { code: 'BAD_REQUEST', message: `El límite máximo es de ${MAXIMO_POR_CONSULTA} facturas por consulta.` } },
         { status: 400, headers: resHeaders }
       );
     }
 
-    // Retrieve invoices for the logged-in company
-    const foundInvoices = await db
-      .select({
-        id: invoices.id,
-        ncf: invoices.ncf,
-        status: invoices.status,
-        msellerTrackId: invoices.msellerTrackId,
-      })
-      .from(invoices)
-      .where(
-        and(
-          eq(invoices.companyId, auth.companyId),
-          // Los ids llegan en el cuerpo de la peticion sin comprobar contra el
-          // entorno de la sesion. Sin este filtro, una sesion de PRUEBA podia
-          // mandar ids de facturas REALES de su empresa, traerselas y -- mas
-          // abajo -- sobrescribirles el estado y el mensaje de la DGII con el
-          // resultado de una consulta hecha contra el ambiente de pruebas.
-          // La incoherencia estaba a la vista: el UPDATE del envio SI filtraba
-          // por modo y el de la factura no, asi que la factura se tocaba en un
-          // entorno y su envio en otro.
-          eq(invoices.modo, auth.modo),
-          isNull(invoices.deletedAt),
-          inArray(invoices.id, invoiceIds)
-        )
-      );
+    const alcance = { companyId: auth.companyId, modo: auth.modo };
+    let sinConsultar = 0;
+    let recortadas = 0;
+    let foundInvoices: FacturaParaConsultar[];
+
+    if (filtro) {
+      //  Del filtro solo se consulta lo que todavia puede cambiar; lo demas se
+      //  cuenta para decirlo. Ver `facturasParaConsultar`.
+      const r = await facturasParaConsultar(alcance, filtro);
+      foundInvoices = r.facturas;
+      sinConsultar = r.sinConsultar;
+      recortadas = r.recortadas;
+    } else {
+      // Retrieve invoices for the logged-in company
+      foundInvoices = await db
+        .select({
+          id: invoices.id,
+          ncf: invoices.ncf,
+          status: invoices.status,
+          msellerTrackId: invoices.msellerTrackId,
+        })
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.companyId, auth.companyId),
+            // Los ids llegan en el cuerpo de la peticion sin comprobar contra el
+            // entorno de la sesion. Sin este filtro, una sesion de PRUEBA podia
+            // mandar ids de facturas REALES de su empresa, traerselas y -- mas
+            // abajo -- sobrescribirles el estado y el mensaje de la DGII con el
+            // resultado de una consulta hecha contra el ambiente de pruebas.
+            // La incoherencia estaba a la vista: el UPDATE del envio SI filtraba
+            // por modo y el de la factura no, asi que la factura se tocaba en un
+            // entorno y su envio en otro.
+            eq(invoices.modo, auth.modo),
+            isNull(invoices.deletedAt),
+            inArray(invoices.id, invoiceIds)
+          )
+        );
+    }
+
+    const resumen = { sinConsultar, recortadas, fallo: null as string | null };
 
     if (foundInvoices.length === 0) {
       return NextResponse.json(
-        { success: true, data: [], message: 'No se encontraron facturas válidas para consultar.' },
+        { success: true, data: [], meta: resumen, message: 'No se encontraron facturas válidas para consultar.' },
         { headers: resHeaders }
       );
     }
@@ -128,18 +157,29 @@ export async function POST(req: NextRequest) {
       apiKeyEncrypted: credenciales.apiKeyEncrypted,
     });
 
-    const batchResult = await client.getDocumentsStatusBatch(ncfsToQuery);
-
-    if (!batchResult.success) {
-      return NextResponse.json(
-        { success: false, error: { code: 'MSELLER_ERROR', message: batchResult.message || 'Error en consulta batch.' } },
-        { status: 500, headers: resHeaders }
-      );
+    //  mSeller acepta 100 e-NCF por consulta; el filtro puede traer mas. Si una
+    //  tanda falla despues de otras buenas, lo ya consultado se guarda y se
+    //  dice que la consulta se corto; si falla la primera, error como antes.
+    const resultados: Awaited<ReturnType<typeof client.getDocumentsStatusBatch>>['results'] = [];
+    for (const tanda of enTandas(ncfsToQuery, MAXIMO_POR_CONSULTA)) {
+      const batchResult = await client.getDocumentsStatusBatch(tanda);
+      if (!batchResult.success) {
+        const motivo = batchResult.message || 'Error en consulta batch.';
+        if (resultados.length === 0) {
+          return NextResponse.json(
+            { success: false, error: { code: 'MSELLER_ERROR', message: motivo } },
+            { status: 500, headers: resHeaders }
+          );
+        }
+        resumen.fallo = motivo;
+        break;
+      }
+      resultados.push(...batchResult.results);
     }
 
     const updatedResults = [];
 
-    for (const result of batchResult.results) {
+    for (const result of resultados) {
       const inv = ncfToInvoiceMap.get(result.ecf);
       if (!inv) continue;
 
@@ -158,7 +198,16 @@ export async function POST(req: NextRequest) {
         // DGII, porque eso `leerEstado` no lo hace y es lo que explica al
         // usuario POR QUE se rechazo.
         const lectura = leerEstado(result.data ?? { status: result.status });
-        newStatus = lectura.estado;
+        //  Una consulta no deshace un veredicto definitivo (lote 260): una
+        //  aceptada o una dada de baja se quedan como estan aunque mSeller diga
+        //  otra cosa. Ver `consultaDeEstado.ts`, con los dos casos medidos.
+        const tras = estadoTrasConsultar(inv.status, lectura.estado);
+        newStatus = tras.estado;
+        if (tras.protegido) {
+          Logger.warn('[dgii-status/batch] la consulta contradice un estado definitivo; no se cambia', {
+            invoiceId: inv.id, ncf: result.ecf, estado: inv.status, leido: lectura.estado,
+          });
+        }
 
         // Aqui habia una copia propia del bucle que saca los mensajes del
         // validador, mirando SOLO el primer nivel de `dgiiResponse`. Vive ahora
@@ -169,11 +218,13 @@ export async function POST(req: NextRequest) {
           : `Consulta batch - Estado: ${result.status}`;
 
         // Always update database on sync to ensure fresh status and messages
+        // -- salvo estado y mensaje cuando la consulta contradice un veredicto
+        // definitivo: la firma se sigue recuperando, que es para lo que sirve
+        // consultar una aceptada.
         await db
           .update(invoices)
           .set({
-            status: newStatus as any,
-            dgiiMessage: displayMessage,
+            ...(tras.protegido ? {} : { status: newStatus as any, dgiiMessage: displayMessage }),
             // DB-22: la firma que devuelve mSeller se guarda en la FACTURA, que es
             // donde nada la pisa. `camposDeFirma` solo trae lo que vino, asi que
             // un dato ausente no aparece en el objeto y este `set` NUNCA sustituye
@@ -188,7 +239,7 @@ export async function POST(req: NextRequest) {
         // respuesta de la consulta no puede borrar el codigo de seguridad que
         // dejo el envio. Ver el comentario largo en
         // src/app/api/v1/ecf/[id]/dgii-status/route.ts.
-        const envio = await envioVigente(inv.id, auth.companyId, auth.modo);
+        const envio = tras.protegido ? null : await envioVigente(inv.id, auth.companyId, auth.modo);
         if (envio) {
           const codigoConsultado = leerCodigoSeguridad(result.data);
 
@@ -240,6 +291,8 @@ export async function POST(req: NextRequest) {
         updatePerformed = true;
       }
 
+      const cambio = newStatus !== inv.status;
+
       updatedResults.push({
         invoiceId: inv.id,
         ncf: result.ecf,
@@ -247,6 +300,7 @@ export async function POST(req: NextRequest) {
         dgiiStatus: result.status,
         status: newStatus,
         updated: updatePerformed,
+        cambio,
       });
     }
 
@@ -254,6 +308,7 @@ export async function POST(req: NextRequest) {
       {
         success: true,
         data: updatedResults,
+        meta: resumen,
       },
       { headers: resHeaders }
     );

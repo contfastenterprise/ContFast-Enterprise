@@ -102,8 +102,15 @@ async function main() {
   // ecf/queue y ecf/route tienen DOS consultas cada uno.
   ok('ecf/queue: las dos consultas',
     (fuente('src/app/api/v1/ecf/queue/route.ts').match(/eq\(dgiiSubmissions\.modo, auth\.modo\)/g) || []).length === 2);
-  ok('ecf/route: las dos consultas',
-    (fuente('src/app/api/v1/ecf/route.ts').match(/eq\(invoices\.modo, auth\.modo\)/g) || []).length === 2);
+  //  Desde el lote 260 la consulta del listado arma sus condiciones con
+  //  `condicionesDelFiltro` (las comparte con "Consultar DGII"): el modo de esa
+  //  consulta se le PASA y el modulo lo filtra. La otra (la subconsulta de
+  //  notas) sigue escrita en la ruta.
+  const rutaEcf = fuente('src/app/api/v1/ecf/route.ts');
+  const modoEnRuta = (rutaEcf.match(/eq\(invoices\.modo, auth\.modo\)/g) || []).length;
+  const modoDelegado = /condicionesDelFiltro\(\s*\{ companyId: auth\.companyId, modo: auth\.modo \}/.test(rutaEcf)
+    && /eq\(invoices\.modo, alcance\.modo\)/.test(fuente('src/services/dgii/filtroDelListadoEcf.ts'));
+  ok('ecf/route: las dos consultas', modoEnRuta === 2 || (modoEnRuta === 1 && modoDelegado));
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
   process.exit(fallos === 0 ? 0 : 1);
