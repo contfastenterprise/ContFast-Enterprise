@@ -1808,6 +1808,15 @@ Además, fuera de la tabla:
   `verificar_retenciones_y_bancos_en_pestanas` mira dentro de las piezas, como los otros dos.
   Banco `verificar_partir_bancos_y_pedidos.ts`: 6 comprobaciones, contraprueba 6 FALLA, tres
   mutantes y tres muertos.
+- **Lote 256: la tabla de "Precios en dólares" se pagina.** Pedido del dueño (2026-10-03). Quince
+  productos por página, con la barra compartida (`components/ui/pagination.tsx`, "Mostrando 1 - 15
+  de 20 productos"). **Se pagina en el navegador, a propósito**: la lista ya llega entera, y la
+  necesitan entera "marcar todos" y "Aplicar precios", que valen para **todas** las páginas, no
+  solo la que se ve. La regla (`trozoDePagina`, pura) **acota la página**: si la lista encoge
+  (se suelta el último producto de la última página), se ve la última que existe y no una vacía.
+  Banco `verificar_paginacion_precios_en_dolares.ts` (regla ejecutada, tabla dibujada): 5
+  comprobaciones y dos invariantes —"marcar todos" mira toda la lista y con una sola página no hay
+  botones: ciertas antes y después—, contraprueba 5 FALLA, cuatro mutantes y cuatro muertos.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2997,5 +3006,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 255 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 256 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

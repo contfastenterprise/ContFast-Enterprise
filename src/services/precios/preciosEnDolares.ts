@@ -196,3 +196,16 @@ const PESOS = new Intl.NumberFormat('es-DO', { minimumFractionDigits: 2, maximum
 
 /** Un importe en pesos, como en el resto de la aplicacion: 1,234.50 */
 export const enPesos = (n: number): string => PESOS.format(n);
+
+/** Lote 256: cuantos productos enseña cada pagina de la tabla de precios en dolares. */
+export const PRODUCTOS_POR_PAGINA = 15;
+
+/**
+ * El trozo de la lista que se ve en una pagina. La pagina se ACOTA: si la lista encoge (se suelta
+ * un producto y la ultima pagina se queda vacia), se ensena la ultima que existe en vez de una vacia.
+ */
+export function trozoDePagina<T>(lista: T[], pagina: number, porPagina = PRODUCTOS_POR_PAGINA): { visibles: T[]; pagina: number; paginas: number } {
+  const paginas = Math.max(1, Math.ceil(lista.length / porPagina));
+  const actual = Math.min(Math.max(1, Math.floor(pagina) || 1), paginas);
+  return { visibles: lista.slice((actual - 1) * porPagina, actual * porPagina), pagina: actual, paginas };
+}

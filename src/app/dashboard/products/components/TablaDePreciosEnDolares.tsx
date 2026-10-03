@@ -7,7 +7,8 @@
  */
 import { useState } from 'react';
 import { Check, Pencil, Unlink, X } from 'lucide-react';
-import { enPesos, escribirTasa, leerCostoUsd, variacion, type Renglon } from '@/services/precios/preciosEnDolares';
+import { enPesos, escribirTasa, leerCostoUsd, PRODUCTOS_POR_PAGINA, trozoDePagina, variacion, type Renglon } from '@/services/precios/preciosEnDolares';
+import { Pagination } from '@/components/ui/pagination';
 
 const th = 'px-3 py-2 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide';
 const td = 'px-3 py-2 text-xs text-slate-700 align-top';
@@ -70,6 +71,9 @@ export function TablaDePreciosEnDolares({ renglones, marcados, puedeAplicar, ocu
   alGuardarCosto: (productId: string, costoUsd: string) => Promise<boolean>;
   alSoltar: (r: Renglon) => void;
 }) {
+  //  Lote 256: la tabla se pagina en el navegador. La lista ya llega entera (la necesitan "marcar
+  //  todos" y "Aplicar precios", que valen para TODAS las paginas, no solo la que se ve).
+  const [paginaPedida, setPaginaPedida] = useState(1);
   if (renglones.length === 0) {
     return (
       <p className="px-4 py-10 text-center text-sm text-slate-500">
@@ -80,7 +84,9 @@ export function TablaDePreciosEnDolares({ renglones, marcados, puedeAplicar, ocu
   const elegidos = new Set(marcados);
   const cambian = renglones.filter((r) => r.calculo?.cambia);
   const todos = cambian.length > 0 && cambian.every((r) => elegidos.has(r.productId));
+  const { visibles, pagina, paginas } = trozoDePagina(renglones, paginaPedida);
   return (
+    <div>
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead className="bg-slate-50 border-b border-slate-200">
@@ -103,7 +109,7 @@ export function TablaDePreciosEnDolares({ renglones, marcados, puedeAplicar, ocu
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
-          {renglones.map((r) => {
+          {visibles.map((r) => {
             const c = r.calculo;
             return (
               <tr key={r.productId} className={c?.cambia ? 'bg-amber-50/40' : undefined}>
@@ -140,6 +146,18 @@ export function TablaDePreciosEnDolares({ renglones, marcados, puedeAplicar, ocu
           })}
         </tbody>
       </table>
+    </div>
+    <div className="px-4 py-2 border-t border-slate-100">
+      <Pagination
+        currentPage={pagina}
+        totalPages={paginas}
+        totalItems={renglones.length}
+        pageSize={PRODUCTOS_POR_PAGINA}
+        onPageChange={setPaginaPedida}
+        itemLabel="productos"
+        hideControlsWhenSinglePage
+      />
+    </div>
     </div>
   );
 }
