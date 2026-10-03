@@ -23,6 +23,8 @@ import { getLocalDateString, getFirstDayOfMonthString, formatDateDisplay } from 
 import GuaranteeChecksView from './components/GuaranteeChecksView';
 import { PASOS, campoDelPaso } from './pasos';
 import { Pagination } from '@/components/ui/pagination';
+import { useCostoEnDolares } from './hooks/useCostoEnDolares';
+import { escribirTasa } from '@/services/precios/preciosEnDolares';
 
 interface Product { id: string; name: string; sku: string; cost: string; }
 interface Supplier { id: string; name: string; rnc: string; }
@@ -167,7 +169,7 @@ export default function PurchasesPage() {
             const firstEmptyIdx = lines.findIndex(l => !l.productId);
             const updated = [...lines];
             
-            const subtotal = roundMoney(1 * (parseFloat(product.cost) || 0));
+            const subtotal = roundMoney(1 * costoDe(product));
             const itbis = noItbis ? 0 : roundMoney(subtotal * 0.18);
             const total = roundMoney(subtotal + itbis);
             
@@ -176,7 +178,7 @@ export default function PurchasesPage() {
               productId: product.id,
               desc: product.name,
               quantity: 1,
-              unitCost: parseFloat(product.cost) || 0,
+              unitCost: costoDe(product),
               subtotal,
               itbis,
               total
@@ -231,6 +233,8 @@ export default function PurchasesPage() {
 
   // Lines for creation
   const [lines, setLines] = useState<{ id: string; productId: string; desc: string; quantity: number; unitCost: number; subtotal: number; itbis: number; total: number; }[]>([]);
+  //  Lote 257: los productos que siguen al dolar entran con su costo en dolares por la tasa vigente.
+  const { costoDe, origenDe } = useCostoEnDolares();
 
   // Lookup data
   const [products, setProducts] = useState<Product[]>([]);
@@ -379,13 +383,13 @@ export default function PurchasesPage() {
             {
               const prod = data.success ? data.data : null;
               if (prod) {
-                const subtotal = Number(prod.cost || 0) * Number(reorderQty);
+                const subtotal = costoDe(prod) * Number(reorderQty);
                 const newLine = {
                   id: Math.random().toString(36).substring(2, 9),
                   productId: prod.id,
                   desc: prod.name,
                   quantity: Number(reorderQty),
-                  unitCost: Number(prod.cost || 0),
+                  unitCost: costoDe(prod),
                   subtotal: subtotal,
                   itbis: 0,
                   total: subtotal
@@ -752,7 +756,7 @@ export default function PurchasesPage() {
           ...l,
           productId: prod.id,
           desc: prod.name,
-          unitCost: parseFloat(prod.cost) || 0,
+          unitCost: costoDe(prod),
         };
         newLine.subtotal = roundMoney(newLine.quantity * newLine.unitCost);
         if (noItbis) {
@@ -793,7 +797,7 @@ export default function PurchasesPage() {
           const prod = products.find(p => p.id === value);
           if (prod) {
             newLine.desc = prod.name;
-            newLine.unitCost = parseFloat(prod.cost) || 0;
+            newLine.unitCost = costoDe(prod);
           }
         }
 
@@ -1359,6 +1363,13 @@ export default function PurchasesPage() {
                           type="number" step="0.01" value={l.unitCost || ''} onChange={e => updateLine(l.id, 'unitCost', parseFloat(e.target.value) || 0)}
                           className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-right font-semibold focus:ring-1 focus:ring-[#c5a059] focus:border-primary outline-none font-mono-data"
                         />
+                        {/* Lote 257: el costo de un producto en dolares sale de la tasa; se dice de donde. */}
+                        {(() => {
+                          const o = l.productId ? origenDe(l.productId) : null;
+                          return o ? (
+                            <p className="mt-0.5 text-[10px] text-right text-slate-500 font-mono-data">US$ {escribirTasa(o.costoUsd)} × {escribirTasa(o.tasa)}</p>
+                          ) : null;
+                        })()}
                       </td>
                       <td className="py-2 px-2 min-w-[120px]">
                         <input 

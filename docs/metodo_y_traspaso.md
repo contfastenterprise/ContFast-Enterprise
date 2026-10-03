@@ -1817,6 +1817,24 @@ Además, fuera de la tabla:
   Banco `verificar_paginacion_precios_en_dolares.ts` (regla ejecutada, tabla dibujada): 5
   comprobaciones y dos invariantes —"marcar todos" mira toda la lista y con una sola página no hay
   botones: ciertas antes y después—, contraprueba 5 FALLA, cuatro mutantes y cuatro muertos.
+- **Lote 257: en las compras, los productos en dólares entran con su costo en dólares por la tasa
+  vigente.** Pedido del dueño (2026-10-03): *"para las compras, los productos que tienen precios en
+  dólares deben calcularse en base a la tasa establecida"*.
+  **Lo que pasaba**: la línea tomaba el costo de **catálogo**, que solo se pone al día al pulsar
+  "Aplicar precios". Con la tasa del día escrita y los precios sin aplicar, la compra entraba con
+  el costo de la tasa vieja.
+  `costoParaCompra` (pura, en `preciosEnDolares.ts`) decide: dólares × tasa si el producto sigue al
+  dólar y hay tasa; si no, el de catálogo de siempre. Las **cinco** puertas por las que entra un
+  producto a una compra pasan por ella —escanear el código, la compra por reorden, el
+  autocompletado y el desplegable de la línea— y la línea dice de dónde sale el costo ("US$ 45.00 ×
+  63.50"). **El costo se puede seguir cambiando a mano**: manda la factura del suplidor.
+  El hook `purchases/hooks/useCostoEnDolares.ts` lee la tasa y los productos en dólares **una
+  vez**; si no puede (sin permiso de ver el catálogo, sin red), la compra sigue con el costo de
+  catálogo — no es motivo para frenarla.
+  **Se miró en el navegador**: "Puerta 03" (US$ 45, catálogo RD$ 2.657,20) entra con 2.857,50 e
+  ITBIS 514,35, con la leyenda debajo del costo.
+  Banco `verificar_compras_con_tasa_del_dolar.ts`: 7 comprobaciones y un invariante (el costo se
+  puede cambiar a mano, cierto antes y después), contraprueba 7 FALLA, seis mutantes y seis muertos.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3006,5 +3024,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 256 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 257 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
