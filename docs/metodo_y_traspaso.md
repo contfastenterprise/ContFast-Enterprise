@@ -1699,6 +1699,24 @@ Además, fuera de la tabla:
   Banco `verificar_empresas_y_pedidos_en_pestanas.ts`: 6 comprobaciones, contraprueba 6 FALLA,
   nueve mutantes y nueve muertos.
   **Los tres lotes (248-250) se barrieron juntos** y van en un PR cada uno.
+- **Lote 251: atar VARIOS productos al dólar de una vez.** Pedido del dueño (2026-10-02): *"que
+  se puedan seleccionar varios productos, ya que puede haber productos con el mismo precio"*.
+  En "Añadir productos que se compran en dólares" cada resultado de la búsqueda es una casilla;
+  se marcan uno o varios (también de varias búsquedas: lo marcado se queda), "Marcar los N"
+  marca todos los encontrados, los marcados salen debajo con su X para quitarlos, y el botón dice
+  "Añadir N productos". Todos reciben el **mismo** costo en US$, en **una** petición. La búsqueda
+  trae ahora hasta 20 (antes 8).
+  **Todo o nada**: si alguno no es de la empresa, no se ata ninguno y se dice — atar "los que se
+  pudo" dejaría sin saber cuáles. Los repetidos se quitan. `productId` suelto (la forma del 247)
+  sigue valiendo, y la lista tiene tope (200).
+  La selección es pura (`services/precios/seleccionDeProductos.ts`) para poder ejecutarla: el
+  repositorio no tiene DOM de pruebas (ni jsdom ni happy-dom) y un estado que solo vive dentro
+  del componente no se puede comprobar sin él.
+  **Se miró en el navegador** con la página temporal: buscar, "Marcar los 2", el botón "Añadir 2
+  productos" y los dos en la tabla.
+  Dos bancos. `verificar_varios_al_dolar.ts` (selección y hook ejecutados): 13 comprobaciones,
+  contraprueba 13 FALLA. `verificar_varios_al_dolar_db.ts` (**integración**): 5 comprobaciones
+  más el invariante de la forma vieja, contraprueba 5 FALLA, seis mutantes y seis muertos.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2888,5 +2906,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 250 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 251 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

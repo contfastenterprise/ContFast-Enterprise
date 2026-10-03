@@ -13,13 +13,17 @@ import { esUuid, fallo, noAutenticado, rechazo, soloAdministracion } from '@/ser
  *   GET            la tasa vigente, las ultimas escritas y cada producto atado
  *                  con lo que cambiaria si se aplicara hoy (no cambia nada);
  *   GET ?buscar=   productos que aun no estan atados, para elegir uno;
- *   PUT            ata un producto con su costo en dolares, o se lo cambia;
+ *   PUT            ata uno o varios productos con el mismo costo en dolares
+ *                  (`productIds`, lote 251; `productId` sigue valiendo), o se lo cambia;
  *   DELETE         lo suelta (sus precios se quedan como estan).
  *
  * Ver lo pide el permiso de ver el catalogo. Todo lo que ESCRIBE (atar, soltar
  * y, en sus rutas, la tasa y aplicar los precios) es de administracion: el costo
  * en dolares y la tasa los fija el dueno.
  */
+/** Cuantos productos se atan de una vez (lote 251): una busqueda trae 20; esto es holgura, no un limite de uso. */
+const MAXIMO_A_LA_VEZ = 200;
+
 export async function GET(req: NextRequest) {
   const auth = await verifyAuth(req);
   if (!auth) return noAutenticado();
@@ -52,14 +56,17 @@ export async function PUT(req: NextRequest) {
     await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'catalogo', 'write');
     if (!esAdminOSistemas(auth.role)) return soloAdministracion();
 
-    const cuerpo = (await req.json().catch(() => null)) as { productId?: unknown; costoUsd?: unknown } | null;
-    if (!cuerpo || !esUuid(cuerpo.productId)) return rechazo(400, 'VALIDATION_ERROR', 'Falta el producto.');
-    const costo = leerCostoUsd(cuerpo.costoUsd);
+    const cuerpo = (await req.json().catch(() => null)) as { productId?: unknown; productIds?: unknown; costoUsd?: unknown } | null;
+    const ids = Array.isArray(cuerpo?.productIds) ? cuerpo.productIds : [cuerpo?.productId];
+    if (ids.length === 0 || ids.length > MAXIMO_A_LA_VEZ || !ids.every(esUuid)) {
+      return rechazo(400, 'VALIDATION_ERROR', ids.length > MAXIMO_A_LA_VEZ ? `Se pueden añadir hasta ${MAXIMO_A_LA_VEZ} productos a la vez.` : 'Falta el producto.');
+    }
+    const costo = leerCostoUsd(cuerpo?.costoUsd);
     if (!costo.bien) return rechazo(400, 'VALIDATION_ERROR', costo.mensaje);
 
-    const atado = await PreciosEnDolaresRepositorio.atar(auth.companyId, cuerpo.productId, costo.valor);
-    if (!atado) return rechazo(404, 'NOT_FOUND', 'Ese producto no existe en esta empresa.');
-    return NextResponse.json({ success: true, data: { productId: cuerpo.productId, costoUsd: costo.valor } });
+    const atado = await PreciosEnDolaresRepositorio.atar(auth.companyId, ids, costo.valor);
+    if (!atado) return rechazo(404, 'NOT_FOUND', ids.length > 1 ? 'Alguno de esos productos no existe en esta empresa. No se añadió ninguno.' : 'Ese producto no existe en esta empresa.');
+    return NextResponse.json({ success: true, data: { productIds: ids, costoUsd: costo.valor } });
   } catch (error: unknown) {
     return fallo(error, 'no se pudo atar el producto');
   }
