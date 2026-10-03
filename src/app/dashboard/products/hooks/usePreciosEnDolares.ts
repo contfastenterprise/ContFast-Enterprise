@@ -92,6 +92,12 @@ export function usePreciosEnDolares() {
     escribir(() => fetch(DIRECCION, json('PUT', { productIds: [productId], costoUsd })),
       'No se pudo guardar el costo en dólares.', 'Costo en dólares guardado.'), [escribir]);
 
+  /** Lote 258: fija (o quita, vacio) el precio base en dolares de un producto. */
+  const fijarPrecioUsd = useCallback((productId: string, precioUsd: string) =>
+    escribir(() => fetch(DIRECCION, json('PATCH', { productId, precioUsd })),
+      'No se pudo guardar el precio en dólares.',
+      precioUsd.trim() === '' ? 'Precio en dólares quitado.' : 'Precio en dólares guardado.'), [escribir]);
+
   /** Lote 251: varios productos con el mismo costo, en una sola peticion (todo o nada). */
   const atarVarios = useCallback((productIds: string[], costoUsd: string) =>
     escribir(() => fetch(DIRECCION, json('PUT', { productIds, costoUsd })),
@@ -135,7 +141,7 @@ export function usePreciosEnDolares() {
     }
   }, []);
 
-  return { abierta, abrir, cerrar, datos, error, marcados, ocupado, encontrados, cargar, guardarTasa, atar, atarVarios, soltar, aplicar, aplicarCon, marcar, marcarTodos, buscar };
+  return { abierta, abrir, cerrar, datos, error, marcados, ocupado, encontrados, cargar, guardarTasa, atar, atarVarios, fijarPrecioUsd, soltar, aplicar, aplicarCon, marcar, marcarTodos, buscar };
 }
 
 export type PreciosEnDolaresDeProductos = ReturnType<typeof usePreciosEnDolares>;
