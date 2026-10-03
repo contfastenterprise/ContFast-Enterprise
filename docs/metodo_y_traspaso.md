@@ -2000,6 +2000,47 @@ Además, fuera de la tabla:
   guarda UTC; convertirlo con `AT TIME ZONE 'America/Santo_Domingo'` a secas lo interpreta como hora
   de RD y lo corre cuatro horas **hacia adelante** (salía "00:44 del día siguiente"). Hace falta el
   doble `AT TIME ZONE` del lote 174.
+- **Lote 263: el XML del e-CF descuenta `cantidad × descuento por unidad`.** Salió revisando, a
+  petición del dueño (2026-10-03), cómo calcula la factura. **El orden del cálculo es el correcto**
+  (costo sin ITBIS; precio de venta sin ITBIS; descuento sobre el precio; ITBIS sobre lo descontado;
+  total), y el servidor recalcula los totales sin fiarse de la pantalla. Pero el XML que firma mSeller
+  restaba el descuento **una vez por línea** aunque el campo es **por unidad** ("Desc. Unit."): con
+  cantidad > 1, `MontoItem`, `DescuentoMonto`, `MontoGravadoTotal` y los `MontoGravadoI*` salían con un
+  descuento menor que el que descuentan `TotalITBIS` y `MontoTotal` (que vienen de la calculadora, que
+  sí multiplica). El comprobante se contradecía por dentro.
+  **Medido en PRODUCCIÓN, solo lectura** (`scratch/_to_delete/medir_descuento_en_xml.ts`): de 449
+  líneas, 12 llevan descuento y **4 tienen además cantidad > 1**, en tres comprobantes **ACEPTADOS** de
+  Latin Doors: `E320000000043` (04/07; 200 de descuento real, 100 en el XML; y 3,90 / 1,30),
+  `E320000000046` (09/07; 266 / 133) y `E310000000012` (28/07; 40 × 440: **4.020 / 100,50**). **No se
+  tocan**: ya están emitidos; qué hacer con ellos es del contador. La factura impresa ya multiplicaba
+  bien (`documentTemplates`, `qty × discUnit`); el 607, la contabilidad y los totales, también.
+  La regla de la línea sube a `services/invoice/importesDeLinea.ts` (subtotal, descuento total y base,
+  con los mismos `roundMoney`) y la usan **la calculadora y el XML**: escrita dos veces fue como se
+  separaron. Con cantidad 1 o sin descuento, el XML sale igual que antes (invariantes del banco).
+  Banco `verificar_descuento_del_xml.ts` (ejecuta la calculadora y arma el XML como
+  `invoiceSubmissionService`, con el caso real de `E310000000012`): 10 comprobaciones y tres
+  invariantes, contraprueba **10 FALLA**, seis mutantes y seis muertos. **Una comprobación pasaba
+  antes del arreglo**: "el total es gravado + ITBIS" comparaba `MontoTotal` con números fijos, y ese
+  total siempre salió bien; ahora compara el total con el gravado y el ITBIS **del propio XML**.
+  `verificar_mseller` y `verificar_itbis_por_linea` (integración, arman XML de verdad) en verde.
+- **Lote 264: no se factura por debajo del costo contando el descuento.** De la misma revisión del
+  cálculo de la factura (2026-10-03). La regla —servidor y pantalla— comparaba el precio unitario
+  **antes** del descuento con el costo: precio 100, costo 90 y 20 de descuento por unidad pasaba,
+  aunque se vendía a 80. Medido en PRODUCCIÓN (solo lectura): 3 líneas facturadas quedaron así por
+  debajo del costo de catálogo de hoy. **Decisión del dueño: impedirlo**, no solo avisar.
+  `services/invoice/precioMinimo.ts` (pura): `precioNeto = precio − descuento por unidad`,
+  `quedaPorDebajoDelCosto` y el motivo (nombra el precio **con descuento** cuando es el descuento el
+  que lo deja abajo). La usan el servidor (`preFlightValidations`, que es el que impide de verdad) y
+  la pantalla (el error del campo antes de enviar y el precio en rojo). Justo en el costo no es "por
+  debajo"; sin costo no hay contra qué comparar; las notas de crédito siguen fuera.
+  Dos bancos. `verificar_costo_tras_descuento.ts` (la regla ejecutada y el cableado): 10
+  comprobaciones, contraprueba **10 FALLA**. `verificar_costo_tras_descuento_db.ts` (**integración**,
+  base desechable: llama a `preFlightValidations` con un producto de costo 90 y los totales de la
+  calculadora): 2 comprobaciones y cuatro invariantes (95 pasa, 90 pasa, 85 sin descuento se rechaza,
+  la nota de crédito no se frena), contraprueba **2 FALLA**. Ocho mutantes y ocho muertos.
+  **Re-anclado**: `verificar_p2_34_facturas` (lote 115) copiaba la línea literal del error del
+  precio; ahora vigila que la regla devuelva su campo, y un mutante que la quita sigue fallando.
+  **Para la carpeta del dueño**: `verificar_costo_tras_descuento_db.ts` a `deuda_bancos.txt`.
 - **Lote 265: el porcentaje de ganancia es un margen sobre el PRECIO DE VENTA.** Decisión del dueño
   (2026-10-03), tras la revisión del cálculo de la factura: *"usa la fórmula costo ÷ 0,75 = 133,33.
   aplícalo en todos los lugares (productos y facturación)"*. Hasta ahora los precios eran un
