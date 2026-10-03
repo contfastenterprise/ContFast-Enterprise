@@ -1679,6 +1679,26 @@ Además, fuera de la tabla:
   capas; el formulario de horas extra con el tipo elegido en el título.
   Banco `verificar_rrhh_en_pestanas.ts`: 7 comprobaciones, contraprueba 7 FALLA, diez mutantes y
   diez muertos.
+- **Lote 250: Empresas y Pedidos a suplidor, con pestañas como Compras.** Último tramo del
+  pedido *"haz lo mismo con las demás secciones que tengan nuevo registro"*.
+  · **Empresas** (administración): "Nueva Empresa" y su modal pasan a las pestañas "Empresas" /
+    "Registrar"; los botones del formulario dejan de ocupar todo el ancho. Gestionar la
+    suscripción sigue en su ventana: es una acción sobre una empresa.
+  · **Pedidos a suplidor**: "NUEVO PEDIDO" y su modal de 1.024 px con barra propia, igual
+    ("Pedidos" / "Registrar"). Ver el detalle y recibir siguen en su ventana (acciones sobre un
+    pedido); el desplegable de búsqueda de productos conserva su propio desplazamiento, que es
+    lo que debe (el banco lo distingue del formulario).
+  **No entra, a propósito**: las autorizaciones de e-CF. Su alta vive **dentro** de la pestaña
+  "Secuencias" de la Central e-CF, que ya tiene sus propias pestañas de contenido — las
+  pantallas que el lote 243 dejó fuera por eso mismo.
+  **Con esto, de las once pantallas medidas en el 243**: convertidas clientes, suplidores
+  (244), retenciones, bancos (248), empleados, horas extra (249), empresas y pedidos (250);
+  fuera, con su motivo, departamentos, liquidaciones y autorizaciones de e-CF.
+  **Se miró en el navegador** con la página temporal: lista, registrar y volver, sin capas ni
+  barras propias en el formulario. Las capturas volvieron a colgarse: se comprobó en el DOM.
+  Banco `verificar_empresas_y_pedidos_en_pestanas.ts`: 6 comprobaciones, contraprueba 6 FALLA,
+  nueve mutantes y nueve muertos.
+  **Los tres lotes (248-250) se barrieron juntos** y van en un PR cada uno.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2868,5 +2888,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 249 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 250 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
