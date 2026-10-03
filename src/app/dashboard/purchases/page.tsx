@@ -24,7 +24,8 @@ import GuaranteeChecksView from './components/GuaranteeChecksView';
 import { PASOS, campoDelPaso } from './pasos';
 import { Pagination } from '@/components/ui/pagination';
 import { useCostoEnDolares } from './hooks/useCostoEnDolares';
-import { escribirTasa } from '@/services/precios/preciosEnDolares';
+import { lineasDeCompraConTasa } from '@/services/precios/cambioDeTasa';
+import { TasaDelDolarEnLinea } from '@/components/precios/TasaDelDolarEnLinea';
 
 interface Product { id: string; name: string; sku: string; cost: string; }
 interface Supplier { id: string; name: string; rnc: string; }
@@ -234,7 +235,16 @@ export default function PurchasesPage() {
   // Lines for creation
   const [lines, setLines] = useState<{ id: string; productId: string; desc: string; quantity: number; unitCost: number; subtotal: number; itbis: number; total: number; }[]>([]);
   //  Lote 257: los productos que siguen al dolar entran con su costo en dolares por la tasa vigente.
-  const { costoDe, origenDe } = useCostoEnDolares();
+  //  Lote 261: y la tasa se puede cambiar desde aqui. Al cambiarla, las lineas ya escritas de un
+  //  producto en dolares cuyo costo sigue siendo el de la tasa anterior pasan a la nueva; las que
+  //  se cambiaron a mano (manda la factura del suplidor) se dejan.
+  //  Con las `lines` de este render: el hook llama siempre a la ultima version de esta funcion.
+  const { costoDe, tasaDelDolar } = useCostoEnDolares((c) => {
+    const r = lineasDeCompraConTasa(lines, c.costosUsd, c.anterior, c.nueva, noItbis);
+    if (r.cambiadas === 0) return;
+    setLines(r.lineas);
+    toast.info(r.cambiadas === 1 ? 'Se actualizó el costo de 1 línea de esta compra.' : `Se actualizó el costo de ${r.cambiadas} líneas de esta compra.`);
+  });
 
   // Lookup data
   const [products, setProducts] = useState<Product[]>([]);
@@ -1296,9 +1306,14 @@ export default function PurchasesPage() {
         <>
           <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
             <div className="mb-4">
-              <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
-                <Box className="h-4 w-4" /> Líneas de Compra / Gasto
-              </h3>
+              {/*  LOTE 261: la tasa del dolar junto a las lineas, con "Cambiar tasa" para quien
+                   administra. No sale si la empresa no usa precios en dolares.  */}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
+                  <Box className="h-4 w-4" /> Líneas de Compra / Gasto
+                </h3>
+                <TasaDelDolarEnLinea t={tasaDelDolar} />
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -1363,13 +1378,6 @@ export default function PurchasesPage() {
                           type="number" step="0.01" value={l.unitCost || ''} onChange={e => updateLine(l.id, 'unitCost', parseFloat(e.target.value) || 0)}
                           className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-right font-semibold focus:ring-1 focus:ring-[#c5a059] focus:border-primary outline-none font-mono-data"
                         />
-                        {/* Lote 257: el costo de un producto en dolares sale de la tasa; se dice de donde. */}
-                        {(() => {
-                          const o = l.productId ? origenDe(l.productId) : null;
-                          return o ? (
-                            <p className="mt-0.5 text-[10px] text-right text-slate-500 font-mono-data">US$ {escribirTasa(o.costoUsd)} × {escribirTasa(o.tasa)}</p>
-                          ) : null;
-                        })()}
                       </td>
                       <td className="py-2 px-2 min-w-[120px]">
                         <input 
