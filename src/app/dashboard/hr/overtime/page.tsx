@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Clock, Coins, Percent, Plus, Trash2, X, RefreshCw, User, Calendar, AlertCircle } from 'lucide-react';
+import { Clock, Coins, Percent, Plus, Trash2, RefreshCw, User, Calendar, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 
 // Format currency helper
 const formatCurrency = (val: number | string) => {
@@ -205,22 +206,17 @@ export default function OvertimeAndEntriesPage() {
             Gestione las horas extras, bonificaciones y deducciones que se aplicarán en la próxima nómina.
           </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={fetchData}
-            className="inline-flex items-center justify-center rounded-md border border-outline bg-surface p-2 text-sm font-medium text-on-surface shadow-sm hover:bg-surface-variant transition"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </button>
-          <button
-            onClick={handleOpenModal}
-            className="inline-flex items-center justify-center rounded-md bg-[#003366] px-4 py-2 text-sm font-medium text-white shadow hover:bg-[#001e40] focus:outline-none focus:ring-2 focus:ring-[#003366] focus:ring-offset-2"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Nuevo Registro
-          </button>
-        </div>
+        {/* Lote 249: en la cabecera, SOLO las pestanas (como en Compras). Recargar baja a la fila de
+            las pestanas de contenido; lo que se registra es del tipo de la pestana de contenido elegida. */}
+        <PestanasDeRegistro
+          enFormulario={showModal}
+          lista="Novedades"
+          alVerLista={() => setShowModal(false)}
+          alRegistrar={handleOpenModal}
+        />
       </div>
+
+      {!showModal && (<>
 
       {/* Stats Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
@@ -271,7 +267,7 @@ export default function OvertimeAndEntriesPage() {
       </div>
 
       {/* Tab Buttons */}
-      <div className="border-b border-outline/30">
+      <div className="border-b border-outline/30 flex items-end justify-between gap-3">
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
           {(['overtime', 'income', 'deduction'] as const).map((tab) => {
             const label =
@@ -295,6 +291,15 @@ export default function OvertimeAndEntriesPage() {
             );
           })}
         </nav>
+        <button
+          type="button"
+          onClick={fetchData}
+          title="Recargar"
+          aria-label="Recargar"
+          className="mb-2 inline-flex items-center justify-center rounded-md border border-outline bg-surface p-2 text-sm font-medium text-on-surface shadow-sm hover:bg-surface-variant transition"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </button>
       </div>
 
       {/* Table & Content */}
@@ -400,174 +405,159 @@ export default function OvertimeAndEntriesPage() {
         </div>
       )}
 
-      {/* Create Modal Dialog */}
+      </>)}
+
+      {/* Registrar: era un modal; desde el lote 249 es la segunda pestana. El tipo es el de la
+          pestana de contenido que estaba elegida, y el titulo lo dice. */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg rounded-xl border border-outline bg-surface p-6 shadow-lg text-on-surface">
-            {/* Close Button */}
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 dark:text-slate-400"
-            >
-              <X className="h-4 w-4" />
-            </button>
+        <PanelDeRegistro titulo={`Agregar ${activeTab === 'overtime' ? 'Horas Extras' : activeTab === 'income' ? 'Ingreso Adicional' : 'Deducción'}`}>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+            Llene el formulario para registrar una entrada para el periodo actual.
+          </p>
 
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-              Agregar{' '}
-              {activeTab === 'overtime'
-                ? 'Horas Extras'
-                : activeTab === 'income'
-                  ? 'Ingreso Adicional'
-                  : 'Deducción'}
-            </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-              Llene el formulario para registrar una entrada para el periodo actual.
-            </p>
+          <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
+            {/* Employee select */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                Empleado
+              </label>
+              <select
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+                required
+                className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
+              >
+                <option value="">Seleccione un empleado...</option>
+                {employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.firstName} {emp.lastName} ({emp.employeeCode}) - {formatCurrency(emp.salary)}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Employee select */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
-                  Empleado
-                </label>
-                <select
-                  value={employeeId}
-                  onChange={(e) => setEmployeeId(e.target.value)}
-                  required
-                  className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
-                >
-                  <option value="">Seleccione un empleado...</option>
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.firstName} {emp.lastName} ({emp.employeeCode}) - {formatCurrency(emp.salary)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Subtype select */}
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
-                  Tipo de {activeTab === 'overtime' ? 'Hora Extra' : activeTab === 'income' ? 'Ingreso' : 'Deducción'}
-                </label>
-                <select
-                  value={subType}
-                  onChange={(e) => setSubType(e.target.value)}
-                  required
-                  className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
-                >
-                  {activeTab === 'overtime' ? (
-                    <>
-                      <option value="diurna">Diurna (35% recargo)</option>
-                      <option value="nocturna">Nocturna (85% recargo / ordinaria nocturna)</option>
-                      <option value="festiva">Día de Descanso / Feriado (100% recargo)</option>
-                      <option value="doble">Doble (100% recargo especial)</option>
-                    </>
-                  ) : activeTab === 'income' ? (
-                    <>
-                      <option value="comision">Comisión</option>
-                      <option value="productividad">Productividad</option>
-                      <option value="incentivo">Incentivo</option>
-                      <option value="transporte">Transporte</option>
-                      <option value="combustible">Combustible</option>
-                      <option value="otro">Otro</option>
-                    </>
-                  ) : (
-                    <>
-                      <option value="prestamo">Préstamo</option>
-                      <option value="cooperativa">Cooperativa</option>
-                      <option value="seguro">Seguro</option>
-                      <option value="embargo">Embargo</option>
-                      <option value="otro">Otro</option>
-                    </>
-                  )}
-                </select>
-              </div>
-
-              {/* Grid for hours/amount and date */}
-              <div className="grid grid-cols-2 gap-4">
+            {/* Subtype select */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                Tipo de {activeTab === 'overtime' ? 'Hora Extra' : activeTab === 'income' ? 'Ingreso' : 'Deducción'}
+              </label>
+              <select
+                value={subType}
+                onChange={(e) => setSubType(e.target.value)}
+                required
+                className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
+              >
                 {activeTab === 'overtime' ? (
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
-                      Horas Trabajadas
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={hours}
-                      onChange={(e) => setHours(e.target.value)}
-                      required
-                      placeholder="Ej. 5.5"
-                      className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
-                    />
-                  </div>
+                  <>
+                    <option value="diurna">Diurna (35% recargo)</option>
+                    <option value="nocturna">Nocturna (85% recargo / ordinaria nocturna)</option>
+                    <option value="festiva">Día de Descanso / Feriado (100% recargo)</option>
+                    <option value="doble">Doble (100% recargo especial)</option>
+                  </>
+                ) : activeTab === 'income' ? (
+                  <>
+                    <option value="comision">Comisión</option>
+                    <option value="productividad">Productividad</option>
+                    <option value="incentivo">Incentivo</option>
+                    <option value="transporte">Transporte</option>
+                    <option value="combustible">Combustible</option>
+                    <option value="otro">Otro</option>
+                  </>
                 ) : (
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
-                      Monto (RD$)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      required
-                      placeholder="Ej. 1500"
-                      className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
-                    />
-                  </div>
+                  <>
+                    <option value="prestamo">Préstamo</option>
+                    <option value="cooperativa">Cooperativa</option>
+                    <option value="seguro">Seguro</option>
+                    <option value="embargo">Embargo</option>
+                    <option value="otro">Otro</option>
+                  </>
                 )}
+              </select>
+            </div>
 
+            {/* Grid for hours/amount and date */}
+            <div className="grid grid-cols-2 gap-4">
+              {activeTab === 'overtime' ? (
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
-                    Fecha
+                    Horas Trabajadas
                   </label>
                   <input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
+                    type="number"
+                    step="0.01"
+                    value={hours}
+                    onChange={(e) => setHours(e.target.value)}
                     required
+                    placeholder="Ej. 5.5"
                     className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                   />
                 </div>
-              </div>
-
-              {/* Description (only for income & deduction) */}
-              {activeTab !== 'overtime' && (
+              ) : (
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
-                    Descripción / Nota
+                    Monto (RD$)
                   </label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Escriba un detalle..."
-                    rows={2}
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    required
+                    placeholder="Ej. 1500"
                     className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
                   />
                 </div>
               )}
 
-              {/* Action Buttons */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="inline-flex items-center justify-center rounded-md border border-outline bg-surface px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-variant transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="inline-flex items-center justify-center rounded-md bg-[#003366] px-4 py-2 text-sm font-medium text-white shadow hover:bg-[#001e40] disabled:opacity-50"
-                >
-                  {submitting ? 'Guardando...' : 'Guardar Registro'}
-                </button>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                  Fecha
+                </label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  required
+                  className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
+                />
               </div>
-            </form>
-          </div>
-        </div>
+            </div>
+
+            {/* Description (only for income & deduction) */}
+            {activeTab !== 'overtime' && (
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                  Descripción / Nota
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Escriba un detalle..."
+                  rows={2}
+                  className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface"
+                />
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="inline-flex items-center justify-center rounded-md border border-outline bg-surface px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-variant transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="inline-flex items-center justify-center rounded-md bg-[#003366] px-4 py-2 text-sm font-medium text-white shadow hover:bg-[#001e40] disabled:opacity-50"
+              >
+                {submitting ? 'Guardando...' : 'Guardar Registro'}
+              </button>
+            </div>
+          </form>
+        </PanelDeRegistro>
       )}
     </div>
 

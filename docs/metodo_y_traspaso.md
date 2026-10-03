@@ -1663,6 +1663,22 @@ Además, fuera de la tabla:
   Banco `verificar_retenciones_y_bancos_en_pestanas.ts`: 10 comprobaciones, contraprueba 10
   FALLA (contra `git show HEAD:`), trece mutantes y trece muertos; lo que no cambia (la
   confirmación de eliminar, la ventana del movimiento) va como invariante.
+- **Lote 249: Empleados y Horas extra (RRHH), con pestañas como Compras.** Mismo pedido.
+  · **Empleados**: "Agregar Empleado" y su modal de 672 px con barra propia pasan a las pestañas
+    "Empleados" / "Registrar"; el formulario conserva sus dos secciones.
+  · **Ingresos, Deducciones y Horas Extras**: "Nuevo Registro" y su modal, igual ("Novedades" /
+    "Registrar"). La pantalla ya tenía pestañas de **contenido** (horas extra, ingresos,
+    deducciones): se quedan dentro de la lista, y lo que se registra es del tipo de la que estaba
+    elegida — el título del formulario lo dice ("Agregar Ingreso Adicional"). Recargar baja de la
+    cabecera a la fila de esas pestañas.
+  **No entran, a propósito**: **Departamentos y Puestos** (dos altas de dos campos, cada una con
+  su "Agregar" dentro de su tarjeta: los "modales pequeños" del lote 240, y dos tipos de registro
+  no caben en un conmutador de dos pestañas) y **Liquidaciones** (no tiene modal: el cálculo ya
+  vive en la página, junto a su histórico).
+  **Se miró en el navegador** con la página temporal: lista, registrar, cancelar y volver, sin
+  capas; el formulario de horas extra con el tipo elegido en el título.
+  Banco `verificar_rrhh_en_pestanas.ts`: 7 comprobaciones, contraprueba 7 FALLA, diez mutantes y
+  diez muertos.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2852,5 +2868,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 248 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 249 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
