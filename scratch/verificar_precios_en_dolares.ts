@@ -88,8 +88,10 @@ async function main() {
     ok(E1[4], c.despues.priceMayorista === 0, `mayorista ${c.despues.priceMayorista}`);
 
     const sinCosto = r.calcular({ ...base, cost: 0 }, 50);
-    ok(E1[5], sinCosto.despues.cost === 100 && sinCosto.despues.price === 125 && sinCosto.despues.priceConsumidor === 120 &&
-      sinCosto.despues.priceMayorista === 115 && sinCosto.despues.priceProveedor === 110 && sinCosto.avisos.some((a: string) => /fábrica/.test(a)),
+    //  LOTE 265: los margenes de fabrica son ahora sobre la VENTA (`costo / (1 - margen)`), decision
+    //  del dueño: costo 100 -> 133,33 / 125 / 117,65 / 111,11, no 125 / 120 / 115 / 110 (recargo).
+    ok(E1[5], sinCosto.despues.cost === 100 && sinCosto.despues.price === 133.33 && sinCosto.despues.priceConsumidor === 125 &&
+      sinCosto.despues.priceMayorista === 117.65 && sinCosto.despues.priceProveedor === 111.11 && sinCosto.avisos.some((a: string) => /fábrica/.test(a)),
       JSON.stringify(sinCosto.despues));
 
     const una = r.calcular(base, 61);

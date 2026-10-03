@@ -11,6 +11,7 @@ import { PASOS, campoDelPaso, primerPasoConFallo } from './pasos';
 import { FotoYDescripcion } from './components/FotoYDescripcion';
 import { PreciosEnDolares } from './components/PreciosEnDolares';
 import { usePreciosEnDolares } from './hooks/usePreciosEnDolares';
+import { preciosDesdeCosto } from '@/services/precios/margen';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 
 /**
@@ -185,10 +186,14 @@ export default function ProductsPage() {
     if (!manualPricesEnabled && formData.cost) {
       const costNum = Number(formData.cost);
       if (!isNaN(costNum) && costNum >= 0) {
-        const pBase = (costNum * 1.25).toFixed(2);
-        const pConsumidor = (costNum * 1.20).toFixed(2);
-        const pMayorista = (costNum * 1.15).toFixed(2);
-        const pProveedor = (costNum * 1.10).toFixed(2);
+        //  Lote 265: margen sobre la VENTA (`costo / (1 - margen)`), no recargo sobre el costo
+        //  (`costo x 1,25`). Decision del dueño: con costo 100 y 25 %, 133,33. La regla vive en
+        //  `services/precios/margen.ts`, la misma que usa "Precios en dolares".
+        const p = preciosDesdeCosto(costNum);
+        const pBase = p.price.toFixed(2);
+        const pConsumidor = p.priceConsumidor.toFixed(2);
+        const pMayorista = p.priceMayorista.toFixed(2);
+        const pProveedor = p.priceProveedor.toFixed(2);
 
         // Evitamos actualización infinita verificando si hay cambios reales
         if (formData.priceConsumidor !== pConsumidor ||
@@ -1054,10 +1059,11 @@ export default function ProductsPage() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-2 gap-2">
             <div className="relative">
-              <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Base (+25%)</label>
+              <label htmlFor="precio-auto-base" className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Base (margen 25%)</label>
               <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
               <input
                 type="number"
+                id="precio-auto-base"
                 readOnly
                 value={formData.price}
                 className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
@@ -1065,10 +1071,11 @@ export default function ProductsPage() {
             </div>
 
             <div className="relative">
-              <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Consumidor (+20%)</label>
+              <label htmlFor="precio-auto-consumidor" className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Consumidor (margen 20%)</label>
               <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
               <input
                 type="number"
+                id="precio-auto-consumidor"
                 readOnly
                 value={formData.priceConsumidor}
                 className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
@@ -1076,10 +1083,11 @@ export default function ProductsPage() {
             </div>
 
             <div className="relative">
-              <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Mayorista (+15%)</label>
+              <label htmlFor="precio-auto-mayorista" className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Mayorista (margen 15%)</label>
               <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
               <input
                 type="number"
+                id="precio-auto-mayorista"
                 readOnly
                 value={formData.priceMayorista}
                 className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
@@ -1087,10 +1095,11 @@ export default function ProductsPage() {
             </div>
 
             <div className="relative">
-              <label className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Proveedor (+10%)</label>
+              <label htmlFor="precio-auto-proveedor" className="text-[11px] text-slate-650 font-medium block mb-0.5">P. Proveedor (margen 10%)</label>
               <span className="absolute left-3 top-[26px] -translate-y-1/2 text-emerald-650 font-bold z-10 text-xs">RD$</span>
               <input
                 type="number"
+                id="precio-auto-proveedor"
                 readOnly
                 value={formData.priceProveedor}
                 className="w-full bg-slate-100 border border-slate-300 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 opacity-80 cursor-not-allowed font-bold"
@@ -1989,7 +1998,7 @@ export default function ProductsPage() {
                 <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 p-3 rounded-lg flex items-start gap-3">
                   <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
                   <p className="text-xs">
-                    Al guardar estos precios, el auto-cálculo automático (20%, 15%, 10%) basado en el costo se desactivará para no sobrescribir tus ajustes.
+                    Al guardar estos precios, el cálculo automático (margen del 25 %, 20 %, 15 % y 10 % sobre el precio de venta) se desactivará para no sobrescribir tus ajustes.
                   </p>
                 </div>
 
