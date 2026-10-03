@@ -9,6 +9,11 @@
  * escrita por el cada dia, precios que se aplican CON SU CONFIRMACION, y un
  * costo en dolares fijado por producto.
  *
+ * LOTE 262: lo de la confirmacion cambio (decision del dueño, 2026-10-03): guardar
+ * la tasa ya aplica los precios a todos, como en Compras y Facturacion. La tabla y
+ * "Aplicar precios" siguen para lo que cambia sin tocar la tasa: el costo o el
+ * precio en dolares de un producto.
+ *
  * El estado es de `usePreciosEnDolares`, que crea la pagina; aqui se pinta y se
  * pide la confirmacion.
  */
@@ -50,8 +55,11 @@ export function PreciosEnDolares({ d, alVolver }: { d: PreciosEnDolaresDeProduct
           <h2 className="text-lg font-bold text-[#003366] font-display flex items-center gap-2">
             <DollarSign className="h-5 w-5" />Precios en dólares
           </h2>
+          {/*  LOTE 262: guardar la tasa ya aplica los precios; "Aplicar precios" queda para
+               reaplicar tras cambiar el costo o el precio en dolares de un producto.  */}
           <p className="text-xs text-slate-500 mt-0.5">
-            Escribe la tasa del día, revisa cómo quedarían los precios y confírmalos. Nada cambia solo.
+            Escribe la tasa del día: al guardarla se aplican los precios de todos los productos en dólares.
+            Si cambias el costo o el precio en dólares de un producto, aplícalo con «Aplicar precios».
           </p>
         </div>
         <button type="button" onClick={alVolver}

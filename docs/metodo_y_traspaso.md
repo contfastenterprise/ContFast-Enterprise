@@ -1979,6 +1979,27 @@ Además, fuera de la tabla:
   columnas sin mirar, y un mutante lo comprueba).
   **Para la carpeta del dueño**: añadir `verificar_tasa_desde_compras_db.ts` a
   `scratch/_to_delete/deuda_bancos.txt` cuando el lote llegue a `main` (no está versionado).
+  **Hecho al fusionar** (PR 49, `d5c95d1`).
+- **Lote 262: en Productos, guardar la tasa también aplica los precios.** Salió de una pregunta del
+  dueño (2026-10-03): *"¿por qué el costo en peso no cambia al aplicar la tasa?"*. **Medido en
+  PRODUCCIÓN, solo lectura** (`scratch/_to_delete/medir_costo_en_dolares*.ts`): la aplicación de las
+  16:44 (hora de RD) **sí** cambió el costo de los 34 productos de Latin Doors (las puertas blancas,
+  de 2.657,02 a 2.696,81 = US$ 44,21 × 61), la lista los devuelve tal cual y no hay caché (sin Redis
+  desde el 22/09). No era un defecto: en Productos guardar la tasa no aplicaba nada hasta pulsar
+  "Aplicar precios" — la revisión que el dueño eligió en el 261 —, y eso se leía como "apliqué la
+  tasa y el costo no cambió". Decidió que Productos haga lo mismo que Compras y Facturación.
+  `usePreciosEnDolares.guardarTasa` manda `aplicar: true` (la ruta del lote 261, sin tocar el
+  servidor) y avisa con `mensajeDelCambio` cuántos precios cambiaron. El botón pasa a "Guardar y
+  aplicar precios", con una línea debajo que lo explica, y el texto de la pantalla deja de decir
+  "Nada cambia solo". **"Aplicar precios" se queda**: sirve para lo que cambia sin tocar la tasa (el
+  costo o el precio en dólares de un producto).
+  Banco `verificar_productos_aplica_al_guardar.ts` (ejecuta `guardarTasa` contra un `fetch`
+  sustituido y dibuja `TasaDelDia`): 5 comprobaciones y dos invariantes (la lista se recarga;
+  "Aplicar precios" sigue), contraprueba **5 FALLA**, seis mutantes y seis muertos.
+  **Una lección de la medición**: `updated_at` de `tasas_de_cambio` es `timestamp` **sin** zona y
+  guarda UTC; convertirlo con `AT TIME ZONE 'America/Santo_Domingo'` a secas lo interpreta como hora
+  de RD y lo corre cuatro horas **hacia adelante** (salía "00:44 del día siguiente"). Hace falta el
+  doble `AT TIME ZONE` del lote 174.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3168,5 +3189,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 261 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 262 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

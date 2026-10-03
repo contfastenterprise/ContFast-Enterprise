@@ -16,6 +16,7 @@ import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { leerRespuesta } from '@/utils/leerRespuesta';
 import type { Renglon, Tasa } from '@/services/precios/preciosEnDolares';
+import { mensajeDelCambio, type ResultadoDelCambio } from '@/services/precios/cambioDeTasa';
 
 const DIRECCION = '/api/v1/products/dolar';
 
@@ -64,15 +65,20 @@ export function usePreciosEnDolares() {
   const abrir = useCallback(() => { setAbierta(true); void cargar(); }, [cargar]);
   const cerrar = useCallback(() => setAbierta(false), []);
 
-  /** Una escritura y, si salio, recargar: los precios nuevos los calcula el servidor. */
-  const escribir = useCallback(async (peticion: () => Promise<Response>, fallo: string, bien: string): Promise<boolean> => {
+  /**
+   * Una escritura y, si salio, recargar: los precios nuevos los calcula el servidor. `bien` es el
+   * aviso, o (lote 262) una funcion que lo arma con lo que contesta el servidor.
+   */
+  const escribir = useCallback(async (
+    peticion: () => Promise<Response>, fallo: string, bien: string | ((cuerpo: unknown) => string),
+  ): Promise<boolean> => {
     if (enCurso.current) return false;
     enCurso.current = true;
     setOcupado(true);
     try {
       const leido = await leerRespuesta(await peticion());
       if (!leido.bien) { toast.error(leido.mensaje || fallo); return false; }
-      toast.success(bien);
+      toast.success(typeof bien === 'string' ? bien : bien(leido.cuerpo));
       await cargar();
       return true;
     } catch {
@@ -84,9 +90,20 @@ export function usePreciosEnDolares() {
     }
   }, [cargar]);
 
+  /**
+   * LOTE 262: guardar la tasa la APLICA a todos los productos en dolares, como en Compras y
+   * Facturacion (lote 261). Pedido del dueño (2026-10-03): *"haz que en productos tambien se aplique
+   * al guardar la tasa"*. Antes se guardaba sola y los precios esperaban a "Aplicar precios", y eso
+   * se leia como "aplique la tasa y el costo no cambio". "Aplicar precios" sigue, para reaplicar
+   * despues de cambiar el costo o el precio en dolares de un producto.
+   */
   const guardarTasa = useCallback((tasa: string) =>
-    escribir(() => fetch(`${DIRECCION}/tasa`, json('PUT', { tasa })),
-      'No se pudo guardar la tasa.', 'Tasa guardada. Los precios no cambian hasta que los confirmes.'), [escribir]);
+    escribir(() => fetch(`${DIRECCION}/tasa`, json('PUT', { tasa, aplicar: true })),
+      'No se pudo guardar la tasa.',
+      (cuerpo) => {
+        const d = (cuerpo as { data: { tasa: Tasa } & ResultadoDelCambio }).data;
+        return mensajeDelCambio(d.tasa.tasa, d);
+      }), [escribir]);
 
   const atar = useCallback((productId: string, costoUsd: string) =>
     escribir(() => fetch(DIRECCION, json('PUT', { productIds: [productId], costoUsd })),

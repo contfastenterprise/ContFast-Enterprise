@@ -2,7 +2,11 @@
 
 /**
  * La tasa del dolar de la empresa (lote 247): la vigente, escribir la de hoy y
- * las ultimas. Escribirla NO cambia ningun precio: eso se confirma en la tabla.
+ * las ultimas.
+ *
+ * LOTE 262: guardarla APLICA los precios de todos los productos en dolares (antes
+ * no cambiaba ninguno hasta confirmar en la tabla). El boton y la linea de debajo
+ * lo dicen, para que nadie guarde una tasa de prueba creyendo que no toca nada.
  */
 import { useState } from 'react';
 import { diasDeLaTasa, escribirTasa, leerTasa, type Tasa } from '@/services/precios/preciosEnDolares';
@@ -54,10 +58,12 @@ export function TasaDelDia({ tasa, historial, hoy, puedeEscribir, ocupado, alGua
               onChange={(e) => setEscrita(e.target.value)} placeholder="63.50" className={campo} aria-describedby={aviso ? 'tasa-de-hoy-aviso' : undefined} />
             <button type="submit" disabled={!leida.bien || ocupado}
               className="h-9 px-4 rounded-lg bg-[#003366] hover:bg-[#002244] text-white text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed">
-              Guardar tasa
+              Guardar y aplicar precios
             </button>
           </div>
-          {aviso && <p id="tasa-de-hoy-aviso" className="text-[11px] font-semibold text-rose-600">{aviso}</p>}
+          {aviso
+            ? <p id="tasa-de-hoy-aviso" className="text-[11px] font-semibold text-rose-600">{aviso}</p>
+            : <p className="text-[11px] text-slate-500">Al guardarla se actualizan el costo y los precios de todos los productos en dólares.</p>}
         </form>
       ) : (
         <p className="text-xs text-slate-500 max-w-xs">La tasa la escribe administración.</p>
