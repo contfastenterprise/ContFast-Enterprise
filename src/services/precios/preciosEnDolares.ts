@@ -21,16 +21,14 @@
  *   · nada de lo ya emitido cambia: facturas y cotizaciones guardan su precio.
  */
 
-/** Los margenes de fabrica del formulario de productos ("Autocalcular"). */
-export const MARGENES_POR_DEFECTO = {
-  price: 1.25,
-  priceConsumidor: 1.2,
-  priceMayorista: 1.15,
-  priceProveedor: 1.1,
-} as const;
-
-export type ClaveDePrecio = keyof typeof MARGENES_POR_DEFECTO;
-export const CLAVES_DE_PRECIO = Object.keys(MARGENES_POR_DEFECTO) as ClaveDePrecio[];
+/**
+ * Los margenes de fabrica del formulario de productos ("Autocalcular").
+ *
+ * LOTE 265: ya no son factores de recargo (`costo x 1,25`) sino margenes sobre la VENTA
+ * (`costo / (1 - 0,25)`), y viven en `margen.ts`, la misma regla que el formulario.
+ */
+import { CLAVES_DE_PRECIO, MARGENES_SOBRE_VENTA, precioConMargen, type ClaveDePrecio } from './margen';
+export { MARGENES_SOBRE_VENTA as MARGENES_POR_DEFECTO, CLAVES_DE_PRECIO, type ClaveDePrecio } from './margen';
 
 /** Tope de cordura de la tasa: mas de esto es una coma mal puesta. */
 export const TASA_MAXIMA = 1000;
@@ -153,7 +151,8 @@ export function calcular(p: ProductoAtado, tasa: number): Calculo {
     if (p.cost > 0) {
       despues[clave] = p[clave] > 0 ? redondear((p[clave] * cost) / p.cost) : 0;
     } else {
-      despues[clave] = redondear(cost * MARGENES_POR_DEFECTO[clave]);
+      //  Lote 265: margen sobre la venta (`costo / (1 - margen)`), la regla del formulario.
+      despues[clave] = precioConMargen(cost, MARGENES_SOBRE_VENTA[clave]);
     }
   }
   //  Lote 258: con precio base en dolares, el precio base sale de el y no del margen. Los otros tres

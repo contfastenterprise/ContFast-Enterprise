@@ -2000,6 +2000,26 @@ Además, fuera de la tabla:
   guarda UTC; convertirlo con `AT TIME ZONE 'America/Santo_Domingo'` a secas lo interpreta como hora
   de RD y lo corre cuatro horas **hacia adelante** (salía "00:44 del día siguiente"). Hace falta el
   doble `AT TIME ZONE` del lote 174.
+- **Lote 265: el porcentaje de ganancia es un margen sobre el PRECIO DE VENTA.** Decisión del dueño
+  (2026-10-03), tras la revisión del cálculo de la factura: *"usa la fórmula costo ÷ 0,75 = 133,33.
+  aplícalo en todos los lugares (productos y facturación)"*. Hasta ahora los precios eran un
+  **recargo** sobre el costo (`costo × 1,25` = 125, que es un 20 % de lo vendido). Ahora
+  `costo ÷ (1 − margen)`, con los mismos porcentajes: base 25 %, consumidor 20 %, mayorista 15 %,
+  proveedor 10 % (costo 100 → 133,33 / 125 / 117,65 / 111,11). Los precios siguen **sin ITBIS**.
+  "Todos los lugares", medido: la factura **no** calcula precios desde el costo (cobra los del
+  catálogo), y el margen de Inteligencia de Negocio ya era ganancia ÷ ingreso. Los dos sitios que sí
+  los calculan pasan por `services/precios/margen.ts`: el **formulario de productos** (el autocálculo,
+  y las etiquetas pasan de "+25%" a "margen 25%") y **"Precios en dólares"** cuando un producto no
+  tenía costo (`MARGENES_POR_DEFECTO` pasa a ser `MARGENES_SOBRE_VENTA`). Con costo anterior, cada
+  precio conserva su proporción con el costo, que conserva también el margen sobre la venta.
+  **Lo que NO hace, a propósito**: no recalcula los precios ya guardados (cada producto conserva los
+  suyos hasta que se edite su costo con el autocálculo puesto, o se le aplique una tasa). Cambiarlos en bloque
+  es tocar datos y no se pidió.
+  Banco `verificar_margen_sobre_venta.ts`: 8 comprobaciones y un invariante (con costo anterior, la
+  proporción se conserva), contraprueba **8 FALLA**, seis mutantes y seis muertos. **Re-anclados**,
+  porque fijaban los márgenes viejos a propósito: `verificar_precios_en_dolares` (costo 100 → 125 /
+  120 / 115 / 110) y `verificar_precios_en_dolares_db` (75 → 93,75 / 90 / 86,25 / 82,5); los dos
+  pasan a la fórmula nueva. De paso, React Doctor: las cuatro etiquetas de precio enlazadas a su campo.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3189,5 +3209,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 262 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 265 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
