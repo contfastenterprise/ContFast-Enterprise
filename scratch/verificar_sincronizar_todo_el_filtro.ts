@@ -133,13 +133,20 @@ async function main() {
   const i = pagina.indexOf('const handleSyncFilteredStatus = async');
   const fn = i < 0 ? '' : pagina.slice(i, pagina.indexOf('const fetchStats', i));
   ok('"Consultar DGII" manda el FILTRO, no los ids de la pagina',
-    /body: JSON\.stringify\(\{ filtro: filters \}\)/.test(fn) && !/invoiceList\.map/.test(fn) && /if \(meta\.total === 0\) return;/.test(fn));
+    /body: JSON\.stringify\(\{ filtro: filters \}\)/.test(fn) && !/invoiceList\.map/.test(fn) && /if \(meta\.total === 0(?: \|\| consultando\.current)?\) return;/.test(fn));
   ok('  y se apaga solo si el filtro no tiene nada (no si la pagina esta vacia)',
     /onClick=\{handleSyncFilteredStatus\}\s*disabled=\{syncingBatch \|\| meta\.total === 0\}/.test(pagina));
   ok('las dos consultas avisan con la misma regla y leen la respuesta mirando el estado',
     (pagina.match(/avisar\(leido\.cuerpo\.data, leido\.cuerpo\.meta\);/g) ?? []).length === 2
     && /const aviso = avisoDeSincronizacion\(\{[\s\S]{0,300}cambiaron: data\.filter\(\(item\) => item\.cambio\)\.length,/.test(pagina)
     && !/Sincronización completada/.test(pagina));
+  const j = pagina.indexOf('const handleBatchSyncStatus = async');
+  const dos = j < 0 ? '' : pagina.slice(j, pagina.indexOf('const fetchStats', j));
+  ok('dos clics seguidos no lanzan dos consultas: guarda en un ref, soltada al terminar, en las dos',
+    /const consultando = useRef\(false\);/.test(pagina)
+    && /if \(selectedIds\.length === 0 \|\| consultando\.current\) return;\s*consultando\.current = true;/.test(dos)
+    && /if \(meta\.total === 0 \|\| consultando\.current\) return;\s*consultando\.current = true;/.test(dos)
+    && (dos.match(/\} finally \{\s*consultando\.current = false;/g) ?? []).length === 2);
   ok('los botones se llaman por lo que hacen: CONSULTAR DGII y RECARGAR LISTA',
     /<span>CONSULTAR DGII<\/span>/.test(pagina) && /<span>RECARGAR LISTA<\/span>/.test(pagina)
     && !/SINCRONIZAR DGII|ACTUALIZAR DATOS|Sincronizar Lote DGII/.test(pagina)

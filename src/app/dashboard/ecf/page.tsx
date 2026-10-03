@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { TIPOS_COMPROBANTE } from '@/services/dgii/tiposComprobante';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
@@ -674,19 +674,13 @@ function ComprobantesTab() {
     );
   };
 
-  const avisar = (data: ConsultaDeFactura[], m?: MetaDeConsulta) => {
-    const aviso = avisoDeSincronizacion({
-      consultadas: data.length,
-      cambiaron: data.filter((item) => item.cambio).length,
-      sinConsultar: m?.sinConsultar ?? 0,
-      recortadas: m?.recortadas ?? 0,
-      fallo: m?.fallo ?? null,
-    });
-    toast[aviso.tipo](aviso.texto);
-  };
+  //  Dos clics seguidos llegan antes de que `syncingBatch` desactive el boton:
+  //  la guarda es un `ref`, como en "Aplicar Despacho" (lote 227).
+  const consultando = useRef(false);
 
   const handleBatchSyncStatus = async () => {
-    if (selectedIds.length === 0) return;
+    if (selectedIds.length === 0 || consultando.current) return;
+    consultando.current = true;
     setSyncingBatch(true);
     try {
       const res = await fetch('/api/v1/ecf/dgii-status/batch', {
@@ -708,6 +702,7 @@ function ComprobantesTab() {
     } catch (err: any) {
       toast.error(err.message);
     } finally {
+      consultando.current = false;
       setSyncingBatch(false);
     }
   };
@@ -718,7 +713,8 @@ function ComprobantesTab() {
   //  aviso lo dijera. Ahora se manda el FILTRO y el servidor lo resuelve con las
   //  mismas condiciones que el listado.
   const handleSyncFilteredStatus = async () => {
-    if (meta.total === 0) return;
+    if (meta.total === 0 || consultando.current) return;
+    consultando.current = true;
     setSyncingBatch(true);
     try {
       const res = await fetch('/api/v1/ecf/dgii-status/batch', {
@@ -739,6 +735,7 @@ function ComprobantesTab() {
     } catch (err: any) {
       toast.error(err.message);
     } finally {
+      consultando.current = false;
       setSyncingBatch(false);
     }
   };
@@ -1631,6 +1628,18 @@ const TABS = [
   { id: 'secuencias', label: 'Secuencias SACF', icon: <Database className="h-4 w-4" /> },
   { id: 'notas', label: 'Notas Crédito/Débito', icon: <CreditCard className="h-4 w-4" /> },
 ];
+
+/** El aviso de una consulta de estado, con la misma regla para la seleccion y el filtro. */
+function avisar(data: ConsultaDeFactura[], m?: MetaDeConsulta) {
+  const aviso = avisoDeSincronizacion({
+    consultadas: data.length,
+    cambiaron: data.filter((item) => item.cambio).length,
+    sinConsultar: m?.sinConsultar ?? 0,
+    recortadas: m?.recortadas ?? 0,
+    fallo: m?.fallo ?? null,
+  });
+  toast[aviso.tipo](aviso.texto);
+}
 
 /** Lo que devuelve la consulta de estado por cada factura. */
 interface ConsultaDeFactura {
