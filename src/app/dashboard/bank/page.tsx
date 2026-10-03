@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Landmark, Plus, ArrowRightLeft, RefreshCw, X, CreditCard, Building2, CheckCircle2, ArrowDownRight, ArrowUpRight, DollarSign, Search, Printer, Info } from 'lucide-react';
+import { Landmark, ArrowRightLeft, RefreshCw, X, CreditCard, Building2, CheckCircle2, ArrowDownRight, ArrowUpRight, DollarSign, Search, Printer, Info } from 'lucide-react';
 import DateRangePicker from '@/components/ui/date-range-picker';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 import { formatDateDisplay } from '@/utils/fechasLocales';
@@ -384,15 +385,17 @@ export default function BankAccountsPage() {
               Consulta de saldos y registro de movimientos bancarios.
             </p>
           </div>
-          <div className="flex gap-3">
-            <button onClick={() => setShowNewAccountModal(true)} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
-              <Plus className="h-4 w-4" /> Nueva Cuenta
-            </button>
-            <button disabled={!selectedAccount} onClick={() => setShowTxModal(true)} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
-              <ArrowRightLeft className="h-4 w-4" /> Registrar Movimiento
-            </button>
-          </div>
+          {/* Lote 248: en la cabecera, SOLO las pestanas (como en Compras). "Registrar Movimiento" es
+              una accion sobre la cuenta elegida: baja a la barra de su historial. */}
+          <PestanasDeRegistro
+            enFormulario={showNewAccountModal}
+            lista="Cuentas"
+            alVerLista={() => setShowNewAccountModal(false)}
+            alRegistrar={() => setShowNewAccountModal(true)}
+          />
         </div>
+
+        {!showNewAccountModal && (<>
 
         {/* Accounts Grid */}
         {loading ? (
@@ -468,6 +471,17 @@ export default function BankAccountsPage() {
                     <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">Historial de Transacciones {loadingTxs && <RefreshCw className="h-4 w-4 animate-spin text-slate-500" />}</h3>
                     <p className="text-xs font-semibold text-slate-500/70 uppercase tracking-wider">{selectedAccount.bankName} {selectedAccount.currency !== '-' ? `(${selectedAccount.currency})` : ''}</p>
                   </div>
+                  <div className="flex items-center gap-2">
+                  {/* Un movimiento es de UNA cuenta: con "Todas las Cuentas" no hay a cual registrarlo. */}
+                  <button
+                    type="button"
+                    disabled={selectedAccount.id === 'all'}
+                    title={selectedAccount.id === 'all' ? 'Elija una cuenta para registrar un movimiento' : undefined}
+                    onClick={() => setShowTxModal(true)}
+                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                  >
+                    <ArrowRightLeft className="h-4 w-4" /> Registrar Movimiento
+                  </button>
                   <button
                     onClick={handlePrintTransactions}
                     className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
@@ -475,6 +489,7 @@ export default function BankAccountsPage() {
                     <Printer className="h-4 w-4" />
                     Imprimir Reporte
                   </button>
+                  </div>
                 </div>
 
                 {/* Filters Row */}
@@ -618,89 +633,82 @@ export default function BankAccountsPage() {
             )}
           </>
         )}
+        </>)}
+
+        {/* Cuenta nueva: era un modal; desde el lote 248 es la segunda pestana. */}
+        {showNewAccountModal && (
+          <PanelDeRegistro titulo="Nueva Cuenta Bancaria">
+            <form onSubmit={handleCreateAccount} className="space-y-4 max-w-md">
+              <div>
+                <label htmlFor="banco-nombre" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Nombre del Banco</label>
+                <input type="text" required id="banco-nombre" value={accountForm.bankName} onChange={e => setAccountForm({ ...accountForm, bankName: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" placeholder="Ej. Banco Popular" />
+              </div>
+              <div>
+                <label htmlFor="banco-numero" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Número de Cuenta</label>
+                <input type="text" required id="banco-numero" value={accountForm.accountNumber} onChange={e => setAccountForm({ ...accountForm, accountNumber: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono" placeholder="Ej. 1234567890" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="banco-moneda" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Moneda</label>
+                  <select id="banco-moneda" value={accountForm.currency} onChange={e => setAccountForm({ ...accountForm, currency: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors">
+                    <option value="DOP">DOP (Pesos)</option>
+                    <option value="USD">USD (Dólares)</option>
+                    <option value="EUR">EUR (Euros)</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="banco-tipo" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Tipo</label>
+                  <select id="banco-tipo" value={accountForm.type} onChange={e => setAccountForm({ ...accountForm, type: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors">
+                    <option value="corriente">Corriente</option>
+                    <option value="ahorros">Ahorros</option>
+                  </select>
+                </div>
+              </div>
+                <div>
+                  <label htmlFor="banco-color" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Color de Tarjeta</label>
+                  <div className="flex items-center gap-3">
+                    <input type="color" id="banco-color" value={accountForm.color} onChange={e => setAccountForm({ ...accountForm, color: e.target.value })} className="h-8 w-14 p-1 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer" />
+                    <span className="text-xs text-slate-500 font-mono">{accountForm.color}</span>
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="banco-cuenta-contable" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Cuenta Contable del Banco</label>
+                  <select
+                    required
+                    id="banco-cuenta-contable" value={accountForm.chartAccountId}
+                    onChange={e => setAccountForm({ ...accountForm, chartAccountId: e.target.value })}
+                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
+                  >
+                    <option value="">Seleccione la cuenta del catálogo</option>
+                    {chartOfAccounts
+                      .filter(c => c.isTransactional !== false && c.status !== 'inactive')
+                      .map(c => (
+                        <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
+                      ))}
+                  </select>
+                  <p className="mt-1 text-[10px] text-slate-500">
+                    Los movimientos de esta cuenta se asentarán contra ella. Solo se listan cuentas transaccionales.
+                  </p>
+                </div>
+                <div>
+                  <label htmlFor="banco-balance" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Balance Inicial</label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold">$</span>
+                    <input type="number" min="0" step="0.01" required id="banco-balance" value={accountForm.initialBalance} onChange={e => setAccountForm({ ...accountForm, initialBalance: e.target.value })} className="w-full h-8 pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono" placeholder="0.00" />
+                  </div>
+                </div>
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+                <button type="button" onClick={() => setShowNewAccountModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">Cancelar</button>
+                <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Guardar
+                </button>
+              </div>
+            </form>
+          </PanelDeRegistro>
+        )}
 
       </div>
 
-      {/* MODAL: NEW ACCOUNT */}
-      <AnimatePresence>
-        {showNewAccountModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50">
-                <h3 className="text-xl font-display font-bold text-slate-800 flex items-center gap-2"><Landmark className="w-5 h-5 text-[#c5a059]" /> Nueva Cuenta Bancaria</h3>
-                <button type="button" onClick={() => setShowNewAccountModal(false)} className="text-slate-500 hover:text-slate-800 transition-colors"><X className="w-5 h-5" /></button>
-              </div>
-              <form onSubmit={handleCreateAccount} className="p-4 space-y-4">
-                <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Nombre del Banco</label>
-                  <input type="text" required value={accountForm.bankName} onChange={e => setAccountForm({ ...accountForm, bankName: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" placeholder="Ej. Banco Popular" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Número de Cuenta</label>
-                  <input type="text" required value={accountForm.accountNumber} onChange={e => setAccountForm({ ...accountForm, accountNumber: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono" placeholder="Ej. 1234567890" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Moneda</label>
-                    <select value={accountForm.currency} onChange={e => setAccountForm({ ...accountForm, currency: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors">
-                      <option value="DOP">DOP (Pesos)</option>
-                      <option value="USD">USD (Dólares)</option>
-                      <option value="EUR">EUR (Euros)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Tipo</label>
-                    <select value={accountForm.type} onChange={e => setAccountForm({ ...accountForm, type: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors">
-                      <option value="corriente">Corriente</option>
-                      <option value="ahorros">Ahorros</option>
-                    </select>
-                  </div>
-                </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Color de Tarjeta</label>
-                    <div className="flex items-center gap-3">
-                      <input type="color" value={accountForm.color} onChange={e => setAccountForm({ ...accountForm, color: e.target.value })} className="h-8 w-14 p-1 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer" />
-                      <span className="text-xs text-slate-500 font-mono">{accountForm.color}</span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Cuenta Contable del Banco</label>
-                    <select
-                      required
-                      value={accountForm.chartAccountId}
-                      onChange={e => setAccountForm({ ...accountForm, chartAccountId: e.target.value })}
-                      className="w-full rounded-lg border border-slate-300 bg-white py-2 px-3 text-sm text-[#003366] outline-none focus:border-[#c5a059] transition"
-                    >
-                      <option value="">Seleccione la cuenta del catálogo</option>
-                      {chartOfAccounts
-                        .filter(c => c.isTransactional !== false && c.status !== 'inactive')
-                        .map(c => (
-                          <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
-                        ))}
-                    </select>
-                    <p className="mt-1 text-[10px] text-slate-500">
-                      Los movimientos de esta cuenta se asentarán contra ella. Solo se listan cuentas transaccionales.
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Balance Inicial</label>
-                    <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold">$</span>
-                      <input type="number" min="0" step="0.01" required value={accountForm.initialBalance} onChange={e => setAccountForm({ ...accountForm, initialBalance: e.target.value })} className="w-full h-8 pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono" placeholder="0.00" />
-                    </div>
-                  </div>
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                  <button type="button" onClick={() => setShowNewAccountModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">Cancelar</button>
-                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
-                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Guardar
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* MODAL: REGISTER TX */}
       <AnimatePresence>

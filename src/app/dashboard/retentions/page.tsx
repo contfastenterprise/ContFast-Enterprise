@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, Pencil, Trash2, ToggleLeft, ToggleRight, ShieldAlert, Percent, Globe, Building2 } from 'lucide-react';
+import { Pencil, Trash2, ToggleLeft, ToggleRight, ShieldAlert, Percent, Globe, Building2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 import { useRbac } from '@/components/providers/rbacContext';
@@ -178,13 +179,17 @@ export default function RetentionsPage() {
             Gestiona los tipos de retenciones ISR e ITBIS aplicables en facturas.
           </p>
         </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-        >
-          <Plus className="w-4 h-4" /> Nueva Retención
-        </button>
+        {/* Lote 248: en la cabecera, SOLO las pestanas (como en Compras). */}
+        <PestanasDeRegistro
+          enFormulario={showModal}
+          lista="Retenciones"
+          editando={!!editing}
+          alVerLista={() => setShowModal(false)}
+          alRegistrar={openCreate}
+        />
       </div>
+
+      {!showModal && (<>
 
       {/* Legend */}
       <div className="flex gap-4 flex-wrap text-xs text-slate-500">
@@ -282,83 +287,76 @@ export default function RetentionsPage() {
           <p className="mt-0.5 text-amber-700">Al crear una factura, activa el módulo de retenciones y selecciona los tipos aplicables. Los montos se calculan automáticamente y se reflejan en el PDF, el modal de detalle y el reporte 607 de la DGII.</p>
         </div>
       </div>
+      </>)}
 
-      {/* Create / Edit Modal */}
-      <AnimatePresence>
-        {showModal && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={(e) => e.target === e.currentTarget && setShowModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl shadow-2xl w-full max-w-md p-4 space-y-5"
+      {/* Registrar / editar: era un modal; desde el lote 248 es la segunda pestana. */}
+      {showModal && (
+        <PanelDeRegistro titulo={editing ? 'Editar Retención' : 'Nueva Retención'}>
+          <div className="max-w-md space-y-5">
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label htmlFor="ret-nombre" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre</label>
+              <input
+                id="ret-nombre"
+                type="text"
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                placeholder="Ej: ISR Servicios Profesionales"
+                className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-[#003366] focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="ret-tipo" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo</label>
+              <select
+                id="ret-tipo"
+                value={form.type}
+                onChange={e => setForm(f => ({ ...f, type: e.target.value as any }))}
+                className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-[#003366] focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition"
+              >
+                <option value="ISR">ISR — Impuesto Sobre la Renta</option>
+                <option value="ITBIS">ITBIS — Impuesto Transferencias</option>
+                <option value="OTRA">Otra retención</option>
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="ret-porcentaje" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Porcentaje (%)</label>
+              <div className="relative">
+                <input
+                  id="ret-porcentaje"
+                  type="number"
+                  value={form.percentage}
+                  onChange={e => setForm(f => ({ ...f, percentage: e.target.value }))}
+                  placeholder="Ej: 10"
+                  min={0.01} max={100} step="any"
+                  className="w-full h-8 px-3 py-1.5 pr-10 text-xs rounded-lg border border-slate-200 bg-slate-50 text-[#003366] focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition"
+                />
+                <Percent className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
-              <h2 className="text-lg font-bold text-[#003366]">
-                {editing ? 'Editar Retención' : 'Nueva Retención'}
-              </h2>
-
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre</label>
-                  <input
-                    type="text"
-                    value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                    placeholder="Ej: ISR Servicios Profesionales"
-                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-[#003366] focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo</label>
-                  <select
-                    value={form.type}
-                    onChange={e => setForm(f => ({ ...f, type: e.target.value as any }))}
-                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-[#003366] focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition"
-                  >
-                    <option value="ISR">ISR — Impuesto Sobre la Renta</option>
-                    <option value="ITBIS">ITBIS — Impuesto Transferencias</option>
-                    <option value="OTRA">Otra retención</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Porcentaje (%)</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={form.percentage}
-                      onChange={e => setForm(f => ({ ...f, percentage: e.target.value }))}
-                      placeholder="Ej: 10"
-                      min={0.01} max={100} step="any"
-                      className="w-full h-8 px-3 py-1.5 pr-10 text-xs rounded-lg border border-slate-200 bg-slate-50 text-[#003366] focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition"
-                    />
-                    <Percent className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={submitting}
-                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
-                >
-                  {submitting ? 'Guardando…' : editing ? 'Guardar Cambios' : 'Crear Retención'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+            >
+              {submitting ? 'Guardando…' : editing ? 'Guardar Cambios' : 'Crear Retención'}
+            </button>
+          </div>
+          </div>
+        </PanelDeRegistro>
+      )}
 
       {/* Delete Confirm Modal */}
       <AnimatePresence>
