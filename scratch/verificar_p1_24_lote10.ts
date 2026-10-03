@@ -135,7 +135,12 @@ for (const [ruta, n] of [
   //  copiaba la linea literal, paso a fallar sin que faltara nada.
   ok('ecf/route: importa type SQL de drizzle-orm',
     /import \{[^}]*\btype SQL\b[^}]*\} from 'drizzle-orm';/.test(src));
-  ok('ecf/route: conditions tipado SQL[]', src.includes('const conditions: SQL[] = ['));
+  //  Desde el lote 260 las condiciones salen de `condicionesDelFiltro`, que
+  //  las arma tipadas en su modulo: se exige el tipo en los dos sitios.
+  ok('ecf/route: conditions tipado SQL[]',
+    src.includes('const conditions: SQL[] = [')
+    || (/const conditions: SQL\[\] = condicionesDelFiltro\(/.test(src)
+        && crudo('src/services/dgii/filtroDelListadoEcf.ts').includes('const conditions: SQL[] = [')));
   ok('ecf/route: catch status+code+message (const e = ...CAST)',
     src.includes(`const e = error as ${CAST};`));
 }

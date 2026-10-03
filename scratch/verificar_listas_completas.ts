@@ -126,11 +126,26 @@ function ficheros(dir: string, fin: string[]): string[] {
   return salida;
 }
 
+/** Lectores de parametros que una ruta usa en vez de leerlos ella (lote 260). */
+const LECTORES_DELEGADOS: Array<[string, string]> = [
+  ['filtroDeParametros', 'src/services/dgii/filtroDelListadoEcf.ts'],
+];
+
 const rutas = new Map<string, Set<string>>();
 for (const f of ficheros('src/app/api', ['route.ts'])) {
   const src = fs.readFileSync(f, 'utf8');
   const leidos = new Set<string>();
   for (const m of src.matchAll(/searchParams\.(?:get|getAll|has)\(\s*['"]([^'"]+)['"]/g)) leidos.add(m[1]);
+  //  Lote 260: el listado de e-CF lee su filtro con `filtroDeParametros`. Lo que
+  //  ese lector lee se DERIVA de su codigo, no se copia aqui: el dia que deje
+  //  de leer un parametro, la llamada que lo manda vuelve a salir como sorda.
+  for (const [lector, modulo] of LECTORES_DELEGADOS) {
+    if (!new RegExp(`\\b${lector}\\(searchParams\\)`).test(src)) continue;
+    const m = fs.readFileSync(modulo, 'utf8');
+    const cuerpo = m.slice(m.indexOf(`export function ${lector}(`));
+    const fin = cuerpo.indexOf('\n}');
+    for (const x of cuerpo.slice(0, fin < 0 ? undefined : fin).matchAll(/\bsp\.get\(\s*['"]([^'"]+)['"]/g)) leidos.add(x[1]);
+  }
   const comodin = /fromEntries\(\s*(?:searchParams|url\.searchParams)/.test(src)
     || /searchParams\.(?:entries|forEach)\(/.test(src);
   rutas.set(f.replace(/^src\/app/, '').replace(/\/route\.ts$/, ''), comodin ? new Set(['*']) : leidos);

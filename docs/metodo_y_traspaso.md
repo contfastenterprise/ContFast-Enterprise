@@ -1871,6 +1871,60 @@ Además, fuera de la tabla:
   `git worktree`.
   **Para el dueño**: aplicar la 0018 cuando quiera fijar precios en dólares
   (`npx tsx --env-file=.env scratch/_to_delete/aplicar_migracion.ts drizzle/0018_precio_base_en_dolares.sql --aplicar`).
+- **Lote 260: "Consultar DGII" cubre todo el filtro, y una consulta ya no deshace un
+  veredicto definitivo.** Pedido del dueño (2026-10-03), tras preguntar si "Actualizar
+  datos" y "Sincronizar DGII" hacían lo mismo: no — el primero relee la base, el segundo
+  pregunta a mSeller —, pero los dos llevaban el mismo icono. Ahora se llaman **RECARGAR
+  LISTA** y **CONSULTAR DGII** (con `title` que dice qué hace cada uno), y la barra de la
+  selección dice "Consultar DGII".
+  **Todo el filtro, no la página**: el botón mandaba los ids de `invoiceList` — la página
+  visible —, así que con el filtro "Enviado" y tres páginas, dos quedaban sin consultar
+  sin que el aviso lo dijera. Ahora manda el **filtro** y el servidor lo resuelve con las
+  **mismas condiciones que el listado**, que salen de la ruta a
+  `services/dgii/filtroDelListadoEcf.ts` (la ruta del listado delega en él). Del filtro
+  se consulta solo lo que puede cambiar — ni aceptadas, ni dadas de baja, ni borradores
+  (`facturasParaConsultar.ts`) — en tandas de 100 (lo que admite mSeller), con tope de
+  **500** (las más recientes; el resto se cuenta y se dice). Si una tanda falla después de
+  otras buenas, lo consultado se guarda y el aviso dice que se cortó. El aviso dice
+  cuántas se consultaron, cuántas **cambiaron de estado** (antes "actualizadas" contaba
+  las encontradas, que eran todas) y cuántas se dejaron y por qué.
+  **Lo que salió al medir (PRODUCCIÓN, solo lectura) y se cierra con el lote**: la
+  consulta escribía en la factura lo que leyera, fuera cual fuera el estado de antes.
+  `E340000000002` (PRODUCCIÓN) está **dada de baja** (lote 140) y mSeller la tiene en
+  "Error" con rechazos: consultarla la devolvía a `rejected` y volvía a ofrecer "Reenviar"
+  y "Dar de baja". `E320000001014` (PRUEBA) está **aceptada** y mSeller la tiene en
+  "Error" desde la prueba de `validate=true` del lote 222: consultarla la bajaba a
+  rechazada. Regla única en `services/dgii/consultaDeEstado.ts`
+  (`estadoTrasConsultar`): **una consulta no cambia el estado ni el mensaje de una
+  aceptada o una dada de baja**, en la ruta por lotes **y** en la de la fila. Se sigue
+  consultando una aceptada si alguien la elige, porque recupera la firma que se perdió
+  (DB-22): eso sí se guarda. Un rechazado sí puede pasar a aceptado (el caso del lote 141).
+  **Medido después con la consulta de verdad** (`scratch/_to_delete/medir_260.ts`, solo
+  SELECT): Latin Doors PRODUCCIÓN sin filtro consulta **1** (`E310000000029`, rechazada) y
+  deja **65** (64 aceptadas y la baja); PRUEBA consulta las dos e-44 rechazadas y deja 18.
+  **Un error mío que la medición cazó**: di por hecho que `invoices.status` era un enum y
+  escribí una guarda para un estado desconocido; es un `varchar`, `enumValues` no existe y
+  la consulta reventó. Se volvió a la igualdad de siempre (un estado desconocido no casa
+  con nada, sin error).
+  Banco `verificar_sincronizar_todo_el_filtro.ts` (reglas ejecutadas, el filtro renderizado
+  a SQL con `PgDialect`): 19 comprobaciones, contraprueba **19 FALLA**, dieciséis mutantes
+  y dieciséis muertos. Re-anclados, por la deriva de mover el filtro al módulo:
+  `verificar_notas_paginadas` (el filtro por tipo), `verificar_p1_24_lote10` (`conditions`
+  tipado) y `verificar_barrido_modo` (integración: el modo de la consulta del listado se
+  le pasa al módulo); cada uno con un mutante que lo sigue rompiendo — **uno estaba mal
+  escrito** (dejaba intacto el texto buscado) y se rehízo.
+  **Y el barrido cazó el trinquete del lote 135** (`verificar_listas_completas`): contaba los
+  `searchParams.get` escritos en la ruta, y el listado ahora los lee con
+  `filtroDeParametros`. El banco DERIVA lo que lee ese lector de su código
+  (`LECTORES_DELEGADOS`); un mutante que deja de leer `q` vuelve a sacar las llamadas sordas.
+  **No se miró en el navegador**: el cambio visible son dos rótulos y un aviso; la
+  pantalla exige la cuenta del dueño. **Ni se probó contra mSeller**: la primera pulsación
+  del dueño es la prueba (solo consulta, no envía nada).
+  **Trampas del entorno, las dos ya anotadas**: el número de lote chocó con otra sesión en
+  la misma carpeta (pasó a 260), y `next build` en un worktree **no acepta**
+  `node_modules` como enlace ("Symlink … points out of the filesystem root"): hay que
+  instalar (`pnpm install --frozen-lockfile --offline`, 3,5 min), quitando el enlace
+  **antes** con `.Delete()`.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3060,5 +3114,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 258 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 260 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
