@@ -1759,6 +1759,28 @@ Además, fuera de la tabla:
   `async-await-in-loop` en `aplicar` de precios en dólares (es una transacción: una conexión, ir a
   la vez no ganaría nada, y lo dice el comentario); y dos "esperas independientes" en el banco de
   integración del 251, que no lo son (cada paso lee lo que dejó el anterior).
+- **Lote 253: Retenciones y Horas extra, partidas sin cambiar lo que hacen.** Lo que dejó el
+  252: React Doctor las marcaba "componente gigante". Pedido del dueño: *"cierra lo pendiente"*.
+  **Cómo, y por qué así**: con seis páginas por partir, un guion (`scratch/_to_delete/partir.py`)
+  hace siempre lo mismo — el estado y las acciones pasan **tal cual** a un hook en el mismo
+  fichero (`useRetenciones`, `useNovedades`), y del JSX se cortan tramos, por sus comentarios de
+  sección, a componentes que reciben el hook (`h`) y sacan de él solo los nombres que usan. Así
+  **ninguna línea de JSX se reescribe**: se mueve. Retenciones solo necesitó el hook (la página
+  queda en 262 líneas); Horas extra, además, tarjetas, tabla y formulario. Las guardas que
+  devuelven pronto (Retenciones sin permiso) se quedan en la página.
+  **Cómo se demuestra que no cambió nada visible**: `scratch/huellaDePantalla.ts` (para los lotes
+  que siguen) saca de cada fichero clases, textos, ejemplos, títulos, avisos y direcciones de la
+  API, **uno por uno y con repetidos**, y el banco los compara con `a72acdc` (main antes del
+  lote) como invariante. **La huella se cazó a sí misma**: tomaba como texto el código tras una
+  flecha (`=> sum + …`) — ahora el `>` de `=>` no abre texto; y una primera versión que excluía
+  también el `>` tras espacios perdía los textos de las etiquetas multilínea.
+  React Doctor en local: **0** avisos en los dos ficheros.
+  Banco `verificar_partir_retenciones_y_horas_extra.ts`: 6 comprobaciones más las dos huellas,
+  contraprueba 6 FALLA (una era cierta de balde —"cada parte recibe el hook" sin partes— y se
+  cambió), cuatro mutantes y cuatro muertos. `verificar_rrhh_en_pestanas` (249) miraba la lista
+  en línea: ahora sustituye cada pieza por su cuerpo antes de mirar, y vale en los dos estados.
+  **Trampa repetida**: un heredoc con `\n` dentro de una expresión volvió a romper un banco; los
+  guiones que tocan código se escriben a fichero (sección 4).
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2948,5 +2970,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 252 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 253 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

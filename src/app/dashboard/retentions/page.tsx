@@ -30,45 +30,8 @@ const TYPE_COLORS = {
 const emptyForm = { name: '', type: 'ISR' as 'ITBIS' | 'ISR' | 'OTRA', percentage: '' };
 
 export default function RetentionsPage() {
-  const [retentions, setRetentions] = useState<Retention[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [editing, setEditing] = useState<Retention | null>(null);
-  const [form, setForm] = useState(emptyForm);
-  const [deleteTarget, setDeleteTarget] = useState<Retention | null>(null);
-  const { loading: rbacLoading, hasPermission } = useRbac();
-
-  // Auditoria P0-02 (2026-09-03), extendida al frontend (2026-09-07): antes
-  // .includes('sistema'|'admin'|'conta'|'auditor'), que concedia acceso a
-  // cualquier rol cuyo NOMBRE contuviera esas letras -- un rol creado de buena
-  // fe como "Contacto de clientes" entraba por 'conta'. Ahora se pregunta por
-  // el PERMISO real en vez de por el nombre del rol: hasPermission ya concede
-  // acceso total a sistemas y administracion, cubre contabilidad, y respeta
-  // cualquier rol al que se le haya otorgado contabilidad:read en la base de
-  // datos (que antes quedaba fuera si su nombre no contenia esas letras).
-  const hasAccess = hasPermission('contabilidad', 'read');
-
-  //  Lote 252: el estado se mira ANTES de leer el cuerpo (`leerRespuesta`). Antes, un 403 o un
-  //  500 dejaban la lista vacia sin decir nada: se leia como "sin retenciones".
-  const fetchRetentions = useCallback(async () => {
-    try {
-      setLoading(true);
-      const leido = await leerRespuesta<{ data: Retention[] }>(await fetch('/api/v1/retentions'));
-      if (leido.bien) setRetentions(leido.cuerpo.data);
-      else toast.error(leido.mensaje || 'No se pudieron cargar las retenciones.');
-    } catch {
-      toast.error('Error al cargar retenciones');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { if (hasAccess) fetchRetentions(); }, [hasAccess, fetchRetentions]);
-
-  //  Dos clics seguidos en "Si, eliminar" llegan antes de volver a pintar: la guarda es un ref.
-  const borrando = useRef(false);
-
+  const h = useRetenciones();
+  const { loading, submitting, showModal, setShowModal, editing, form, setForm, deleteTarget, setDeleteTarget, rbacLoading, hasAccess, openCreate, openEdit, handleSubmit, toggleActive, confirmDelete, grouped } = h;
   // Role guard — show access denied
   if (rbacLoading) {
     return (
@@ -91,93 +54,6 @@ export default function RetentionsPage() {
       </div>
     );
   }
-
-  const openCreate = () => {
-    setEditing(null);
-    setForm(emptyForm);
-    setShowModal(true);
-  };
-
-  const openEdit = (r: Retention) => {
-    if (!r.companyId) {
-      toast.warning('Las retenciones globales del sistema no se pueden editar.', { description: 'Solo puedes activarlas o desactivarlas.' });
-      return;
-    }
-    setEditing(r);
-    setForm({ name: r.name, type: r.type, percentage: r.percentage });
-    setShowModal(true);
-  };
-
-  const handleSubmit = async () => {
-    if (!form.name.trim() || !form.percentage) {
-      toast.error('Completa todos los campos');
-      return;
-    }
-    const pct = parseFloat(form.percentage);
-    if (isNaN(pct) || pct <= 0 || pct > 100) {
-      toast.error('El porcentaje debe ser entre 0.01 y 100');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const url = editing ? `/api/v1/retentions/${editing.id}` : '/api/v1/retentions';
-      const method = editing ? 'PUT' : 'POST';
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name.trim(), type: form.type, percentage: pct }),
-      });
-      const leido = await leerRespuesta(res);
-      if (!leido.bien) throw new Error(leido.mensaje || 'No se pudo guardar la retención.');
-      toast.success(editing ? 'Retención actualizada' : 'Retención creada');
-      setShowModal(false);
-      fetchRetentions();
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const toggleActive = async (r: Retention) => {
-    try {
-      const res = await fetch(`/api/v1/retentions/${r.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ active: !r.active }),
-      });
-      const leido = await leerRespuesta(res);
-      if (!leido.bien) throw new Error(leido.mensaje || 'No se pudo cambiar la retención.');
-      toast.success(r.active ? 'Retención desactivada' : 'Retención activada');
-      fetchRetentions();
-    } catch (err: any) {
-      toast.error(err.message);
-    }
-  };
-
-  const confirmDelete = async () => {
-    if (!deleteTarget || borrando.current) return;
-    borrando.current = true;
-    try {
-      const res = await fetch(`/api/v1/retentions/${deleteTarget.id}`, { method: 'DELETE' });
-      const leido = await leerRespuesta(res);
-      if (!leido.bien) throw new Error(leido.mensaje || 'No se pudo eliminar la retención.');
-      toast.success('Retención eliminada');
-      setDeleteTarget(null);
-      fetchRetentions();
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      borrando.current = false;
-    }
-  };
-
-  const grouped = {
-    ISR:   retentions.filter(r => r.type === 'ISR'),
-    ITBIS: retentions.filter(r => r.type === 'ITBIS'),
-    OTRA:  retentions.filter(r => r.type === 'OTRA'),
-  };
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
@@ -415,3 +291,138 @@ export default function RetentionsPage() {
     </div>
   );
 }
+
+/** El estado y las acciones de la pagina, movidos TAL CUAL desde el componente. */
+function useRetenciones() {
+  const [retentions, setRetentions] = useState<Retention[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<Retention | null>(null);
+  const [form, setForm] = useState(emptyForm);
+  const [deleteTarget, setDeleteTarget] = useState<Retention | null>(null);
+  const { loading: rbacLoading, hasPermission } = useRbac();
+
+  // Auditoria P0-02 (2026-09-03), extendida al frontend (2026-09-07): antes
+  // .includes('sistema'|'admin'|'conta'|'auditor'), que concedia acceso a
+  // cualquier rol cuyo NOMBRE contuviera esas letras -- un rol creado de buena
+  // fe como "Contacto de clientes" entraba por 'conta'. Ahora se pregunta por
+  // el PERMISO real en vez de por el nombre del rol: hasPermission ya concede
+  // acceso total a sistemas y administracion, cubre contabilidad, y respeta
+  // cualquier rol al que se le haya otorgado contabilidad:read en la base de
+  // datos (que antes quedaba fuera si su nombre no contenia esas letras).
+  const hasAccess = hasPermission('contabilidad', 'read');
+
+  //  Lote 252: el estado se mira ANTES de leer el cuerpo (`leerRespuesta`). Antes, un 403 o un
+  //  500 dejaban la lista vacia sin decir nada: se leia como "sin retenciones".
+  const fetchRetentions = useCallback(async () => {
+    try {
+      setLoading(true);
+      const leido = await leerRespuesta<{ data: Retention[] }>(await fetch('/api/v1/retentions'));
+      if (leido.bien) setRetentions(leido.cuerpo.data);
+      else toast.error(leido.mensaje || 'No se pudieron cargar las retenciones.');
+    } catch {
+      toast.error('Error al cargar retenciones');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { if (hasAccess) fetchRetentions(); }, [hasAccess, fetchRetentions]);
+
+  //  Dos clics seguidos en "Si, eliminar" llegan antes de volver a pintar: la guarda es un ref.
+  const borrando = useRef(false);
+
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm(emptyForm);
+    setShowModal(true);
+  };
+
+  const openEdit = (r: Retention) => {
+    if (!r.companyId) {
+      toast.warning('Las retenciones globales del sistema no se pueden editar.', { description: 'Solo puedes activarlas o desactivarlas.' });
+      return;
+    }
+    setEditing(r);
+    setForm({ name: r.name, type: r.type, percentage: r.percentage });
+    setShowModal(true);
+  };
+
+  const handleSubmit = async () => {
+    if (!form.name.trim() || !form.percentage) {
+      toast.error('Completa todos los campos');
+      return;
+    }
+    const pct = parseFloat(form.percentage);
+    if (isNaN(pct) || pct <= 0 || pct > 100) {
+      toast.error('El porcentaje debe ser entre 0.01 y 100');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const url = editing ? `/api/v1/retentions/${editing.id}` : '/api/v1/retentions';
+      const method = editing ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: form.name.trim(), type: form.type, percentage: pct }),
+      });
+      const leido = await leerRespuesta(res);
+      if (!leido.bien) throw new Error(leido.mensaje || 'No se pudo guardar la retención.');
+      toast.success(editing ? 'Retención actualizada' : 'Retención creada');
+      setShowModal(false);
+      fetchRetentions();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const toggleActive = async (r: Retention) => {
+    try {
+      const res = await fetch(`/api/v1/retentions/${r.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active: !r.active }),
+      });
+      const leido = await leerRespuesta(res);
+      if (!leido.bien) throw new Error(leido.mensaje || 'No se pudo cambiar la retención.');
+      toast.success(r.active ? 'Retención desactivada' : 'Retención activada');
+      fetchRetentions();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget || borrando.current) return;
+    borrando.current = true;
+    try {
+      const res = await fetch(`/api/v1/retentions/${deleteTarget.id}`, { method: 'DELETE' });
+      const leido = await leerRespuesta(res);
+      if (!leido.bien) throw new Error(leido.mensaje || 'No se pudo eliminar la retención.');
+      toast.success('Retención eliminada');
+      setDeleteTarget(null);
+      fetchRetentions();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      borrando.current = false;
+    }
+  };
+
+  const grouped = {
+    ISR:   retentions.filter(r => r.type === 'ISR'),
+    ITBIS: retentions.filter(r => r.type === 'ITBIS'),
+    OTRA:  retentions.filter(r => r.type === 'OTRA'),
+  };
+
+  return { retentions, setRetentions, loading, setLoading, submitting, setSubmitting, showModal, setShowModal, editing, setEditing, form, setForm, deleteTarget, setDeleteTarget, rbacLoading, hasPermission, hasAccess, fetchRetentions, borrando, openCreate, openEdit, handleSubmit, toggleActive, confirmDelete, grouped };
+}
+
+type EstadoRetentionsPage = ReturnType<typeof useRetenciones>;
+
