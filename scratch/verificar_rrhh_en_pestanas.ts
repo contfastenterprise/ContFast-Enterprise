@@ -32,6 +32,12 @@ const invariante = (t: string, c: boolean, d = '') => {
 };
 const pestanas = (s: string) => (/<PestanasDeRegistro\b[\s\S]*?\n\s*\/>/.exec(s)?.[0] ?? '').replace(/\s+/g, ' ');
 const tramo = (s: string, desde: string, hasta: string) => { const i = s.indexOf(desde); return i < 0 ? '' : s.slice(i, s.indexOf(hasta, i)); };
+//  Lote 253: la pagina se partio en piezas (`<TablaDeNovedades h={h} />`). Para mirar lo que pinta un
+//  tramo se sustituye cada pieza por su cuerpo; en el estado de antes no hay piezas y no cambia nada.
+const expandir = (src: string, trozo: string): string => trozo.replace(/<([A-Z]\w+) h=\{h\} \/>/g, (todo, nombre: string) => {
+  const i = src.indexOf(`\nfunction ${nombre}(`);
+  return i < 0 ? todo : src.slice(i, src.indexOf('\n}\n', i));
+});
 
 function main() {
   const emp = sinComentarios(leer('src/app/dashboard/hr/employees/page.tsx'));
@@ -65,8 +71,8 @@ function main() {
   ok('  en la cabecera no queda ningun boton: recargar baja a la fila de las pestanas de contenido',
     cabecera.length > 0 && !/<button/.test(cabecera)
     && /aria-label="Tabs"[\s\S]*?<\/nav>\s*<button[\s\S]{0,120}onClick=\{fetchData\}/.test(ot));
-  const listaO = tramo(ot, '{!showModal && (<>', '</>)}');
-  const formO = tramo(ot, '{showModal && (', '</PanelDeRegistro>');
+  const listaO = expandir(ot, tramo(ot, '{!showModal && (<>', '</>)}'));
+  const formO = tramo(expandir(ot, ot), '{showModal && (', '</PanelDeRegistro>');
   ok('  las tarjetas, las pestanas de contenido y la tabla no se pintan con el formulario',
     /Horas Extras Pendientes/.test(listaO) && /aria-label="Tabs"/.test(listaO) && !/<form onSubmit/.test(listaO) && /<form onSubmit=\{handleSubmit\}/.test(formO));
   ok('  el formulario va en la caja de la pestana, y su titulo dice el tipo que se registra',

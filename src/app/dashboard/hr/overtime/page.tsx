@@ -25,6 +25,81 @@ const formularioVacio = (subType = ''): FormularioDeNovedad =>
   ({ employeeId: '', date: new Date().toISOString().split('T')[0], amount: '', hours: '', subType, description: '' });
 
 export default function OvertimeAndEntriesPage() {
+  const h = useNovedades();
+  const { activeTab, setActiveTab, showModal, setShowModal, fetchData, handleOpenModal } = h;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            Ingresos, Deducciones y Horas Extras
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400">
+            Gestione las horas extras, bonificaciones y deducciones que se aplicarán en la próxima nómina.
+          </p>
+        </div>
+        {/* Lote 249: en la cabecera, SOLO las pestanas (como en Compras). Recargar baja a la fila de
+            las pestanas de contenido; lo que se registra es del tipo de la pestana de contenido elegida. */}
+        <PestanasDeRegistro
+          enFormulario={showModal}
+          lista="Novedades"
+          alVerLista={() => setShowModal(false)}
+          alRegistrar={handleOpenModal}
+        />
+      </div>
+
+      {!showModal && (<>
+
+      <TarjetasDeNovedades h={h} />
+      {/* Tab Buttons */}
+      <div className="border-b border-outline/30 flex items-end justify-between gap-3">
+        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+          {(['overtime', 'income', 'deduction'] as const).map((tab) => {
+            const label =
+              tab === 'overtime'
+                ? 'Horas Extras'
+                : tab === 'income'
+                  ? 'Ingresos Adicionales'
+                  : 'Deducciones';
+            const active = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`border-b-2 py-4 px-1 text-sm font-medium whitespace-nowrap ${active
+                    ? 'border-[#003366] text-[#003366] dark:border-[#799dd6] dark:text-[#799dd6]'
+                    : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                  }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </nav>
+        <button
+          type="button"
+          onClick={fetchData}
+          title="Recargar"
+          aria-label="Recargar"
+          className="mb-2 inline-flex items-center justify-center rounded-md border border-outline bg-surface p-2 text-sm font-medium text-on-surface shadow-sm hover:bg-surface-variant transition"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </button>
+      </div>
+
+      <TablaDeNovedades h={h} />
+      </>)}
+
+      <FormularioDeNovedad h={h} />
+    </div>
+
+  );
+}
+
+/** El estado y las acciones de la pagina, movidos TAL CUAL desde el componente. */
+function useNovedades() {
   const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<'overtime' | 'income' | 'deduction'>('overtime');
   const [employees, setEmployees] = useState<any[]>([]);
@@ -197,30 +272,15 @@ export default function OvertimeAndEntriesPage() {
     .filter(r => r.status === 'pending')
     .reduce((sum, r) => sum + parseFloat(r.amount), 0);
 
+  return { confirm, activeTab, setActiveTab, employees, setEmployees, records, setRecords, loading, setLoading, errorCarga, setErrorCarga, showModal, setShowModal, submitting, setSubmitting, form, setForm, employeeId, date, amount, hours, subType, description, cambiar, setEmployeeId, setDate, setAmount, setHours, setSubType, setDescription, fetchData, handleOpenModal, handleSubmit, handleDelete, getActiveList, activeList, totalPendingOvertimeCost, totalPendingIncome, totalPendingDeductions };
+}
+
+type EstadoOvertimeAndEntriesPage = ReturnType<typeof useNovedades>;
+
+function TarjetasDeNovedades({ h }: { h: EstadoOvertimeAndEntriesPage }) {
+  const { records, totalPendingOvertimeCost, totalPendingIncome, totalPendingDeductions } = h;
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Ingresos, Deducciones y Horas Extras
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400">
-            Gestione las horas extras, bonificaciones y deducciones que se aplicarán en la próxima nómina.
-          </p>
-        </div>
-        {/* Lote 249: en la cabecera, SOLO las pestanas (como en Compras). Recargar baja a la fila de
-            las pestanas de contenido; lo que se registra es del tipo de la pestana de contenido elegida. */}
-        <PestanasDeRegistro
-          enFormulario={showModal}
-          lista="Novedades"
-          alVerLista={() => setShowModal(false)}
-          alRegistrar={handleOpenModal}
-        />
-      </div>
-
-      {!showModal && (<>
-
+    <>
       {/* Stats Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-outline bg-surface p-6 shadow-sm text-on-surface">
@@ -268,43 +328,14 @@ export default function OvertimeAndEntriesPage() {
           </div>
         </div>
       </div>
+    </>
+  );
+}
 
-      {/* Tab Buttons */}
-      <div className="border-b border-outline/30 flex items-end justify-between gap-3">
-        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-          {(['overtime', 'income', 'deduction'] as const).map((tab) => {
-            const label =
-              tab === 'overtime'
-                ? 'Horas Extras'
-                : tab === 'income'
-                  ? 'Ingresos Adicionales'
-                  : 'Deducciones';
-            const active = activeTab === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`border-b-2 py-4 px-1 text-sm font-medium whitespace-nowrap ${active
-                    ? 'border-[#003366] text-[#003366] dark:border-[#799dd6] dark:text-[#799dd6]'
-                    : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
-                  }`}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </nav>
-        <button
-          type="button"
-          onClick={fetchData}
-          title="Recargar"
-          aria-label="Recargar"
-          className="mb-2 inline-flex items-center justify-center rounded-md border border-outline bg-surface p-2 text-sm font-medium text-on-surface shadow-sm hover:bg-surface-variant transition"
-        >
-          <RefreshCw className="h-4 w-4" />
-        </button>
-      </div>
-
+function TablaDeNovedades({ h }: { h: EstadoOvertimeAndEntriesPage }) {
+  const { activeTab, loading, errorCarga, fetchData, handleOpenModal, handleDelete, activeList } = h;
+  return (
+    <>
       {/* Table & Content */}
       {loading ? (
         <div className="flex h-64 items-center justify-center">
@@ -410,9 +441,14 @@ export default function OvertimeAndEntriesPage() {
           </div>
         </div>
       )}
+    </>
+  );
+}
 
-      </>)}
-
+function FormularioDeNovedad({ h }: { h: EstadoOvertimeAndEntriesPage }) {
+  const { activeTab, employees, showModal, setShowModal, submitting, form, employeeId, date, amount, hours, subType, description, setEmployeeId, setDate, setAmount, setHours, setSubType, setDescription, handleSubmit } = h;
+  return (
+    <>
       {/* Registrar: era un modal; desde el lote 249 es la segunda pestana. El tipo es el de la
           pestana de contenido que estaba elegida, y el titulo lo dice. */}
       {showModal && (
@@ -565,7 +601,6 @@ export default function OvertimeAndEntriesPage() {
           </form>
         </PanelDeRegistro>
       )}
-    </div>
-
+    </>
   );
 }
