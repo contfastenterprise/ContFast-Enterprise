@@ -10,7 +10,7 @@ import {
   History as HistoryIcon, Banknote, PackageMinus, Tag, FileMinus,
   Calculator, Layers, ChevronDown, Search, Command, Loader2, Star,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence, LayoutGroup, LazyMotion, MotionConfig, domMax, useReducedMotion } from 'framer-motion';
 import clsx from 'clsx';
 import { useRbac } from '@/components/providers/rbacContext';
 import { buildSidebar, getGroupIcon, getIconComponent, RouteMapping } from '@/utils/rbacHelpers';
@@ -22,6 +22,16 @@ import {
 import { grupoRecienAbierto } from '@/utils/grupoRecienAbierto';
 import { gruposDesdeTexto, favoritosDesdeTexto } from '@/utils/preferenciasDelMenu';
 import { usePreferenciaDelNavegador } from '@/hooks/usePreferenciaDelNavegador';
+import {
+  escalaDeLaFila, idDelIndicador, desplazamientoParaCentrar, comoDesplazar, hayQueCentrar,
+  filaActiva,
+  type SeccionDelMenu,
+} from '@/utils/filaActivaDelMenu';
+
+//  LOTE 259: lo que tarda el fondo azul en viajar de una fila a otra, y la curva:
+//  sale rapido y frena al llegar, que es lo que hace que se lea como un objeto que
+//  se desplaza y no como dos que se apagan y se encienden.
+const VIAJE_DEL_INDICADOR = { duration: 0.38, ease: [0.22, 1, 0.36, 1] } as const;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -153,9 +163,16 @@ function getAllSearchableItems(
 // ─── NavItem (Clean, System-token light theme) ─────────────────────────────────
 
 function NavItem({
-  item, pathname, collapsed, onClick, isSubItem, refActivo, anclado, onAnclar,
+  item, activa, collapsed, onClick, isSubItem, refActivo, anclado, onAnclar, seccion,
 }: {
-  item: NavItemDef; pathname: string; collapsed: boolean; onClick?: () => void; isSubItem?: boolean;
+  //  LOTE 259: la fila ya no decide sola si esta activa: lo decide el menu entero
+  //  con `filaActiva`, que elige UNA. Cada fila con su `startsWith` iluminaba dos
+  //  cuando una ruta es prefijo de otra.
+  item: NavItemDef; activa: boolean; collapsed: boolean; onClick?: () => void; isSubItem?: boolean;
+  //  LOTE 259: en que seccion se pinta la fila. Decide que fondo azul es el suyo:
+  //  la pantalla activa puede salir en Favoritos y en su grupo a la vez, y cada
+  //  seccion desliza el suyo (ver `idDelIndicador`).
+  seccion: SeccionDelMenu;
   //  LOTE 189: el enlace ACTIVO se deja anotar para poder traerlo a la vista.
   //  Con 59 filas posibles y el scrollbar que estaba oculto, la pantalla en la
   //  que estas podia quedar debajo del pliegue y habia que buscarla a mano.
@@ -165,11 +182,25 @@ function NavItem({
   anclado?: boolean;
   onAnclar?: () => void;
 }) {
-  const isActive =
-    pathname === item.href ||
-    (item.href !== '/dashboard' && pathname.startsWith(item.href));
+  const isActive = activa;
 
   const conEstrella = !!onAnclar && !collapsed;
+
+  //  LOTE 259: LA FILA ACTIVA CRECE, Y CRECE ENTERA.
+  //  La escala va en lo de MAS AFUERA: si la fila lleva estrella, en el envoltorio
+  //  que la contiene, para que la estrella se mueva con su fila y no se quede
+  //  clavada mientras el fondo crece por debajo. Desde la izquierda, porque la
+  //  lista recorta lo que se sale y por la izquierda no hay margen; con el menu
+  //  plegado (solo el icono, centrado) crece desde el centro.
+  //  `motion-reduce`: con "reducir movimiento" la fila cambia de tamaño sin
+  //  transicion.
+  const escala = {
+    style: { transform: escalaDeLaFila(isActive) },
+    clase: clsx(
+      'transition-transform duration-300 motion-reduce:transition-none',
+      collapsed ? 'origin-center' : 'origin-left',
+    ),
+  };
 
   const enlace = (
     <Link
@@ -177,20 +208,42 @@ function NavItem({
       ref={isActive ? refActivo : undefined}
       onClick={onClick}
       title={collapsed ? item.name : undefined}
+      style={conEstrella ? undefined : escala.style}
       className={clsx(
-        'group flex items-center rounded-xl transition duration-300 select-none w-full relative',
+        //  `isolate`: el fondo que viaja va con `-z-10` DENTRO de la fila, detras
+        //  del icono y del texto; sin un contexto de apilamiento propio se iria
+        //  detras de la lista entera y no se veria.
+        'group flex items-center rounded-xl transition duration-300 select-none w-full relative isolate',
+        !conEstrella && escala.clase,
         collapsed ? 'justify-center p-3' : clsx('px-3.5 py-2.5', isSubItem ? 'pl-8 text-[12px] gap-2.5' : 'gap-3 text-[13px]'),
         //  Hueco para la estrella: sin el, un nombre largo se corta DEBAJO de ella
         //  y no se lee ni el nombre ni se ve bien el icono.
         conEstrella && 'pr-9',
+        //  LOTE 259: el fondo azul, el borde y la sombra ya no son de la fila: son
+        //  del indicador de abajo, que es lo que viaja. La fila activa solo pone el
+        //  color del texto.
         isActive
-          ? 'bg-[#003366] text-white font-bold border border-[#003366]/20 shadow-[0_4px_12px_rgba(0,51,102,0.15)]'
+          ? 'text-white font-bold border border-transparent'
           : 'text-on-surface-variant/80 hover:bg-[#003366]/10 hover:text-[#003366] border border-transparent',
       )}
     >
-      {/* Active side indicator */}
-      {isActive && !collapsed && (
-        <span className="absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-r bg-primary shadow-[0_0_6px_rgba(0,51,102,0.4)]" />
+      {/*  LOTE 259: EL FONDO DE LA FILA ACTIVA ES UNA PIEZA QUE VIAJA.
+           Antes era una clase del enlace: al navegar se apagaba en una fila y se
+           encendia en otra. Ahora es un `motion.span` con `layoutId`, y como la
+           fila nueva pinta uno con el MISMO id, framer-motion lo desliza desde
+           donde estaba (el "shared element"). La rayita de la izquierda va dentro
+           y viaja con el.  */}
+      {isActive && (
+        <m.span
+          layoutId={idDelIndicador(seccion)}
+          transition={VIAJE_DEL_INDICADOR}
+          aria-hidden="true"
+          className="absolute inset-0 -z-10 rounded-xl bg-[#003366] border border-[#003366]/20 shadow-[0_4px_12px_rgba(0,51,102,0.15)]"
+        >
+          {!collapsed && (
+            <span className="absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-r bg-primary shadow-[0_0_6px_rgba(0,51,102,0.4)]" />
+          )}
+        </m.span>
       )}
       <item.icon
         className={clsx(
@@ -220,7 +273,7 @@ function NavItem({
   //  Y ademas del `preventDefault` hay `stopPropagation`: en el cajon del movil el
   //  contenedor lleva `onItemClick` para cerrarse, y anclar no debe cerrar el menu.
   return (
-    <div className="relative group/fila">
+    <div className={clsx('relative group/fila', escala.clase)} style={escala.style}>
       {enlace}
       <button
         type="button"
@@ -401,9 +454,14 @@ function SidebarContent({
   entorno,
   collapsed, onItemClick,
   expandedGroups, toggleGroup, abrirGrupo,
-  favoritos, alternarAnclado, subirGrupo,
+  favoritos, alternarAnclado, subirGrupo, instancia,
 }: {
   entorno: Entorno;
+  //  LOTE 259: que menu es este. Hay dos montados a la vez cuando se abre el cajon
+  //  del movil, y el fondo que viaja se identifica por un `layoutId`: sin separarlos
+  //  con su propio `LayoutGroup`, framer-motion podria deslizar el fondo de un menu
+  //  al otro.
+  instancia: 'escritorio' | 'movil';
   collapsed: boolean; onItemClick?: () => void;
   //  LOTE 189: el estado de los grupos viene de FUERA. Antes lo tenia cada
   //  instancia, y hay dos -- escritorio y cajon movil --, asi que lo que abrias
@@ -459,11 +517,16 @@ function SidebarContent({
 
   const [hoveredGroup, setHoveredGroup] = useState<string | null>(null);
 
+  //  LOTE 259: UNA sola fila activa para todo el menu (ver `filaActiva`). La usan
+  //  las filas, el grupo que se pone en negrita y el grupo que se abre solo, para
+  //  que los tres digan lo mismo.
+  const rutaActiva = filaActiva(dynamicGroups.flatMap(g => g.items.map(i => i.href)), pathname);
+
   //  El grupo de la pagina actual se abre solo. Esto se queda: entrar a una
   //  pantalla y no ver donde estas dentro del menu desorienta.
   useEffect(() => {
     dynamicGroups.forEach(g => {
-      const active = g.items.some(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)));
+      const active = g.items.some(item => item.href === rutaActiva);
       if (active) abrirGrupo(g.title);
     });
   }, [pathname, routeMappings]);
@@ -475,12 +538,65 @@ function SidebarContent({
   //  esta oculto, ni se ve que haya mas abajo. Habia que buscarla a mano en cada
   //  navegacion.
   //
-  //  `block: 'nearest'` a proposito: mueve lo justo para que se vea, sin
-  //  centrarla de un salto cada vez que cambias de pantalla.
+  //  LOTE 259: Y AHORA SE CENTRA. El 189 eligio `block: 'nearest'` (mover lo justo
+  //  para que se vea). El dueño pidio el 2026-10-03 que la fila activa quede en el
+  //  CENTRO, despues de verlo en una maqueta frente a "arriba" y frente a como
+  //  estaba. Centrada deja contexto por los dos lados; arriba escondia lo que hay
+  //  justo encima, que suele ser su propio grupo.
+  //
+  //  Tres cosas que no se ven en el resultado:
+  //
+  //    · SE CENTRA AL NAVEGAR, NO AL ABRIR O CERRAR UN GRUPO (`hayQueCentrar`). El
+  //      efecto corre con los dos cambios -- al navegar a un grupo cerrado la fila
+  //      no existe hasta que el grupo se abre solo --, pero centrar en cada cambio
+  //      de grupos moveria el menu debajo del raton al cerrar uno, que es lo que el
+  //      lote 194 dejo dicho que no se hace.
+  //
+  //    · SE DESPLAZA LA LISTA, NO "LO QUE HAGA FALTA". `scrollIntoView` mueve
+  //      tambien los contenedores de fuera si pueden desplazarse; con `center` eso
+  //      podria arrastrar la pagina. Aqui se mide y se desplaza solo el `<nav>`.
+  //
+  //    · SI ALGUN GRUPO SE ESTA ABRIENDO, SE VUELVE A CENTRAR AL TERMINAR. Un
+  //      submenu crece de 0 a su alto en 0,25 s, y mientras tanto la lista es mas
+  //      corta de lo que sera y lo que hay debajo de el todavia no esta en su sitio.
   const refActivo = React.useRef<HTMLAnchorElement | null>(null);
+  const refLista = React.useRef<HTMLElement | null>(null);
+  const centradaEn = React.useRef<string | null>(null);
+  const reducirMovimiento = useReducedMotion();
   useEffect(() => {
-    refActivo.current?.scrollIntoView({ block: 'nearest' });
-  }, [pathname, expandedGroups]);
+    const lista = refLista.current;
+    const fila = refActivo.current;
+    if (!lista || !fila || !hayQueCentrar(centradaEn.current, pathname)) return;
+    const primeraVez = centradaEn.current === null;
+    centradaEn.current = pathname;
+
+    const centrar = (comportamiento: ScrollBehavior) => {
+      const l = lista.getBoundingClientRect();
+      const f = fila.getBoundingClientRect();
+      lista.scrollTo({
+        top: desplazamientoParaCentrar({
+          filaArriba: f.top - l.top + lista.scrollTop,
+          filaAlto: f.height,
+          vista: lista.clientHeight,
+          contenido: lista.scrollHeight,
+        }),
+        behavior: comportamiento,
+      });
+    };
+    const comportamiento = comoDesplazar(!!reducirMovimiento, primeraVez);
+    centrar(comportamiento);
+
+    //  Cualquier submenu que este creciendo, no solo el de la fila: al cargar la
+    //  pagina se despliegan a la vez todos los grupos que se dejaron abiertos (lote
+    //  195), y uno que crece POR ENCIMA de la fila la empuja hacia abajo despues de
+    //  haberla centrado. Medido en el navegador: sin esto la fila acababa a 765 px
+    //  con la lista quieta arriba del todo.
+    const creciendo = Array.from(lista.querySelectorAll<HTMLElement>('[data-submenu]'))
+      .some(s => s.clientHeight < s.scrollHeight);
+    if (!creciendo) return;
+    const espera = window.setTimeout(() => centrar(comportamiento), 300);
+    return () => window.clearTimeout(espera);
+  }, [pathname, expandedGroups, collapsed, reducirMovimiento]);
 
   //  LOTE 194: EL GRUPO QUE ACABAS DE ABRIR SUBE A LA PARTE DE ARRIBA.
   //
@@ -492,8 +608,8 @@ function SidebarContent({
   //
   //  ESTE EFECTO VA DESPUES DEL DE ARRIBA A PROPOSITO, Y NO ES INDIFERENTE.
   //  Los dos reaccionan al mismo cambio de estado y piden cosas contrarias: el de
-  //  arriba trae el elemento ACTIVO con `nearest` (mover lo menos posible) y este
-  //  lleva la cabecera del grupo ARRIBA. React ejecuta los efectos de un
+  //  arriba trae el elemento ACTIVO (al centro desde el lote 259; con `nearest`
+  //  cuando se escribio esto) y este lleva la cabecera del grupo ARRIBA. React ejecuta los efectos de un
   //  componente en el orden en que estan escritos, asi que el ultimo es el que
   //  deja el scroll donde queda. Si alguien los intercambia, al abrir un grupo el
   //  menu volveria a saltar al elemento activo y esto dejaria de funcionar sin que
@@ -517,7 +633,7 @@ function SidebarContent({
   const anclados = favoritosVisibles(dynamicGroups.flatMap(g => g.items), favoritos);
 
   return (
-    <>
+    <LayoutGroup id={instancia}>
       {/*  LOTE 193: AQUI ESTABA EL SELECTOR DE EMPRESA.
            Se fue a la cabecera, a peticion del dueño. Aqui abajo el nombre de la
            empresa estaba REPETIDO -- la cabecera ya lo enseñaba en texto plano -- y,
@@ -535,7 +651,15 @@ function SidebarContent({
            mitad de "hay que hacer scroll para buscar" que reporto el dueño.
            `custom-scrollbar` es la clase fina que ya usan el buscador y el
            selector de empresa de este mismo fichero.  */}
-      <nav className="flex-1 overflow-y-auto custom-scrollbar px-3 pb-4 flex flex-col gap-2 mt-1 relative">
+      {/*  LOTE 259: `motion.nav` con `layoutScroll`. El fondo que viaja calcula de
+           donde sale y adonde va midiendo en la pantalla; dentro de una lista que se
+           desplaza, sin `layoutScroll` no descontaria lo desplazado y saldria desde
+           un sitio equivocado justo cuando la lista se esta centrando.  */}
+      <m.nav
+        ref={refLista}
+        layoutScroll
+        className="flex-1 overflow-y-auto custom-scrollbar px-3 pb-4 flex flex-col gap-2 mt-1 relative"
+      >
         {/*  LOTE 191: LO ANCLADO, ARRIBA Y SIEMPRE A LA VISTA.
              Esto es lo que convierte 50 elementos en 5: no hay que abrir el grupo,
              ni hacer scroll, ni acordarse de en que grupo cayo la pantalla.
@@ -555,9 +679,10 @@ function SidebarContent({
               <NavItem
                 key={`anclado-${item.href}`}
                 item={item}
-                pathname={pathname}
+                activa={item.href === rutaActiva}
                 collapsed={collapsed}
                 onClick={onItemClick}
+                seccion="favoritos"
                 anclado
                 onAnclar={() => alternarAnclado(item.href)}
                 /*  A PROPOSITO SIN `refActivo`: la misma pantalla aparece dos veces
@@ -584,9 +709,10 @@ function SidebarContent({
                   <NavItem
                     key={item.href}
                     item={item}
-                    pathname={pathname}
+                    activa={item.href === rutaActiva}
                     collapsed={collapsed}
                     onClick={onItemClick}
+                    seccion="grupos"
                     refActivo={refActivo}
                     anclado={esFavorito(favoritos, item.href)}
                     onAnclar={() => alternarAnclado(item.href)}
@@ -597,7 +723,7 @@ function SidebarContent({
           }
 
           const isExpanded = !!expandedGroups[group.title];
-          const isGroupActive = visible.some(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)));
+          const isGroupActive = visible.some(item => item.href === rutaActiva);
 
           return (
             <div
@@ -629,12 +755,17 @@ function SidebarContent({
                   {/* Popover Submenu */}
                   <AnimatePresence>
                     {hoveredGroup === group.title && (
-                      <motion.div
+                      <m.div
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -10 }}
                         transition={{ duration: 0.15 }}
-                        className="absolute left-[54px] top-0 bg-surface-container-lowest border border-outline-variant/40 shadow-2xl rounded-xl py-2 z-[70] min-w-[190px] flex flex-col gap-0.5 animate-in fade-in zoom-in-95 duration-100"
+                        //  LOTE 259: `[--tw-animation-duration:100ms]` y no `duration-100`.
+                        //  La entrada de `animate-in` lee esa variable; `duration-100`
+                        //  ponia ademas `transition-duration` sin propiedad, que en CSS es
+                        //  `all`: cualquier cambio de estilo del globo se animaba. Salio
+                        //  con React Doctor al renombrar `motion.div` a `m.div`.
+                        className="absolute left-[54px] top-0 bg-surface-container-lowest border border-outline-variant/40 shadow-2xl rounded-xl py-2 z-[70] min-w-[190px] flex flex-col gap-0.5 animate-in fade-in zoom-in-95 [--tw-animation-duration:100ms]"
                       >
                         <div className="px-3 py-1.5 text-[10px] font-bold text-on-surface-variant/45 border-b border-outline-variant/10 uppercase mb-1.5 tracking-wider">
                           {group.title}
@@ -653,7 +784,7 @@ function SidebarContent({
                             {item.name}
                           </Link>
                         ))}
-                      </motion.div>
+                      </m.div>
                     )}
                   </AnimatePresence>
                 </div>
@@ -689,27 +820,31 @@ function SidebarContent({
                   {/* Sub-items list with expansion animation */}
                   <AnimatePresence initial={false}>
                     {isExpanded && (
-                      <motion.div
+                      <m.div
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.25, ease: 'easeInOut' }}
+                        //  LOTE 259: la marca con la que el centrado sabe que la fila
+                        //  activa esta dentro de un submenu que todavia esta creciendo.
+                        data-submenu=""
                         className="overflow-hidden flex flex-col gap-1 pl-2 border-l border-[#003366]/40 ml-[22px] my-1"
                       >
                         {visible.map(item => (
                           <NavItem
                             key={item.href}
                             item={item}
-                            pathname={pathname}
+                            activa={item.href === rutaActiva}
                             collapsed={collapsed}
                             onClick={onItemClick}
                             isSubItem={true}
+                            seccion="grupos"
                             refActivo={refActivo}
                             anclado={esFavorito(favoritos, item.href)}
                             onAnclar={() => alternarAnclado(item.href)}
                           />
                         ))}
-                      </motion.div>
+                      </m.div>
                     )}
                   </AnimatePresence>
                 </>
@@ -717,7 +852,7 @@ function SidebarContent({
             </div>
           );
         })}
-      </nav>
+      </m.nav>
 
       {/*  LOTE 192: AQUI ESTABAN EL ROTULO DEL ENTORNO Y "CERRAR SESION".
            Los dos se fueron a la barra de arriba, a peticion del dueño: el entorno
@@ -728,7 +863,7 @@ function SidebarContent({
            cosas que no cambian durante la sesion. Con el menu plegado ademas el
            rotulo del entorno no se enseñaba, que es cuando mas falta hace saber si
            lo que se emite vale.  */}
-    </>
+    </LayoutGroup>
   );
 }
 
@@ -824,8 +959,17 @@ export default function NewAppSidebar({
 
   const topOffset = entorno !== 'PROD' ? 'pt-24' : 'pt-14';
 
+  //  LOTE 259: `reducedMotion="user"` -- quien tenga "reducir movimiento" en su
+  //  sistema ve el fondo de la fila activa cambiar de sitio sin deslizarse (y el
+  //  cajon del movil abrirse sin correr). El centrado de la lista mira lo mismo con
+  //  `useReducedMotion`, y la escala de la fila con `motion-reduce:`.
+  //
+  //  `LazyMotion` + `m` en vez de `motion`: lo pide React Doctor (carga solo las
+  //  funciones que se usan), como en conduces y caja. Aqui con `domMax` y no
+  //  `domAnimation`, porque el fondo que viaja es una animacion de `layout`.
   return (
-    <>
+    <MotionConfig reducedMotion="user">
+    <LazyMotion features={domMax}>
       {/* ── Desktop Sidebar ── */}
       <aside
         className={clsx(
@@ -872,6 +1016,7 @@ export default function NewAppSidebar({
           favoritos={favoritos}
           alternarAnclado={alternarAnclado}
           subirGrupo={subirGrupo}
+          instancia="escritorio"
         />
       </aside>
 
@@ -880,7 +1025,7 @@ export default function NewAppSidebar({
         {mobileOpen && (
           <div className="fixed inset-0 z-[70] md:hidden flex">
             {/* Backdrop */}
-            <motion.div
+            <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.5 }}
               exit={{ opacity: 0 }}
@@ -888,7 +1033,7 @@ export default function NewAppSidebar({
               className="fixed inset-0 bg-black"
             />
             {/* Drawer */}
-            <motion.aside
+            <m.aside
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
@@ -927,8 +1072,9 @@ export default function NewAppSidebar({
                 favoritos={favoritos}
                 alternarAnclado={alternarAnclado}
                 subirGrupo={subirGrupo}
+                instancia="movil"
               />
-            </motion.aside>
+            </m.aside>
           </div>
         )}
       </AnimatePresence>
@@ -982,6 +1128,7 @@ export default function NewAppSidebar({
           </button>
         )
       )}
-    </>
+    </LazyMotion>
+    </MotionConfig>
   );
 }
