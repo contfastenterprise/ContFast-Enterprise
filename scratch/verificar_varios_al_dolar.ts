@@ -46,8 +46,7 @@ async function main() {
   }
 
   console.log('\n2) Lo que se manda al servidor, ejecutado\n');
-  const React = await import('react');
-  const { renderToStaticMarkup } = await import('react-dom/server');
+  const [React, { renderToStaticMarkup }] = await Promise.all([import('react'), import('react-dom/server')]);
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { toast } = require('sonner');
   const avisos: string[] = [];

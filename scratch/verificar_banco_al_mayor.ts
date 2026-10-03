@@ -60,7 +60,8 @@ const RESOLVER = 'src/services/accounting/resolverCuentas.ts';
   exige(/AccountRepository\.createJournalEntry\(tx, \{/.test(repo),
         'el movimiento bancario ya no asienta por el motor central');
   //  El formulario ya exigia la contrapartida: por eso esto no rompe nada.
-  exige(/<select required value=\{txForm\.contraAccountId\}/.test(codigo(PANTALLA)),
+  //  Lote 252: el select gano su id (la etiqueta lo nombra); lo que importa es que siga siendo obligatorio.
+  exige(/<select\b[^>]*\brequired\b[^>]*value=\{txForm\.contraAccountId\}/.test(codigo(PANTALLA)),
         'el formulario de banco ya no exige la contrapartida');
   //  El resolvedor no crea cuentas: por eso la ruta gemela sobraba.
   exige(!/\.insert\(chartOfAccounts\)/.test(codigo(RESOLVER)), 'el resolvedor ahora crea cuentas');

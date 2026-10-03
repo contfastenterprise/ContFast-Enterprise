@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { Pencil, Trash2, ToggleLeft, ToggleRight, ShieldAlert, Percent, Globe, Building2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+//  Lote 252: `m` dentro de `LazyMotion` y no `motion` (aviso de React Doctor): carga solo lo que usa.
+import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 import { useRbac } from '@/components/providers/rbacContext';
+import { leerRespuesta } from '@/utils/leerRespuesta';
 
 interface Retention {
   id: string;
@@ -47,20 +49,25 @@ export default function RetentionsPage() {
   // datos (que antes quedaba fuera si su nombre no contenia esas letras).
   const hasAccess = hasPermission('contabilidad', 'read');
 
-  const fetchRetentions = async () => {
+  //  Lote 252: el estado se mira ANTES de leer el cuerpo (`leerRespuesta`). Antes, un 403 o un
+  //  500 dejaban la lista vacia sin decir nada: se leia como "sin retenciones".
+  const fetchRetentions = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/v1/retentions');
-      const data = await res.json();
-      if (data.success) setRetentions(data.data);
+      const leido = await leerRespuesta<{ data: Retention[] }>(await fetch('/api/v1/retentions'));
+      if (leido.bien) setRetentions(leido.cuerpo.data);
+      else toast.error(leido.mensaje || 'No se pudieron cargar las retenciones.');
     } catch {
       toast.error('Error al cargar retenciones');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { if (hasAccess) fetchRetentions(); }, [hasAccess]);
+  useEffect(() => { if (hasAccess) fetchRetentions(); }, [hasAccess, fetchRetentions]);
+
+  //  Dos clics seguidos en "Si, eliminar" llegan antes de volver a pintar: la guarda es un ref.
+  const borrando = useRef(false);
 
   // Role guard — show access denied
   if (rbacLoading) {
@@ -121,8 +128,8 @@ export default function RetentionsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: form.name.trim(), type: form.type, percentage: pct }),
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error?.message || 'Error desconocido');
+      const leido = await leerRespuesta(res);
+      if (!leido.bien) throw new Error(leido.mensaje || 'No se pudo guardar la retención.');
       toast.success(editing ? 'Retención actualizada' : 'Retención creada');
       setShowModal(false);
       fetchRetentions();
@@ -140,8 +147,8 @@ export default function RetentionsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ active: !r.active }),
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error?.message);
+      const leido = await leerRespuesta(res);
+      if (!leido.bien) throw new Error(leido.mensaje || 'No se pudo cambiar la retención.');
       toast.success(r.active ? 'Retención desactivada' : 'Retención activada');
       fetchRetentions();
     } catch (err: any) {
@@ -150,16 +157,19 @@ export default function RetentionsPage() {
   };
 
   const confirmDelete = async () => {
-    if (!deleteTarget) return;
+    if (!deleteTarget || borrando.current) return;
+    borrando.current = true;
     try {
       const res = await fetch(`/api/v1/retentions/${deleteTarget.id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error?.message);
+      const leido = await leerRespuesta(res);
+      if (!leido.bien) throw new Error(leido.mensaje || 'No se pudo eliminar la retención.');
       toast.success('Retención eliminada');
       setDeleteTarget(null);
       fetchRetentions();
     } catch (err: any) {
       toast.error(err.message);
+    } finally {
+      borrando.current = false;
     }
   };
 
@@ -359,14 +369,15 @@ export default function RetentionsPage() {
       )}
 
       {/* Delete Confirm Modal */}
+      <LazyMotion features={domAnimation}>
       <AnimatePresence>
         {deleteTarget && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
             onClick={(e) => e.target === e.currentTarget && setDeleteTarget(null)}
           >
-            <motion.div
+            <m.div
               initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
               className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-4 space-y-4"
             >
@@ -396,10 +407,11 @@ export default function RetentionsPage() {
                   Sí, eliminar
                 </button>
               </div>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         )}
       </AnimatePresence>
+      </LazyMotion>
     </div>
   );
 }

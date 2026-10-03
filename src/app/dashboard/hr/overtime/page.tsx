@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Clock, Coins, Percent, Plus, Trash2, RefreshCw, User, Calendar, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { leerRespuesta } from '@/utils/leerRespuesta';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 
 // Format currency helper
@@ -14,13 +15,19 @@ const formatCurrency = (val: number | string) => {
   return 'RD$ ' + (num || 0).toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+// `records` NO es una lista: son tres, una por pestaña. Vaciarlo con `[]`
+// compila mal y ademas romperia `getActiveList`, que lee una de las tres.
+// Fuera del componente (lote 252): no depende de nada suyo.
+const SIN_REGISTROS = { overtime: [], income: [], deduction: [] };
+
+type FormularioDeNovedad = { employeeId: string; date: string; amount: string; hours: string; subType: string; description: string };
+const formularioVacio = (subType = ''): FormularioDeNovedad =>
+  ({ employeeId: '', date: new Date().toISOString().split('T')[0], amount: '', hours: '', subType, description: '' });
+
 export default function OvertimeAndEntriesPage() {
   const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<'overtime' | 'income' | 'deduction'>('overtime');
   const [employees, setEmployees] = useState<any[]>([]);
-  // `records` NO es una lista: son tres, una por pestaña. Vaciarlo con `[]`
-  // compila mal y ademas romperia `getActiveList`, que lee una de las tres.
-  const SIN_REGISTROS = { overtime: [], income: [], deduction: [] };
   const [records, setRecords] = useState<{ overtime: any[]; income: any[]; deduction: any[] }>({
     overtime: [],
     income: [],
@@ -35,37 +42,37 @@ export default function OvertimeAndEntriesPage() {
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form States
-  const [employeeId, setEmployeeId] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [amount, setAmount] = useState('');
-  const [hours, setHours] = useState('');
-  const [subType, setSubType] = useState('');
-  const [description, setDescription] = useState('');
+  // Form States -- un solo objeto (lote 252: se llenaban seis por separado al abrir), con la
+  // fecha de hoy calculada una vez al montar y no en cada pintada. Los nombres de siempre se
+  // conservan para que el formulario no cambie.
+  const [form, setForm] = useState<FormularioDeNovedad>(() => formularioVacio());
+  const { employeeId, date, amount, hours, subType, description } = form;
+  const cambiar = (clave: keyof FormularioDeNovedad) => (valor: string) => setForm((f) => ({ ...f, [clave]: valor }));
+  const setEmployeeId = cambiar('employeeId');
+  const setDate = cambiar('date');
+  const setAmount = cambiar('amount');
+  const setHours = cambiar('hours');
+  const setSubType = cambiar('subType');
+  const setDescription = cambiar('description');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  async function fetchData() {
+  //  Lote 252: una funcion estable que mira el ESTADO antes de leer el cuerpo; las dos lecturas a
+  //  la vez. El efecto solo la llama.
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setErrorCarga(null);
-      // Fetch employees
-      const empRes = await fetch('/api/v1/hr/employees');
-      const empData = await empRes.json();
-      if (empData.success) {
-        setEmployees(empData.data.filter((e: any) => e.status === 'active'));
+      const [empRes, entriesRes] = await Promise.all([fetch('/api/v1/hr/employees'), fetch('/api/v1/hr/entries')]);
+      const empleados = await leerRespuesta<{ data: any[] }>(empRes);
+      if (empleados.bien) {
+        setEmployees(empleados.cuerpo.data.filter((e: any) => e.status === 'active'));
       }
 
-      // Fetch entries
-      const entriesRes = await fetch('/api/v1/hr/entries');
-      const entriesData = await entriesRes.json();
-      if (entriesData.success) {
-        setRecords(entriesData.data);
+      const novedades = await leerRespuesta<{ data: { overtime: any[]; income: any[]; deduction: any[] } }>(entriesRes);
+      if (novedades.bien) {
+        setRecords(novedades.cuerpo.data);
       } else {
         setRecords(SIN_REGISTROS);
-        setErrorCarga(motivoDeCarga(null, entriesData.error?.message));
+        setErrorCarga(motivoDeCarga(null, novedades.mensaje));
       }
     } catch (error) {
       // Mismo caso que empleados: el vacio invita a "comenzar agregando un
@@ -76,19 +83,15 @@ export default function OvertimeAndEntriesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleOpenModal = () => {
-    setEmployeeId('');
-    setDate(new Date().toISOString().split('T')[0]);
-    setAmount('');
-    setHours('');
-    setDescription('');
-    // Set default subtypes
-    if (activeTab === 'overtime') setSubType('diurna');
-    else if (activeTab === 'income') setSubType('comision');
-    else if (activeTab === 'deduction') setSubType('prestamo');
-
+    // El subtipo por defecto es el de la pestana de contenido elegida.
+    setForm(formularioVacio(activeTab === 'overtime' ? 'diurna' : activeTab === 'income' ? 'comision' : 'prestamo'));
     setShowModal(true);
   };
 
@@ -139,13 +142,13 @@ export default function OvertimeAndEntriesPage() {
         }),
       });
 
-      const resData = await res.json();
-      if (resData.success) {
+      const leido = await leerRespuesta(res);
+      if (leido.bien) {
         toast.success('Registro agregado exitosamente');
         setShowModal(false);
         fetchData();
       } else {
-        toast.error(resData.error?.message || 'Error al guardar el registro');
+        toast.error(leido.mensaje || 'Error al guardar el registro');
       }
     } catch (err) {
       toast.error('Error de red');
@@ -162,9 +165,9 @@ export default function OvertimeAndEntriesPage() {
         const res = await fetch(`/api/v1/hr/entries?id=${id}&entryType=${activeTab}`, {
           method: 'DELETE',
         });
-        const data = await res.json();
-        if (!data.success) {
-          throw new Error(data.error?.message || 'Error al eliminar');
+        const leido = await leerRespuesta(res);
+        if (!leido.bien) {
+          throw new Error(leido.mensaje || 'Error al eliminar');
         }
         fetchData();
       },
@@ -387,7 +390,10 @@ export default function OvertimeAndEntriesPage() {
                       <td className="p-4 text-right">
                         {record.status === 'pending' ? (
                           <button
+                            type="button"
                             onClick={() => handleDelete(record.id)}
+                            title="Eliminar"
+                            aria-label="Eliminar registro"
                             className="inline-flex items-center justify-center text-rose-600 hover:text-rose-900 dark:hover:text-rose-400 p-1 rounded hover:bg-rose-55 dark:hover:bg-rose-950/20"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -418,10 +424,10 @@ export default function OvertimeAndEntriesPage() {
           <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
             {/* Employee select */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+              <label htmlFor="nov-1" className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
                 Empleado
               </label>
-              <select
+              <select id="nov-1"
                 value={employeeId}
                 onChange={(e) => setEmployeeId(e.target.value)}
                 required
@@ -438,10 +444,10 @@ export default function OvertimeAndEntriesPage() {
 
             {/* Subtype select */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+              <label htmlFor="nov-2" className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
                 Tipo de {activeTab === 'overtime' ? 'Hora Extra' : activeTab === 'income' ? 'Ingreso' : 'Deducción'}
               </label>
-              <select
+              <select id="nov-2"
                 value={subType}
                 onChange={(e) => setSubType(e.target.value)}
                 required
@@ -479,10 +485,10 @@ export default function OvertimeAndEntriesPage() {
             <div className="grid grid-cols-2 gap-4">
               {activeTab === 'overtime' ? (
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                  <label htmlFor="nov-3" className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
                     Horas Trabajadas
                   </label>
-                  <input
+                  <input id="nov-3"
                     type="number"
                     step="0.01"
                     value={hours}
@@ -494,10 +500,10 @@ export default function OvertimeAndEntriesPage() {
                 </div>
               ) : (
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                  <label htmlFor="nov-4" className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
                     Monto (RD$)
                   </label>
-                  <input
+                  <input id="nov-4"
                     type="number"
                     step="0.01"
                     value={amount}
@@ -510,10 +516,10 @@ export default function OvertimeAndEntriesPage() {
               )}
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                <label htmlFor="nov-5" className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
                   Fecha
                 </label>
-                <input
+                <input id="nov-5"
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
@@ -526,10 +532,10 @@ export default function OvertimeAndEntriesPage() {
             {/* Description (only for income & deduction) */}
             {activeTab !== 'overtime' && (
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
+                <label htmlFor="nov-6" className="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
                   Descripción / Nota
                 </label>
-                <textarea
+                <textarea id="nov-6"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Escriba un detalle..."

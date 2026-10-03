@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Shield, RefreshCw, X, Building2, Trash2, CreditCard, Calendar, Search } from 'lucide-react';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { toast } from 'sonner';
@@ -9,6 +9,7 @@ import clsx from 'clsx';
 import { useRouter } from 'next/navigation';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { leerRespuesta } from '@/utils/leerRespuesta';
 
 interface Company {
   id: string;
@@ -69,11 +70,8 @@ export default function AdminCompaniesPage() {
     currentPeriodEnd: ''
   });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  async function fetchData() {
+  //  Lote 252: una funcion estable, y el efecto solo la llama.
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setErrorCarga(null);
     try {
@@ -88,21 +86,17 @@ export default function AdminCompaniesPage() {
          return;
       }
       
-      const compData = await compRes.json();
-      if (compData.success) {
-        setCompanies(compData.data);
+      const empresas = await leerRespuesta<{ data: Company[] }>(compRes);
+      if (empresas.bien) {
+        setCompanies(empresas.cuerpo.data);
       } else {
         setCompanies([]);
-        setErrorCarga(motivoDeCarga(null, compData.error?.message));
-        toast.error(compData.error?.message || 'Error al cargar empresas');
+        setErrorCarga(motivoDeCarga(null, empresas.mensaje));
+        toast.error(empresas.mensaje || 'Error al cargar empresas');
       }
 
-      if (plansRes.ok) {
-        const plansData = await plansRes.json();
-        if (plansData.success) {
-          setPlans(plansData.data);
-        }
-      }
+      const planes = await leerRespuesta<{ data: typeof plans }>(plansRes);
+      if (planes.bien) setPlans(planes.cuerpo.data);
     } catch (err) {
       setCompanies([]);
       setErrorCarga(motivoDeCarga(err));
@@ -110,7 +104,11 @@ export default function AdminCompaniesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleCreateCompany = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,14 +119,14 @@ export default function AdminCompaniesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(companyForm)
       });
-      const data = await res.json();
-      if (data.success) {
+      const leido = await leerRespuesta(res);
+      if (leido.bien) {
         toast.success('Empresa creada exitosamente');
         setShowNewCompanyModal(false);
         fetchData();
         setCompanyForm({ name: '', rnc: '', email: '', businessActivity: '', address: '' });
       } else {
-        toast.error(data.error?.message || 'Error al crear empresa');
+        toast.error(leido.mensaje || 'Error al crear empresa');
       }
     } catch (error) {
       toast.error('Error de red al crear empresa');
@@ -146,12 +144,12 @@ export default function AdminCompaniesPage() {
           const res = await fetch(`/api/v1/admin/companies/${id}`, {
             method: 'DELETE',
           });
-          const data = await res.json();
-          if (data.success) {
+          const leido = await leerRespuesta(res);
+          if (leido.bien) {
             toast.success('Empresa desactivada');
             fetchData();
           } else {
-            toast.error(data.error?.message || 'Error al eliminar empresa');
+            toast.error(leido.mensaje || 'Error al eliminar empresa');
           }
         } catch (error) {
           toast.error('Error de red al eliminar empresa');
@@ -181,12 +179,12 @@ export default function AdminCompaniesPage() {
       const res = await fetch(`/api/v1/admin/companies/${company.id}/clear-sandbox`, {
         method: 'POST',
       });
-      const data = await res.json();
-      if (data.success) {
+      const leido = await leerRespuesta(res);
+      if (leido.bien) {
         toast.success(`Datos de prueba de "${company.name}" eliminados exitosamente.`);
         fetchData();
       } else {
-        toast.error(data.error?.message || 'Error al limpiar datos de prueba.');
+        toast.error(leido.mensaje || 'Error al limpiar datos de prueba.');
       }
     } catch (err) {
       toast.error('Error de red al limpiar datos de prueba.');
@@ -241,13 +239,13 @@ export default function AdminCompaniesPage() {
         });
       }
 
-      const data = await res.json();
-      if (data.success) {
+      const leido = await leerRespuesta(res);
+      if (leido.bien) {
         toast.success('Suscripción SaaS actualizada correctamente');
         setShowSubscriptionModal(false);
         fetchData();
       } else {
-        toast.error(data.error?.message || 'Error al actualizar suscripción');
+        toast.error(leido.mensaje || 'Error al actualizar suscripción');
       }
     } catch (err) {
       toast.error('Error de red al guardar suscripción');
@@ -297,6 +295,7 @@ export default function AdminCompaniesPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <input
                   type="text"
+                  aria-label="Buscar empresa por nombre o RNC"
                   placeholder="Buscar por nombre o RNC..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -427,8 +426,8 @@ export default function AdminCompaniesPage() {
             </div>
             
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Nombre Comercial <span className="text-red-500">*</span></label>
-              <input
+              <label htmlFor="empresa-1" className="block text-xs font-bold text-slate-700 mb-1">Nombre Comercial <span className="text-red-500">*</span></label>
+              <input id="empresa-1"
                 type="text"
                 required
                 value={companyForm.name}
@@ -439,8 +438,8 @@ export default function AdminCompaniesPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">RNC <span className="text-red-500">*</span></label>
-              <input
+              <label htmlFor="empresa-2" className="block text-xs font-bold text-slate-700 mb-1">RNC <span className="text-red-500">*</span></label>
+              <input id="empresa-2"
                 type="text"
                 required
                 minLength={9}
@@ -453,8 +452,8 @@ export default function AdminCompaniesPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Correo Electrónico <span className="text-red-500">*</span></label>
-              <input
+              <label htmlFor="empresa-3" className="block text-xs font-bold text-slate-700 mb-1">Correo Electrónico <span className="text-red-500">*</span></label>
+              <input id="empresa-3"
                 type="email"
                 required
                 value={companyForm.email}
@@ -465,8 +464,8 @@ export default function AdminCompaniesPage() {
             </div>
             
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Actividad Comercial</label>
-              <input
+              <label htmlFor="empresa-4" className="block text-xs font-bold text-slate-700 mb-1">Actividad Comercial</label>
+              <input id="empresa-4"
                 type="text"
                 value={companyForm.businessActivity}
                 onChange={e => setCompanyForm({...companyForm, businessActivity: e.target.value})}
@@ -476,8 +475,8 @@ export default function AdminCompaniesPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Dirección</label>
-              <textarea
+              <label htmlFor="empresa-5" className="block text-xs font-bold text-slate-700 mb-1">Dirección</label>
+              <textarea id="empresa-5"
                 value={companyForm.address}
                 onChange={e => setCompanyForm({...companyForm, address: e.target.value})}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition resize-none"
@@ -515,12 +514,12 @@ export default function AdminCompaniesPage() {
       {/* Modal: Gestionar Suscripción */}
       {showSubscriptionModal && selectedCompany && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 [animation-duration:200ms]">
             <div className="flex justify-between items-center p-5 border-b border-slate-100">
               <h2 className="text-xl font-bold text-[#003366] flex items-center gap-2">
                 <CreditCard className="h-5 w-5 text-[#C5A059]" /> Suscripción SaaS
               </h2>
-              <button onClick={() => setShowSubscriptionModal(false)} className="p-1.5 hover:bg-slate-100 rounded-full text-slate-500 transition-colors">
+              <button type="button" onClick={() => setShowSubscriptionModal(false)} aria-label="Cerrar" className="p-1.5 hover:bg-slate-100 rounded-full text-slate-500 transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -533,8 +532,8 @@ export default function AdminCompaniesPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Seleccionar Plan <span className="text-red-500">*</span></label>
-                <select
+                <label htmlFor="empresa-6" className="block text-xs font-bold text-slate-700 mb-1">Seleccionar Plan <span className="text-red-500">*</span></label>
+                <select id="empresa-6"
                   required
                   value={subForm.planId}
                   onChange={e => setSubForm({...subForm, planId: e.target.value})}
@@ -550,8 +549,8 @@ export default function AdminCompaniesPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Estado de Suscripción <span className="text-red-500">*</span></label>
-                <select
+                <label htmlFor="empresa-7" className="block text-xs font-bold text-slate-700 mb-1">Estado de Suscripción <span className="text-red-500">*</span></label>
+                <select id="empresa-7"
                   required
                   value={subForm.status}
                   onChange={e => setSubForm({...subForm, status: e.target.value})}
@@ -565,8 +564,8 @@ export default function AdminCompaniesPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Fecha de Próximo Vencimiento <span className="text-red-500">*</span></label>
-                <input
+                <label htmlFor="empresa-8" className="block text-xs font-bold text-slate-700 mb-1">Fecha de Próximo Vencimiento <span className="text-red-500">*</span></label>
+                <input id="empresa-8"
                   type="date"
                   required
                   value={subForm.currentPeriodEnd}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Users, Search, Edit2, Trash2, RefreshCw, AlertTriangle, Building2, Briefcase, Mail, Phone, Calendar, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
@@ -8,6 +8,7 @@ import { useConfirm } from '@/providers/confirm-provider';
 import { SearchBar } from '@/components/ui/search-bar';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { Pagination } from '@/components/ui/pagination';
+import { leerRespuesta } from '@/utils/leerRespuesta';
 
 interface Employee {
   id: string;
@@ -74,31 +75,30 @@ export default function EmployeesPage() {
     status: 'active'
   });
 
-  useEffect(() => {
-    setPage(1);
-    fetchData();
-  }, [search]);
-
-  async function fetchData() {
+  //  Lote 252: una funcion estable que mira el ESTADO antes de leer el cuerpo, y las tres
+  //  lecturas a la vez (no dependen una de otra). El efecto solo la llama.
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setErrorCarga(null);
-      const empRes = await fetch(`/api/v1/hr/employees?search=${encodeURIComponent(search)}`);
-      const empData = await empRes.json();
-      if (empData.success) {
-        setEmployeesList(empData.data);
+      const [empRes, deptRes, posRes] = await Promise.all([
+        fetch(`/api/v1/hr/employees?search=${encodeURIComponent(search)}`),
+        fetch('/api/v1/hr/departments'),
+        fetch('/api/v1/hr/positions'),
+      ]);
+      const empleados = await leerRespuesta<{ data: Employee[] }>(empRes);
+      if (empleados.bien) {
+        setEmployeesList(empleados.cuerpo.data);
       } else {
         setEmployeesList([]);
-        setErrorCarga(motivoDeCarga(null, empData.error?.message));
+        setErrorCarga(motivoDeCarga(null, empleados.mensaje));
       }
 
-      const deptRes = await fetch('/api/v1/hr/departments');
-      const deptData = await deptRes.json();
-      if (deptData.success) setDepartments(deptData.data);
+      const departamentos = await leerRespuesta<{ data: any[] }>(deptRes);
+      if (departamentos.bien) setDepartments(departamentos.cuerpo.data);
 
-      const posRes = await fetch('/api/v1/hr/positions');
-      const posData = await posRes.json();
-      if (posData.success) setPositions(posData.data);
+      const puestos = await leerRespuesta<{ data: any[] }>(posRes);
+      if (puestos.bien) setPositions(puestos.cuerpo.data);
 
     } catch (err: any) {
       // El mensaje de vacio invita a "agregar tu primer colaborador": al fallar
@@ -110,7 +110,12 @@ export default function EmployeesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search]);
+
+  useEffect(() => {
+    setPage(1);
+    fetchData();
+  }, [fetchData]);
 
   const handleOpenCreate = () => {
     setEditId(null);
@@ -183,13 +188,13 @@ export default function EmployeesPage() {
         }),
       });
 
-      const data = await res.json();
-      if (data.success) {
+      const leido = await leerRespuesta(res);
+      if (leido.bien) {
         toast.success(editId ? 'Empleado actualizado correctamente' : 'Empleado creado correctamente');
         setShowModal(false);
         fetchData();
       } else {
-        toast.error(data.error?.message || 'Error al procesar la solicitud');
+        toast.error(leido.mensaje || 'Error al procesar la solicitud');
       }
     } catch (err: any) {
       toast.error('Error al guardar datos');
@@ -204,9 +209,9 @@ export default function EmployeesPage() {
       description: '¿Está seguro de que desea eliminar este empleado? Esta acción no se puede deshacer.',
       action: async () => {
         const res = await fetch(`/api/v1/hr/employees?id=${id}`, { method: 'DELETE' });
-        const data = await res.json();
-        if (!data.success) {
-          throw new Error(data.error?.message || 'Error al eliminar');
+        const leido = await leerRespuesta(res);
+        if (!leido.bien) {
+          throw new Error(leido.mensaje || 'Error al eliminar');
         }
         fetchData();
       },
@@ -248,7 +253,10 @@ export default function EmployeesPage() {
           onChange={setSearch}
         />
         <button
+          type="button"
           onClick={fetchData}
+          title="Recargar"
+          aria-label="Recargar"
           className="flex items-center justify-center h-8 w-8 border border-slate-200 hover:bg-slate-50 rounded-lg transition text-slate-700"
         >
           <RefreshCw className="h-4.5 w-4.5" />
@@ -409,8 +417,8 @@ export default function EmployeesPage() {
               <h3 className="text-[10px] font-bold text-[#c5a059] uppercase tracking-wider">1. Datos Personales</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre</label>
-                  <input
+                  <label htmlFor="emp-1" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre</label>
+                  <input id="emp-1"
                     type="text"
                     required
                     value={formData.firstName}
@@ -419,8 +427,8 @@ export default function EmployeesPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Apellido</label>
-                  <input
+                  <label htmlFor="emp-2" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Apellido</label>
+                  <input id="emp-2"
                     type="text"
                     required
                     value={formData.lastName}
@@ -429,8 +437,8 @@ export default function EmployeesPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cédula Dominicana</label>
-                  <input
+                  <label htmlFor="emp-3" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cédula Dominicana</label>
+                  <input id="emp-3"
                     type="text"
                     required
                     placeholder="Ej. 00112345678"
@@ -440,8 +448,8 @@ export default function EmployeesPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha de Nacimiento</label>
-                  <input
+                  <label htmlFor="emp-4" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha de Nacimiento</label>
+                  <input id="emp-4"
                     type="date"
                     required
                     value={formData.birthDate}
@@ -450,8 +458,8 @@ export default function EmployeesPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Género</label>
-                  <select
+                  <label htmlFor="emp-5" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Género</label>
+                  <select id="emp-5"
                     value={formData.gender}
                     onChange={e => setFormData({ ...formData, gender: e.target.value })}
                     className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
@@ -461,8 +469,8 @@ export default function EmployeesPage() {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado Civil</label>
-                  <select
+                  <label htmlFor="emp-6" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado Civil</label>
+                  <select id="emp-6"
                     value={formData.civilStatus}
                     onChange={e => setFormData({ ...formData, civilStatus: e.target.value })}
                     className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
@@ -475,8 +483,8 @@ export default function EmployeesPage() {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Correo Electrónico</label>
-                  <input
+                  <label htmlFor="emp-7" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Correo Electrónico</label>
+                  <input id="emp-7"
                     type="email"
                     value={formData.email}
                     onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -484,8 +492,8 @@ export default function EmployeesPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Teléfono</label>
-                  <input
+                  <label htmlFor="emp-8" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Teléfono</label>
+                  <input id="emp-8"
                     type="text"
                     value={formData.phone}
                     onChange={e => setFormData({ ...formData, phone: e.target.value })}
@@ -494,8 +502,8 @@ export default function EmployeesPage() {
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Dirección Completa</label>
-                <textarea
+                <label htmlFor="emp-9" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Dirección Completa</label>
+                <textarea id="emp-9"
                   rows={2}
                   value={formData.address}
                   onChange={e => setFormData({ ...formData, address: e.target.value })}
@@ -509,8 +517,8 @@ export default function EmployeesPage() {
               <h3 className="text-[10px] font-bold text-[#c5a059] uppercase tracking-wider">2. Datos Laborales</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Código Empleado</label>
-                  <input
+                  <label htmlFor="emp-10" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Código Empleado</label>
+                  <input id="emp-10"
                     type="text"
                     required
                     value={formData.employeeCode}
@@ -519,8 +527,8 @@ export default function EmployeesPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo Contrato</label>
-                  <select
+                  <label htmlFor="emp-11" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo Contrato</label>
+                  <select id="emp-11"
                     value={formData.contractType}
                     onChange={e => setFormData({ ...formData, contractType: e.target.value })}
                     className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
@@ -532,8 +540,8 @@ export default function EmployeesPage() {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Departamento</label>
-                  <select
+                  <label htmlFor="emp-12" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Departamento</label>
+                  <select id="emp-12"
                     value={formData.departmentId}
                     onChange={e => setFormData({ ...formData, departmentId: e.target.value })}
                     className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
@@ -545,8 +553,8 @@ export default function EmployeesPage() {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cargo / Puesto</label>
-                  <select
+                  <label htmlFor="emp-13" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cargo / Puesto</label>
+                  <select id="emp-13"
                     value={formData.positionId}
                     onChange={e => setFormData({ ...formData, positionId: e.target.value })}
                     className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
@@ -558,8 +566,8 @@ export default function EmployeesPage() {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Salario Base Mensual (DOP)</label>
-                  <input
+                  <label htmlFor="emp-14" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Salario Base Mensual (DOP)</label>
+                  <input id="emp-14"
                     type="number"
                     required
                     value={formData.salary}
@@ -568,8 +576,8 @@ export default function EmployeesPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Frecuencia de Pago</label>
-                  <select
+                  <label htmlFor="emp-15" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Frecuencia de Pago</label>
+                  <select id="emp-15"
                     value={formData.paymentFrequency}
                     onChange={e => setFormData({ ...formData, paymentFrequency: e.target.value })}
                     className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"
@@ -580,8 +588,8 @@ export default function EmployeesPage() {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha de Ingreso</label>
-                  <input
+                  <label htmlFor="emp-16" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha de Ingreso</label>
+                  <input id="emp-16"
                     type="date"
                     required
                     value={formData.hireDate}
@@ -590,8 +598,8 @@ export default function EmployeesPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado Laboral</label>
-                  <select
+                  <label htmlFor="emp-17" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Estado Laboral</label>
+                  <select id="emp-17"
                     value={formData.status}
                     onChange={e => setFormData({ ...formData, status: e.target.value })}
                     className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-slate-800"

@@ -116,7 +116,8 @@ function ok(t: string, c: boolean): void {
     src.includes('const [txMeta, setTxMeta] = useState<{ total: number; truncado: boolean } | null>(null);')
   );
   ok('bank: la pantalla pide un limite en vez del libro entero', src.includes("params.append('limit', '500');"));
-  ok('bank: recoge la meta al cargar', src.includes('setTxMeta(data.meta ?? null);'));
+  //  Lote 252: la respuesta se lee con leerRespuesta; lo que importa es que la meta se recoja.
+  ok('bank: recoge la meta al cargar', /setTxMeta\([\w.]+\.meta \?\? null\);/.test(src));
   ok(
     'bank: avisa en pantalla cuando falta ver movimientos',
     src.includes('{txMeta?.truncado && (') && src.includes('movimientos más recientes de')
@@ -124,7 +125,7 @@ function ok(t: string, c: boolean): void {
   ok(
     'bank: el reporte impreso se pide aparte y SIN limite',
     src.includes('const paramsReporte = new URLSearchParams({ accountId: selectedAccount.id });') &&
-      src.includes('const todosLosMovimientos: BankTransaction[] = txData.data || [];')
+      /const todosLosMovimientos: BankTransaction\[\] = [\w.]+\.data \|\| \[\];/.test(src)
   );
   ok(
     'bank: el reporte ya no se arma con lo que hay en pantalla',
