@@ -35,6 +35,63 @@ interface Employee {
 }
 
 export default function EmployeesPage() {
+  const h = useEmpleados();
+  const { search, setSearch, showModal, setShowModal, editId, fetchData, handleOpenCreate } = h;
+
+  return (
+
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
+            <Users className="h-6 w-6 text-[#c5a059]" /> Colaboradores / Empleados
+          </h1>
+          <p className="text-sm text-slate-500">
+            Administración de ficha de datos personales y laborales del personal.
+          </p>
+        </div>
+        {/* Lote 249: en la cabecera, SOLO las pestanas (como en Compras). */}
+        <PestanasDeRegistro
+          enFormulario={showModal}
+          lista="Empleados"
+          editando={!!editId}
+          alVerLista={() => setShowModal(false)}
+          alRegistrar={handleOpenCreate}
+        />
+      </div>
+
+      {!showModal && (<>
+
+      {/* Filters */}
+      <div className="flex items-center gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <SearchBar
+          placeholder="Buscar por nombre, código o cédula..."
+          value={search}
+          onChange={setSearch}
+        />
+        <button
+          type="button"
+          onClick={fetchData}
+          title="Recargar"
+          aria-label="Recargar"
+          className="flex items-center justify-center h-8 w-8 border border-slate-200 hover:bg-slate-50 rounded-lg transition text-slate-700"
+        >
+          <RefreshCw className="h-4.5 w-4.5" />
+        </button>
+      </div>
+
+      <TablaDeEmpleados h={h} />
+      </>)}
+
+      <FormularioDeEmpleado h={h} />
+    </div>
+
+  );
+}
+
+/** El estado y las acciones de la pagina, movidos TAL CUAL desde el componente. */
+function useEmpleados() {
   const confirm = useConfirm();
   const [employeesList, setEmployeesList] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
@@ -220,49 +277,15 @@ export default function EmployeesPage() {
     });
   };
 
+  return { confirm, employeesList, setEmployeesList, departments, setDepartments, positions, setPositions, loading, setLoading, errorCarga, setErrorCarga, search, setSearch, page, setPage, showModal, setShowModal, submitting, setSubmitting, editId, setEditId, itemsPerPage, totalPages, pagedEmployees, formData, setFormData, fetchData, handleOpenCreate, handleOpenEdit, handleSubmit, handleDelete };
+}
+
+type EstadoEmployeesPage = ReturnType<typeof useEmpleados>;
+
+function TablaDeEmpleados({ h }: { h: EstadoEmployeesPage }) {
+  const { employeesList, departments, positions, loading, errorCarga, page, setPage, itemsPerPage, totalPages, pagedEmployees, fetchData, handleOpenEdit, handleDelete } = h;
   return (
-
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
-            <Users className="h-6 w-6 text-[#c5a059]" /> Colaboradores / Empleados
-          </h1>
-          <p className="text-sm text-slate-500">
-            Administración de ficha de datos personales y laborales del personal.
-          </p>
-        </div>
-        {/* Lote 249: en la cabecera, SOLO las pestanas (como en Compras). */}
-        <PestanasDeRegistro
-          enFormulario={showModal}
-          lista="Empleados"
-          editando={!!editId}
-          alVerLista={() => setShowModal(false)}
-          alRegistrar={handleOpenCreate}
-        />
-      </div>
-
-      {!showModal && (<>
-
-      {/* Filters */}
-      <div className="flex items-center gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-        <SearchBar
-          placeholder="Buscar por nombre, código o cédula..."
-          value={search}
-          onChange={setSearch}
-        />
-        <button
-          type="button"
-          onClick={fetchData}
-          title="Recargar"
-          aria-label="Recargar"
-          className="flex items-center justify-center h-8 w-8 border border-slate-200 hover:bg-slate-50 rounded-lg transition text-slate-700"
-        >
-          <RefreshCw className="h-4.5 w-4.5" />
-        </button>
-      </div>
-
+    <>
       {/* Table View */}
       {loading ? (
         <div className="flex h-[30vh] items-center justify-center">
@@ -405,9 +428,14 @@ export default function EmployeesPage() {
           </>
         </div>
       )}
+    </>
+  );
+}
 
-      </>)}
-
+function FormularioDeEmpleado({ h }: { h: EstadoEmployeesPage }) {
+  const { departments, positions, showModal, setShowModal, submitting, editId, formData, setFormData, handleSubmit } = h;
+  return (
+    <>
       {/* Alta / edicion: era un modal con su propia barra de desplazamiento; desde el lote 249 es la segunda pestana. */}
       {showModal && (
         <PanelDeRegistro titulo={editId ? 'Editar Empleado' : 'Registrar Nuevo Empleado'}>
@@ -632,7 +660,6 @@ export default function EmployeesPage() {
           </form>
         </PanelDeRegistro>
       )}
-    </div>
-
+    </>
   );
 }

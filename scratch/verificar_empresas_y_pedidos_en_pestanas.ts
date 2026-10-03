@@ -30,6 +30,12 @@ const invariante = (t: string, c: boolean, d = '') => {
 };
 const pestanas = (s: string) => (/<PestanasDeRegistro\b[\s\S]*?\n\s*\/>/.exec(s)?.[0] ?? '').replace(/\s+/g, ' ');
 const tramo = (s: string, desde: string, hasta: string) => { const i = s.indexOf(desde); return i < 0 ? '' : s.slice(i, s.indexOf(hasta, i)); };
+//  Lotes 253-255: las paginas se partieron en piezas (`<TablaDeEmpleados h={h} />`). Para mirar lo que
+//  pinta un tramo se sustituye cada pieza por su cuerpo; en el estado de antes no hay piezas.
+const expandir = (src: string, trozo: string): string => trozo.replace(/<([A-Z]\w+) h=\{h\} \/>/g, (todo, nombre: string) => {
+  const i = src.indexOf(`\nfunction ${nombre}(`);
+  return i < 0 ? todo : src.slice(i, src.indexOf('\n}\n', i));
+});
 
 function main() {
   const emp = sinComentarios(leer('src/app/dashboard/admin/companies/page.tsx'));
@@ -44,7 +50,7 @@ function main() {
     /lista="Empresas"/.test(pe) && /enFormulario=\{showNewCompanyModal\}/.test(pe)
     && /alVerLista=\{\(\) => setShowNewCompanyModal\(false\)\}/.test(pe) && /alRegistrar=\{\(\) => setShowNewCompanyModal\(true\)\}/.test(pe)
     && !/\/> Nueva Empresa\s*<\/button>/.test(emp), pe.slice(0, 100));
-  const listaE = tramo(emp, '{!showNewCompanyModal && (<>', '</>)}');
+  const listaE = expandir(emp, tramo(emp, '{!showNewCompanyModal && (<>', '</>)}'));
   const formE = tramo(emp, '{showNewCompanyModal && (', '</PanelDeRegistro>');
   ok('  el listado y el alta no se pintan a la vez',
     /companies\.map|filteredCompanies\.map|<table/.test(listaE) && !/handleCreateCompany/.test(listaE) && /<form onSubmit=\{handleCreateCompany\}/.test(formE));
@@ -59,7 +65,7 @@ function main() {
     /lista="Pedidos"/.test(pp) && /enFormulario=\{showFormModal\}/.test(pp) && /editando=\{!!editId\}/.test(pp)
     && /alVerLista=\{\(\) => setShowFormModal\(false\)\}/.test(pp) && /alRegistrar=\{openNewModal\}/.test(pp)
     && !/NUEVO PEDIDO\s*<\/button>/.test(ped), pp.slice(0, 100));
-  const listaP = tramo(ped, '{!showFormModal && (<>', '</>)}');
+  const listaP = expandir(ped, tramo(ped, '{!showFormModal && (<>', '</>)}'));
   const formP = tramo(ped, '{showFormModal && (', '</PanelDeRegistro>');
   ok('  los filtros y la lista no se pintan con el formulario',
     /Filters Bar|No\. Pedido/.test(listaP) && !/handleFormSubmit/.test(listaP) && /<form onSubmit=\{handleFormSubmit\}/.test(formP));
