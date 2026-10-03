@@ -47,7 +47,9 @@ async function main() {
   if (!/abrirGrupo/.test(sb)) throw new Error('Precondicion: ya no se abre solo el grupo de la pagina');
   //  El scroll del elemento activo (lote 189) tiene que seguir ahi: este lote no lo
   //  sustituye, convive con el.
-  if (!/refActivo\.current\?\.scrollIntoView/.test(sb)) {
+  //  LOTE 259: ya no es un `scrollIntoView` (centra midiendo la lista), asi que se
+  //  ancla a que el efecto lea la fila activa, que es lo cierto en los dos casos.
+  if (!/refActivo\.current/.test(sb)) {
     throw new Error('Precondicion: se fue el scroll al elemento activo del lote 189');
   }
   const instancias = (sb.match(/<SidebarContent/g) || []).length;
@@ -124,7 +126,7 @@ async function main() {
   //  reaccionan al mismo cambio y piden cosas contrarias (`nearest` contra `start`).
   //  React ejecuta los efectos en el orden en que estan escritos, asi que el ultimo
   //  deja el scroll donde queda. Intercambiarlos rompe el lote sin que falte nada.
-  const dondeActivo = codigo.indexOf("refActivo.current?.scrollIntoView");
+  const dondeActivo = codigo.indexOf("refActivo.current");
   const dondeGrupo = codigo.indexOf("refsDeGrupo.current[subirGrupo.titulo]");
   ok('el scroll del grupo va DESPUES del del elemento activo (gana el ultimo)',
     dondeActivo > -1 && dondeGrupo > dondeActivo,

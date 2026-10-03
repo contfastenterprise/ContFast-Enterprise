@@ -1835,6 +1835,59 @@ Además, fuera de la tabla:
   ITBIS 514,35, con la leyenda debajo del costo.
   Banco `verificar_compras_con_tasa_del_dolar.ts`: 7 comprobaciones y un invariante (el costo se
   puede cambiar a mano, cierto antes y después), contraprueba 7 FALLA, seis mutantes y seis muertos.
+- **Lote 259: la fila activa del menú, centrada, un poco más grande y con un fondo que viaja.**
+  Pedido del dueño (2026-10-03), después de compararlo en una maqueta frente a "arriba" y a como
+  estaba: **centrada y con escala**. Tres cosas a la vez:
+  · **el fondo azul viaja** de la fila anterior a la nueva (un *shared element*: `m.span` con
+    `layoutId`), en vez de apagarse en una y encenderse en otra. Cada **sección** lleva su
+    identificador —la pantalla anclada sale en Favoritos **y** en su grupo, y dos piezas con el
+    mismo `layoutId` se pelean—, cada **menú** su `LayoutGroup` (escritorio y cajón del móvil
+    pueden estar montados a la vez) y la lista lleva `layoutScroll` (sin él, el fondo saldría
+    desde donde estaba la fila antes de desplazarse);
+  · **la fila activa crece un 4,5 %** con `transform`, no con relleno: un relleno mayor empujaría
+    todas las filas de debajo. Desde la izquierda, porque la lista recorta lo que se sale (tope
+    1,05), y con su estrella;
+  · **la lista se centra en la fila activa** (`desplazamientoParaCentrar`, acotada arriba y
+    abajo), midiendo y desplazando solo el `<nav>` — `scrollIntoView` con `center` podría
+    arrastrar también la página.
+  **Se centra al NAVEGAR, no al abrir o cerrar un grupo** (`hayQueCentrar`): centrar en cada
+  cambio de grupos movería el menú bajo el ratón al cerrar uno, lo que el lote 194 dejó dicho que
+  no se hace. El efecto del 194 (el grupo que abres sube) sigue después y sigue ganando.
+  "Reducir movimiento" se respeta en los tres: `MotionConfig reducedMotion="user"`,
+  `useReducedMotion` para el desplazamiento y `motion-reduce:` para la escala.
+  **Un defecto que salió al medirlo en el navegador**: en `/dashboard/hr/employees` se
+  iluminaban **dos** filas, "Dashboard RRHH" y "Empleados", porque cada fila decidía sola con
+  `pathname.startsWith(item.href)`. Ahora decide el menú entero con `filaActiva` (gana la ruta
+  más específica, y coincidir exige la barra: `/dashboard/bank` no es `/dashboard/banks`), y la
+  usan también el grupo en negrita y el que se abre solo.
+  **Y otro que solo se vio midiendo**: al cargar, los grupos guardados se despliegan a la vez, y
+  uno que crece **por encima** de la fila la empuja después de centrarla (la fila acababa a
+  765 px con la lista arriba del todo). Si cualquier submenú está creciendo, se vuelve a centrar
+  a los 300 ms.
+  **Se miró en el navegador** con una página temporal que monta el menú real con un usuario de
+  sistemas y la ruta simulada (`PathnameContext`, y `NavigationPromisesContext` a `null`, que en
+  desarrollo tiene prioridad): de "Facturación e-CF" a "Empleados" la fila queda a 319 px con el
+  centro de la lista en 318,5, un solo indicador, escala 1,045 y el borde de la fila dentro de la
+  lista; a mitad de un salto el fondo lleva su `translate3d` y al llegar ninguno.
+  **Trampa del entorno**: con el panel del navegador oculto, el navegador frena
+  `requestAnimationFrame` y las animaciones se quedan a medias; las medidas salían falsas. Cada
+  captura de pantalla fuerza un fotograma: se mide tras unas cuantas.
+  **React Doctor, en el gancho**: el `import` de framer-motion pasa a `LazyMotion` + `m` (con
+  `domMax`, no `domAnimation`: el fondo que viaja es una animación de `layout`, y con
+  `domAnimation` no viajaría, sin un error). Y al renombrar `motion.div` a `m.div` salió una
+  advertencia real en el globo de los grupos con el menú plegado: `duration-100` sin propiedad de
+  transición es `transition: all`; pasa a `[--tw-animation-duration:100ms]`, que es lo que lee
+  `animate-in`. Medido en local: 0 avisos en los ficheros del lote.
+  Banco `verificar_menu_activo_centrado.ts` (reglas ejecutadas y el cableado del menú): 31
+  comprobaciones, contraprueba **31 FALLA** (contra `main`), dieciocho mutantes y dieciocho
+  muertos. **Un mutante mal escrito**: en PowerShell la coma va antes que el `+`, y el de
+  `layoutScroll` acabó quitando `ref={refLista}` — muerto, pero no el que se quería probar; se
+  repitió entre paréntesis. **Invertidas, no borradas**: `verificar_sidebar_fluido` (189) exigía
+  `nearest` y prohibía centrar — ahora exige lo pedido —, y `verificar_grupo_arriba` (194) ancla
+  el orden de los dos efectos a la lectura de la fila activa en vez de al `scrollIntoView`.
+  **No se miró**: el menú plegado (solo iconos) y el cajón del móvil, que el banco cubre por el
+  cableado. **La carpeta la compartía otra sesión** (lote 258, precio base en dólares), que la
+  cambió de rama a media obra: este lote se commiteó desde un `git worktree` aparte.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3024,5 +3077,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 257 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 259 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
