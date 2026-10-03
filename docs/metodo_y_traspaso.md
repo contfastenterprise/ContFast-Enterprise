@@ -1644,6 +1644,25 @@ Además, fuera de la tabla:
   **Lo que no hace, anotado**: no redondea a pesos enteros, no hay umbral ("solo si cambia más
   de X %") ni la tasa se trae de ningún banco. La tienda pública enseña el precio del catálogo,
   así que cambia con él.
+- **Lote 248: Retenciones y Bancos, con pestañas como Compras.** Sigue el pedido del dueño
+  (2026-10-02): *"haz lo mismo con las demás secciones que tengan nuevo registro; los botones
+  no pueden estar al lado de los tab"*.
+  · **Retenciones**: el botón "Nueva Retención" y su modal pasan a las pestañas "Retenciones" /
+    "Registrar". Eliminar sigue siendo una confirmación pequeña (acción sobre una fila).
+  · **Bancos**: "Nueva Cuenta" y su modal, igual ("Cuentas" / "Registrar"). **"Registrar
+    Movimiento" no es un registro de la pantalla sino una acción sobre la cuenta elegida**: baja
+    de la cabecera a la barra del historial de esa cuenta, junto a "Imprimir Reporte", y su
+    ventana se queda. **Y un defecto de paso**: con "Todas las Cuentas" elegida el botón se podía
+    pulsar y mandaba `bankAccountId: 'all'`; ahora queda inactivo y lo explica.
+  De paso, cada etiqueta con su campo (`htmlFor`/`id`), y la cuenta contable del alta de banco
+  deja su estilo propio (borde oscuro y fondo blanco) por el de los demás campos.
+  **Se miró en el navegador** con la página temporal (la red sustituida y el proveedor de
+  permisos real con un usuario de sistemas): lista, editar, registrar, sin capas sobre la
+  página; en Bancos, el movimiento inactivo con la vista global y su ventana abriéndose con una
+  cuenta. Las capturas se colgaban esperando a la página: se comprobó leyendo el DOM.
+  Banco `verificar_retenciones_y_bancos_en_pestanas.ts`: 10 comprobaciones, contraprueba 10
+  FALLA (contra `git show HEAD:`), trece mutantes y trece muertos; lo que no cambia (la
+  confirmación de eliminar, la ventana del movimiento) va como invariante.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2833,5 +2852,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 247 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 248 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
