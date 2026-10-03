@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Eye, FileText, Search, Plus, Edit2, Trash2, X, RefreshCw, Printer, AlertTriangle, Filter, Mail, Copy, CheckCircle2, History } from 'lucide-react';
+import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
@@ -568,15 +569,17 @@ export default function PurchaseOrdersPage() {
             Gestión logística de pedidos de mercancías a proveedores sin facturación.
           </p>
         </div>
-        <button
-          onClick={openNewModal}
-          className="w-full md:w-auto bg-[#005E63] text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#004d51] transition-colors h-8 flex items-center justify-center gap-2 border border-[#005E63] shadow-md cursor-pointer"
-        >
-          <Plus className="h-4 w-4" />
-          NUEVO PEDIDO
-        </button>
+        {/* Lote 250: en la cabecera, SOLO las pestanas (como en Compras). */}
+        <PestanasDeRegistro
+          enFormulario={showFormModal}
+          lista="Pedidos"
+          editando={!!editId}
+          alVerLista={() => setShowFormModal(false)}
+          alRegistrar={openNewModal}
+        />
       </div>
 
+      {!showFormModal && (<>
       {/* Filters Bar */}
       <div className="flex flex-wrap gap-4 items-end bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="flex-1 min-w-[180px] w-full">
@@ -796,6 +799,229 @@ export default function PurchaseOrdersPage() {
           </div>
         )}
       </div>
+      </>)}
+
+      {/* Alta / edicion: era un modal de 1.024 px con su propia barra; desde el lote 250 es la
+          segunda pestana. Ver el detalle y recibir siguen en su ventana: son acciones sobre un pedido. */}
+      {showFormModal && (
+        <PanelDeRegistro titulo={editId ? 'Editar Pedido a Suplidor' : 'Nuevo Pedido a Suplidor'}>
+          <form onSubmit={handleFormSubmit} className="space-y-6 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Supplier Select */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Suplidor / Proveedor</label>
+                <select
+                  value={supplierId}
+                  onChange={e => setSupplierId(e.target.value)}
+                  required
+                  className="h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
+                >
+                  <option value="">Seleccione un suplidor...</option>
+                  {suppliers.map(s => (
+                    <option key={s.id} value={s.id}>{s.name} {s.rnc ? `(${s.rnc})` : ''}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Warehouse Select */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Almacén de Destino</label>
+                <select
+                  value={warehouseId}
+                  onChange={e => setWarehouseId(e.target.value)}
+                  required
+                  className="h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
+                >
+                  <option value="">Seleccione un almacén...</option>
+                  {warehouses.map(w => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Expected Date */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha Estimada de Entrega</label>
+                <input
+                  type="date"
+                  value={expectedDate}
+                  onChange={e => setExpectedDate(e.target.value)}
+                  className="h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
+                />
+              </div>
+            </div>
+
+            {/* Items Form Table */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xs font-bold text-[#003366] uppercase tracking-wider">Productos Solicitados</h3>
+                <button
+                  type="button"
+                  onClick={handleAddLinePlaceholder}
+                  className="bg-slate-100 text-[#003366] border border-slate-200 px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-slate-200 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus className="h-4 w-4" /> Buscar y Agregar Producto
+                </button>
+              </div>
+
+              {/* Autocomplete Input */}
+              {activeLineIndex !== null && (
+                <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3 relative">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase">Escriba Nombre, SKU o Código de Barra del Producto</label>
+                    <button type="button" onClick={() => setActiveLineIndex(null)} className="text-slate-400 hover:text-slate-500">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Buscar producto..."
+                      value={productSearchTerm}
+                      onChange={e => {
+                        setProductSearchTerm(e.target.value);
+                        searchProducts(e.target.value);
+                      }}
+                      className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 placeholder:text-slate-400 h-8 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* Dropdown Results */}
+                  {searchingProducts ? (
+                    <div className="p-4 text-center text-slate-400 text-xs">Buscando productos...</div>
+                  ) : searchedProducts.length > 0 ? (
+                    <div className="bg-white border border-slate-200 rounded-lg max-h-[180px] overflow-y-auto divide-y divide-slate-100 shadow-lg">
+                      {searchedProducts.map(p => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => handleSelectProduct(p)}
+                          className="w-full text-left px-4 py-2.5 hover:bg-[#C5A059]/10 flex flex-col gap-0.5 text-xs"
+                        >
+                          <span className="font-semibold text-[#003366]">{p.name}</span>
+                          <div className="flex justify-between text-[10px] text-slate-500 font-mono">
+                            <span>SKU: {p.sku || 'N/A'}</span>
+                            <span>CB: {p.barcode || 'N/A'}</span>
+                            <span>UM: {p.unitOfMeasure || 'unidad'}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : productSearchTerm.length >= 2 && (
+                    <div className="p-4 text-center text-slate-400 text-xs">No se encontraron productos.</div>
+                  )}
+                </div>
+              )}
+
+              {/* Lines table view */}
+              <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                <table className="w-full border-collapse text-left">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      <th className="px-4 py-2.5 w-[15%]">SKU</th>
+                      <th className="px-4 py-2.5 w-[30%]">Producto</th>
+                      <th className="px-4 py-2.5 w-[10%]">Marca</th>
+                      <th className="px-4 py-2.5 w-[10%]">Modelo</th>
+                      <th className="px-4 py-2.5 text-center w-[12%]">Cantidad</th>
+                      <th className="px-4 py-2.5 w-[18%]">Observaciones específicas</th>
+                      <th className="px-4 py-2.5 text-center w-[5%]"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lines.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="p-8 text-center text-slate-400">
+                          No hay productos agregados en el pedido. Busque y agregue uno arriba.
+                        </td>
+                      </tr>
+                    ) : (
+                      lines.map((line, idx) => (
+                        <tr key={idx} className="border-t border-slate-200 text-xs">
+                          <td className="px-4 py-2.5 font-mono text-slate-600">{line.productSku || '-'}</td>
+                          <td className="px-4 py-2.5 font-semibold text-[#003366]">{line.productName}</td>
+                          <td className="px-4 py-2.5">
+                            <input
+                              type="text"
+                              value={line.brand || ''}
+                              placeholder="Marca"
+                              onChange={e => handleLineBrandChange(idx, e.target.value)}
+                              className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
+                            />
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <input
+                              type="text"
+                              value={line.model || ''}
+                              placeholder="Modelo"
+                              onChange={e => handleLineModelChange(idx, e.target.value)}
+                              className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
+                            />
+                          </td>
+                          <td className="px-4 py-2.5 text-center">
+                            <input
+                              type="number"
+                              min="1"
+                              value={line.quantityRequested}
+                              onChange={e => handleLineQuantityChange(idx, parseInt(e.target.value) || 1)}
+                              className="w-16 h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-center text-xs outline-none text-slate-900 font-bold focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
+                            />
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <input
+                              type="text"
+                              value={line.observations}
+                              placeholder="Notas del item"
+                              onChange={e => handleLineObservationsChange(idx, e.target.value)}
+                              className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
+                            />
+                          </td>
+                          <td className="px-4 py-2.5 text-center">
+                            <button type="button" onClick={() => handleRemoveLine(idx)} className="p-1 text-rose-500 hover:text-rose-600 cursor-pointer">
+                              <X className="h-4 w-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Observations */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Observaciones Generales</label>
+              <textarea
+                value={observations}
+                onChange={e => setObservations(e.target.value)}
+                rows={4}
+                placeholder="Indique comentarios generales sobre la orden..."
+                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 resize-none font-mono focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 bg-slate-50/50 p-4 -mx-4 -mb-4">
+              <button
+                type="button"
+                onClick={() => setShowFormModal(false)}
+                className="px-3 py-1.5 h-8 text-xs rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold transition-colors cursor-pointer flex items-center justify-center"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="bg-[#005E63] text-white px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-[#004d51] transition-colors flex items-center justify-center cursor-pointer disabled:opacity-50"
+              >
+                {submitting ? 'Guardando...' : 'Guardar Pedido'}
+              </button>
+            </div>
+          </form>
+        </PanelDeRegistro>
+      )}
 
       {/* Detail / Action Modal */}
       <AnimatePresence>
@@ -1063,247 +1289,6 @@ export default function PurchaseOrdersPage() {
         )}
       </AnimatePresence>
 
-      {/* Creation / Edition Modal */}
-      <AnimatePresence>
-        {showFormModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
-            >
-              {/* Modal Header */}
-              <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-slate-50/50">
-                <h2 className="text-lg font-extrabold text-[#003366] flex items-center gap-2">
-                  <Plus className="h-5 w-5 text-[#005E63]" />
-                  {editId ? 'Editar Pedido a Suplidor' : 'Nuevo Pedido a Suplidor'}
-                </h2>
-                <button onClick={() => setShowFormModal(false)} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              {/* Form Content */}
-              <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto p-4 space-y-6 text-xs">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Supplier Select */}
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Suplidor / Proveedor</label>
-                    <select
-                      value={supplierId}
-                      onChange={e => setSupplierId(e.target.value)}
-                      required
-                      className="h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
-                    >
-                      <option value="">Seleccione un suplidor...</option>
-                      {suppliers.map(s => (
-                        <option key={s.id} value={s.id}>{s.name} {s.rnc ? `(${s.rnc})` : ''}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Warehouse Select */}
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Almacén de Destino</label>
-                    <select
-                      value={warehouseId}
-                      onChange={e => setWarehouseId(e.target.value)}
-                      required
-                      className="h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
-                    >
-                      <option value="">Seleccione un almacén...</option>
-                      {warehouses.map(w => (
-                        <option key={w.id} value={w.id}>{w.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Expected Date */}
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha Estimada de Entrega</label>
-                    <input
-                      type="date"
-                      value={expectedDate}
-                      onChange={e => setExpectedDate(e.target.value)}
-                      className="h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
-                    />
-                  </div>
-                </div>
-
-                {/* Items Form Table */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-xs font-bold text-[#003366] uppercase tracking-wider">Productos Solicitados</h3>
-                    <button
-                      type="button"
-                      onClick={handleAddLinePlaceholder}
-                      className="bg-slate-100 text-[#003366] border border-slate-200 px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-slate-200 flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Plus className="h-4 w-4" /> Buscar y Agregar Producto
-                    </button>
-                  </div>
-
-                  {/* Autocomplete Input */}
-                  {activeLineIndex !== null && (
-                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3 relative">
-                      <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-bold text-slate-500 uppercase">Escriba Nombre, SKU o Código de Barra del Producto</label>
-                        <button type="button" onClick={() => setActiveLineIndex(null)} className="text-slate-400 hover:text-slate-500">
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <input
-                          type="text"
-                          placeholder="Buscar producto..."
-                          value={productSearchTerm}
-                          onChange={e => {
-                            setProductSearchTerm(e.target.value);
-                            searchProducts(e.target.value);
-                          }}
-                          className="w-full pl-9 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 placeholder:text-slate-400 h-8 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
-                          autoFocus
-                        />
-                      </div>
-
-                      {/* Dropdown Results */}
-                      {searchingProducts ? (
-                        <div className="p-4 text-center text-slate-400 text-xs">Buscando productos...</div>
-                      ) : searchedProducts.length > 0 ? (
-                        <div className="bg-white border border-slate-200 rounded-lg max-h-[180px] overflow-y-auto divide-y divide-slate-100 shadow-lg">
-                          {searchedProducts.map(p => (
-                            <button
-                              key={p.id}
-                              type="button"
-                              onClick={() => handleSelectProduct(p)}
-                              className="w-full text-left px-4 py-2.5 hover:bg-[#C5A059]/10 flex flex-col gap-0.5 text-xs"
-                            >
-                              <span className="font-semibold text-[#003366]">{p.name}</span>
-                              <div className="flex justify-between text-[10px] text-slate-500 font-mono">
-                                <span>SKU: {p.sku || 'N/A'}</span>
-                                <span>CB: {p.barcode || 'N/A'}</span>
-                                <span>UM: {p.unitOfMeasure || 'unidad'}</span>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      ) : productSearchTerm.length >= 2 && (
-                        <div className="p-4 text-center text-slate-400 text-xs">No se encontraron productos.</div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Lines table view */}
-                  <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                    <table className="w-full border-collapse text-left">
-                      <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                          <th className="px-4 py-2.5 w-[15%]">SKU</th>
-                          <th className="px-4 py-2.5 w-[30%]">Producto</th>
-                          <th className="px-4 py-2.5 w-[10%]">Marca</th>
-                          <th className="px-4 py-2.5 w-[10%]">Modelo</th>
-                          <th className="px-4 py-2.5 text-center w-[12%]">Cantidad</th>
-                          <th className="px-4 py-2.5 w-[18%]">Observaciones específicas</th>
-                          <th className="px-4 py-2.5 text-center w-[5%]"></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {lines.length === 0 ? (
-                          <tr>
-                            <td colSpan={7} className="p-8 text-center text-slate-400">
-                              No hay productos agregados en el pedido. Busque y agregue uno arriba.
-                            </td>
-                          </tr>
-                        ) : (
-                          lines.map((line, idx) => (
-                            <tr key={idx} className="border-t border-slate-200 text-xs">
-                              <td className="px-4 py-2.5 font-mono text-slate-600">{line.productSku || '-'}</td>
-                              <td className="px-4 py-2.5 font-semibold text-[#003366]">{line.productName}</td>
-                              <td className="px-4 py-2.5">
-                                <input
-                                  type="text"
-                                  value={line.brand || ''}
-                                  placeholder="Marca"
-                                  onChange={e => handleLineBrandChange(idx, e.target.value)}
-                                  className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
-                                />
-                              </td>
-                              <td className="px-4 py-2.5">
-                                <input
-                                  type="text"
-                                  value={line.model || ''}
-                                  placeholder="Modelo"
-                                  onChange={e => handleLineModelChange(idx, e.target.value)}
-                                  className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
-                                />
-                              </td>
-                              <td className="px-4 py-2.5 text-center">
-                                <input
-                                  type="number"
-                                  min="1"
-                                  value={line.quantityRequested}
-                                  onChange={e => handleLineQuantityChange(idx, parseInt(e.target.value) || 1)}
-                                  className="w-16 h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-center text-xs outline-none text-slate-900 font-bold focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
-                                />
-                              </td>
-                              <td className="px-4 py-2.5">
-                                <input
-                                  type="text"
-                                  value={line.observations}
-                                  placeholder="Notas del item"
-                                  onChange={e => handleLineObservationsChange(idx, e.target.value)}
-                                  className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
-                                />
-                              </td>
-                              <td className="px-4 py-2.5 text-center">
-                                <button type="button" onClick={() => handleRemoveLine(idx)} className="p-1 text-rose-500 hover:text-rose-600 cursor-pointer">
-                                  <X className="h-4 w-4" />
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Observations */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Observaciones Generales</label>
-                  <textarea
-                    value={observations}
-                    onChange={e => setObservations(e.target.value)}
-                    rows={4}
-                    placeholder="Indique comentarios generales sobre la orden..."
-                    className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 resize-none font-mono focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
-                  />
-                </div>
-
-                {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 bg-slate-50/50 p-4 -mx-4 -mb-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowFormModal(false)}
-                    className="px-3 py-1.5 h-8 text-xs rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold transition-colors cursor-pointer flex items-center justify-center"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="bg-[#005E63] text-white px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-[#004d51] transition-colors flex items-center justify-center cursor-pointer disabled:opacity-50"
-                  >
-                    {submitting ? 'Guardando...' : 'Guardar Pedido'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

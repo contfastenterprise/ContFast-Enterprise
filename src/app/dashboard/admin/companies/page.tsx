@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Shield, Plus, RefreshCw, X, Building2, Trash2, CreditCard, Calendar, Search } from 'lucide-react';
+import { Shield, RefreshCw, X, Building2, Trash2, CreditCard, Calendar, Search } from 'lucide-react';
+import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
@@ -275,11 +276,16 @@ export default function AdminCompaniesPage() {
               Controla las empresas instaladas en el servidor y sus suscripciones SaaS.
             </p>
           </div>
-          <button onClick={() => setShowNewCompanyModal(true)} className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 text-sm justify-center">
-            <Plus className="h-4 w-4" /> Nueva Empresa
-          </button>
+          {/* Lote 250: en la cabecera, SOLO las pestanas (como en Compras). */}
+          <PestanasDeRegistro
+            enFormulario={showNewCompanyModal}
+            lista="Empresas"
+            alVerLista={() => setShowNewCompanyModal(false)}
+            alRegistrar={() => setShowNewCompanyModal(true)}
+          />
         </div>
 
+        {!showNewCompanyModal && (<>
         {/* Listado */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50/50">
@@ -410,111 +416,101 @@ export default function AdminCompaniesPage() {
             </table>
           </div>
         </div>
+        </>)}
 
-      </div>
-
-      {/* Modal: Crear Empresa */}
-      {showNewCompanyModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center p-5 border-b border-slate-100">
-              <h2 className="text-xl font-bold text-[#003366] flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-[#C5A059]" /> Registrar Empresa
-              </h2>
-              <button onClick={() => setShowNewCompanyModal(false)} className="p-1.5 hover:bg-slate-100 rounded-full text-slate-500 transition-colors">
-                <X className="h-5 w-5" />
-              </button>
+        {/* Alta: era un modal; desde el lote 250 es la segunda pestana. */}
+        {showNewCompanyModal && (
+          <PanelDeRegistro titulo="Registrar Empresa">
+          <form onSubmit={handleCreateCompany} className="space-y-4 max-w-md">
+            <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-xs text-blue-800 mb-4">
+              <strong>Nota:</strong> Al crear una empresa se generará automáticamente su configuración por defecto y el rol de <em>administracion</em>. Tendrás que crear o asignar usuarios a esta empresa manualmente luego.
             </div>
             
-            <form onSubmit={handleCreateCompany} className="p-5 space-y-4">
-              <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-xs text-blue-800 mb-4">
-                <strong>Nota:</strong> Al crear una empresa se generará automáticamente su configuración por defecto y el rol de <em>administracion</em>. Tendrás que crear o asignar usuarios a esta empresa manualmente luego.
-              </div>
-              
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nombre Comercial <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  required
-                  value={companyForm.name}
-                  onChange={e => setCompanyForm({...companyForm, name: e.target.value})}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
-                  placeholder="Ej. Mi Empresa S.R.L."
-                />
-              </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Nombre Comercial <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                required
+                value={companyForm.name}
+                onChange={e => setCompanyForm({...companyForm, name: e.target.value})}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
+                placeholder="Ej. Mi Empresa S.R.L."
+              />
+            </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">RNC <span className="text-red-500">*</span></label>
-                <input
-                  type="text"
-                  required
-                  minLength={9}
-                  maxLength={11}
-                  value={companyForm.rnc}
-                  onChange={e => setCompanyForm({...companyForm, rnc: e.target.value})}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition font-mono"
-                  placeholder="Ej. 101001001"
-                />
-              </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">RNC <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                required
+                minLength={9}
+                maxLength={11}
+                value={companyForm.rnc}
+                onChange={e => setCompanyForm({...companyForm, rnc: e.target.value})}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition font-mono"
+                placeholder="Ej. 101001001"
+              />
+            </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Correo Electrónico <span className="text-red-500">*</span></label>
-                <input
-                  type="email"
-                  required
-                  value={companyForm.email}
-                  onChange={e => setCompanyForm({...companyForm, email: e.target.value})}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
-                  placeholder="Ej. contacto@empresa.com"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Actividad Comercial</label>
-                <input
-                  type="text"
-                  value={companyForm.businessActivity}
-                  onChange={e => setCompanyForm({...companyForm, businessActivity: e.target.value})}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
-                  placeholder="Ej. Venta al por menor..."
-                />
-              </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Correo Electrónico <span className="text-red-500">*</span></label>
+              <input
+                type="email"
+                required
+                value={companyForm.email}
+                onChange={e => setCompanyForm({...companyForm, email: e.target.value})}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
+                placeholder="Ej. contacto@empresa.com"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Actividad Comercial</label>
+              <input
+                type="text"
+                value={companyForm.businessActivity}
+                onChange={e => setCompanyForm({...companyForm, businessActivity: e.target.value})}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
+                placeholder="Ej. Venta al por menor..."
+              />
+            </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Dirección</label>
-                <textarea
-                  value={companyForm.address}
-                  onChange={e => setCompanyForm({...companyForm, address: e.target.value})}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition resize-none"
-                  rows={2}
-                  placeholder="Dirección física..."
-                />
-              </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Dirección</label>
+              <textarea
+                value={companyForm.address}
+                onChange={e => setCompanyForm({...companyForm, address: e.target.value})}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition resize-none"
+                rows={2}
+                placeholder="Dirección física..."
+              />
+            </div>
 
-              <div className="pt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowNewCompanyModal(false)}
-                  className="flex-1 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 px-4 py-2 bg-[#003366] hover:bg-[#002244] text-white rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
-                >
-                  {submitting ? (
-                    <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
-                  ) : (
-                    'Guardar Empresa'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <div className="pt-4 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowNewCompanyModal(false)}
+                className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-4 py-2 bg-[#003366] hover:bg-[#002244] text-white rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
+              >
+                {submitting ? (
+                  <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
+                ) : (
+                  'Guardar Empresa'
+                )}
+              </button>
+            </div>
+          </form>
+          </PanelDeRegistro>
+        )}
+
+      </div>
 
       {/* Modal: Gestionar Suscripción */}
       {showSubscriptionModal && selectedCompany && (
