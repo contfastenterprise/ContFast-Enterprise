@@ -1781,6 +1781,17 @@ Además, fuera de la tabla:
   en línea: ahora sustituye cada pieza por su cuerpo antes de mirar, y vale en los dos estados.
   **Trampa repetida**: un heredoc con `\n` dentro de una expresión volvió a romper un banco; los
   guiones que tocan código se escriben a fichero (sección 4).
+- **Lote 254: Empleados y Empresas, partidas sin cambiar lo que hacen.** Mismo guion que el 253:
+  hooks `useEmpleados` y `useEmpresas`, y piezas `TablaDeEmpleados`, `FormularioDeEmpleado`,
+  `ListadoDeEmpresas`, `AltaDeEmpresa` y `VentanaDeSuscripcion` (ninguna pasa de 231 líneas).
+  Huella visible igual a `a72acdc` (185 y 148 elementos, uno por uno). React Doctor en local:
+  **0**, después de un aviso que la partición sacó a la luz: el precio del plan se escribía con
+  `toLocaleString()` sin idioma (en el servidor y en el navegador puede salir distinto); ahora
+  `'es-DO'`.
+  `verificar_rrhh_en_pestanas` y `verificar_empresas_y_pedidos_en_pestanas` miran dentro de las
+  piezas (el mismo `expandir` del 253), y valen en los dos estados.
+  Banco `verificar_partir_empleados_y_empresas.ts`: 6 comprobaciones, contraprueba 6 FALLA, tres
+  mutantes y tres muertos.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2970,5 +2981,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 253 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 254 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

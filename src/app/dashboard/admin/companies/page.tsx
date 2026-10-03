@@ -34,6 +34,52 @@ interface Plan {
 }
 
 export default function AdminCompaniesPage() {
+  const h = useEmpresas();
+  const { showNewCompanyModal, setShowNewCompanyModal } = h;
+
+  return (
+    <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
+      <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center shadow-inner">
+        <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
+          <Shield className="h-3 w-3" /> Sistema &gt; Empresas
+        </span>
+      </div>
+
+      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
+              Gestión de Empresas (Multi-Tenant)
+            </h1>
+            <p className="text-on-surface-variant/70 text-sm mt-1">
+              Controla las empresas instaladas en el servidor y sus suscripciones SaaS.
+            </p>
+          </div>
+          {/* Lote 250: en la cabecera, SOLO las pestanas (como en Compras). */}
+          <PestanasDeRegistro
+            enFormulario={showNewCompanyModal}
+            lista="Empresas"
+            alVerLista={() => setShowNewCompanyModal(false)}
+            alRegistrar={() => setShowNewCompanyModal(true)}
+          />
+        </div>
+
+        {!showNewCompanyModal && (<>
+        <ListadoDeEmpresas h={h} />
+        </>)}
+
+        <AltaDeEmpresa h={h} />
+      </div>
+
+      <VentanaDeSuscripcion h={h} />
+    </div>
+  );
+}
+
+/** El estado y las acciones de la pagina, movidos TAL CUAL desde el componente. */
+function useEmpresas() {
   const confirm = useConfirm();
   const router = useRouter();
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -254,263 +300,253 @@ export default function AdminCompaniesPage() {
     }
   };
 
+  return { confirm, router, companies, setCompanies, plans, setPlans, loading, setLoading, errorCarga, setErrorCarga, searchTerm, setSearchTerm, filteredCompanies, showNewCompanyModal, setShowNewCompanyModal, showSubscriptionModal, setShowSubscriptionModal, selectedCompany, setSelectedCompany, submitting, setSubmitting, clearingSandbox, setClearingSandbox, companyForm, setCompanyForm, subForm, setSubForm, fetchData, handleCreateCompany, handleDeleteCompany, handleClearSandboxData, handleOpenSubscriptionModal, handleSaveSubscription };
+}
+
+type EstadoAdminCompaniesPage = ReturnType<typeof useEmpresas>;
+
+function ListadoDeEmpresas({ h }: { h: EstadoAdminCompaniesPage }) {
+  const { loading, errorCarga, searchTerm, setSearchTerm, filteredCompanies, clearingSandbox, fetchData, handleDeleteCompany, handleClearSandboxData, handleOpenSubscriptionModal } = h;
   return (
-    <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
-      <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center shadow-inner">
-        <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
-          <Shield className="h-3 w-3" /> Sistema &gt; Empresas
-        </span>
-      </div>
-
-      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
-              Gestión de Empresas (Multi-Tenant)
-            </h1>
-            <p className="text-on-surface-variant/70 text-sm mt-1">
-              Controla las empresas instaladas en el servidor y sus suscripciones SaaS.
-            </p>
+    <>
+      {/* Listado */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50/50">
+          <h2 className="font-bold text-[#003366] flex items-center gap-2 whitespace-nowrap">
+            <Building2 className="h-4 w-4" /> Empresas Registradas
+          </h2>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                aria-label="Buscar empresa por nombre o RNC"
+                placeholder="Buscar por nombre o RNC..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
+              />
+            </div>
+            <button onClick={fetchData} className="p-2 hover:bg-slate-200 rounded-lg transition-colors shrink-0" title="Actualizar">
+              <RefreshCw className={clsx("h-4 w-4 text-slate-500", loading && "animate-spin")} />
+            </button>
           </div>
-          {/* Lote 250: en la cabecera, SOLO las pestanas (como en Compras). */}
-          <PestanasDeRegistro
-            enFormulario={showNewCompanyModal}
-            lista="Empresas"
-            alVerLista={() => setShowNewCompanyModal(false)}
-            alRegistrar={() => setShowNewCompanyModal(true)}
-          />
         </div>
 
-        {!showNewCompanyModal && (<>
-        {/* Listado */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50/50">
-            <h2 className="font-bold text-[#003366] flex items-center gap-2 whitespace-nowrap">
-              <Building2 className="h-4 w-4" /> Empresas Registradas
-            </h2>
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <div className="relative w-full sm:w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <input
-                  type="text"
-                  aria-label="Buscar empresa por nombre o RNC"
-                  placeholder="Buscar por nombre o RNC..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
-                />
-              </div>
-              <button onClick={fetchData} className="p-2 hover:bg-slate-200 rounded-lg transition-colors shrink-0" title="Actualizar">
-                <RefreshCw className={clsx("h-4 w-4 text-slate-500", loading && "animate-spin")} />
-              </button>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap">
-              <thead className="bg-[#003366] text-white">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm whitespace-nowrap">
+            <thead className="bg-[#003366] text-white">
+              <tr>
+                <th className="px-6 py-3 font-semibold text-xs uppercase tracking-wider">Empresa</th>
+                <th className="px-6 py-3 font-semibold text-xs uppercase tracking-wider">RNC</th>
+                <th className="px-6 py-3 font-semibold text-xs uppercase tracking-wider">Plan Activo</th>
+                <th className="px-6 py-3 font-semibold text-xs uppercase tracking-wider">Estado</th>
+                <th className="px-6 py-3 font-semibold text-xs uppercase tracking-wider text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {errorCarga && !loading ? (
                 <tr>
-                  <th className="px-6 py-3 font-semibold text-xs uppercase tracking-wider">Empresa</th>
-                  <th className="px-6 py-3 font-semibold text-xs uppercase tracking-wider">RNC</th>
-                  <th className="px-6 py-3 font-semibold text-xs uppercase tracking-wider">Plan Activo</th>
-                  <th className="px-6 py-3 font-semibold text-xs uppercase tracking-wider">Estado</th>
-                  <th className="px-6 py-3 font-semibold text-xs uppercase tracking-wider text-right">Acciones</th>
+                  <td colSpan={5}>
+                    <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchData} />
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {errorCarga && !loading ? (
-                  <tr>
-                    <td colSpan={5}>
-                      <ErrorDeCarga mensaje={errorCarga} onReintentar={fetchData} />
+              ) : filteredCompanies.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                    {loading ? 'Cargando...' : 'No se encontraron empresas.'}
+                  </td>
+                </tr>
+              ) : (
+                filteredCompanies.map(company => (
+                  <tr key={company.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-slate-900">{company.name}</div>
+                      {company.email && <div className="text-xs text-slate-600 mt-0.5">{company.email}</div>}
+                      <div className="text-xs text-slate-500 font-mono mt-0.5">{company.id}</div>
                     </td>
-                  </tr>
-                ) : filteredCompanies.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
-                      {loading ? 'Cargando...' : 'No se encontraron empresas.'}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredCompanies.map(company => (
-                    <tr key={company.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="font-bold text-slate-900">{company.name}</div>
-                        {company.email && <div className="text-xs text-slate-600 mt-0.5">{company.email}</div>}
-                        <div className="text-xs text-slate-500 font-mono mt-0.5">{company.id}</div>
-                      </td>
-                      <td className="px-6 py-4 font-mono">{company.rnc}</td>
-                      <td className="px-6 py-4">
-                        {company.planName ? (
-                          <div className="flex flex-col gap-0.5">
-                            <span className="font-bold text-[#003366] text-xs">
-                              {company.planName}
+                    <td className="px-6 py-4 font-mono">{company.rnc}</td>
+                    <td className="px-6 py-4">
+                      {company.planName ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-bold text-[#003366] text-xs">
+                            {company.planName}
+                          </span>
+                          {company.currentPeriodEnd && (
+                            <span className="text-[10px] text-slate-500 flex items-center gap-1">
+                              <Calendar className="h-3 w-3" /> Vence: {formatDateDisplay(company.currentPeriodEnd)}
                             </span>
-                            {company.currentPeriodEnd && (
-                              <span className="text-[10px] text-slate-500 flex items-center gap-1">
-                                <Calendar className="h-3 w-3" /> Vence: {formatDateDisplay(company.currentPeriodEnd)}
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 italic text-xs">Ninguno asignado</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col gap-1">
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 italic text-xs">Ninguno asignado</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-1">
+                        <span className={clsx(
+                          "px-2 py-0.5 rounded-md text-[10px] font-bold inline-block w-fit text-center",
+                          company.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                        )}>
+                          Empresa: {company.status === 'active' ? 'Activa' : 'Inactiva'}
+                        </span>
+                        {company.planName && (
                           <span className={clsx(
                             "px-2 py-0.5 rounded-md text-[10px] font-bold inline-block w-fit text-center",
-                            company.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            company.subscriptionStatus === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                           )}>
-                            Empresa: {company.status === 'active' ? 'Activa' : 'Inactiva'}
+                            SaaS: {company.subscriptionStatus === 'active' ? 'Activa' : 'Expirada'}
                           </span>
-                          {company.planName && (
-                            <span className={clsx(
-                              "px-2 py-0.5 rounded-md text-[10px] font-bold inline-block w-fit text-center",
-                              company.subscriptionStatus === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                            )}>
-                              SaaS: {company.subscriptionStatus === 'active' ? 'Activa' : 'Expirada'}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end items-center gap-2">
-                          <button
-                            onClick={() => handleOpenSubscriptionModal(company)}
-                            className="p-1.5 hover:bg-[#003366]/10 text-[#003366] rounded transition-colors"
-                            title="Gestionar Suscripción SaaS"
-                          >
-                            <CreditCard className="h-4 w-4" />
-                          </button>
-                          {company.status === 'active' && (
-                            <>
-                              <button
-                                disabled={clearingSandbox !== null}
-                                onClick={() => handleClearSandboxData(company)}
-                                className={clsx(
-                                  "p-1.5 hover:bg-amber-100 text-amber-600 rounded transition-colors",
-                                  clearingSandbox === company.id && "animate-pulse"
-                                )}
-                                title="Limpiar Datos de Prueba (Sandbox)"
-                              >
-                                <RefreshCw className={clsx("h-4 w-4", clearingSandbox === company.id && "animate-spin")} />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteCompany(company.id)}
-                                className="p-1.5 hover:bg-red-100 text-red-600 rounded transition-colors"
-                                title="Desactivar Empresa"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end items-center gap-2">
+                        <button
+                          onClick={() => handleOpenSubscriptionModal(company)}
+                          className="p-1.5 hover:bg-[#003366]/10 text-[#003366] rounded transition-colors"
+                          title="Gestionar Suscripción SaaS"
+                        >
+                          <CreditCard className="h-4 w-4" />
+                        </button>
+                        {company.status === 'active' && (
+                          <>
+                            <button
+                              disabled={clearingSandbox !== null}
+                              onClick={() => handleClearSandboxData(company)}
+                              className={clsx(
+                                "p-1.5 hover:bg-amber-100 text-amber-600 rounded transition-colors",
+                                clearingSandbox === company.id && "animate-pulse"
+                              )}
+                              title="Limpiar Datos de Prueba (Sandbox)"
+                            >
+                              <RefreshCw className={clsx("h-4 w-4", clearingSandbox === company.id && "animate-spin")} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCompany(company.id)}
+                              className="p-1.5 hover:bg-red-100 text-red-600 rounded transition-colors"
+                              title="Desactivar Empresa"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-        </>)}
-
-        {/* Alta: era un modal; desde el lote 250 es la segunda pestana. */}
-        {showNewCompanyModal && (
-          <PanelDeRegistro titulo="Registrar Empresa">
-          <form onSubmit={handleCreateCompany} className="space-y-4 max-w-md">
-            <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-xs text-blue-800 mb-4">
-              <strong>Nota:</strong> Al crear una empresa se generará automáticamente su configuración por defecto y el rol de <em>administracion</em>. Tendrás que crear o asignar usuarios a esta empresa manualmente luego.
-            </div>
-            
-            <div>
-              <label htmlFor="empresa-1" className="block text-xs font-bold text-slate-700 mb-1">Nombre Comercial <span className="text-red-500">*</span></label>
-              <input id="empresa-1"
-                type="text"
-                required
-                value={companyForm.name}
-                onChange={e => setCompanyForm({...companyForm, name: e.target.value})}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
-                placeholder="Ej. Mi Empresa S.R.L."
-              />
-            </div>
-
-            <div>
-              <label htmlFor="empresa-2" className="block text-xs font-bold text-slate-700 mb-1">RNC <span className="text-red-500">*</span></label>
-              <input id="empresa-2"
-                type="text"
-                required
-                minLength={9}
-                maxLength={11}
-                value={companyForm.rnc}
-                onChange={e => setCompanyForm({...companyForm, rnc: e.target.value})}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition font-mono"
-                placeholder="Ej. 101001001"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="empresa-3" className="block text-xs font-bold text-slate-700 mb-1">Correo Electrónico <span className="text-red-500">*</span></label>
-              <input id="empresa-3"
-                type="email"
-                required
-                value={companyForm.email}
-                onChange={e => setCompanyForm({...companyForm, email: e.target.value})}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
-                placeholder="Ej. contacto@empresa.com"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="empresa-4" className="block text-xs font-bold text-slate-700 mb-1">Actividad Comercial</label>
-              <input id="empresa-4"
-                type="text"
-                value={companyForm.businessActivity}
-                onChange={e => setCompanyForm({...companyForm, businessActivity: e.target.value})}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
-                placeholder="Ej. Venta al por menor..."
-              />
-            </div>
-
-            <div>
-              <label htmlFor="empresa-5" className="block text-xs font-bold text-slate-700 mb-1">Dirección</label>
-              <textarea id="empresa-5"
-                value={companyForm.address}
-                onChange={e => setCompanyForm({...companyForm, address: e.target.value})}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition resize-none"
-                rows={2}
-                placeholder="Dirección física..."
-              />
-            </div>
-
-            <div className="pt-4 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setShowNewCompanyModal(false)}
-                className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="px-4 py-2 bg-[#003366] hover:bg-[#002244] text-white rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
-              >
-                {submitting ? (
-                  <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
-                ) : (
-                  'Guardar Empresa'
-                )}
-              </button>
-            </div>
-          </form>
-          </PanelDeRegistro>
-        )}
-
       </div>
+    </>
+  );
+}
 
+function AltaDeEmpresa({ h }: { h: EstadoAdminCompaniesPage }) {
+  const { showNewCompanyModal, setShowNewCompanyModal, submitting, companyForm, setCompanyForm, handleCreateCompany } = h;
+  return (
+    <>
+      {/* Alta: era un modal; desde el lote 250 es la segunda pestana. */}
+      {showNewCompanyModal && (
+        <PanelDeRegistro titulo="Registrar Empresa">
+        <form onSubmit={handleCreateCompany} className="space-y-4 max-w-md">
+          <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg text-xs text-blue-800 mb-4">
+            <strong>Nota:</strong> Al crear una empresa se generará automáticamente su configuración por defecto y el rol de <em>administracion</em>. Tendrás que crear o asignar usuarios a esta empresa manualmente luego.
+          </div>
+          
+          <div>
+            <label htmlFor="empresa-1" className="block text-xs font-bold text-slate-700 mb-1">Nombre Comercial <span className="text-red-500">*</span></label>
+            <input id="empresa-1"
+              type="text"
+              required
+              value={companyForm.name}
+              onChange={e => setCompanyForm({...companyForm, name: e.target.value})}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
+              placeholder="Ej. Mi Empresa S.R.L."
+            />
+          </div>
+
+          <div>
+            <label htmlFor="empresa-2" className="block text-xs font-bold text-slate-700 mb-1">RNC <span className="text-red-500">*</span></label>
+            <input id="empresa-2"
+              type="text"
+              required
+              minLength={9}
+              maxLength={11}
+              value={companyForm.rnc}
+              onChange={e => setCompanyForm({...companyForm, rnc: e.target.value})}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition font-mono"
+              placeholder="Ej. 101001001"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="empresa-3" className="block text-xs font-bold text-slate-700 mb-1">Correo Electrónico <span className="text-red-500">*</span></label>
+            <input id="empresa-3"
+              type="email"
+              required
+              value={companyForm.email}
+              onChange={e => setCompanyForm({...companyForm, email: e.target.value})}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
+              placeholder="Ej. contacto@empresa.com"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="empresa-4" className="block text-xs font-bold text-slate-700 mb-1">Actividad Comercial</label>
+            <input id="empresa-4"
+              type="text"
+              value={companyForm.businessActivity}
+              onChange={e => setCompanyForm({...companyForm, businessActivity: e.target.value})}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
+              placeholder="Ej. Venta al por menor..."
+            />
+          </div>
+
+          <div>
+            <label htmlFor="empresa-5" className="block text-xs font-bold text-slate-700 mb-1">Dirección</label>
+            <textarea id="empresa-5"
+              value={companyForm.address}
+              onChange={e => setCompanyForm({...companyForm, address: e.target.value})}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition resize-none"
+              rows={2}
+              placeholder="Dirección física..."
+            />
+          </div>
+
+          <div className="pt-4 flex gap-3">
+            <button
+              type="button"
+              onClick={() => setShowNewCompanyModal(false)}
+              className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-4 py-2 bg-[#003366] hover:bg-[#002244] text-white rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
+            >
+              {submitting ? (
+                <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
+              ) : (
+                'Guardar Empresa'
+              )}
+            </button>
+          </div>
+        </form>
+        </PanelDeRegistro>
+      )}
+    </>
+  );
+}
+
+function VentanaDeSuscripcion({ h }: { h: EstadoAdminCompaniesPage }) {
+  const { plans, showSubscriptionModal, setShowSubscriptionModal, selectedCompany, submitting, subForm, setSubForm, handleSaveSubscription } = h;
+  return (
+    <>
       {/* Modal: Gestionar Suscripción */}
       {showSubscriptionModal && selectedCompany && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
@@ -542,7 +578,7 @@ export default function AdminCompaniesPage() {
                   <option value="">-- Elija un plan comercial --</option>
                   {plans.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.name} - ${parseFloat(p.price).toLocaleString()} / mes ({p.maxEcfLimit === -1 ? 'e-CF Ilimitados' : `${p.maxEcfLimit} e-CF/mes`})
+                      {p.name} - ${parseFloat(p.price).toLocaleString('es-DO')} / mes ({p.maxEcfLimit === -1 ? 'e-CF Ilimitados' : `${p.maxEcfLimit} e-CF/mes`})
                     </option>
                   ))}
                 </select>
@@ -598,7 +634,6 @@ export default function AdminCompaniesPage() {
           </div>
         </div>
       )}
-
-    </div>
+    </>
   );
 }

@@ -52,8 +52,8 @@ function main() {
     /lista="Empleados"/.test(pe) && /enFormulario=\{showModal\}/.test(pe) && /editando=\{!!editId\}/.test(pe)
     && /alVerLista=\{\(\) => setShowModal\(false\)\}/.test(pe) && /alRegistrar=\{handleOpenCreate\}/.test(pe)
     && !/Agregar Empleado\s*<\/button>/.test(emp), pe.slice(0, 100));
-  const listaE = tramo(emp, '{!showModal && (<>', '</>)}');
-  const formE = tramo(emp, '{showModal && (', '</PanelDeRegistro>');
+  const listaE = expandir(emp, tramo(emp, '{!showModal && (<>', '</>)}'));
+  const formE = tramo(expandir(emp, emp), '{showModal && (', '</PanelDeRegistro>');
   ok('  la lista (buscador, tabla, paginacion) y el formulario no se pintan a la vez',
     /<SearchBar/.test(listaE) && /<Pagination/.test(listaE) && !/<form onSubmit/.test(listaE) && /<form onSubmit=\{handleSubmit\}/.test(formE));
   ok('  el formulario ya no es un modal: ni capa sobre la pagina, ni barra de desplazamiento propia',
