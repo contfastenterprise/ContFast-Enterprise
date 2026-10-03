@@ -1792,6 +1792,22 @@ Además, fuera de la tabla:
   piezas (el mismo `expandir` del 253), y valen en los dos estados.
   Banco `verificar_partir_empleados_y_empresas.ts`: 6 comprobaciones, contraprueba 6 FALLA, tres
   mutantes y tres muertos.
+- **Lote 255: Bancos y Pedidos a suplidor, partidas sin cambiar lo que hacen.** Las dos últimas
+  del 252. Hooks `useBancos` y `usePedidos`; piezas `CuentasYMovimientos`, `AltaDeCuenta`,
+  `VentanaDeMovimiento`, `FiltrosDePedidos`, `TablaDePedidos`, `FormularioDePedido` y
+  `VentanasDePedido` (la mayor, 271 líneas). Los hooks pasan de 300 líneas, y no es un aviso: la
+  regla es de componentes. Las ventanas de detalle y de recepción de Pedidos van juntas porque
+  comparten su `LazyMotion`: cortarlas por separado habría dejado una etiqueta abierta.
+  React Doctor en local: **0**. **Con esto, las seis pantallas del 252 quedan sin un solo aviso.**
+  **Dos mutantes sobrevivieron primero, y los dos eran huecos de la huella**, que ya servía a los
+  lotes 253 y 254: no veía el texto seguido de una expresión ("Historial de Transacciones
+  {cargando…}") y cortaba las direcciones de la API en el primer `${id}` (cambiar `/duplicate`
+  pasaba). Arreglada en `huellaDePantalla.ts`, y con eso apareció un falso positivo nuevo — el
+  cierre de un tipo genérico (`ReturnType<typeof useX>;`) leído como texto —, que se descarta. Los
+  tres bancos de partición, otra vez en verde y con sus mutantes muertos.
+  `verificar_retenciones_y_bancos_en_pestanas` mira dentro de las piezas, como los otros dos.
+  Banco `verificar_partir_bancos_y_pedidos.ts`: 6 comprobaciones, contraprueba 6 FALLA, tres
+  mutantes y tres muertos.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2981,5 +2997,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 254 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 255 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

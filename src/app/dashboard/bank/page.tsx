@@ -68,6 +68,55 @@ const maskAccount = (acc: string) => {
 };
 
 export default function BankAccountsPage() {
+  const h = useBancos();
+  const { showNewAccountModal, setShowNewAccountModal } = h;
+
+  return (
+    <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
+      <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center shadow-inner">
+        <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
+          <Landmark className="h-3 w-3" /> Cuentas Bancarias
+        </span>
+      </div>
+
+      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
+              Cuentas Bancarias
+            </h1>
+            <p className="text-slate-500/70 text-sm mt-1">
+              Consulta de saldos y registro de movimientos bancarios.
+            </p>
+          </div>
+          {/* Lote 248: en la cabecera, SOLO las pestanas (como en Compras). "Registrar Movimiento" es
+              una accion sobre la cuenta elegida: baja a la barra de su historial. */}
+          <PestanasDeRegistro
+            enFormulario={showNewAccountModal}
+            lista="Cuentas"
+            alVerLista={() => setShowNewAccountModal(false)}
+            alRegistrar={() => setShowNewAccountModal(true)}
+          />
+        </div>
+
+        {!showNewAccountModal && (<>
+
+        <CuentasYMovimientos h={h} />
+        </>)}
+
+        <AltaDeCuenta h={h} />
+      </div>
+
+
+      <VentanaDeMovimiento h={h} />
+    </div>
+  );
+}
+
+/** El estado y las acciones de la pagina, movidos TAL CUAL desde el componente. */
+function useBancos() {
   const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [selectedAccount, setSelectedAccount] = useState<BankAccount | null>(null);
@@ -369,354 +418,341 @@ export default function BankAccountsPage() {
 
   const displayAccounts = [TODAS_LAS_CUENTAS, ...accounts];
 
+  return { loading, setLoading, accounts, setAccounts, selectedAccount, setSelectedAccount, transactions, setTransactions, txMeta, setTxMeta, loadingTxs, setLoadingTxs, chartOfAccounts, setChartOfAccounts, showNewAccountModal, setShowNewAccountModal, showTxModal, setShowTxModal, submitting, setSubmitting, today, firstOfMonth, todayStr, startDate, setStartDate, endDate, setEndDate, bankSearch, setBankSearch, accountForm, setAccountForm, txForm, setTxForm, fetchAccounts, fetchChartOfAccounts, fetchTransactions, handleCreateAccount, handleRegisterTx, handlePrintTransactions, displayAccounts };
+}
+
+type EstadoBankAccountsPage = ReturnType<typeof useBancos>;
+
+function CuentasYMovimientos({ h }: { h: EstadoBankAccountsPage }) {
+  const { loading, accounts, selectedAccount, setSelectedAccount, transactions, txMeta, loadingTxs, setShowNewAccountModal, setShowTxModal, startDate, setStartDate, endDate, setEndDate, bankSearch, setBankSearch, handlePrintTransactions, displayAccounts } = h;
   return (
-    <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
-      <div className="bg-[#003366] w-full px-8 py-1.5 flex justify-end items-center shadow-inner">
-        <span className="text-white text-[10px] uppercase font-bold tracking-widest opacity-80 flex items-center gap-2">
-          <Landmark className="h-3 w-3" /> Cuentas Bancarias
-        </span>
-      </div>
-
-      <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
-              Cuentas Bancarias
-            </h1>
-            <p className="text-slate-500/70 text-sm mt-1">
-              Consulta de saldos y registro de movimientos bancarios.
-            </p>
-          </div>
-          {/* Lote 248: en la cabecera, SOLO las pestanas (como en Compras). "Registrar Movimiento" es
-              una accion sobre la cuenta elegida: baja a la barra de su historial. */}
-          <PestanasDeRegistro
-            enFormulario={showNewAccountModal}
-            lista="Cuentas"
-            alVerLista={() => setShowNewAccountModal(false)}
-            alRegistrar={() => setShowNewAccountModal(true)}
-          />
+    <>
+      {/* Accounts Grid */}
+      {loading ? (
+        <div className="flex justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
+      ) : accounts.length === 0 ? (
+        <div className="bg-white rounded-xl border border-slate-200 p-16 text-center shadow-sm">
+          <Landmark className="h-16 w-16 text-slate-500 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-[#003366]">Sin Cuentas Bancarias</h3>
+          <p className="text-slate-500/70 mt-2">No hay cuentas bancarias registradas en la empresa.</p>
+          <button onClick={() => setShowNewAccountModal(true)} className="mt-6 text-[#C5A059] font-bold hover:underline">Crear mi primera cuenta</button>
         </div>
-
-        {!showNewAccountModal && (<>
-
-        {/* Accounts Grid */}
-        {loading ? (
-          <div className="flex justify-center py-12"><RefreshCw className="h-8 w-8 animate-spin text-[#C5A059]" /></div>
-        ) : accounts.length === 0 ? (
-          <div className="bg-white rounded-xl border border-slate-200 p-16 text-center shadow-sm">
-            <Landmark className="h-16 w-16 text-slate-500 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-[#003366]">Sin Cuentas Bancarias</h3>
-            <p className="text-slate-500/70 mt-2">No hay cuentas bancarias registradas en la empresa.</p>
-            <button onClick={() => setShowNewAccountModal(true)} className="mt-6 text-[#C5A059] font-bold hover:underline">Crear mi primera cuenta</button>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {displayAccounts.map(acc => (
+              <div
+                key={acc.id}
+                role="button"
+                tabIndex={0}
+                aria-pressed={selectedAccount?.id === acc.id}
+                onClick={() => setSelectedAccount(acc)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedAccount(acc); } }}
+                style={{
+                  backgroundColor: acc.color || '#003366',
+                  borderColor: selectedAccount?.id === acc.id ? '#C5A059' : 'transparent',
+                }}
+                className={clsx("cursor-pointer rounded-2xl p-6 transition border-2 text-white shadow-md relative overflow-hidden", selectedAccount?.id === acc.id ? 'transform scale-[1.02] shadow-xl ring-2 ring-[#C5A059]/50' : 'hover:shadow-lg opacity-95 hover:opacity-100')}
+              >
+                {/* Decorative background elements */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full -ml-8 -mb-8 blur-xl"></div>
+                
+                <div className="flex justify-between items-start relative z-10">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-sm border border-white/10">
+                      {acc.id === 'all' ? <Landmark className="h-5 w-5 text-white" /> : <Building2 className="h-5 w-5 text-white" />}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg leading-tight tracking-wide">{acc.bankName}</h3>
+                      <p className="text-sm font-mono tracking-widest text-white/80 mt-1">{acc.id === 'all' ? 'Vista Global' : maskAccount(acc.accountNumber)}</p>
+                    </div>
+                  </div>
+                </div>
+                {acc.id !== 'all' && (
+                  <div className="mt-8 relative z-10">
+                    <p className="text-[10px] uppercase font-bold tracking-widest text-white/60 mb-1">Balance Actual</p>
+                    <p className="text-2xl font-mono font-bold">
+                      {fmt(acc.balance, acc.currency)} <span className="text-sm font-sans font-normal opacity-80">{acc.currency}</span>
+                    </p>
+                  </div>
+                )}
+                {acc.id === 'all' && (
+                  <div className="mt-8 relative z-10">
+                    <p className="text-[10px] uppercase font-bold tracking-widest text-white/60 mb-1">Seleccionar</p>
+                    <p className="text-sm font-bold opacity-90 mt-1">
+                      Ver todas las transacciones combinadas
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {displayAccounts.map(acc => (
-                <div
-                  key={acc.id}
-                  role="button"
-                  tabIndex={0}
-                  aria-pressed={selectedAccount?.id === acc.id}
-                  onClick={() => setSelectedAccount(acc)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedAccount(acc); } }}
-                  style={{
-                    backgroundColor: acc.color || '#003366',
-                    borderColor: selectedAccount?.id === acc.id ? '#C5A059' : 'transparent',
-                  }}
-                  className={clsx("cursor-pointer rounded-2xl p-6 transition border-2 text-white shadow-md relative overflow-hidden", selectedAccount?.id === acc.id ? 'transform scale-[1.02] shadow-xl ring-2 ring-[#C5A059]/50' : 'hover:shadow-lg opacity-95 hover:opacity-100')}
-                >
-                  {/* Decorative background elements */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
-                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full -ml-8 -mb-8 blur-xl"></div>
-                  
-                  <div className="flex justify-between items-start relative z-10">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur-sm border border-white/10">
-                        {acc.id === 'all' ? <Landmark className="h-5 w-5 text-white" /> : <Building2 className="h-5 w-5 text-white" />}
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-lg leading-tight tracking-wide">{acc.bankName}</h3>
-                        <p className="text-sm font-mono tracking-widest text-white/80 mt-1">{acc.id === 'all' ? 'Vista Global' : maskAccount(acc.accountNumber)}</p>
-                      </div>
-                    </div>
-                  </div>
-                  {acc.id !== 'all' && (
-                    <div className="mt-8 relative z-10">
-                      <p className="text-[10px] uppercase font-bold tracking-widest text-white/60 mb-1">Balance Actual</p>
-                      <p className="text-2xl font-mono font-bold">
-                        {fmt(acc.balance, acc.currency)} <span className="text-sm font-sans font-normal opacity-80">{acc.currency}</span>
-                      </p>
-                    </div>
-                  )}
-                  {acc.id === 'all' && (
-                    <div className="mt-8 relative z-10">
-                      <p className="text-[10px] uppercase font-bold tracking-widest text-white/60 mb-1">Seleccionar</p>
-                      <p className="text-sm font-bold opacity-90 mt-1">
-                        Ver todas las transacciones combinadas
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ))}
+
+          {/* Transactions Table Section */}
+          {!selectedAccount ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center shadow-sm mt-6 flex flex-col items-center">
+              <Info className="h-10 w-10 text-amber-500 mb-3" />
+              <h3 className="text-lg font-bold text-amber-800">Seleccione una cuenta bancaria</h3>
+              <p className="text-amber-700/80 text-sm mt-1 max-w-md">Para visualizar el historial de transacciones, haga clic en una de las cuentas arriba o seleccione la opción "Todas las Cuentas".</p>
             </div>
-
-            {/* Transactions Table Section */}
-            {!selectedAccount ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center shadow-sm mt-6 flex flex-col items-center">
-                <Info className="h-10 w-10 text-amber-500 mb-3" />
-                <h3 className="text-lg font-bold text-amber-800">Seleccione una cuenta bancaria</h3>
-                <p className="text-amber-700/80 text-sm mt-1 max-w-md">Para visualizar el historial de transacciones, haga clic en una de las cuentas arriba o seleccione la opción "Todas las Cuentas".</p>
+          ) : (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mt-6">
+            {/* Table Header + Filters */}
+            <div className="bg-slate-50 border-b border-slate-200 p-4 space-y-3">
+              <div className="flex flex-wrap justify-between items-center gap-2">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">Historial de Transacciones {loadingTxs && <RefreshCw className="h-4 w-4 animate-spin text-slate-500" />}</h3>
+                  <p className="text-xs font-semibold text-slate-500/70 uppercase tracking-wider">{selectedAccount.bankName} {selectedAccount.currency !== '-' ? `(${selectedAccount.currency})` : ''}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                {/* Un movimiento es de UNA cuenta: con "Todas las Cuentas" no hay a cual registrarlo. */}
+                <button
+                  type="button"
+                  disabled={selectedAccount.id === 'all'}
+                  title={selectedAccount.id === 'all' ? 'Elija una cuenta para registrar un movimiento' : undefined}
+                  onClick={() => setShowTxModal(true)}
+                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                >
+                  <ArrowRightLeft className="h-4 w-4" /> Registrar Movimiento
+                </button>
+                <button
+                  onClick={handlePrintTransactions}
+                  className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+                >
+                  <Printer className="h-4 w-4" />
+                  Imprimir Reporte
+                </button>
+                </div>
               </div>
-            ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mt-6">
-              {/* Table Header + Filters */}
-              <div className="bg-slate-50 border-b border-slate-200 p-4 space-y-3">
-                <div className="flex flex-wrap justify-between items-center gap-2">
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">Historial de Transacciones {loadingTxs && <RefreshCw className="h-4 w-4 animate-spin text-slate-500" />}</h3>
-                    <p className="text-xs font-semibold text-slate-500/70 uppercase tracking-wider">{selectedAccount.bankName} {selectedAccount.currency !== '-' ? `(${selectedAccount.currency})` : ''}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                  {/* Un movimiento es de UNA cuenta: con "Todas las Cuentas" no hay a cual registrarlo. */}
-                  <button
-                    type="button"
-                    disabled={selectedAccount.id === 'all'}
-                    title={selectedAccount.id === 'all' ? 'Elija una cuenta para registrar un movimiento' : undefined}
-                    onClick={() => setShowTxModal(true)}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
-                    <ArrowRightLeft className="h-4 w-4" /> Registrar Movimiento
-                  </button>
-                  <button
-                    onClick={handlePrintTransactions}
-                    className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
-                    <Printer className="h-4 w-4" />
-                    Imprimir Reporte
-                  </button>
+
+              {/* Filters Row */}
+              <div className="flex flex-wrap items-end gap-3">
+                {/* Bank Search */}
+                <div className="flex flex-col gap-1 flex-1 min-w-[180px]">
+                  <label htmlFor="banco-buscar" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Buscar</label>
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                    <input
+                      id="banco-buscar"
+                      type="text"
+                      value={bankSearch}
+                      onChange={e => setBankSearch(e.target.value)}
+                      placeholder="Descripción o referencia..."
+                      className="w-full h-8 pl-8 pr-3 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
+                    />
                   </div>
                 </div>
 
-                {/* Filters Row */}
-                <div className="flex flex-wrap items-end gap-3">
-                  {/* Bank Search */}
-                  <div className="flex flex-col gap-1 flex-1 min-w-[180px]">
-                    <label htmlFor="banco-buscar" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Buscar</label>
-                    <div className="relative">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                      <input
-                        id="banco-buscar"
-                        type="text"
-                        value={bankSearch}
-                        onChange={e => setBankSearch(e.target.value)}
-                        placeholder="Descripción o referencia..."
-                        className="w-full h-8 pl-8 pr-3 text-xs rounded-lg border border-slate-200 bg-white text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Date Range Picker */}
-                  <div className="flex flex-col gap-1">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Rango de Fechas</p>
-                    <div className="w-64">
-                      <DateRangePicker
-                        from={startDate}
-                        to={endDate}
-                        onChange={({ from, to }) => {
-                          setStartDate(from);
-                          setEndDate(to);
-                        }}
-                      />
-                    </div>
+                {/* Date Range Picker */}
+                <div className="flex flex-col gap-1">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Rango de Fechas</p>
+                  <div className="w-64">
+                    <DateRangePicker
+                      from={startDate}
+                      to={endDate}
+                      onChange={({ from, to }) => {
+                        setStartDate(from);
+                        setEndDate(to);
+                      }}
+                    />
                   </div>
                 </div>
               </div>
-              {txMeta?.truncado && (
-                <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-start gap-3">
-                  <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-900">
-                    Se muestran los <strong>{transactions.length}</strong> movimientos más recientes de{' '}
-                    <strong>{txMeta.total}</strong> que hay en este rango. Acota las fechas para ver el resto.
-                  </p>
-                </div>
-              )}
-              <>
-                {/* Mobile View */}
-                <div className="md:hidden flex flex-col divide-y divide-slate-100 bg-white">
-                  {(() => {
-                    const filtered = transactions.filter(tx => {
-                      if (!bankSearch.trim()) return true;
-                      return (tx.description || '').toLowerCase().includes(bankSearch.toLowerCase()) ||
-                        (tx.reference || '').toLowerCase().includes(bankSearch.toLowerCase());
-                    });
-                    if (filtered.length === 0) return (
-                      <div className="py-12 text-center">
-                        <p className="text-xs text-slate-500/70">
-                          {transactions.length === 0 ? 'No hay movimientos en este rango de fechas.' : 'Ningún movimiento coincide con la búsqueda.'}
-                        </p>
+            </div>
+            {txMeta?.truncado && (
+              <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-start gap-3">
+                <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-900">
+                  Se muestran los <strong>{transactions.length}</strong> movimientos más recientes de{' '}
+                  <strong>{txMeta.total}</strong> que hay en este rango. Acota las fechas para ver el resto.
+                </p>
+              </div>
+            )}
+            <>
+              {/* Mobile View */}
+              <div className="md:hidden flex flex-col divide-y divide-slate-100 bg-white">
+                {(() => {
+                  const filtered = transactions.filter(tx => {
+                    if (!bankSearch.trim()) return true;
+                    return (tx.description || '').toLowerCase().includes(bankSearch.toLowerCase()) ||
+                      (tx.reference || '').toLowerCase().includes(bankSearch.toLowerCase());
+                  });
+                  if (filtered.length === 0) return (
+                    <div className="py-12 text-center">
+                      <p className="text-xs text-slate-500/70">
+                        {transactions.length === 0 ? 'No hay movimientos en este rango de fechas.' : 'Ningún movimiento coincide con la búsqueda.'}
+                      </p>
+                    </div>
+                  );
+                  return filtered.map(tx => {
+                    const isIncoming = ['deposit', 'transfer_in'].includes(tx.type);
+                    return (
+                      <div key={tx.id} className="flex flex-col p-4 hover:bg-slate-50/50 transition-colors gap-2">
+                        <div className="flex justify-between items-start">
+                          <span className="text-xs text-slate-500/80 font-medium">{formatDateDisplay(tx.date)}</span>
+                          <span className={clsx("inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase", isIncoming ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700')}>
+                            {isIncoming ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
+                            {tx.type}
+                          </span>
+                        </div>
+                        
+                        <div className="flex flex-col mt-1">
+                          <span className="text-sm font-semibold text-[#003366]">{tx.description || 'Movimiento Bancario'}</span>
+                          <span className="text-[10px] font-mono text-slate-500/70 mt-0.5">Ref: {tx.reference || '-'}</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center pt-2 mt-1 border-t border-slate-50">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Monto</span>
+                          <span className={clsx("text-sm font-mono font-bold", isIncoming ? 'text-emerald-600' : 'text-slate-800')}>
+                            {isIncoming ? '+' : '-'}{fmt(tx.amount)}
+                          </span>
+                        </div>
                       </div>
                     );
-                    return filtered.map(tx => {
-                      const isIncoming = ['deposit', 'transfer_in'].includes(tx.type);
-                      return (
-                        <div key={tx.id} className="flex flex-col p-4 hover:bg-slate-50/50 transition-colors gap-2">
-                          <div className="flex justify-between items-start">
-                            <span className="text-xs text-slate-500/80 font-medium">{formatDateDisplay(tx.date)}</span>
-                            <span className={clsx("inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase", isIncoming ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700')}>
-                              {isIncoming ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
-                              {tx.type}
-                            </span>
-                          </div>
-                          
-                          <div className="flex flex-col mt-1">
-                            <span className="text-sm font-semibold text-[#003366]">{tx.description || 'Movimiento Bancario'}</span>
-                            <span className="text-[10px] font-mono text-slate-500/70 mt-0.5">Ref: {tx.reference || '-'}</span>
-                          </div>
-                          
-                          <div className="flex justify-between items-center pt-2 mt-1 border-t border-slate-50">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Monto</span>
-                            <span className={clsx("text-sm font-mono font-bold", isIncoming ? 'text-emerald-600' : 'text-slate-800')}>
-                              {isIncoming ? '+' : '-'}{fmt(tx.amount)}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    });
-                  })()}
-                </div>
+                  });
+                })()}
+              </div>
 
-                {/* Desktop View */}
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full text-sm text-left">
-                    <thead className="bg-white border-b border-slate-200 text-[10px] tracking-widest text-slate-500 uppercase font-bold">
-                      <tr>
-                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha</th>
-                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Descripción</th>
-                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Referencia</th>
-                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo</th>
-                        <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Monto</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50">
-                      {(() => {
-                        const filtered = transactions.filter(tx => {
-                          if (!bankSearch.trim()) return true;
-                          return (tx.description || '').toLowerCase().includes(bankSearch.toLowerCase()) ||
-                            (tx.reference || '').toLowerCase().includes(bankSearch.toLowerCase());
-                        });
-                        if (filtered.length === 0) return (
-                          <tr>
-                            <td colSpan={5} className="px-4 py-12 text-center text-slate-500/70">
-                              {transactions.length === 0 ? 'No hay movimientos en este rango de fechas.' : 'Ningún movimiento coincide con la búsqueda.'}
+              {/* Desktop View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-white border-b border-slate-200 text-[10px] tracking-widest text-slate-500 uppercase font-bold">
+                    <tr>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Descripción</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Referencia</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Tipo</th>
+                      <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Monto</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {(() => {
+                      const filtered = transactions.filter(tx => {
+                        if (!bankSearch.trim()) return true;
+                        return (tx.description || '').toLowerCase().includes(bankSearch.toLowerCase()) ||
+                          (tx.reference || '').toLowerCase().includes(bankSearch.toLowerCase());
+                      });
+                      if (filtered.length === 0) return (
+                        <tr>
+                          <td colSpan={5} className="px-4 py-12 text-center text-slate-500/70">
+                            {transactions.length === 0 ? 'No hay movimientos en este rango de fechas.' : 'Ningún movimiento coincide con la búsqueda.'}
+                          </td>
+                        </tr>
+                      );
+                      return filtered.map(tx => {
+                        const isIncoming = ['deposit', 'transfer_in'].includes(tx.type);
+                        return (
+                          <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-4 py-2.5 text-xs text-slate-500/80 font-medium">{formatDateDisplay(tx.date)}</td>
+                            <td className="px-4 py-2.5 text-xs font-semibold text-[#003366]">{tx.description || 'Movimiento Bancario'}</td>
+                            <td className="px-4 py-2.5 text-xs font-mono text-slate-500/70">{tx.reference || '-'}</td>
+                            <td className="px-4 py-2.5 text-xs">
+                              <span className={clsx("inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold uppercase", isIncoming ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700')}>
+                                {isIncoming ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
+                                {tx.type}
+                              </span>
+                            </td>
+                            <td className={clsx("px-4 py-2.5 text-xs text-right font-mono font-bold", isIncoming ? 'text-emerald-600' : 'text-slate-800')}>
+                              {isIncoming ? '+' : '-'}{fmt(tx.amount)}
                             </td>
                           </tr>
                         );
-                        return filtered.map(tx => {
-                          const isIncoming = ['deposit', 'transfer_in'].includes(tx.type);
-                          return (
-                            <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="px-4 py-2.5 text-xs text-slate-500/80 font-medium">{formatDateDisplay(tx.date)}</td>
-                              <td className="px-4 py-2.5 text-xs font-semibold text-[#003366]">{tx.description || 'Movimiento Bancario'}</td>
-                              <td className="px-4 py-2.5 text-xs font-mono text-slate-500/70">{tx.reference || '-'}</td>
-                              <td className="px-4 py-2.5 text-xs">
-                                <span className={clsx("inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold uppercase", isIncoming ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700')}>
-                                  {isIncoming ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
-                                  {tx.type}
-                                </span>
-                              </td>
-                              <td className={clsx("px-4 py-2.5 text-xs text-right font-mono font-bold", isIncoming ? 'text-emerald-600' : 'text-slate-800')}>
-                                {isIncoming ? '+' : '-'}{fmt(tx.amount)}
-                              </td>
-                            </tr>
-                          );
-                        });
-                      })()}
-                    </tbody>
-                  </table>
-                </div>
-              </>
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          </div>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
+function AltaDeCuenta({ h }: { h: EstadoBankAccountsPage }) {
+  const { chartOfAccounts, showNewAccountModal, setShowNewAccountModal, submitting, accountForm, setAccountForm, handleCreateAccount } = h;
+  return (
+    <>
+      {/* Cuenta nueva: era un modal; desde el lote 248 es la segunda pestana. */}
+      {showNewAccountModal && (
+        <PanelDeRegistro titulo="Nueva Cuenta Bancaria">
+          <form onSubmit={handleCreateAccount} className="space-y-4 max-w-md">
+            <div>
+              <label htmlFor="banco-nombre" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Nombre del Banco</label>
+              <input type="text" required id="banco-nombre" value={accountForm.bankName} onChange={e => setAccountForm({ ...accountForm, bankName: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" placeholder="Ej. Banco Popular" />
             </div>
-            )}
-          </>
-        )}
-        </>)}
-
-        {/* Cuenta nueva: era un modal; desde el lote 248 es la segunda pestana. */}
-        {showNewAccountModal && (
-          <PanelDeRegistro titulo="Nueva Cuenta Bancaria">
-            <form onSubmit={handleCreateAccount} className="space-y-4 max-w-md">
+            <div>
+              <label htmlFor="banco-numero" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Número de Cuenta</label>
+              <input type="text" required id="banco-numero" value={accountForm.accountNumber} onChange={e => setAccountForm({ ...accountForm, accountNumber: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono" placeholder="Ej. 1234567890" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="banco-nombre" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Nombre del Banco</label>
-                <input type="text" required id="banco-nombre" value={accountForm.bankName} onChange={e => setAccountForm({ ...accountForm, bankName: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" placeholder="Ej. Banco Popular" />
+                <label htmlFor="banco-moneda" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Moneda</label>
+                <select id="banco-moneda" value={accountForm.currency} onChange={e => setAccountForm({ ...accountForm, currency: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors">
+                  <option value="DOP">DOP (Pesos)</option>
+                  <option value="USD">USD (Dólares)</option>
+                  <option value="EUR">EUR (Euros)</option>
+                </select>
               </div>
               <div>
-                <label htmlFor="banco-numero" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Número de Cuenta</label>
-                <input type="text" required id="banco-numero" value={accountForm.accountNumber} onChange={e => setAccountForm({ ...accountForm, accountNumber: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono" placeholder="Ej. 1234567890" />
+                <label htmlFor="banco-tipo" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Tipo</label>
+                <select id="banco-tipo" value={accountForm.type} onChange={e => setAccountForm({ ...accountForm, type: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors">
+                  <option value="corriente">Corriente</option>
+                  <option value="ahorros">Ahorros</option>
+                </select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="banco-moneda" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Moneda</label>
-                  <select id="banco-moneda" value={accountForm.currency} onChange={e => setAccountForm({ ...accountForm, currency: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors">
-                    <option value="DOP">DOP (Pesos)</option>
-                    <option value="USD">USD (Dólares)</option>
-                    <option value="EUR">EUR (Euros)</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="banco-tipo" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Tipo</label>
-                  <select id="banco-tipo" value={accountForm.type} onChange={e => setAccountForm({ ...accountForm, type: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors">
-                    <option value="corriente">Corriente</option>
-                    <option value="ahorros">Ahorros</option>
-                  </select>
+            </div>
+              <div>
+                <label htmlFor="banco-color" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Color de Tarjeta</label>
+                <div className="flex items-center gap-3">
+                  <input type="color" id="banco-color" value={accountForm.color} onChange={e => setAccountForm({ ...accountForm, color: e.target.value })} className="h-8 w-14 p-1 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer" />
+                  <span className="text-xs text-slate-500 font-mono">{accountForm.color}</span>
                 </div>
               </div>
-                <div>
-                  <label htmlFor="banco-color" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Color de Tarjeta</label>
-                  <div className="flex items-center gap-3">
-                    <input type="color" id="banco-color" value={accountForm.color} onChange={e => setAccountForm({ ...accountForm, color: e.target.value })} className="h-8 w-14 p-1 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer" />
-                    <span className="text-xs text-slate-500 font-mono">{accountForm.color}</span>
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="banco-cuenta-contable" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Cuenta Contable del Banco</label>
-                  <select
-                    required
-                    id="banco-cuenta-contable" value={accountForm.chartAccountId}
-                    onChange={e => setAccountForm({ ...accountForm, chartAccountId: e.target.value })}
-                    className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
-                  >
-                    <option value="">Seleccione la cuenta del catálogo</option>
-                    {chartOfAccounts.flatMap(c => (esElegible(c)
-                      ? [<option key={c.id} value={c.id}>{c.code} - {c.name}</option>]
-                      : []))}
-                  </select>
-                  <p className="mt-1 text-[10px] text-slate-500">
-                    Los movimientos de esta cuenta se asentarán contra ella. Solo se listan cuentas transaccionales.
-                  </p>
-                </div>
-                <div>
-                  <label htmlFor="banco-balance" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Balance Inicial</label>
-                  <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold">$</span>
-                    <input type="number" min="0" step="0.01" required id="banco-balance" value={accountForm.initialBalance} onChange={e => setAccountForm({ ...accountForm, initialBalance: e.target.value })} className="w-full h-8 pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono" placeholder="0.00" />
-                  </div>
-                </div>
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                <button type="button" onClick={() => setShowNewAccountModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">Cancelar</button>
-                <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
-                  {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Guardar
-                </button>
+              <div>
+                <label htmlFor="banco-cuenta-contable" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Cuenta Contable del Banco</label>
+                <select
+                  required
+                  id="banco-cuenta-contable" value={accountForm.chartAccountId}
+                  onChange={e => setAccountForm({ ...accountForm, chartAccountId: e.target.value })}
+                  className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
+                >
+                  <option value="">Seleccione la cuenta del catálogo</option>
+                  {chartOfAccounts.flatMap(c => (esElegible(c)
+                    ? [<option key={c.id} value={c.id}>{c.code} - {c.name}</option>]
+                    : []))}
+                </select>
+                <p className="mt-1 text-[10px] text-slate-500">
+                  Los movimientos de esta cuenta se asentarán contra ella. Solo se listan cuentas transaccionales.
+                </p>
               </div>
-            </form>
-          </PanelDeRegistro>
-        )}
+              <div>
+                <label htmlFor="banco-balance" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Balance Inicial</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold">$</span>
+                  <input type="number" min="0" step="0.01" required id="banco-balance" value={accountForm.initialBalance} onChange={e => setAccountForm({ ...accountForm, initialBalance: e.target.value })} className="w-full h-8 pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono" placeholder="0.00" />
+                </div>
+              </div>
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+              <button type="button" onClick={() => setShowNewAccountModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">Cancelar</button>
+              <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Guardar
+              </button>
+            </div>
+          </form>
+        </PanelDeRegistro>
+      )}
+    </>
+  );
+}
 
-      </div>
-
-
+function VentanaDeMovimiento({ h }: { h: EstadoBankAccountsPage }) {
+  const { selectedAccount, chartOfAccounts, showTxModal, setShowTxModal, submitting, txForm, setTxForm, handleRegisterTx } = h;
+  return (
+    <>
       {/* MODAL: REGISTER TX */}
       <LazyMotion features={domAnimation}>
       <AnimatePresence>
@@ -800,7 +836,6 @@ export default function BankAccountsPage() {
         )}
       </AnimatePresence>
       </LazyMotion>
-
-    </div>
+    </>
   );
 }

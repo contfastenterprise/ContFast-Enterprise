@@ -34,6 +34,13 @@ const invariante = (t: string, c: boolean, d = '') => {
 /** Cada <label htmlFor="x"> tiene su id="x". */
 const etiquetasBien = (src: string, ids: string[]) => ids.every((id) => src.includes(`htmlFor="${id}"`) && src.includes(`id="${id}"`));
 
+//  Lotes 253-255: las paginas se partieron en piezas (`<CuentasYMovimientos h={h} />`). Para mirar lo que
+//  pinta un tramo se sustituye cada pieza por su cuerpo; en el estado de antes no hay piezas.
+const expandir = (src: string, trozo: string): string => trozo.replace(/<([A-Z]\w+) h=\{h\} \/>/g, (todo, nombre: string) => {
+  const i = src.indexOf(`\nfunction ${nombre}(`);
+  return i < 0 ? todo : src.slice(i, src.indexOf('\n}\n', i));
+});
+
 function main() {
   const ret = sinComentarios(leer('src/app/dashboard/retentions/page.tsx'));
   const ban = sinComentarios(leer('src/app/dashboard/bank/page.tsx'));
@@ -67,7 +74,7 @@ function main() {
     && /alVerLista=\{\(\) => setShowNewAccountModal\(false\)\}/.test(pb) && /alRegistrar=\{\(\) => setShowNewAccountModal\(true\)\}/.test(pb)
     && !/<Plus [^>]*\/> Nueva Cuenta\s*<\/button>/.test(ban), pb.slice(0, 100));
   const iLb = ban.indexOf('{!showNewAccountModal && (<>');
-  const listaB = iLb < 0 ? '' : ban.slice(iLb, ban.indexOf('</>)}', iLb));
+  const listaB = iLb < 0 ? '' : expandir(ban, ban.slice(iLb, ban.indexOf('</>)}', iLb)));
   const iFb = ban.indexOf('{showNewAccountModal && (');
   const formB = iFb < 0 ? '' : ban.slice(iFb, ban.indexOf('</PanelDeRegistro>', iFb));
   ok('  las cuentas y el formulario de cuenta nueva no se pintan a la vez',

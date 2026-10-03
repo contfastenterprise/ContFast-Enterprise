@@ -108,6 +108,45 @@ const conCampo = <T,>(lista: T[], index: number, cambio: Partial<T>): T[] =>
   lista.map((x, i) => (i === index ? { ...x, ...cambio } : x));
 
 export default function PurchaseOrdersPage() {
+  const h = usePedidos();
+  const { showFormModal, setShowFormModal, editId, openNewModal } = h;
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
+            <FileText className="h-8 w-8 text-[#005E63]" />
+            Pedidos a Suplidores
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Gestión logística de pedidos de mercancías a proveedores sin facturación.
+          </p>
+        </div>
+        {/* Lote 250: en la cabecera, SOLO las pestanas (como en Compras). */}
+        <PestanasDeRegistro
+          enFormulario={showFormModal}
+          lista="Pedidos"
+          editando={!!editId}
+          alVerLista={() => setShowFormModal(false)}
+          alRegistrar={openNewModal}
+        />
+      </div>
+
+      {!showFormModal && (<>
+      <FiltrosDePedidos h={h} />
+      <TablaDePedidos h={h} />
+      </>)}
+
+      <FormularioDePedido h={h} />
+      <VentanasDePedido h={h} />
+    </div>
+  );
+}
+
+/** El estado y las acciones de la pagina, movidos TAL CUAL desde el componente. */
+function usePedidos() {
   const confirm = useConfirm();
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -543,30 +582,15 @@ export default function PurchaseOrdersPage() {
     return numMatch && supplierMatch && statusMatch && dateMatch;
   });
 
-  return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
-            <FileText className="h-8 w-8 text-[#005E63]" />
-            Pedidos a Suplidores
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Gestión logística de pedidos de mercancías a proveedores sin facturación.
-          </p>
-        </div>
-        {/* Lote 250: en la cabecera, SOLO las pestanas (como en Compras). */}
-        <PestanasDeRegistro
-          enFormulario={showFormModal}
-          lista="Pedidos"
-          editando={!!editId}
-          alVerLista={() => setShowFormModal(false)}
-          alRegistrar={openNewModal}
-        />
-      </div>
+  return { confirm, orders, setOrders, suppliers, setSuppliers, warehouses, setWarehouses, loading, setLoading, errorCarga, setErrorCarga, searchNumber, setSearchNumber, searchSupplier, setSearchSupplier, statusFilter, setStatusFilter, startDate, setStartDate, endDate, setEndDate, showFormModal, setShowFormModal, showDetailModal, setShowDetailModal, showReceiveModal, setShowReceiveModal, submitting, setSubmitting, activeOrder, setActiveOrder, editId, setEditId, form, setForm, supplierId, warehouseId, expectedDate, observations, lines, setSupplierId, setWarehouseId, setExpectedDate, setObservations, setLines, busqueda, setBusqueda, productSearchTerm, searchedProducts, setProductSearchTerm, setSearchedProducts, searchingProducts, setSearchingProducts, activeLineIndex, setActiveLineIndex, receptions, setReceptions, fetchOrders, fetchSuppliers, fetchWarehouses, searchProducts, openNewModal, openEditModal, viewOrderDetails, handleSendOrder, handleDuplicate, handleCancelOrder, openReceiveModal, handleReceiveSubmit, handlePrintAll, handleAddLinePlaceholder, handleSelectProduct, handleRemoveLine, handleLineQuantityChange, handleLineObservationsChange, handleLineBrandChange, handleLineModelChange, handleFormSubmit, filteredOrders };
+}
 
-      {!showFormModal && (<>
+type EstadoPurchaseOrdersPage = ReturnType<typeof usePedidos>;
+
+function FiltrosDePedidos({ h }: { h: EstadoPurchaseOrdersPage }) {
+  const { searchNumber, setSearchNumber, searchSupplier, setSearchSupplier, statusFilter, setStatusFilter, startDate, setStartDate, endDate, setEndDate, fetchOrders, handlePrintAll, filteredOrders } = h;
+  return (
+    <>
       {/* Filters Bar */}
       <div className="flex flex-wrap gap-4 items-end bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="flex-1 min-w-[180px] w-full">
@@ -652,7 +676,14 @@ export default function PurchaseOrdersPage() {
           </button>
         )}
       </div>
+    </>
+  );
+}
 
+function TablaDePedidos({ h }: { h: EstadoPurchaseOrdersPage }) {
+  const { loading, errorCarga, fetchOrders, openEditModal, viewOrderDetails, filteredOrders } = h;
+  return (
+    <>
       {/* Orders Table */}
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xl">
         {loading ? (
@@ -786,8 +817,14 @@ export default function PurchaseOrdersPage() {
           </div>
         )}
       </div>
-      </>)}
+    </>
+  );
+}
 
+function FormularioDePedido({ h }: { h: EstadoPurchaseOrdersPage }) {
+  const { suppliers, warehouses, showFormModal, setShowFormModal, submitting, editId, form, supplierId, warehouseId, expectedDate, observations, lines, setSupplierId, setWarehouseId, setExpectedDate, setObservations, productSearchTerm, searchedProducts, setProductSearchTerm, searchingProducts, activeLineIndex, setActiveLineIndex, searchProducts, handleAddLinePlaceholder, handleSelectProduct, handleRemoveLine, handleLineQuantityChange, handleLineObservationsChange, handleLineBrandChange, handleLineModelChange, handleFormSubmit } = h;
+  return (
+    <>
       {/* Alta / edicion: era un modal de 1.024 px con su propia barra; desde el lote 250 es la
           segunda pestana. Ver el detalle y recibir siguen en su ventana: son acciones sobre un pedido. */}
       {showFormModal && (
@@ -1014,7 +1051,14 @@ export default function PurchaseOrdersPage() {
           </form>
         </PanelDeRegistro>
       )}
+    </>
+  );
+}
 
+function VentanasDePedido({ h }: { h: EstadoPurchaseOrdersPage }) {
+  const { showDetailModal, setShowDetailModal, showReceiveModal, setShowReceiveModal, submitting, activeOrder, form, receptions, setReceptions, handleSendOrder, handleDuplicate, handleCancelOrder, openReceiveModal, handleReceiveSubmit } = h;
+  return (
+    <>
       {/* Detail / Action Modal */}
       <LazyMotion features={domAnimation}>
       <AnimatePresence>
@@ -1279,7 +1323,6 @@ export default function PurchaseOrdersPage() {
         )}
       </AnimatePresence>
       </LazyMotion>
-
-    </div>
+    </>
   );
 }

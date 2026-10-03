@@ -21,12 +21,16 @@ export function huella(src: string): string[] {
   for (const m of s.matchAll(/className=(?:"([^"]*)"|\{`([^`]*)`\})/g)) salida.push(`clase:${(m[1] ?? m[2]).replace(/\s+/g, ' ').trim()}`);
   for (const m of s.matchAll(/\b(placeholder|title|aria-label)="([^"]*)"/g)) salida.push(`${m[1]}:${m[2]}`);
   for (const m of s.matchAll(/toast\.(?:success|error|warning|info|loading)\(\s*(['`])([^'`]*)\1/g)) salida.push(`aviso:${m[2]}`);
-  for (const m of s.matchAll(/['`](\/api\/v1\/[^'`?$]*)/g)) salida.push(`api:${m[1]}`);
+  //  La direccion entera, con sus `${...}` (lote 255: cortarla en el primero dejaba pasar un cambio despues).
+  for (const m of s.matchAll(/['`](\/api\/v1\/[^'`?]*)/g)) salida.push(`api:${m[1]}`);
   //  El '>' de una flecha (=>) no abre texto visible. El de una etiqueta multilinea, solo en su
   //  linea, si: por eso no se excluye el que va tras espacios.
-  for (const m of s.matchAll(/(?<!=)>([^<>{}]*[A-Za-zÁÉÍÓÚáéíóúñÑ][^<>{}]*)</g)) {
+  //  Lote 255: tambien el texto que va seguido de una expresion (`Historial {cargando && ...}`).
+  for (const m of s.matchAll(/(?<!=)>([^<>{}]*[A-Za-zÁÉÍÓÚáéíóúñÑ][^<>{}]*)(?=[<{])/g)) {
     const t = m[1].replace(/\s+/g, ' ').trim();
-    if (t && !/^[\w.]+$/.test(t.replace(/\s/g, '')) || /\s/.test(t)) salida.push(`texto:${t}`);
+    //  El cierre de un tipo genérico (`ReturnType<typeof useX>;`) no es texto: lo de detrás es código.
+    if (t.startsWith(';')) continue;
+    if (t &&!/^[\w.]+$/.test(t.replace(/\s/g, '')) || /\s/.test(t)) salida.push(`texto:${t}`);
   }
   return salida.sort();
 }
