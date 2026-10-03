@@ -32,6 +32,11 @@ export const productosEnDolares = pgTable('productos_en_dolares', {
   productId: uuid('product_id').primaryKey(),
   companyId: uuid('company_id').notNull(),
   costoUsd: decimal('costo_usd', { precision: 15, scale: 4 }).notNull(),
+  /**
+   * Lote 258 (migracion 0018): el precio BASE en dolares; nulo si no tiene. Solo lo leen las consultas
+   * que lo nombran, y el repositorio mira antes si la columna existe.
+   */
+  precioUsd: decimal('precio_usd', { precision: 15, scale: 4 }),
   /** La tasa con la que se calcularon sus precios la ultima vez; nula si nunca. */
   tasaAplicada: decimal('tasa_aplicada', { precision: 12, scale: 4 }),
   aplicadaEn: timestamp('aplicada_en'),

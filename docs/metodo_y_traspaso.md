@@ -1835,6 +1835,42 @@ Además, fuera de la tabla:
   ITBIS 514,35, con la leyenda debajo del costo.
   Banco `verificar_compras_con_tasa_del_dolar.ts`: 7 comprobaciones y un invariante (el costo se
   puede cambiar a mano, cierto antes y después), contraprueba 7 FALLA, seis mutantes y seis muertos.
+- **Lote 258: el precio BASE de un producto en dólares.** Pedido del dueño (2026-10-03), tras
+  preguntar si se podían calcular los precios como "precio en dólares × tasa": *"el precio en
+  dólares sería solo para el precio base"*. Hasta ahora, al aplicar la tasa, los cuatro precios
+  conservaban su margen sobre el costo nuevo (lote 247). Ahora un producto que sigue al dólar puede
+  llevar además un **precio base en US$**: al aplicar, **precio base = precio en dólares × tasa**, y
+  consumidor, mayorista y proveedor **siguen con su margen** sobre el costo. Sin precio en dólares,
+  todo como antes. Se fija en la tabla, con un lápiz como el del costo (columna "En dólares": Costo y
+  Precio); **vacío lo quita**. Un precio en dólares distinto del de hoy es un cambio aunque el costo
+  no se mueva.
+  **MIGRACIÓN `drizzle/0018_precio_base_en_dolares.sql`** (una columna nula en
+  `productos_en_dolares` y su freno de positivo). **No hace falta aplicarla antes de desplegar**:
+  el repositorio mira en `information_schema` si la columna existe **antes de nombrarla** (y lo
+  recuerda una vez vista), así que sin ella la pantalla funciona como hoy y solo **guardar** un
+  precio en dólares contesta 409 nombrando la 0018 — la lección de las 0013 y 0015, como en la 0016.
+  `PATCH /api/v1/products/dolar` (administración y sistemas, como el resto de escrituras de la
+  pantalla), con `leerPrecioUsd` (pura: vacío = sin precio, mayor que cero, cuatro decimales).
+  **Se miró en el navegador** con una página temporal (la sección real, la red sustituida): fijar
+  US$ 15 al Dintel → precio base 900 a tasa 60; quitar el de la puerta → vuelve al margen. Mirarlo
+  cazó dos cosas: "US$ 45.00" se partía en dos líneas (`whitespace-nowrap`) y el pie decía que *cada*
+  precio conserva su margen, que ya no es cierto para el precio base.
+  Dos bancos: `verificar_precio_base_en_dolares.ts` (regla ejecutada, tabla dibujada; 16, contraprueba
+  14 FALLA — la que seguía en OK, "los otros tres conservan su margen", es cierta antes y pasa a
+  invariante —; quince mutantes y quince muertos, dos tras apretar el banco: `conPrecio` podía no
+  salir de mirar la columna, y el trozo de `fijarPrecioUsd` se comía la función siguiente) y
+  `verificar_precio_base_en_dolares_db.ts` (**integración**: quita la columna para simular la base sin
+  la 0018, y aplica precios de verdad; 8, contraprueba 8 FALLA, siete mutantes y seis muertos — el
+  séptimo, no redondear a cuatro en `leerPrecioUsd`, es equivalente **para la base** porque el
+  repositorio y la columna ya redondean; lo mata el banco de código).
+  React Doctor: el único aviso en estos ficheros es el bucle de `aplicar` (lote 247), dentro de una
+  transacción, que usa una sola conexión: `Promise.all` no lo aceleraría.
+  **Trampa del entorno, otra vez la de la sección 4**: otra sesión trabajaba a la vez en la misma
+  carpeta (lote 259, el menú) con su `next dev` levantado, y el `build` de aquí falló con la página
+  temporal de ella en `.next/dev/types/validator.ts`. El build y el barrido se hicieron en un
+  `git worktree`.
+  **Para el dueño**: aplicar la 0018 cuando quiera fijar precios en dólares
+  (`npx tsx --env-file=.env scratch/_to_delete/aplicar_migracion.ts drizzle/0018_precio_base_en_dolares.sql --aplicar`).
 - **Lote 259: la fila activa del menú, centrada, un poco más grande y con un fondo que viaja.**
   Pedido del dueño (2026-10-03), después de compararlo en una maqueta frente a "arriba" y a como
   estaba: **centrada y con escala**. Tres cosas a la vez:
