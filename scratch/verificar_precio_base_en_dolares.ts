@@ -71,7 +71,10 @@ async function main() {
   const repo = sinComentarios(leer('src/services/precios/preciosEnDolaresRepositorio.ts'));
   ok('el repositorio mira si la columna existe antes de nombrarla (sin la 0018 la pantalla no se cae)',
     /information_schema\.columns[\s\S]{0,120}column_name = 'precio_usd'/.test(repo)
-    && (repo.match(/\.select\(columnasDe\(conPrecio\)\)/g) ?? []).length === 2
+    //  LOTE 261: al menos dos, no exactamente dos. El 261 añadio una tercera lectura (guardar la
+    //  tasa y aplicar) que tambien pasa por `columnasDe`; contar fijaba la FORMA. La propiedad es
+    //  que ninguna nombre las columnas sin mirar antes, y eso lo dice el `!/\.select\(columnas\)/`.
+    && (repo.match(/\.select\(columnasDe\(conPrecio\)\)/g) ?? []).length >= 2
     && /const conPrecio = await hayPrecioUsd\(\);/.test(repo) && /const conPrecio = await hayPrecioUsd\(tx\);/.test(repo) && !/\.select\(columnas\)/.test(repo)
     && /const columnasDe = \(conPrecio: boolean\) => \(conPrecio \? \{ \.\.\.columnas, precioUsd: productosEnDolares\.precioUsd \} : columnas\)/.test(repo));
   ok('  el renglon lleva el precio y el calculo lo usa',

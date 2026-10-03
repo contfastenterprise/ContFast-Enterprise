@@ -26,6 +26,9 @@ import { erroresPorCampo } from '@/schemas/errores';
 import { PASOS, campoDelPaso, primerPasoConFallo } from './pasos';
 import { useConfirm } from '@/providers/confirm-provider';
 import { esAdminOSistemas } from '@/utils/rolMatch';
+import { useTasaDelDolar } from '@/hooks/useTasaDelDolar';
+import { lineasDeFacturaConPrecios } from '@/services/precios/cambioDeTasa';
+import { TasaDelDolarEnLinea } from '@/components/precios/TasaDelDolarEnLinea';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 import RetentionSelector from '@/components/RetentionSelector';
 import { BorderRotate } from '@/components/ui/animated-gradient-border';
@@ -235,6 +238,29 @@ function InvoicesList() {
       imageUrl: ''
     },
   ]);
+  //  LOTE 261: la tasa del dolar, con "Cambiar tasa" para quien administra. Guardarla aplica los
+  //  precios de los productos en dolares al momento (decision del dueño); la factura sigue
+  //  cobrando el precio del CATALOGO, que con esto queda al dia. Hay que releerlo: `dbProducts`
+  //  tiene los precios de cuando se abrio el formulario. Y las lineas ya escritas cuyo precio es
+  //  el de su nivel en el catalogo anterior pasan al nuevo; un precio cambiado a mano se deja.
+  const tasaDelDolar = useTasaDelDolar(async () => {
+    const leido = await leerRespuesta<{ data: any[] }>(await fetch('/api/v1/products?per_page=100'));
+    if (!leido.bien) {
+      toast.error('La tasa se guardó, pero no se pudieron recargar los precios: vuelve a abrir el formulario.');
+      return;
+    }
+    const nuevos = leido.cuerpo.data || [];
+    const r = lineasDeFacturaConPrecios(
+      lines,
+      new Map(dbProducts.map((p) => [p.id, p])),
+      new Map(nuevos.map((p) => [p.id, p])),
+    );
+    setDbProducts(nuevos);
+    if (r.cambiadas > 0) {
+      setLines(r.lineas);
+      toast.info(r.cambiadas === 1 ? 'Se actualizó el precio de 1 línea de esta factura.' : `Se actualizó el precio de ${r.cambiadas} líneas de esta factura.`);
+    }
+  });
   const [quoteId, setQuoteId] = useState('');
   // Al entrar desde una cotizacion, el formulario se abre VACIO y se rellena
   // solo cuando responde `/convert`. Durante ese hueco se veia el formulario en
@@ -2566,6 +2592,9 @@ function InvoicesList() {
                     : 'Complete los datos para emitir y firmar electrónicamente.'}
                 </p>
               </div>
+              {/*  LOTE 261: aqui y no dentro del <form> de la factura: el control lleva su propio
+                   formulario, y uno dentro de otro es HTML invalido (Enter enviaria la factura).  */}
+              <TasaDelDolarEnLinea t={tasaDelDolar} />
             </div>
 
             {cargandoCotizacion ? (

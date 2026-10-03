@@ -45,14 +45,19 @@ async function main() {
   console.log('\n2) La pantalla de compras\n');
   ok('las cinco puertas por las que entra un producto pasan por costoDe, y ninguna lee el costo de catalogo a pelo',
     (pagina.match(/costoDe\((product|prod)\)/g) ?? []).length === 6 && !/(parseFloat|Number)\((product|prod)\.cost/.test(pagina));
-  ok('  el costo de cada linea dice de donde sale (US$ x tasa)',
-    /const o = l\.productId \? origenDe\(l\.productId\) : null;[\s\S]{0,200}US\$ \{escribirTasa\(o\.costoUsd\)\} × \{escribirTasa\(o\.tasa\)\}/.test(pagina));
+  //  LOTE 261: INVERTIDA, NO BORRADA. El 257 exigia la leyenda "US$ x tasa" bajo el costo; el
+  //  dueño pidio el 2026-10-03 que la linea ensene *"solo peso dominicano"*. La negativa va atada
+  //  a la marca positiva (el costo sigue saliendo de `costoDe`).
+  ok('  el costo de cada linea se ensena solo en pesos (lote 261: sin "US$ x tasa")',
+    /costoDe\(prod\)/.test(pagina) && !/origenDe\(/.test(pagina) && !/US\$ \{/.test(pagina));
   invariante('  y se puede seguir cambiando a mano', /value=\{l\.unitCost \|\| ''\} onChange=\{e => updateLine\(l\.id, 'unitCost'/.test(pagina));
-  const hook = sinComentarios(leer('src/app/dashboard/purchases/hooks/useCostoEnDolares.ts'));
+  //  LOTE 261: la lectura se mudo a `hooks/useTasaDelDolar.ts`, el mismo que pinta el control de
+  //  la tasa; `useCostoEnDolares` la usa. Se mira en los dos ficheros juntos.
+  const hook = sinComentarios(leer('src/app/dashboard/purchases/hooks/useCostoEnDolares.ts') + '\n' + leer('src/hooks/useTasaDelDolar.ts'));
   ok('el hook lee la tasa y los productos en dolares UNA vez, mirando el estado antes del cuerpo',
-    /leerRespuesta<[^>]+>\(await fetch\('\/api\/v1\/products\/dolar'\)\)/.test(hook) && /useEffect\(\(\) => \{ cargar\(\); \}, \[cargar\]\);/.test(hook));
+    /leerRespuesta<[^>]+>\(\s*await fetch\((DIRECCION|'\/api\/v1\/products\/dolar')\),?\s*\)/.test(hook) && /useEffect\(\(\) => \{ cargar\(\); \}, \[cargar\]\);/.test(hook));
   ok('  si no puede (sin permiso, sin red), no frena la compra: se queda el costo de catalogo',
-    /if \(!leido\.bien\) return;/.test(hook) && /catch \{/.test(hook) && /costoParaCompra\(prod\.cost, costosUsd\.get\(prod\.id\), tasa\)/.test(hook));
+    /if \(!leido\.bien\) return;/.test(hook) && /catch \{/.test(hook) && /costoParaCompra\(prod\.cost, costosUsd\.get\(prod\.id\), tasa(\?\.tasa \?\? null)?\)/.test(hook));
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLA(S)`}`);
   process.exit(fallos === 0 ? 0 : 1);

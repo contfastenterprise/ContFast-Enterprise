@@ -1924,6 +1924,61 @@ Además, fuera de la tabla:
   **No se miró**: el menú plegado (solo iconos) y el cajón del móvil, que el banco cubre por el
   cableado. **La carpeta la compartía otra sesión** (lote 258, precio base en dólares), que la
   cambió de rama a media obra: este lote se commiteó desde un `git worktree` aparte.
+- **Lote 261: la tasa del dólar se cambia desde Compras y Facturación, y la línea de compra va
+  solo en pesos.** Pedido del dueño (2026-10-03): *"cuando se digitan los productos no es
+  necesario que muestre ... la tasa de cambio del dólar, solo debe mostrar en peso dominicano"* y
+  *"debiera darme la opción de cambiar la tasa desde compra y facturación para facilitar el cambio
+  de precio"*. **Sus tres decisiones**: desde esas dos pantallas, guardar la tasa **aplica los
+  precios al momento**, sin la confirmación de Productos; **Productos sigue con revisión** (guardar,
+  ver lo tachado, "Aplicar precios"); y la factura cobra **el precio del catálogo**, no dólares ×
+  tasa en vivo, así que el precio de una factura es siempre uno aprobado.
+  · **Compras**: fuera la leyenda "US$ 45.00 × 63.50" bajo el costo (y `origenDe`, que solo servía
+    para ella). El costo sigue saliendo de dólares × tasa (lote 257).
+  · **El control**, `components/precios/TasaDelDolarEnLinea.tsx`: la tasa vigente (con su día si no
+    es de hoy) y "Cambiar tasa". Lo pinta junto a las líneas de la compra y en la cabecera de la
+    factura — **fuera del `<form>` de la factura**: lleva su propio formulario (Enter guarda la tasa) y
+    uno dentro de otro es HTML inválido. Quién puede cambiarla lo dice el **servidor**
+    (`puedeAplicar`: administración y sistemas); quien no, ve la tasa. Sin precios en dólares en la
+    empresa, no sale nada. El estado es de `hooks/useTasaDelDolar.ts`, que ahora usa también
+    `useCostoEnDolares`: la tasa se pide una vez.
+  · **El servidor**: `PUT /api/v1/products/dolar/tasa` con `aplicar: true` (solo el booleano: un
+    `"true"` escrito como texto no aplica) llama a `guardarTasaYAplicar`, que escribe la tasa, bloquea
+    los productos atados y los aplica **en una transacción**: si fallara a medias quedaría la tasa
+    nueva con los precios viejos, que es lo que el dueño quiere evitar al pedirlo en un gesto. El
+    cálculo y el registro en `cambios_de_precio` son **los de Productos**: el bucle sale de `aplicar`
+    a `aplicarFilas`, que comparten. Contesta cuántos cambiaron y cuántos hay atados.
+  · **Las líneas a medio hacer**: con la tasa nueva, una línea de compra cuyo costo sigue siendo el
+    de la tasa anterior pasa a la nueva (con su ITBIS, o sin él si la compra va sin ITBIS); en la
+    factura se relee el catálogo y una línea cuyo precio es el de su nivel en el catálogo anterior
+    pasa al nuevo. **Lo cambiado a mano se deja** (en una compra manda la factura del suplidor; en
+    una venta, el precio acordado). Reglas puras en `services/precios/cambioDeTasa.ts`.
+  **React Doctor** marcó el bucle movido (`async-await-in-loop`): el registro en
+  `cambios_de_precio` pasa a **una** inserción y la marca de tasa aplicada a **una** actualización;
+  los precios, distintos en cada producto, salen a la vez y postgres.js los encadena en la
+  conexión de la transacción. Lo que queda son los `prefer-useReducer` de las dos páginas, deuda vieja.
+  **Se miró en el navegador** con una página temporal que monta las pantallas reales con la red
+  sustituida: en Compras el control junto a las líneas, Enter guarda (un `PUT`, nada más) y sale
+  "Tasa guardada: RD$ 63.50 por dólar. 2 productos cambiaron de precio."; en Facturación el control
+  fuera del `<form>`, y tras el `PUT` se relee el catálogo. **No se pudo** elegir un producto en la
+  línea de compra de esa página (el buscador no ofrecía los productos falsos): lo de las líneas lo
+  ejecuta el banco. **Trampa del entorno**: un `next dev` en un worktree necesita `DATABASE_URL` al
+  arrancar (lo pide la instrumentación); se levantó con la base desechable y las variables de
+  juguete del CI, no con el `.env` del dueño.
+  Dos bancos. `verificar_tasa_desde_compras.ts` (reglas ejecutadas, el control dibujado y el
+  cableado): 22 comprobaciones y un invariante (la factura sigue cobrando el catálogo),
+  contraprueba **22 FALLA**. `verificar_tasa_desde_compras_db.ts` (**integración**, base
+  desechable: la ruta de verdad): 7 comprobaciones y cinco invariantes (sin `aplicar` no cambia
+  nada; un `"true"` no aplica; quien no administra, 403; tasa mala, 400; guardar ya funcionaba),
+  contraprueba **7 FALLA**. Quince mutantes y quince muertos — **dos mal escritos primero**: uno
+  cambiaba el `aplicar: true` del COMENTARIO de cabecera del hook (la primera aparición), y otro
+  volvió a caer en la coma antes que el `+` de PowerShell (lote 259).
+  **Re-anclados**: `verificar_compras_con_tasa_del_dolar` (257) exigía la leyenda — **invertida, no
+  borrada** — y leía la tasa en `useCostoEnDolares`, que ahora la toma del hook compartido; y
+  `verificar_precio_base_en_dolares` (258) contaba **exactamente dos** lecturas con
+  `columnasDe(conPrecio)` y ahora hay tres (al menos dos; la propiedad es que ninguna nombre las
+  columnas sin mirar, y un mutante lo comprueba).
+  **Para la carpeta del dueño**: añadir `verificar_tasa_desde_compras_db.ts` a
+  `scratch/_to_delete/deuda_bancos.txt` cuando el lote llegue a `main` (no está versionado).
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3113,5 +3168,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 259 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 261 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
