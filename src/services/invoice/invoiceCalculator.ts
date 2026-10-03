@@ -1,4 +1,5 @@
 import { roundMoney } from '@/utils/calculos';
+import { importesDeLinea } from './importesDeLinea';
 import { IssueInvoiceInput, CalculatedTotals, InvoiceItemLine, CalculatedRetentionLine } from './types';
 
 export class InvoiceCalculator {
@@ -15,9 +16,9 @@ export class InvoiceCalculator {
     const taxableByRate: Record<string, { rate: number; taxableAmount: number }> = {};
 
     data.lines.forEach((line) => {
-      const lineSubtotal = roundMoney(line.quantity * line.unitPrice);
-      const lineDiscount = roundMoney(line.quantity * line.discount);
-      const lineTaxableAmount = roundMoney(lineSubtotal - lineDiscount);
+      //  Lote 263: la regla de la linea vive en `importesDeLinea`, la misma que usa el XML del e-CF.
+      //  Da exactamente lo de antes (los mismos tres `roundMoney`).
+      const { subtotal: lineSubtotal, descuento: lineDiscount, base: lineTaxableAmount } = importesDeLinea(line);
 
       subtotal = roundMoney(subtotal + lineSubtotal);
       totalDiscount = roundMoney(totalDiscount + lineDiscount);
