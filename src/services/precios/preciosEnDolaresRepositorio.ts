@@ -8,14 +8,14 @@
  * de aqui lanza `FaltaLaMigracionDeDolares`: la pantalla lo dice con su nombre
  * y el resto de la aplicacion (que no las lee) sigue como estaba.
  */
-import { and, asc, desc, eq, ilike, inArray, isNull, notInArray, or } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, inArray, isNull, notInArray, or, sql } from 'drizzle-orm';
 import { db, products, type DbOTx } from '@/db';
 import { tasasDeCambio, productosEnDolares, cambiosDePrecio } from '@/db/schema/dolar';
 import { calcular, mismaTasa, type Calculo, type Importes, type Renglon, type Tasa } from './preciosEnDolares';
 
 export class FaltaLaMigracionDeDolares extends Error {
-  constructor() {
-    super('Los precios en dólares aún no se pueden usar: falta aplicar la migración 0017_precios_en_dolares.sql en la base de datos.');
+  constructor(migracion = '0017_precios_en_dolares.sql', que = 'Los precios en dólares aún no se pueden usar') {
+    super(`${que}: falta aplicar la migración ${migracion} en la base de datos.`);
     this.name = 'FaltaLaMigracionDeDolares';
   }
 }
@@ -48,6 +48,20 @@ const num = (v: string | null | undefined) => Number(v ?? 0) || 0;
 /** Escapa `%` y `_`: buscar "50%" no puede significar "cualquier cosa" (lote 110). */
 const patron = (texto: string) => `%${texto.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
+/**
+ * Lote 258: la columna `precio_usd` llega con la migracion 0018. Se mira si existe ANTES de nombrarla:
+ * desplegar antes de aplicarla no puede tumbar la pantalla (que es lo que paso con las 0013 y 0015).
+ * Una vez vista, no se vuelve a preguntar.
+ */
+let precioUsdVisto = false;
+async function hayPrecioUsd(tx: DbOTx = db): Promise<boolean> {
+  if (precioUsdVisto) return true;
+  const filas = (await tx.execute(sql`SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'productos_en_dolares' AND column_name = 'precio_usd' LIMIT 1`)) as unknown as unknown[];
+  precioUsdVisto = filas.length > 0;
+  return precioUsdVisto;
+}
+
 const columnas = {
   productId: productosEnDolares.productId,
   costoUsd: productosEnDolares.costoUsd,
@@ -63,14 +77,18 @@ const columnas = {
   promotionalPrice: products.promotionalPrice,
 };
 
+/** Las columnas, con el precio base en dolares solo si la migracion 0018 esta aplicada. */
+const columnasDe = (conPrecio: boolean) => (conPrecio ? { ...columnas, precioUsd: productosEnDolares.precioUsd } : columnas);
+
 type Fila = {
-  productId: string; costoUsd: string; tasaAplicada: string | null; sku: string | null; name: string;
+  productId: string; costoUsd: string; precioUsd?: string | null; tasaAplicada: string | null; sku: string | null; name: string;
   cost: string; price: string; priceConsumidor: string; priceMayorista: string; priceProveedor: string;
   isOnSale: boolean; promotionalPrice: string;
 };
 
 function renglon(f: Fila, tasa: number | null): Renglon {
   const costoUsd = num(f.costoUsd);
+  const precioUsd = f.precioUsd ? num(f.precioUsd) : null;
   const actual: Importes = {
     cost: num(f.cost),
     price: num(f.price),
@@ -83,9 +101,10 @@ function renglon(f: Fila, tasa: number | null): Renglon {
     sku: f.sku,
     name: f.name,
     costoUsd,
+    precioUsd,
     actual,
     tasaAplicada: f.tasaAplicada === null ? null : num(f.tasaAplicada),
-    calculo: tasa === null ? null : calcular({ ...actual, costoUsd, oferta: f.isOnSale ? num(f.promotionalPrice) : null }, tasa),
+    calculo: tasa === null ? null : calcular({ ...actual, costoUsd, precioUsd, oferta: f.isOnSale ? num(f.promotionalPrice) : null }, tasa),
   };
 }
 
@@ -127,10 +146,11 @@ export const PreciosEnDolaresRepositorio = {
 
   /** Los productos atados, cada uno con lo que cambiaria a la tasa vigente. */
   listar: (companyId: string): Promise<{ tasa: Tasa | null; renglones: Renglon[] }> => conMigracion(async () => {
+    const conPrecio = await hayPrecioUsd();
     const [tasa, filas] = await Promise.all([
       tasaVigente(companyId),
       db
-        .select(columnas)
+        .select(columnasDe(conPrecio))
         .from(productosEnDolares)
         .innerJoin(products, and(eq(products.id, productosEnDolares.productId), eq(products.companyId, productosEnDolares.companyId)))
         .where(and(eq(productosEnDolares.companyId, companyId), isNull(products.deletedAt)))
@@ -188,6 +208,20 @@ export const PreciosEnDolaresRepositorio = {
       return true;
     })),
 
+  /**
+   * Lote 258: fija (o quita, con `null`) el precio BASE en dolares de un producto atado. No cambia
+   * ningun precio todavia: eso se confirma al aplicar. `false` si el producto no esta atado en la empresa.
+   */
+  fijarPrecioUsd: (companyId: string, productId: string, precioUsd: number | null): Promise<boolean> => conMigracion(async () => {
+    if (!(await hayPrecioUsd())) throw new FaltaLaMigracionDeDolares('0018_precio_base_en_dolares.sql', 'El precio base en dólares aún no se puede guardar');
+    const filas = await db
+      .update(productosEnDolares)
+      .set({ precioUsd: precioUsd === null ? null : precioUsd.toFixed(4), updatedAt: new Date() })
+      .where(and(eq(productosEnDolares.productId, productId), eq(productosEnDolares.companyId, companyId)))
+      .returning({ id: productosEnDolares.productId });
+    return filas.length > 0;
+  }),
+
   /** Suelta un producto: sus precios se quedan como estan y dejan de seguir al dolar. */
   desatar: (companyId: string, productId: string): Promise<boolean> => conMigracion(async () => {
     const filas = await db
@@ -220,8 +254,9 @@ export const PreciosEnDolaresRepositorio = {
         .where(and(eq(products.companyId, companyId), inArray(products.id, ids)))
         .for('update');
 
+      const conPrecio = await hayPrecioUsd(tx);
       const filas = await tx
-        .select(columnas)
+        .select(columnasDe(conPrecio))
         .from(productosEnDolares)
         .innerJoin(products, and(eq(products.id, productosEnDolares.productId), eq(products.companyId, productosEnDolares.companyId)))
         .where(and(

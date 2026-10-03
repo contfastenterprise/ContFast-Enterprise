@@ -7,7 +7,7 @@
  */
 import { useState } from 'react';
 import { Check, Pencil, Unlink, X } from 'lucide-react';
-import { enPesos, escribirTasa, leerCostoUsd, PRODUCTOS_POR_PAGINA, trozoDePagina, variacion, type Renglon } from '@/services/precios/preciosEnDolares';
+import { enPesos, escribirTasa, leerCostoUsd, leerPrecioUsd, PRODUCTOS_POR_PAGINA, trozoDePagina, variacion, type Renglon } from '@/services/precios/preciosEnDolares';
 import { Pagination } from '@/components/ui/pagination';
 
 const th = 'px-3 py-2 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide';
@@ -32,43 +32,50 @@ function Variacion({ r }: { r: Renglon }) {
   return <span className={v > 0 ? 'font-bold text-rose-600' : 'font-bold text-emerald-600'}>{v > 0 ? '+' : ''}{v}%</span>;
 }
 
-/** El costo en dolares de un producto: se ve, y con el lapiz se corrige. */
-function CostoUsd({ r, puedeEditar, ocupado, alGuardar }: {
-  r: Renglon; puedeEditar: boolean; ocupado: boolean; alGuardar: (productId: string, costoUsd: string) => Promise<boolean>;
+/**
+ * Un importe en dolares del producto (el costo, o desde el lote 258 el precio base): se ve, y con el
+ * lapiz se corrige. El precio base admite quedar vacio ("sin precio en dolares"); el costo no.
+ */
+function CampoUsd({ r, que, valor, rotulo, leer, puedeEditar, ocupado, alGuardar }: {
+  r: Renglon; que: string; valor: number | null; rotulo: string;
+  leer: (v: unknown) => { bien: boolean };
+  puedeEditar: boolean; ocupado: boolean; alGuardar: (productId: string, valor: string) => Promise<boolean>;
 }) {
   const [escrito, setEscrito] = useState<string | null>(null);
   if (escrito === null) {
     return (
       <span className="inline-flex items-center gap-1.5">
-        US$ {escribirTasa(r.costoUsd)}
+        <span className="text-slate-500">{rotulo}</span>
+        {typeof valor !== 'number' ? <span className="text-slate-400">—</span> : <span className="whitespace-nowrap">US$ {escribirTasa(valor)}</span>}
         {puedeEditar && (
-          <button type="button" onClick={() => setEscrito(escribirTasa(r.costoUsd))} aria-label={`Cambiar el costo en dólares de ${r.name}`}
+          <button type="button" onClick={() => setEscrito(typeof valor !== 'number' ? '' : escribirTasa(valor))} aria-label={`Cambiar ${que} de ${r.name}`}
             className="text-slate-400 hover:text-[#003366]"><Pencil className="h-3.5 w-3.5" /></button>
         )}
       </span>
     );
   }
-  const leido = leerCostoUsd(escrito);
+  const leido = leer(escrito);
   return (
     <form className="inline-flex items-center gap-1" action={async () => {
       if (leido.bien && await alGuardar(r.productId, escrito)) setEscrito(null);
     }}>
       <input type="text" inputMode="decimal" autoComplete="off" value={escrito} onChange={(e) => setEscrito(e.target.value)}
-        aria-label={`Costo en dólares de ${r.name}`}
+        aria-label={`${que[0].toUpperCase()}${que.slice(1)} de ${r.name}`}
         className="h-7 w-24 bg-slate-50 border border-slate-200 rounded-md px-2 text-xs outline-none focus:border-[#c5a059]" />
-      <button type="submit" disabled={!leido.bien || ocupado} aria-label="Guardar el costo en dólares"
+      <button type="submit" disabled={!leido.bien || ocupado} aria-label={`Guardar ${que}`}
         className="text-emerald-600 disabled:opacity-40"><Check className="h-4 w-4" /></button>
-      <button type="button" onClick={() => setEscrito(null)} aria-label="No cambiar el costo en dólares"
+      <button type="button" onClick={() => setEscrito(null)} aria-label={`No cambiar ${que}`}
         className="text-slate-400 hover:text-slate-700"><X className="h-4 w-4" /></button>
     </form>
   );
 }
 
-export function TablaDePreciosEnDolares({ renglones, marcados, puedeAplicar, ocupado, alMarcar, alMarcarTodos, alGuardarCosto, alSoltar }: {
+export function TablaDePreciosEnDolares({ renglones, marcados, puedeAplicar, ocupado, alMarcar, alMarcarTodos, alGuardarCosto, alGuardarPrecio, alSoltar }: {
   renglones: Renglon[]; marcados: string[]; puedeAplicar: boolean; ocupado: boolean;
   alMarcar: (productId: string, si: boolean) => void;
   alMarcarTodos: (si: boolean) => void;
   alGuardarCosto: (productId: string, costoUsd: string) => Promise<boolean>;
+  alGuardarPrecio: (productId: string, precioUsd: string) => Promise<boolean>;
   alSoltar: (r: Renglon) => void;
 }) {
   //  Lote 256: la tabla se pagina en el navegador. La lista ya llega entera (la necesitan "marcar
@@ -98,7 +105,7 @@ export function TablaDePreciosEnDolares({ renglones, marcados, puedeAplicar, ocu
               </th>
             )}
             <th className={th}>Producto</th>
-            <th className={th}>Costo en dólares</th>
+            <th className={th}>En dólares</th>
             <th className={`${th} text-right`}>Costo (RD$)</th>
             <th className={`${th} text-right`}>Precio base</th>
             <th className={`${th} text-right`}>Consumidor</th>
@@ -126,7 +133,14 @@ export function TablaDePreciosEnDolares({ renglones, marcados, puedeAplicar, ocu
                   </p>
                   {c?.avisos.map((a) => <p key={a} className="text-[11px] font-semibold text-amber-700 mt-0.5">{a}</p>)}
                 </td>
-                <td className={td}><CostoUsd r={r} puedeEditar={puedeAplicar} ocupado={ocupado} alGuardar={alGuardarCosto} /></td>
+                <td className={td}>
+                  <div className="flex flex-col gap-1">
+                    <CampoUsd r={r} que="el costo en dólares" rotulo="Costo" valor={r.costoUsd} leer={leerCostoUsd}
+                      puedeEditar={puedeAplicar} ocupado={ocupado} alGuardar={alGuardarCosto} />
+                    <CampoUsd r={r} que="el precio base en dólares" rotulo="Precio" valor={r.precioUsd} leer={leerPrecioUsd}
+                      puedeEditar={puedeAplicar} ocupado={ocupado} alGuardar={alGuardarPrecio} />
+                  </div>
+                </td>
                 <td className={`${td} text-right`}><Cambio antes={r.actual.cost} despues={c ? c.despues.cost : null} /></td>
                 <td className={`${td} text-right`}><Cambio antes={r.actual.price} despues={c ? c.despues.price : null} /></td>
                 <td className={`${td} text-right`}><Cambio antes={r.actual.priceConsumidor} despues={c ? c.despues.priceConsumidor : null} /></td>

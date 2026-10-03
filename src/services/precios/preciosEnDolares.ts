@@ -40,6 +40,8 @@ export type Importes = { cost: number } & Record<ClaveDePrecio, number>;
 
 export type ProductoAtado = Importes & {
   costoUsd: number;
+  /** Lote 258: el precio base en dolares, si lo tiene. Con el, precio base = precio en dolares x tasa. */
+  precioUsd?: number | null;
   /** Precio de oferta vigente, si el producto esta en oferta. */
   oferta?: number | null;
 };
@@ -62,6 +64,8 @@ export type Renglon = {
   sku: string | null;
   name: string;
   costoUsd: number;
+  /** Lote 258: el precio base en dolares; `null` si no tiene. */
+  precioUsd: number | null;
   /** El costo y los precios que tiene HOY en el catalogo. */
   actual: Importes;
   /** La tasa con la que se calcularon sus precios la ultima vez; `null` si nunca. */
@@ -98,6 +102,19 @@ export function leerTasa(v: unknown): Leida {
   if (n === null) return { bien: false, mensaje: 'La tasa debe ser un número, por ejemplo 63.50.' };
   if (n <= 0) return { bien: false, mensaje: 'La tasa debe ser mayor que cero.' };
   if (n > TASA_MAXIMA) return { bien: false, mensaje: `La tasa no puede pasar de ${TASA_MAXIMA} pesos por dólar.` };
+  return { bien: true, valor: cuatroDecimales(n) };
+}
+
+/**
+ * Lote 258: el precio base en dolares. Vacio es "sin precio en dolares" (`valor: null`); si no,
+ * mayor que cero y hasta cuatro decimales.
+ */
+export function leerPrecioUsd(v: unknown): { bien: true; valor: number | null } | { bien: false; mensaje: string } {
+  if (v === null || v === undefined || (typeof v === 'string' && v.trim() === '')) return { bien: true, valor: null };
+  const n = leerNumero(v);
+  if (n === null) return { bien: false, mensaje: 'El precio en dólares debe ser un número.' };
+  if (n <= 0) return { bien: false, mensaje: 'El precio en dólares debe ser mayor que cero.' };
+  if (n > COSTO_USD_MAXIMO) return { bien: false, mensaje: 'El precio en dólares es demasiado alto.' };
   return { bien: true, valor: cuatroDecimales(n) };
 }
 
@@ -139,6 +156,9 @@ export function calcular(p: ProductoAtado, tasa: number): Calculo {
       despues[clave] = redondear(cost * MARGENES_POR_DEFECTO[clave]);
     }
   }
+  //  Lote 258: con precio base en dolares, el precio base sale de el y no del margen. Los otros tres
+  //  niveles siguen conservando su margen sobre el costo (decision del dueño, 2026-10-03).
+  if (p.precioUsd && p.precioUsd > 0) despues.price = redondear(p.precioUsd * tasa);
 
   const avisos: string[] = [];
   if (p.cost <= 0) {

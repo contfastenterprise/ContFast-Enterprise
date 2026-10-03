@@ -81,7 +81,7 @@ export function PreciosEnDolares({ d, alVolver }: { d: PreciosEnDolaresDeProduct
               <AtarProductoAlDolar encontrados={d.encontrados} ocupado={d.ocupado} alBuscar={d.buscar} alAtar={d.atarVarios} />
             )}
             <TablaDePreciosEnDolares renglones={datos.renglones} marcados={d.marcados} puedeAplicar={datos.puedeAplicar}
-              ocupado={d.ocupado} alMarcar={d.marcar} alMarcarTodos={d.marcarTodos} alGuardarCosto={d.atar} alSoltar={confirmarYSoltar} />
+              ocupado={d.ocupado} alMarcar={d.marcar} alMarcarTodos={d.marcarTodos} alGuardarCosto={d.atar} alGuardarPrecio={d.fijarPrecioUsd} alSoltar={confirmarYSoltar} />
             {datos.puedeAplicar && datos.renglones.length > 0 && (
               <div className="p-4 border-t border-slate-200 flex items-center justify-between gap-3 flex-wrap">
                 <p className="text-xs text-slate-600">
@@ -89,7 +89,7 @@ export function PreciosEnDolares({ d, alVolver }: { d: PreciosEnDolaresDeProduct
                     ? 'Escribe la tasa para ver cómo quedarían los precios.'
                     : d.marcados.length === 0
                       ? 'Ningún precio por cambiar: todos están al día con la tasa vigente.'
-                      : `${d.marcados.length} ${d.marcados.length === 1 ? 'producto marcado' : 'productos marcados'}. El costo pasa a "costo en dólares × tasa" y cada precio conserva su margen.`}
+                      : `${d.marcados.length} ${d.marcados.length === 1 ? 'producto marcado' : 'productos marcados'}. El costo pasa a "costo en dólares × tasa"; el precio base, a "precio en dólares × tasa" si lo tiene, y los demás precios conservan su margen.`}
                 </p>
                 <button type="button" onClick={confirmarYAplicar} disabled={!datos.tasa || d.marcados.length === 0 || d.ocupado}
                   className="h-9 px-4 rounded-lg bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed">
