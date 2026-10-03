@@ -3,7 +3,7 @@ import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { esAdminOSistemas } from '@/utils/rolMatch';
 import { diaRD } from '@/utils/fechasLocales';
-import { leerCostoUsd } from '@/services/precios/preciosEnDolares';
+import { leerCostoUsd, leerPrecioUsd } from '@/services/precios/preciosEnDolares';
 import { PreciosEnDolaresRepositorio } from '@/services/precios/preciosEnDolaresRepositorio';
 import { esUuid, fallo, noAutenticado, rechazo, soloAdministracion } from '@/services/precios/respuestasDeDolares';
 
@@ -15,6 +15,7 @@ import { esUuid, fallo, noAutenticado, rechazo, soloAdministracion } from '@/ser
  *   GET ?buscar=   productos que aun no estan atados, para elegir uno;
  *   PUT            ata uno o varios productos con el mismo costo en dolares
  *                  (`productIds`, lote 251; `productId` sigue valiendo), o se lo cambia;
+ *   PATCH          fija o quita el precio BASE en dolares de un producto atado (lote 258);
  *   DELETE         lo suelta (sus precios se quedan como estan).
  *
  * Ver lo pide el permiso de ver el catalogo. Todo lo que ESCRIBE (atar, soltar
@@ -69,6 +70,26 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ success: true, data: { productIds: ids, costoUsd: costo.valor } });
   } catch (error: unknown) {
     return fallo(error, 'no se pudo atar el producto');
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  const auth = await verifyAuth(req);
+  if (!auth) return noAutenticado();
+  try {
+    await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'catalogo', 'write');
+    if (!esAdminOSistemas(auth.role)) return soloAdministracion();
+
+    const cuerpo = (await req.json().catch(() => null)) as { productId?: unknown; precioUsd?: unknown } | null;
+    if (!cuerpo || !esUuid(cuerpo.productId)) return rechazo(400, 'VALIDATION_ERROR', 'Falta el producto.');
+    const precio = leerPrecioUsd(cuerpo.precioUsd);
+    if (!precio.bien) return rechazo(400, 'VALIDATION_ERROR', precio.mensaje);
+
+    const fijado = await PreciosEnDolaresRepositorio.fijarPrecioUsd(auth.companyId, cuerpo.productId, precio.valor);
+    if (!fijado) return rechazo(404, 'NOT_FOUND', 'Ese producto no sigue al dólar en esta empresa.');
+    return NextResponse.json({ success: true, data: { productId: cuerpo.productId, precioUsd: precio.valor } });
+  } catch (error: unknown) {
+    return fallo(error, 'no se pudo guardar el precio en dolares');
   }
 }
 
