@@ -26,6 +26,7 @@ import { erroresPorCampo } from '@/schemas/errores';
 import { PASOS, campoDelPaso, primerPasoConFallo } from './pasos';
 import { useConfirm } from '@/providers/confirm-provider';
 import { esAdminOSistemas } from '@/utils/rolMatch';
+import { quedaPorDebajoDelCosto } from '@/services/invoice/precioMinimo';
 import { useTasaDelDolar } from '@/hooks/useTasaDelDolar';
 import { lineasDeFacturaConPrecios } from '@/services/precios/cambioDeTasa';
 import { TasaDelDolarEnLinea } from '@/components/precios/TasaDelDolarEnLinea';
@@ -1049,8 +1050,11 @@ function InvoicesList() {
       if (ecfType !== '34' && line.productId) {
         const prod = dbProducts.find(p => p.id === line.productId);
         const cost = prod ? (parseFloat(prod.cost) || 0) : 0;
-        if (cost > 0 && Number(line.unitPrice) < cost) {
-          out[`lines.${idx}.unitPrice`] = `Precio por debajo del costo (mínimo: RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`;
+        //  Lote 264: con el descuento por unidad descontado (la misma regla que el servidor).
+        if (quedaPorDebajoDelCosto(line, cost)) {
+          out[`lines.${idx}.unitPrice`] = (Number(line.discount) || 0) > 0
+            ? `Con el descuento queda por debajo del costo (mínimo: RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })} por unidad).`
+            : `Precio por debajo del costo (mínimo: RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`;
         }
       }
     });
@@ -2039,7 +2043,9 @@ function InvoicesList() {
                   <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Precio Unit.</label>
                   {(() => {
                     const pCost = matchedProduct ? (parseFloat(matchedProduct.cost) || 0) : 0;
-                    const isBelowCost = pCost > 0 && line.unitPrice < pCost;
+                    //  Lote 264: el precio se marca en rojo tambien si es el DESCUENTO el que lo deja
+                    //  por debajo del costo (la misma regla que frena la emision).
+                    const isBelowCost = quedaPorDebajoDelCosto(line, pCost);
 
                     const priceBase = matchedProduct ? (parseFloat(matchedProduct.price) || 0) : 0;
                     const priceConsumidor = matchedProduct ? (parseFloat(matchedProduct.priceConsumidor || matchedProduct.price) || 0) : 0;

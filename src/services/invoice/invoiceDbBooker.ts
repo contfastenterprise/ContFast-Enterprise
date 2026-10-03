@@ -15,6 +15,7 @@ import { esAdminOSistemas } from '@/utils/rolMatch';
 import { resolverCuentaPorMapeo, resolverCuentaDeInventario } from '@/services/accounting/resolverCuentas';
 import { resolverCuentasDeVenta, lineasDeVenta, type ImportesDeVenta } from './asientoDeFactura';
 import { Logger } from '@/utils/logger';
+import { quedaPorDebajoDelCosto, motivoBajoCosto } from './precioMinimo';
 
 export class InvoiceDbBooker {
   /**
@@ -128,9 +129,11 @@ export class InvoiceDbBooker {
         }
 
         {
+          //  Lote 264: contando el descuento por unidad. Antes un precio por encima del costo con
+          //  un descuento que lo dejaba por debajo pasaba (decision del dueño: impedirlo).
           const cost = parseFloat(prod.cost || '0.00');
-          if (cost > 0 && line.unitPrice < cost) {
-            throw new Error(`El precio unitario (RD$ ${line.unitPrice.toFixed(2)}) para "${line.name}" no puede ser inferior a su costo (RD$ ${cost.toFixed(2)}).`);
+          if (quedaPorDebajoDelCosto(line, cost)) {
+            throw new Error(motivoBajoCosto(line, cost, line.name));
           }
         }
       }

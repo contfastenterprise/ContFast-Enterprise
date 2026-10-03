@@ -111,7 +111,10 @@ ok(
     pc.includes('const erroresBasicos = (): Record<string, string> => {') &&
       pc.includes('Object.assign(campos, erroresBasicos());') &&
       pc.includes('Object.assign(camposEmision, erroresBasicos());') &&
-      pc.includes('out[`lines.${idx}.unitPrice`] = `Precio por debajo del costo') &&
+      //  LOTE 264: ya no una linea literal. La regla pasa a contar el descuento
+      //  (`quedaPorDebajoDelCosto`) y el mensaje elige entre dos textos; lo que se
+      //  vigila es que el precio bajo costo siga devolviendo SU campo.
+      /if \(quedaPorDebajoDelCosto\(line, cost\)\) \{\s*out\[`lines\.\$\{idx\}\.unitPrice`\] =[\s\S]{0,200}`Precio por debajo del costo/.test(pc) &&
       !pc.includes('erroresDeStock') &&
       /const hayExistencia = await checkStockBatch\(/.test(dr) &&
       /if \(!hayExistencia\[idx\]\) \{/.test(dr)

@@ -2023,6 +2023,24 @@ Además, fuera de la tabla:
   antes del arreglo**: "el total es gravado + ITBIS" comparaba `MontoTotal` con números fijos, y ese
   total siempre salió bien; ahora compara el total con el gravado y el ITBIS **del propio XML**.
   `verificar_mseller` y `verificar_itbis_por_linea` (integración, arman XML de verdad) en verde.
+- **Lote 264: no se factura por debajo del costo contando el descuento.** De la misma revisión del
+  cálculo de la factura (2026-10-03). La regla —servidor y pantalla— comparaba el precio unitario
+  **antes** del descuento con el costo: precio 100, costo 90 y 20 de descuento por unidad pasaba,
+  aunque se vendía a 80. Medido en PRODUCCIÓN (solo lectura): 3 líneas facturadas quedaron así por
+  debajo del costo de catálogo de hoy. **Decisión del dueño: impedirlo**, no solo avisar.
+  `services/invoice/precioMinimo.ts` (pura): `precioNeto = precio − descuento por unidad`,
+  `quedaPorDebajoDelCosto` y el motivo (nombra el precio **con descuento** cuando es el descuento el
+  que lo deja abajo). La usan el servidor (`preFlightValidations`, que es el que impide de verdad) y
+  la pantalla (el error del campo antes de enviar y el precio en rojo). Justo en el costo no es "por
+  debajo"; sin costo no hay contra qué comparar; las notas de crédito siguen fuera.
+  Dos bancos. `verificar_costo_tras_descuento.ts` (la regla ejecutada y el cableado): 10
+  comprobaciones, contraprueba **10 FALLA**. `verificar_costo_tras_descuento_db.ts` (**integración**,
+  base desechable: llama a `preFlightValidations` con un producto de costo 90 y los totales de la
+  calculadora): 2 comprobaciones y cuatro invariantes (95 pasa, 90 pasa, 85 sin descuento se rechaza,
+  la nota de crédito no se frena), contraprueba **2 FALLA**. Ocho mutantes y ocho muertos.
+  **Re-anclado**: `verificar_p2_34_facturas` (lote 115) copiaba la línea literal del error del
+  precio; ahora vigila que la regla devuelva su campo, y un mutante que la quita sigue fallando.
+  **Para la carpeta del dueño**: `verificar_costo_tras_descuento_db.ts` a `deuda_bancos.txt`.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3212,5 +3230,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 263 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 264 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
