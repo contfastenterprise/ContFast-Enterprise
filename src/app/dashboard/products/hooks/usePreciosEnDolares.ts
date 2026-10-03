@@ -89,8 +89,14 @@ export function usePreciosEnDolares() {
       'No se pudo guardar la tasa.', 'Tasa guardada. Los precios no cambian hasta que los confirmes.'), [escribir]);
 
   const atar = useCallback((productId: string, costoUsd: string) =>
-    escribir(() => fetch(DIRECCION, json('PUT', { productId, costoUsd })),
+    escribir(() => fetch(DIRECCION, json('PUT', { productIds: [productId], costoUsd })),
       'No se pudo guardar el costo en dólares.', 'Costo en dólares guardado.'), [escribir]);
+
+  /** Lote 251: varios productos con el mismo costo, en una sola peticion (todo o nada). */
+  const atarVarios = useCallback((productIds: string[], costoUsd: string) =>
+    escribir(() => fetch(DIRECCION, json('PUT', { productIds, costoUsd })),
+      'No se pudieron añadir los productos.',
+      productIds.length === 1 ? 'Producto añadido.' : `${productIds.length} productos añadidos.`), [escribir]);
 
   const soltar = useCallback((productId: string) =>
     escribir(() => fetch(`${DIRECCION}?productId=${encodeURIComponent(productId)}`, { method: 'DELETE' }),
@@ -129,7 +135,7 @@ export function usePreciosEnDolares() {
     }
   }, []);
 
-  return { abierta, abrir, cerrar, datos, error, marcados, ocupado, encontrados, cargar, guardarTasa, atar, soltar, aplicar, aplicarCon, marcar, marcarTodos, buscar };
+  return { abierta, abrir, cerrar, datos, error, marcados, ocupado, encontrados, cargar, guardarTasa, atar, atarVarios, soltar, aplicar, aplicarCon, marcar, marcarTodos, buscar };
 }
 
 export type PreciosEnDolaresDeProductos = ReturnType<typeof usePreciosEnDolares>;

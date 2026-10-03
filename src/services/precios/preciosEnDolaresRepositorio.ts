@@ -156,29 +156,37 @@ export const PreciosEnDolaresRepositorio = {
         t ? or(ilike(products.name, patron(t)), ilike(products.sku, patron(t))) : undefined,
       ))
       .orderBy(asc(products.name))
-      .limit(8);
+      //  Lote 251: hasta 20, que ahora se pueden marcar varios de una busqueda.
+      .limit(20);
     return filas.map((f) => ({ ...f, cost: num(f.cost) }));
   }),
 
-  /** Ata un producto al dolar, o le cambia el costo en dolares. `false` si el producto no es de la empresa. */
-  atar: (companyId: string, productId: string, costoUsd: number): Promise<boolean> => conMigracion(async () => {
-    const [p] = await db
-      .select({ id: products.id })
-      .from(products)
-      .where(and(eq(products.id, productId), eq(products.companyId, companyId), isNull(products.deletedAt)))
-      .limit(1);
-    if (!p) return false;
-    await db
-      .insert(productosEnDolares)
-      .values({ productId, companyId, costoUsd: costoUsd.toFixed(4) })
-      .onConflictDoUpdate({
-        target: productosEnDolares.productId,
-        set: { costoUsd: costoUsd.toFixed(4), updatedAt: new Date() },
-        //  Solo si la fila es de ESTA empresa: la clave es el producto a secas.
-        setWhere: eq(productosEnDolares.companyId, companyId),
-      });
-    return true;
-  }),
+  /**
+   * Ata uno o VARIOS productos al dolar con el mismo costo, o se lo cambia
+   * (lote 251: productos distintos que se compran al mismo precio). Todo o nada:
+   * si alguno no es de la empresa (o esta borrado) devuelve `false` y no ata
+   * ninguno -- atar "los que se pudo" dejaria a quien confirma sin saber cuales.
+   */
+  atar: (companyId: string, productIds: string[], costoUsd: number): Promise<boolean> => conMigracion(() =>
+    db.transaction(async (tx) => {
+      const unicos = [...new Set(productIds)];
+      if (unicos.length === 0) return false;
+      const propios = await tx
+        .select({ id: products.id })
+        .from(products)
+        .where(and(inArray(products.id, unicos), eq(products.companyId, companyId), isNull(products.deletedAt)));
+      if (propios.length !== unicos.length) return false;
+      await tx
+        .insert(productosEnDolares)
+        .values(unicos.map((productId) => ({ productId, companyId, costoUsd: costoUsd.toFixed(4) })))
+        .onConflictDoUpdate({
+          target: productosEnDolares.productId,
+          set: { costoUsd: costoUsd.toFixed(4), updatedAt: new Date() },
+          //  Solo si la fila es de ESTA empresa: la clave es el producto a secas.
+          setWhere: eq(productosEnDolares.companyId, companyId),
+        });
+      return true;
+    })),
 
   /** Suelta un producto: sus precios se quedan como estan y dejan de seguir al dolar. */
   desatar: (companyId: string, productId: string): Promise<boolean> => conMigracion(async () => {

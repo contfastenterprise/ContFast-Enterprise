@@ -78,7 +78,7 @@ export function PreciosEnDolares({ d, alVolver }: { d: PreciosEnDolaresDeProduct
 
           <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
             {datos.puedeAplicar && (
-              <AtarProductoAlDolar encontrados={d.encontrados} ocupado={d.ocupado} alBuscar={d.buscar} alAtar={d.atar} />
+              <AtarProductoAlDolar encontrados={d.encontrados} ocupado={d.ocupado} alBuscar={d.buscar} alAtar={d.atarVarios} />
             )}
             <TablaDePreciosEnDolares renglones={datos.renglones} marcados={d.marcados} puedeAplicar={datos.puedeAplicar}
               ocupado={d.ocupado} alMarcar={d.marcar} alMarcarTodos={d.marcarTodos} alGuardarCosto={d.atar} alSoltar={confirmarYSoltar} />
