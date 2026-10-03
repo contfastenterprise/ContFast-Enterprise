@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Eye, FileText, Search, Plus, Edit2, Trash2, X, RefreshCw, Printer, AlertTriangle, Filter, Mail, Copy, CheckCircle2, History } from 'lucide-react';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
-import { motion, AnimatePresence } from 'framer-motion';
+//  Lote 252: `m` dentro de `LazyMotion` y no `motion` (aviso de React Doctor).
+import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay, formatDateTimeDisplay } from '@/utils/fechasLocales';
+import { leerRespuesta } from '@/utils/leerRespuesta';
 
 interface OrderLine {
   id?: string;
@@ -50,6 +52,9 @@ interface PurchaseOrder {
   orderDate: string;
   expectedDate?: string | null;
   observations?: string;
+  /** Los dos los trae el detalle (`GET [id]`); editar un borrador los necesita. */
+  supplierId: string;
+  warehouseId: string;
   supplierName: string;
   supplierRnc?: string;
   supplierEmail?: string;
@@ -59,6 +64,48 @@ interface PurchaseOrder {
   lines: OrderLine[];
   logs: OrderLog[];
 }
+
+// Fuera del componente (lote 252): no dependen de nada suyo y no hace falta rehacerlos en cada pintada.
+const statusBadges: Record<string, string> = {
+  Draft: 'bg-slate-100 text-slate-700 border-slate-200',
+  Sent: 'bg-blue-50 text-blue-700 border-blue-200',
+  Partial: 'bg-amber-50 text-amber-700 border-amber-200',
+  Received: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  Cancelled: 'bg-rose-50 text-rose-700 border-rose-200',
+};
+
+const statusLabels: Record<string, string> = {
+  Draft: 'Borrador',
+  Sent: 'Enviado',
+  Partial: 'Parcial',
+  Received: 'Recibido',
+  Cancelled: 'Cancelado',
+};
+
+const handlePrint = (id: string) => {
+  window.open(`/api/v1/supplier-orders/${id}/pdf`, '_blank');
+};
+
+const handleSendEmail = async (id: string) => {
+  try {
+    const toastId = toast.loading('Enviando pedido por correo al suplidor...');
+    const res = await fetch(`/api/v1/supplier-orders/${id}/email`, { method: 'POST' });
+    const leido = await leerRespuesta(res);
+    toast.dismiss(toastId);
+
+    if (leido.bien) {
+      toast.success('Pedido enviado por correo electrónico exitosamente');
+    } else {
+      toast.error(leido.mensaje || 'Error al enviar correo electrónico');
+    }
+  } catch (error) {
+    toast.error('Error de red');
+  }
+};
+
+/** Cambia un campo de una linea del pedido SIN tocar el objeto de antes (lote 252: se mutaba dentro del actualizador). */
+const conCampo = <T,>(lista: T[], index: number, cambio: Partial<T>): T[] =>
+  lista.map((x, i) => (i === index ? { ...x, ...cambio } : x));
 
 export default function PurchaseOrdersPage() {
   const confirm = useConfirm();
@@ -88,34 +135,40 @@ export default function PurchaseOrdersPage() {
   const [activeOrder, setActiveOrder] = useState<PurchaseOrder | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
 
-  // Form State
-  const [supplierId, setSupplierId] = useState('');
-  const [warehouseId, setWarehouseId] = useState('');
-  const [expectedDate, setExpectedDate] = useState('');
-  const [observations, setObservations] = useState('');
-  const [lines, setLines] = useState<OrderLine[]>([]);
+  // Form State -- un solo objeto (lote 252); los nombres de siempre se conservan.
+  const [form, setForm] = useState<{ supplierId: string; warehouseId: string; expectedDate: string; observations: string; lines: OrderLine[] }>(
+    { supplierId: '', warehouseId: '', expectedDate: '', observations: '', lines: [] });
+  const { supplierId, warehouseId, expectedDate, observations, lines } = form;
+  const setSupplierId = (v: string) => setForm((x) => ({ ...x, supplierId: v }));
+  const setWarehouseId = (v: string) => setForm((x) => ({ ...x, warehouseId: v }));
+  const setExpectedDate = (v: string) => setForm((x) => ({ ...x, expectedDate: v }));
+  const setObservations = (v: string) => setForm((x) => ({ ...x, observations: v }));
+  const setLines = (u: OrderLine[] | ((prev: OrderLine[]) => OrderLine[])) =>
+    setForm((x) => ({ ...x, lines: typeof u === 'function' ? u(x.lines) : u }));
 
   // Product Autocomplete State
-  const [productSearchTerm, setProductSearchTerm] = useState('');
-  const [searchedProducts, setSearchedProducts] = useState<any[]>([]);
+  const [busqueda, setBusqueda] = useState<{ termino: string; resultados: any[] }>({ termino: '', resultados: [] });
+  const productSearchTerm = busqueda.termino;
+  const searchedProducts = busqueda.resultados;
+  const setProductSearchTerm = (v: string) => setBusqueda((b) => ({ ...b, termino: v }));
+  const setSearchedProducts = (v: any[]) => setBusqueda((b) => ({ ...b, resultados: v }));
   const [searchingProducts, setSearchingProducts] = useState(false);
   const [activeLineIndex, setActiveLineIndex] = useState<number | null>(null);
 
   // Reception State
   const [receptions, setReceptions] = useState<{ itemId: string; productName: string; pending: number; toReceive: number }[]>([]);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       setErrorCarga(null);
       const url = `/api/v1/supplier-orders?limit=1000`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.success) {
-        setOrders(data.data || []);
+      const leido = await leerRespuesta<{ data: PurchaseOrder[] }>(await fetch(url));
+      if (leido.bien) {
+        setOrders(leido.cuerpo.data || []);
       } else {
         setOrders([]);
-        setErrorCarga(motivoDeCarga(null, data.error?.message));
+        setErrorCarga(motivoDeCarga(null, leido.mensaje));
       }
     } catch (error) {
       setOrders([]);
@@ -124,37 +177,31 @@ export default function PurchaseOrdersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchSuppliers = async () => {
+  const fetchSuppliers = useCallback(async () => {
     try {
-      const res = await fetch('/api/v1/suppliers?limit=1000');
-      const data = await res.json();
-      if (data.success) {
-        setSuppliers(data.data || []);
-      }
+      const leido = await leerRespuesta<{ data: Supplier[] }>(await fetch('/api/v1/suppliers?limit=1000'));
+      if (leido.bien) setSuppliers(leido.cuerpo.data || []);
     } catch (error) {
       console.error('Error al cargar suplidores:', error);
     }
-  };
+  }, []);
 
-  const fetchWarehouses = async () => {
+  const fetchWarehouses = useCallback(async () => {
     try {
-      const res = await fetch('/api/v1/warehouses');
-      const data = await res.json();
-      if (data.success) {
-        setWarehouses(data.data || []);
-      }
+      const leido = await leerRespuesta<{ data: Warehouse[] }>(await fetch('/api/v1/warehouses'));
+      if (leido.bien) setWarehouses(leido.cuerpo.data || []);
     } catch (error) {
       console.error('Error al cargar almacenes:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchOrders();
     fetchSuppliers();
     fetchWarehouses();
-  }, []);
+  }, [fetchOrders, fetchSuppliers, fetchWarehouses]);
 
   const searchProducts = async (term: string) => {
     if (!term || term.length < 2) {
@@ -164,10 +211,8 @@ export default function PurchaseOrdersPage() {
     try {
       setSearchingProducts(true);
       const res = await fetch(`/api/v1/products?per_page=10&search=${encodeURIComponent(term)}`);
-      const data = await res.json();
-      if (data.success) {
-        setSearchedProducts(data.data || []);
-      }
+      const leido = await leerRespuesta<{ data: any[] }>(res);
+      if (leido.bien) setSearchedProducts(leido.cuerpo.data || []);
     } catch (error) {
       console.error('Error searching products:', error);
     } finally {
@@ -177,13 +222,8 @@ export default function PurchaseOrdersPage() {
 
   const openNewModal = () => {
     setEditId(null);
-    setSupplierId('');
-    setWarehouseId(warehouses[0]?.id || '');
-    setExpectedDate('');
-    setObservations('');
-    setLines([]);
-    setProductSearchTerm('');
-    setSearchedProducts([]);
+    setForm({ supplierId: '', warehouseId: warehouses[0]?.id || '', expectedDate: '', observations: '', lines: [] });
+    setBusqueda({ termino: '', resultados: [] });
     setShowFormModal(true);
   };
 
@@ -191,21 +231,23 @@ export default function PurchaseOrdersPage() {
     try {
       const toastId = toast.loading('Cargando detalles del pedido...');
       const res = await fetch(`/api/v1/supplier-orders/${id}`);
-      const data = await res.json();
+      const leido = await leerRespuesta<{ data: PurchaseOrder }>(res);
       toast.dismiss(toastId);
 
-      if (data.success) {
-        const order = data.data;
+      if (leido.bien) {
+        const order = leido.cuerpo.data;
         if (order.status !== 'Draft') {
           toast.error('Solo se pueden modificar pedidos en estado borrador (Draft).');
           return;
         }
         setEditId(order.id);
-        setSupplierId(order.supplierId);
-        setWarehouseId(order.warehouseId);
-        setExpectedDate(order.expectedDate ? order.expectedDate.split('T')[0] : '');
-        setObservations(order.observations || '');
-        setLines(order.lines || []);
+        setForm({
+          supplierId: order.supplierId,
+          warehouseId: order.warehouseId,
+          expectedDate: order.expectedDate ? order.expectedDate.split('T')[0] : '',
+          observations: order.observations || '',
+          lines: order.lines || [],
+        });
         setShowFormModal(true);
       } else {
         toast.error('No se pudo cargar el pedido');
@@ -219,11 +261,11 @@ export default function PurchaseOrdersPage() {
     try {
       const toastId = toast.loading('Cargando detalles del pedido...');
       const res = await fetch(`/api/v1/supplier-orders/${id}`);
-      const data = await res.json();
+      const leido = await leerRespuesta<{ data: PurchaseOrder }>(res);
       toast.dismiss(toastId);
 
-      if (data.success) {
-        setActiveOrder(data.data);
+      if (leido.bien) {
+        setActiveOrder(leido.cuerpo.data);
         setShowDetailModal(true);
       } else {
         toast.error('No se pudo cargar el pedido');
@@ -243,15 +285,15 @@ export default function PurchaseOrdersPage() {
     try {
       const toastId = toast.loading('Actualizando estado...');
       const res = await fetch(`/api/v1/supplier-orders/${id}/send`, { method: 'POST' });
-      const data = await res.json();
+      const leido = await leerRespuesta(res);
       toast.dismiss(toastId);
 
-      if (data.success) {
+      if (leido.bien) {
         toast.success('Pedido marcado como Enviado');
         setShowDetailModal(false);
         fetchOrders();
       } else {
-        toast.error(data.error?.message || 'Error al enviar pedido');
+        toast.error(leido.mensaje || 'Error al enviar pedido');
       }
     } catch (error) {
       toast.error('Error de red');
@@ -268,15 +310,15 @@ export default function PurchaseOrdersPage() {
     try {
       const toastId = toast.loading('Duplicando pedido...');
       const res = await fetch(`/api/v1/supplier-orders/${id}/duplicate`, { method: 'POST' });
-      const data = await res.json();
+      const leido = await leerRespuesta<{ data: { orderNumber: string } }>(res);
       toast.dismiss(toastId);
 
-      if (data.success) {
-        toast.success(`Pedido duplicado: ${data.data.orderNumber}`);
+      if (leido.bien) {
+        toast.success(`Pedido duplicado: ${leido.cuerpo.data.orderNumber}`);
         setShowDetailModal(false);
         fetchOrders();
       } else {
-        toast.error(data.error?.message || 'Error al duplicar');
+        toast.error(leido.mensaje || 'Error al duplicar');
       }
     } catch (error) {
       toast.error('Error de red');
@@ -293,35 +335,18 @@ export default function PurchaseOrdersPage() {
     ) return;
     try {
       const toastId = toast.loading('Cancelando pedido...');
-      const res = await fetch(`/api/v1/supplier-orders/${id}/send`, { // Wait, canceling is via DELETE on resource or cancel route. Let's do DELETE
-        method: 'DELETE'
-      });
-      const data = await res.json();
+      //  Lote 252: esto mandaba DELETE a `/send`, que solo admite POST (405): cancelar nunca
+      //  funciono. Ahora va a su ruta, que deja el pedido Cancelado con su apunte en el historial.
+      const res = await fetch(`/api/v1/supplier-orders/${id}/cancel`, { method: 'POST' });
+      const leido = await leerRespuesta(res);
       toast.dismiss(toastId);
 
-      if (data.success) {
+      if (leido.bien) {
         toast.success('Pedido cancelado');
         setShowDetailModal(false);
         fetchOrders();
       } else {
-        toast.error(data.error?.message || 'Error al cancelar');
-      }
-    } catch (error) {
-      toast.error('Error de red');
-    }
-  };
-
-  const handleSendEmail = async (id: string) => {
-    try {
-      const toastId = toast.loading('Enviando pedido por correo al suplidor...');
-      const res = await fetch(`/api/v1/supplier-orders/${id}/email`, { method: 'POST' });
-      const data = await res.json();
-      toast.dismiss(toastId);
-
-      if (data.success) {
-        toast.success('Pedido enviado por correo electrónico exitosamente');
-      } else {
-        toast.error(data.error?.message || 'Error al enviar correo electrónico');
+        toast.error(leido.mensaje || 'Error al cancelar');
       }
     } catch (error) {
       toast.error('Error de red');
@@ -329,12 +354,10 @@ export default function PurchaseOrdersPage() {
   };
 
   const openReceiveModal = (order: PurchaseOrder) => {
-    const linesToReceive = order.lines.map(line => ({
-      itemId: line.id!,
-      productName: line.productName,
-      pending: line.quantityRequested - line.quantityReceived,
-      toReceive: 0
-    })).filter(l => l.pending > 0);
+    const linesToReceive = order.lines.flatMap(line => {
+      const pending = line.quantityRequested - line.quantityReceived;
+      return pending > 0 ? [{ itemId: line.id!, productName: line.productName, pending, toReceive: 0 }] : [];
+    });
 
     if (linesToReceive.length === 0) {
       toast.warning('Todos los artículos de este pedido ya han sido recibidos.');
@@ -374,26 +397,22 @@ export default function PurchaseOrdersPage() {
           }))
         })
       });
-      const data = await res.json();
+      const leido = await leerRespuesta(res);
       toast.dismiss(toastId);
 
-      if (data.success) {
+      if (leido.bien) {
         toast.success('Recepción registrada exitosamente. Inventario actualizado.');
         setShowReceiveModal(false);
         setShowDetailModal(false);
         fetchOrders();
       } else {
-        toast.error(data.error?.message || 'Error al registrar recepción');
+        toast.error(leido.mensaje || 'Error al registrar recepción');
       }
     } catch (error) {
       toast.error('Error de red');
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handlePrint = (id: string) => {
-    window.open(`/api/v1/supplier-orders/${id}/pdf`, '_blank');
   };
 
   const handlePrintAll = () => {
@@ -441,35 +460,19 @@ export default function PurchaseOrdersPage() {
 
   const handleLineQuantityChange = (index: number, val: number) => {
     if (val <= 0) return;
-    setLines(prev => {
-      const copy = [...prev];
-      copy[index].quantityRequested = val;
-      return copy;
-    });
+    setLines(prev => conCampo(prev, index, { quantityRequested: val }));
   };
 
   const handleLineObservationsChange = (index: number, val: string) => {
-    setLines(prev => {
-      const copy = [...prev];
-      copy[index].observations = val;
-      return copy;
-    });
+    setLines(prev => conCampo(prev, index, { observations: val }));
   };
 
   const handleLineBrandChange = (index: number, val: string) => {
-    setLines(prev => {
-      const copy = [...prev];
-      copy[index].brand = val;
-      return copy;
-    });
+    setLines(prev => conCampo(prev, index, { brand: val }));
   };
 
   const handleLineModelChange = (index: number, val: string) => {
-    setLines(prev => {
-      const copy = [...prev];
-      copy[index].model = val;
-      return copy;
-    });
+    setLines(prev => conCampo(prev, index, { model: val }));
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -510,35 +513,19 @@ export default function PurchaseOrdersPage() {
         })
       });
 
-      const data = await res.json();
-      if (data.success) {
+      const leido = await leerRespuesta(res);
+      if (leido.bien) {
         toast.success(editId ? 'Pedido actualizado exitosamente' : 'Pedido creado exitosamente');
         setShowFormModal(false);
         fetchOrders();
       } else {
-        toast.error(data.error?.message || 'Error al procesar el pedido');
+        toast.error(leido.mensaje || 'Error al procesar el pedido');
       }
     } catch (error) {
       toast.error('Error de red');
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const statusBadges = {
-    Draft: 'bg-slate-100 text-slate-700 border-slate-200',
-    Sent: 'bg-blue-50 text-blue-700 border-blue-200',
-    Partial: 'bg-amber-50 text-amber-700 border-amber-200',
-    Received: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    Cancelled: 'bg-rose-50 text-rose-700 border-rose-200',
-  };
-
-  const statusLabels = {
-    Draft: 'Borrador',
-    Sent: 'Enviado',
-    Partial: 'Parcial',
-    Received: 'Recibido',
-    Cancelled: 'Cancelado',
   };
 
   // Filter logic on client side
@@ -583,10 +570,10 @@ export default function PurchaseOrdersPage() {
       {/* Filters Bar */}
       <div className="flex flex-wrap gap-4 items-end bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
         <div className="flex-1 min-w-[180px] w-full">
-          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">No. Pedido</label>
+          <label htmlFor="pedido-1" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">No. Pedido</label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
+            <input id="pedido-1"
               type="text"
               placeholder="Buscar número"
               value={searchNumber}
@@ -597,10 +584,10 @@ export default function PurchaseOrdersPage() {
         </div>
 
         <div className="flex-1 min-w-[180px] w-full">
-          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Suplidor</label>
+          <label htmlFor="pedido-2" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Suplidor</label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <input
+            <input id="pedido-2"
               type="text"
               placeholder="Buscar suplidor"
               value={searchSupplier}
@@ -611,8 +598,8 @@ export default function PurchaseOrdersPage() {
         </div>
 
         <div className="w-full md:w-36">
-          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Estado</label>
-          <select
+          <label htmlFor="pedido-3" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Estado</label>
+          <select id="pedido-3"
             value={statusFilter}
             onChange={e => setStatusFilter(e.target.value)}
             className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 h-8 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
@@ -627,8 +614,8 @@ export default function PurchaseOrdersPage() {
         </div>
 
         <div className="w-full md:w-36">
-          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Desde</label>
-          <input
+          <label htmlFor="pedido-4" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Desde</label>
+          <input id="pedido-4"
             type="date"
             value={startDate}
             onChange={e => setStartDate(e.target.value)}
@@ -637,8 +624,8 @@ export default function PurchaseOrdersPage() {
         </div>
 
         <div className="w-full md:w-36">
-          <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Hasta</label>
-          <input
+          <label htmlFor="pedido-5" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Hasta</label>
+          <input id="pedido-5"
             type="date"
             value={endDate}
             onChange={e => setEndDate(e.target.value)}
@@ -711,14 +698,14 @@ export default function PurchaseOrdersPage() {
                       {order.totalItemsCount} Artículos
                     </span>
                     <div className="flex gap-1.5">
-                      <button onClick={() => viewOrderDetails(order.id)} className="p-2 bg-slate-100 rounded text-slate-500 hover:text-[#005E63]">
+                      <button type="button" onClick={() => viewOrderDetails(order.id)} aria-label="Ver pedido" title="Ver pedido" className="p-2 bg-slate-100 rounded text-slate-500 hover:text-[#005E63]">
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button onClick={() => handlePrint(order.id)} className="p-2 bg-slate-100 rounded text-slate-500 hover:text-[#005E63]">
+                      <button type="button" onClick={() => handlePrint(order.id)} aria-label="Imprimir pedido" title="Imprimir pedido" className="p-2 bg-slate-100 rounded text-slate-500 hover:text-[#005E63]">
                         <Printer className="h-4 w-4" />
                       </button>
                       {order.status === 'Draft' && (
-                        <button onClick={() => openEditModal(order.id)} className="p-2 bg-slate-100 rounded text-slate-500 hover:text-[#C5A059]">
+                        <button type="button" onClick={() => openEditModal(order.id)} aria-label="Editar pedido" title="Editar pedido" className="p-2 bg-slate-100 rounded text-slate-500 hover:text-[#C5A059]">
                           <Edit2 className="h-4 w-4" />
                         </button>
                       )}
@@ -779,14 +766,14 @@ export default function PurchaseOrdersPage() {
                         </span>
                       </td>
                       <td className="px-4 py-2.5 align-middle text-right space-x-2 whitespace-nowrap">
-                        <button onClick={() => viewOrderDetails(order.id)} className="p-1 text-xs text-slate-500 hover:text-[#005E63] cursor-pointer font-bold" title="Ver Detalles">
+                        <button type="button" onClick={() => viewOrderDetails(order.id)} aria-label="Ver pedido" className="p-1 text-xs text-slate-500 hover:text-[#005E63] cursor-pointer font-bold" title="Ver Detalles">
                           Ver
                         </button>
-                        <button onClick={() => handlePrint(order.id)} className="p-1 text-xs text-slate-500 hover:text-[#005E63] cursor-pointer" title="Imprimir PDF">
+                        <button type="button" onClick={() => handlePrint(order.id)} aria-label="Imprimir pedido" className="p-1 text-xs text-slate-500 hover:text-[#005E63] cursor-pointer" title="Imprimir PDF">
                           <Printer className="h-4 w-4 inline" />
                         </button>
                         {order.status === 'Draft' && (
-                          <button onClick={() => openEditModal(order.id)} className="p-1 text-xs text-slate-500 hover:text-[#C5A059] cursor-pointer" title="Editar">
+                          <button type="button" onClick={() => openEditModal(order.id)} aria-label="Editar pedido" className="p-1 text-xs text-slate-500 hover:text-[#C5A059] cursor-pointer" title="Editar">
                             <Edit2 className="h-4 w-4 inline" />
                           </button>
                         )}
@@ -809,8 +796,8 @@ export default function PurchaseOrdersPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Supplier Select */}
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Suplidor / Proveedor</label>
-                <select
+                <label htmlFor="pedido-6" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Suplidor / Proveedor</label>
+                <select id="pedido-6"
                   value={supplierId}
                   onChange={e => setSupplierId(e.target.value)}
                   required
@@ -825,8 +812,8 @@ export default function PurchaseOrdersPage() {
 
               {/* Warehouse Select */}
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Almacén de Destino</label>
-                <select
+                <label htmlFor="pedido-7" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Almacén de Destino</label>
+                <select id="pedido-7"
                   value={warehouseId}
                   onChange={e => setWarehouseId(e.target.value)}
                   required
@@ -841,8 +828,8 @@ export default function PurchaseOrdersPage() {
 
               {/* Expected Date */}
               <div className="flex flex-col gap-2">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha Estimada de Entrega</label>
-                <input
+                <label htmlFor="pedido-8" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha Estimada de Entrega</label>
+                <input id="pedido-8"
                   type="date"
                   value={expectedDate}
                   onChange={e => setExpectedDate(e.target.value)}
@@ -868,14 +855,14 @@ export default function PurchaseOrdersPage() {
               {activeLineIndex !== null && (
                 <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3 relative">
                   <div className="flex justify-between items-center">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase">Escriba Nombre, SKU o Código de Barra del Producto</label>
-                    <button type="button" onClick={() => setActiveLineIndex(null)} className="text-slate-400 hover:text-slate-500">
+                    <label htmlFor="pedido-9" className="text-[10px] font-bold text-slate-500 uppercase">Escriba Nombre, SKU o Código de Barra del Producto</label>
+                    <button type="button" onClick={() => setActiveLineIndex(null)} aria-label="Cerrar la búsqueda" className="text-slate-400 hover:text-slate-500">
                       <X className="h-4 w-4" />
                     </button>
                   </div>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <input
+                    <input id="pedido-9"
                       type="text"
                       placeholder="Buscar producto..."
                       value={productSearchTerm}
@@ -938,13 +925,15 @@ export default function PurchaseOrdersPage() {
                       </tr>
                     ) : (
                       lines.map((line, idx) => (
-                        <tr key={idx} className="border-t border-slate-200 text-xs">
+                        //  Un producto va una sola vez por pedido (handleSelectProduct lo impide).
+                        <tr key={line.productId} className="border-t border-slate-200 text-xs">
                           <td className="px-4 py-2.5 font-mono text-slate-600">{line.productSku || '-'}</td>
                           <td className="px-4 py-2.5 font-semibold text-[#003366]">{line.productName}</td>
                           <td className="px-4 py-2.5">
                             <input
                               type="text"
                               value={line.brand || ''}
+                              aria-label={`Marca de ${line.productName}`}
                               placeholder="Marca"
                               onChange={e => handleLineBrandChange(idx, e.target.value)}
                               className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
@@ -954,6 +943,7 @@ export default function PurchaseOrdersPage() {
                             <input
                               type="text"
                               value={line.model || ''}
+                              aria-label={`Modelo de ${line.productName}`}
                               placeholder="Modelo"
                               onChange={e => handleLineModelChange(idx, e.target.value)}
                               className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
@@ -964,6 +954,7 @@ export default function PurchaseOrdersPage() {
                               type="number"
                               min="1"
                               value={line.quantityRequested}
+                              aria-label={`Cantidad de ${line.productName}`}
                               onChange={e => handleLineQuantityChange(idx, parseInt(e.target.value) || 1)}
                               className="w-16 h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-center text-xs outline-none text-slate-900 font-bold focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
                             />
@@ -972,13 +963,14 @@ export default function PurchaseOrdersPage() {
                             <input
                               type="text"
                               value={line.observations}
+                              aria-label={`Observaciones de ${line.productName}`}
                               placeholder="Notas del item"
                               onChange={e => handleLineObservationsChange(idx, e.target.value)}
                               className="w-full h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none text-slate-900 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
                             />
                           </td>
                           <td className="px-4 py-2.5 text-center">
-                            <button type="button" onClick={() => handleRemoveLine(idx)} className="p-1 text-rose-500 hover:text-rose-600 cursor-pointer">
+                            <button type="button" onClick={() => handleRemoveLine(idx)} aria-label={`Quitar ${line.productName}`} className="p-1 text-rose-500 hover:text-rose-600 cursor-pointer">
                               <X className="h-4 w-4" />
                             </button>
                           </td>
@@ -992,8 +984,8 @@ export default function PurchaseOrdersPage() {
 
             {/* Observations */}
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Observaciones Generales</label>
-              <textarea
+              <label htmlFor="pedido-10" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Observaciones Generales</label>
+              <textarea id="pedido-10"
                 value={observations}
                 onChange={e => setObservations(e.target.value)}
                 rows={4}
@@ -1024,10 +1016,11 @@ export default function PurchaseOrdersPage() {
       )}
 
       {/* Detail / Action Modal */}
+      <LazyMotion features={domAnimation}>
       <AnimatePresence>
         {showDetailModal && activeOrder && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
-            <motion.div
+            <m.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -1043,7 +1036,7 @@ export default function PurchaseOrdersPage() {
                     {statusLabels[activeOrder.status]}
                   </span>
                 </div>
-                <button onClick={() => setShowDetailModal(false)} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
+                <button type="button" onClick={() => setShowDetailModal(false)} aria-label="Cerrar" className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -1090,10 +1083,10 @@ export default function PurchaseOrdersPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {activeOrder.lines.map((line, idx) => {
+                        {activeOrder.lines.map((line) => {
                           const pending = line.quantityRequested - line.quantityReceived;
                           return (
-                            <tr key={idx} className="border-t border-slate-200">
+                            <tr key={line.id ?? line.productId} className="border-t border-slate-200">
                               <td className="px-4 py-2.5 font-mono text-slate-600">{line.productSku || '-'}</td>
                               <td className="px-4 py-2.5 font-semibold text-[#003366]">{line.productName}</td>
                               <td className="px-4 py-2.5 text-slate-700">{line.brand || '-'}</td>
@@ -1193,7 +1186,7 @@ export default function PurchaseOrdersPage() {
                   )}
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           </div>
         )}
       </AnimatePresence>
@@ -1202,7 +1195,7 @@ export default function PurchaseOrdersPage() {
       <AnimatePresence>
         {showReceiveModal && activeOrder && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-            <motion.div
+            <m.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -1214,7 +1207,7 @@ export default function PurchaseOrdersPage() {
                   <Plus className="h-5 w-5 text-emerald-600" />
                   Registrar Recepción - {activeOrder.orderNumber}
                 </h2>
-                <button onClick={() => setShowReceiveModal(false)} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
+                <button type="button" onClick={() => setShowReceiveModal(false)} aria-label="Cerrar" className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
                   <X className="h-5 w-5" />
                 </button>
               </div>
@@ -1248,14 +1241,11 @@ export default function PurchaseOrdersPage() {
                               type="number"
                               min="0"
                               max={rec.pending}
+                              aria-label={`Cantidad a recibir de ${rec.productName}`}
                               value={rec.toReceive}
                               onChange={e => {
                                 const val = Math.min(rec.pending, Math.max(0, parseInt(e.target.value) || 0));
-                                setReceptions(prev => {
-                                  const copy = [...prev];
-                                  copy[index].toReceive = val;
-                                  return copy;
-                                });
+                                setReceptions(prev => conCampo(prev, index, { toReceive: val }));
                               }}
                               className="w-24 h-8 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-center text-xs outline-none text-slate-900 font-bold focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20"
                             />
@@ -1284,10 +1274,11 @@ export default function PurchaseOrdersPage() {
                   </button>
                 </div>
               </form>
-            </motion.div>
+            </m.div>
           </div>
         )}
       </AnimatePresence>
+      </LazyMotion>
 
     </div>
   );

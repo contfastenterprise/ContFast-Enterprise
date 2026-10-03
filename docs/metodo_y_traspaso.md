@@ -1717,6 +1717,43 @@ Además, fuera de la tabla:
   Dos bancos. `verificar_varios_al_dolar.ts` (selección y hook ejecutados): 13 comprobaciones,
   contraprueba 13 FALLA. `verificar_varios_al_dolar_db.ts` (**integración**): 5 comprobaciones
   más el invariante de la forma vieja, contraprueba 5 FALLA, seis mutantes y seis muertos.
+- **Lote 252: las advertencias de React Doctor de las pantallas pasadas a pestañas, cerradas.**
+  Pedido del dueño tras los lotes 248-251. **Medido con React Doctor en local** (`--scope files
+  --base cf45aa6`): **195** avisos en Retenciones, Bancos, Empleados, Horas extra, Empresas y
+  Pedidos a suplidor (los de "Precios en dólares" ya estaban en cero); después, **6** — los seis
+  "componente gigante", que solo se van partiendo cada página (como conduces, caja y
+  configuración: lotes 226, 229 y 238) y quedan para sus propios lotes.
+  · **ninguna respuesta se lee sin mirar el estado** (35): todo pasa por `leerRespuesta`. Antes
+    un 403 o un 500 al cargar dejaba la lista vacía sin decir nada — Retenciones, Bancos y las
+    cuentas contables lo hacían así;
+  · **cada etiqueta con su campo** (114, entre etiquetas sueltas, controles sin nombre y campos
+    con solo el texto de ejemplo): un enlazador mecánico (`comun252.py`, `enlazar_etiquetas`) une
+    cada `<label>` con el primer campo que le sigue antes de la siguiente etiqueta, y cada botón
+    de icono y cada campo de una línea dicen qué son ("Marca de Bisagra inox");
+  · **las cargas son funciones estables** (`useCallback`) y los efectos dependen de ellas;
+    Empleados y Horas extra piden a la vez lo que no depende entre sí;
+  · **nada se muta dentro de un actualizador** (Pedidos: `copy[index].brand = val` cambiaba el
+    objeto de la línea anterior; ahora `conCampo`), y las listas ya no usan el índice como clave;
+  · `m` con `LazyMotion`, el formulario de Horas extra y el de Pedidos en un solo estado (abrirlos
+    tocaba seis y nueve), lo estático fuera de los componentes, la tarjeta de cada cuenta bancaria
+    se elige con el teclado, y dos clics en "Sí, eliminar" (Retenciones) mandan una petición.
+  **Y un defecto que salió al leer Pedidos**: **"Cancelar pedido" nunca funcionó**. Mandaba
+  `DELETE` a `/send`, que solo admite `POST` — 405 y la pantalla decía "Error de red" — y había un
+  comentario a medias ("Wait, canceling is via DELETE…"). `SupplierOrderService.cancelOrder` (estado
+  `Cancelled` y su apunte en el historial) existía **sin ninguna ruta**. Ahora
+  `POST /api/v1/supplier-orders/[id]/cancel` (permiso de borrar, como el `DELETE` de `[id]`, que
+  borra en vez de cancelar), con 404 y 409 para sus dos rechazos previstos.
+  **Se miró en el navegador** con la página temporal (las seis, la red sustituida): Bancos elige la
+  cuenta con Enter y pide el historial una vez; Pedidos añade una línea, cambia su marca y cancela
+  por la ruta nueva; Horas extra abre con el subtipo de la pestaña; ninguna etiqueta sin campo.
+  Dos bancos. `verificar_avisos_pantallas_en_pestanas.ts`: 27 comprobaciones, contraprueba 27
+  FALLA, trece mutantes y trece muertos (una comprobación era cierta antes —las etiquetas de
+  Retenciones, del 248— y salió). `verificar_cancelar_pedido_db.ts` (**integración**): 4
+  comprobaciones, contraprueba 4 FALLA, tres mutantes y tres muertos.
+  **Lo que no se cierra, a propósito**: los seis "componente gigante" (partir, en lotes propios);
+  `async-await-in-loop` en `aplicar` de precios en dólares (es una transacción: una conexión, ir a
+  la vez no ganaría nada, y lo dice el comentario); y dos "esperas independientes" en el banco de
+  integración del 251, que no lo son (cada paso lee lo que dejó el anterior).
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -2906,5 +2943,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 251 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 252 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

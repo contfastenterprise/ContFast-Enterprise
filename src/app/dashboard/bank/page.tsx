@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Landmark, ArrowRightLeft, RefreshCw, X, CreditCard, Building2, CheckCircle2, ArrowDownRight, ArrowUpRight, DollarSign, Search, Printer, Info } from 'lucide-react';
 import DateRangePicker from '@/components/ui/date-range-picker';
-import { motion, AnimatePresence } from 'framer-motion';
+//  Lote 252: `m` dentro de `LazyMotion` y no `motion` (aviso de React Doctor).
+import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { leerRespuesta } from '@/utils/leerRespuesta';
 
 interface BankAccount {
   id: string;
@@ -44,6 +46,21 @@ interface ChartAccount {
 const fmt = (val: string | number, currency = 'DOP') => {
   return new Intl.NumberFormat('es-DO', { style: 'currency', currency }).format(Number(val) || 0);
 };
+
+/** La tarjeta "Todas las Cuentas": no depende de nada de la pagina, asi que vive fuera (lote 252). */
+const TODAS_LAS_CUENTAS: BankAccount = {
+  id: 'all',
+  bankName: 'Todas las Cuentas',
+  accountNumber: '-',
+  currency: '-',
+  type: 'todas',
+  balance: '0.00',
+  status: 'active',
+  color: '#0f172a'
+};
+
+/** Una cuenta del catalogo que se puede elegir: transaccional y activa. */
+const esElegible = (c: ChartAccount) => c.isTransactional !== false && c.status !== 'inactive';
 
 const maskAccount = (acc: string) => {
   if (!acc || acc.length < 4) return acc;
@@ -94,35 +111,29 @@ export default function BankAccountsPage() {
     contraAccountId: ''
   });
 
-  useEffect(() => {
-    fetchAccounts();
-    fetchChartOfAccounts();
-  }, []);
-
-  useEffect(() => {
-    if (selectedAccount) {
-      fetchTransactions(selectedAccount.id);
-    } else {
-      setTransactions([]);
-    }
-  }, [selectedAccount, startDate, endDate]);
-
-  async function fetchAccounts() {
+  const fetchAccounts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/v1/bank/accounts');
-      const data = await res.json();
-      if (data.success) {
-        setAccounts(data.data);
-      }
+      const leido = await leerRespuesta<{ data: BankAccount[] }>(await fetch('/api/v1/bank/accounts'));
+      if (leido.bien) setAccounts(leido.cuerpo.data);
+      else toast.error(leido.mensaje || 'No se pudieron cargar las cuentas bancarias.');
     } catch (err) {
       toast.error('Error al cargar cuentas bancarias');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  async function fetchTransactions(accountId: string) {
+  const fetchChartOfAccounts = useCallback(async () => {
+    try {
+      const leido = await leerRespuesta<{ data: ChartAccount[] }>(await fetch('/api/v1/accounting/accounts'));
+      if (leido.bien) setChartOfAccounts(leido.cuerpo.data);
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  const fetchTransactions = useCallback(async (accountId: string) => {
     setLoadingTxs(true);
     try {
       const params = new URLSearchParams({ accountId });
@@ -133,29 +144,32 @@ export default function BankAccountsPage() {
       // filas para pintarlas todas de golpe.
       params.append('limit', '500');
       const res = await fetch(`/api/v1/bank/transactions?${params.toString()}`);
-      const data = await res.json();
-      if (data.success) {
-        setTransactions(data.data);
-        setTxMeta(data.meta ?? null);
+      const leido = await leerRespuesta<{ data: BankTransaction[]; meta?: { total: number; truncado: boolean } }>(res);
+      if (leido.bien) {
+        setTransactions(leido.cuerpo.data);
+        setTxMeta(leido.cuerpo.meta ?? null);
+      } else {
+        toast.error(leido.mensaje || 'No se pudieron cargar las transacciones.');
       }
     } catch (err) {
       toast.error('Error al cargar transacciones');
     } finally {
       setLoadingTxs(false);
     }
-  };
+  }, [startDate, endDate]);
 
-  async function fetchChartOfAccounts() {
-    try {
-      const res = await fetch('/api/v1/accounting/accounts');
-      const data = await res.json();
-      if (data.success) {
-        setChartOfAccounts(data.data);
-      }
-    } catch (err) {
-      console.error(err);
+  useEffect(() => {
+    fetchAccounts();
+    fetchChartOfAccounts();
+  }, [fetchAccounts, fetchChartOfAccounts]);
+
+  useEffect(() => {
+    if (selectedAccount) {
+      fetchTransactions(selectedAccount.id);
+    } else {
+      setTransactions([]);
     }
-  };
+  }, [selectedAccount, fetchTransactions]);
 
   const handleCreateAccount = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -169,14 +183,14 @@ export default function BankAccountsPage() {
           initialBalance: parseFloat(accountForm.initialBalance) || 0
         })
       });
-      const data = await res.json();
-      if (data.success) {
+      const leido = await leerRespuesta(res);
+      if (leido.bien) {
         toast.success('Cuenta creada exitosamente');
         setShowNewAccountModal(false);
         fetchAccounts();
         setAccountForm({ bankName: '', accountNumber: '', currency: 'DOP', type: 'corriente', color: '#003366', initialBalance: '', chartAccountId: '' });
       } else {
-        toast.error(data.error?.message || 'Error al crear cuenta');
+        toast.error(leido.mensaje || 'Error al crear cuenta');
       }
     } catch (error) {
       toast.error('Error de red al crear cuenta');
@@ -203,15 +217,15 @@ export default function BankAccountsPage() {
           contraAccountId: txForm.contraAccountId || undefined
         })
       });
-      const data = await res.json();
-      if (data.success) {
+      const leido = await leerRespuesta(res);
+      if (leido.bien) {
         toast.success('Transacción registrada exitosamente');
         setShowTxModal(false);
         fetchAccounts(); // Update balances
         fetchTransactions(selectedAccount.id);
         setTxForm({ date: new Date().toISOString().split('T')[0], type: 'deposit', amount: '', reference: '', description: '', contraAccountId: '' });
       } else {
-        toast.error(data.error?.message || 'Error al registrar transacción');
+        toast.error(leido.mensaje || 'Error al registrar transacción');
       }
     } catch (error) {
       toast.error('Error de red al procesar transacción');
@@ -237,15 +251,16 @@ export default function BankAccountsPage() {
         fetch('/api/v1/company/settings'),
         fetch(`/api/v1/bank/transactions?${paramsReporte.toString()}`)
       ]);
-      const settingsData = await settingsRes.json();
-      const company = settingsData.data || {};
+      //  Sin los datos de la empresa el reporte sale igual, con "Empresa sin identificar".
+      const ajustes = await leerRespuesta<{ data: Record<string, string> }>(settingsRes);
+      const company = ajustes.bien ? ajustes.cuerpo.data || {} : {};
 
-      const txData = await txRes.json();
-      if (!txData.success) {
+      const movimientos = await leerRespuesta<{ data: BankTransaction[] }>(txRes);
+      if (!movimientos.bien) {
         toast.error('No se pudieron cargar los movimientos para el reporte.', { id: toastId });
         return;
       }
-      const todosLosMovimientos: BankTransaction[] = txData.data || [];
+      const todosLosMovimientos: BankTransaction[] = movimientos.cuerpo.data || [];
       
       const printWindow = window.open('', '_blank');
       if (!printWindow) {
@@ -352,18 +367,7 @@ export default function BankAccountsPage() {
     }
   };
 
-  const allBanksAccount = {
-    id: 'all',
-    bankName: 'Todas las Cuentas',
-    accountNumber: '-',
-    currency: '-',
-    type: 'todas',
-    balance: '0.00',
-    status: 'active',
-    color: '#0f172a'
-  };
-
-  const displayAccounts = [allBanksAccount, ...accounts];
+  const displayAccounts = [TODAS_LAS_CUENTAS, ...accounts];
 
   return (
     <div className="min-h-full bg-slate-50 text-slate-900 font-sans pb-20 max-w-7xl mx-auto w-full">
@@ -413,7 +417,11 @@ export default function BankAccountsPage() {
               {displayAccounts.map(acc => (
                 <div
                   key={acc.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={selectedAccount?.id === acc.id}
                   onClick={() => setSelectedAccount(acc)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedAccount(acc); } }}
                   style={{
                     backgroundColor: acc.color || '#003366',
                     borderColor: selectedAccount?.id === acc.id ? '#C5A059' : 'transparent',
@@ -496,10 +504,11 @@ export default function BankAccountsPage() {
                 <div className="flex flex-wrap items-end gap-3">
                   {/* Bank Search */}
                   <div className="flex flex-col gap-1 flex-1 min-w-[180px]">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Buscar</label>
+                    <label htmlFor="banco-buscar" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Buscar</label>
                     <div className="relative">
                       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
                       <input
+                        id="banco-buscar"
                         type="text"
                         value={bankSearch}
                         onChange={e => setBankSearch(e.target.value)}
@@ -511,7 +520,7 @@ export default function BankAccountsPage() {
 
                   {/* Date Range Picker */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Rango de Fechas</label>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Rango de Fechas</p>
                     <div className="w-64">
                       <DateRangePicker
                         from={startDate}
@@ -680,11 +689,9 @@ export default function BankAccountsPage() {
                     className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                   >
                     <option value="">Seleccione la cuenta del catálogo</option>
-                    {chartOfAccounts
-                      .filter(c => c.isTransactional !== false && c.status !== 'inactive')
-                      .map(c => (
-                        <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
-                      ))}
+                    {chartOfAccounts.flatMap(c => (esElegible(c)
+                      ? [<option key={c.id} value={c.id}>{c.code} - {c.name}</option>]
+                      : []))}
                   </select>
                   <p className="mt-1 text-[10px] text-slate-500">
                     Los movimientos de esta cuenta se asentarán contra ella. Solo se listan cuentas transaccionales.
@@ -711,14 +718,15 @@ export default function BankAccountsPage() {
 
 
       {/* MODAL: REGISTER TX */}
+      <LazyMotion features={domAnimation}>
       <AnimatePresence>
         {showTxModal && selectedAccount && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
+            <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
+            <m.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
               <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50">
                 <h3 className="text-xl font-display font-bold text-slate-800 flex items-center gap-2"><ArrowRightLeft className="w-5 h-5 text-[#c5a059]" /> Registrar Movimiento</h3>
-                <button type="button" onClick={() => setShowTxModal(false)} className="text-slate-500 hover:text-slate-800 transition-colors"><X className="w-5 h-5" /></button>
+                <button type="button" onClick={() => setShowTxModal(false)} aria-label="Cerrar" className="text-slate-500 hover:text-slate-800 transition-colors"><X className="w-5 h-5" /></button>
               </div>
               <form onSubmit={handleRegisterTx} className="p-4 space-y-4">
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
@@ -734,12 +742,12 @@ export default function BankAccountsPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Fecha</label>
-                    <input type="date" required value={txForm.date} onChange={e => setTxForm({ ...txForm, date: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" />
+                    <label htmlFor="mov-fecha" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Fecha</label>
+                    <input id="mov-fecha" type="date" required value={txForm.date} onChange={e => setTxForm({ ...txForm, date: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" />
                   </div>
                   <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Tipo de Movimiento</label>
-                    <select value={txForm.type} onChange={e => setTxForm({ ...txForm, type: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors">
+                    <label htmlFor="mov-tipo" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Tipo de Movimiento</label>
+                    <select id="mov-tipo" value={txForm.type} onChange={e => setTxForm({ ...txForm, type: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors">
                       <option value="deposit">Ingreso (Depósito)</option>
                       <option value="transfer_in">Ingreso (Transferencia)</option>
                       <option value="withdrawal">Egreso (Retiro)</option>
@@ -749,15 +757,15 @@ export default function BankAccountsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Monto</label>
+                  <label htmlFor="mov-monto" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Monto</label>
                   <div className="relative">
                     <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-500 font-bold">$</span>
-                    <input type="number" min="0.01" step="0.01" required value={txForm.amount} onChange={e => setTxForm({ ...txForm, amount: e.target.value })} className="w-full h-8 pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono font-bold" placeholder="0.00" />
+                    <input id="mov-monto" type="number" min="0.01" step="0.01" required value={txForm.amount} onChange={e => setTxForm({ ...txForm, amount: e.target.value })} className="w-full h-8 pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono font-bold" placeholder="0.00" />
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Cuenta Contable (Contrapartida)</label>
-                  <select required value={txForm.contraAccountId} onChange={e => setTxForm({ ...txForm, contraAccountId: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors">
+                  <label htmlFor="mov-contrapartida" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Cuenta Contable (Contrapartida)</label>
+                  <select id="mov-contrapartida" required value={txForm.contraAccountId} onChange={e => setTxForm({ ...txForm, contraAccountId: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors">
                     <option value="">Seleccione cuenta (Ej. Ingresos / Gastos)</option>
                     {/*
                       Auditoria JRN-12: este selector listaba TODAS las cuentas,
@@ -765,22 +773,19 @@ export default function BankAccountsPage() {
                       De ahi salio un ajuste con el debe y el haber contra
                       1.1.01: cuadraba y no significaba nada.
                     */}
-                    {chartOfAccounts
-                      .filter(c => c.isTransactional !== false && c.status !== 'inactive')
-                      .filter(c => c.id !== selectedAccount?.chartAccountId)
-                      .map(c => (
-                        <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
-                      ))}
+                    {chartOfAccounts.flatMap(c => (esElegible(c) && c.id !== selectedAccount?.chartAccountId
+                      ? [<option key={c.id} value={c.id}>{c.code} - {c.name}</option>]
+                      : []))}
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Descripción</label>
-                    <input type="text" required value={txForm.description} onChange={e => setTxForm({ ...txForm, description: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" placeholder="Ej. Depósito ventas del día" />
+                    <label htmlFor="mov-descripcion" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Descripción</label>
+                    <input id="mov-descripcion" type="text" required value={txForm.description} onChange={e => setTxForm({ ...txForm, description: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" placeholder="Ej. Depósito ventas del día" />
                   </div>
                   <div className="col-span-2">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Referencia (Opcional)</label>
-                    <input type="text" value={txForm.reference} onChange={e => setTxForm({ ...txForm, reference: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono" placeholder="Ej. TX-58493" />
+                    <label htmlFor="mov-referencia" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Referencia (Opcional)</label>
+                    <input id="mov-referencia" type="text" value={txForm.reference} onChange={e => setTxForm({ ...txForm, reference: e.target.value })} className="w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors font-mono" placeholder="Ej. TX-58493" />
                   </div>
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
@@ -790,10 +795,11 @@ export default function BankAccountsPage() {
                   </button>
                 </div>
               </form>
-            </motion.div>
+            </m.div>
           </div>
         )}
       </AnimatePresence>
+      </LazyMotion>
 
     </div>
   );
