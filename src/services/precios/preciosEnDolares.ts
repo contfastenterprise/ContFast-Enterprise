@@ -209,3 +209,14 @@ export function trozoDePagina<T>(lista: T[], pagina: number, porPagina = PRODUCT
   const actual = Math.min(Math.max(1, Math.floor(pagina) || 1), paginas);
   return { visibles: lista.slice((actual - 1) * porPagina, actual * porPagina), pagina: actual, paginas };
 }
+
+/**
+ * Lote 257: el costo con que entra un producto a una compra. Si sigue al dolar y hay tasa, el costo
+ * en dolares por la tasa VIGENTE (no el de catalogo, que solo se pone al dia al "Aplicar precios");
+ * si no, el de catalogo de siempre.
+ */
+export function costoParaCompra(costoCatalogo: unknown, costoUsd: number | null | undefined, tasa: number | null | undefined): number {
+  if (costoUsd && costoUsd > 0 && tasa && tasa > 0) return redondear(costoUsd * tasa);
+  const n = Number(costoCatalogo);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
