@@ -27,7 +27,7 @@ import { resolve } from 'path';
 import { enCommit, huella, diferencia } from './huellaDePantalla';
 
 const raiz = resolve(__dirname, '..');
-const BASE = 'origin/lote-270-estandar-de-botones';
+const BASE = '57f741d' /* lote 270: commit fijo, la rama se borro al fusionar */;
 let fallos = 0;
 let rotas = 0;
 const ok = (t: string, c: boolean, d = '') => { console.log(`${c ? '  OK  ' : ' FALLA'}  ${t}${d ? ` -- ${d}` : ''}`); if (!c) fallos++; };

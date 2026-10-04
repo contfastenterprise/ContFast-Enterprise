@@ -34,7 +34,10 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
 import { join, resolve } from 'path';
 
 const raiz = resolve(__dirname, '..');
-const BASE = 'origin/lote-276-ventana-comun';
+//  Commit fijo y no la rama: la rama se borra al fusionar (lote 260/282), y un banco que nombra una rama
+//  borrada revienta en cuanto alguien hace `git fetch --prune` o clona de cero.
+const BASE = 'ab9e5fd'; // lote 276, la base del 278
+const LOTE = 'ef2039b'; // lote 278
 let fallos = 0;
 let rotas = 0;
 const ok = (t: string, c: boolean, d = '') => { console.log(`${c ? '  OK  ' : ' FALLA'}  ${t}${d ? ` -- ${d}` : ''}`); if (!c) fallos++; };
@@ -198,7 +201,8 @@ function main() {
   for (const f of [...new Set([...todos, ...CON_VENTANA])]) {
     let antes: string;
     try { antes = enCommit(BASE, f); } catch { continue; }
-    const d = diferencia(lectura(antes), lectura(leer(f)));
+    //  Los DOS commits del lote (ver verificar_ui_ventas): el 260 cambia rotulos de e-CF a proposito.
+    const d = diferencia(lectura(antes), lectura(enCommit(LOTE, f)));
     if (d.faltan.length || d.sobran.length) { cambiados++; console.log(`        ${f}: faltan ${JSON.stringify(d.faltan)} sobran ${JSON.stringify(d.sobran)}`); }
   }
   invariante(`textos, placeholder, title, avisos y la API iguales a ${BASE}`, cambiados === 0, `${cambiados} cambiados`);
