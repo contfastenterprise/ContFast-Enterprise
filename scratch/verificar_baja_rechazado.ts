@@ -297,7 +297,11 @@ async function main() {
 
     const pantalla = fuente('src/app/dashboard/ecf/page.tsx');
     const manejador = bloque(pantalla, 'const handleDarDeBaja = async (inv: Invoice) =>');
-    ok('el boton sale solo en los rechazados', /\{inv\.status === 'rejected' && \(\s*<button title="Dar de baja[^"]*" onClick=\{\(\) => handleDarDeBaja\(inv\)\}/.test(pantalla));
+    //  Lote 272: el boton paso a `IconButton` (estandar de UI) y lleva `type` y `aria-label` delante; la
+    //  propiedad es la misma -- el UNICO boton que llama a handleDarDeBaja cuelga de `status === 'rejected'`.
+    ok('el boton sale solo en los rechazados',
+      /\{inv\.status === 'rejected' && \(\s*<(?:button|IconButton)\b[^>]*?title="Dar de baja[^"]*"[^>]*?onClick=\{\(\) => handleDarDeBaja\(inv\)\}/.test(pantalla)
+      && (pantalla.match(/onClick=\{\(\) => handleDarDeBaja\(/g) ?? []).length === 1);
     ok('pide confirmacion ANTES de llamar a la ruta',
       manejador.indexOf('await confirm(') >= 0 && manejador.indexOf('if (!confirmado) return;') > manejador.indexOf('await confirm(')
       && manejador.indexOf('/dar-de-baja') > manejador.indexOf('if (!confirmado) return;'));

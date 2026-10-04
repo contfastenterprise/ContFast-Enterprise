@@ -9,6 +9,7 @@ import type { FilaCartera, TipoCartera } from './tipos';
 import { AVISO_CREDITO, PALABRAS, dinero } from './tipos';
 import { abrirEstadoImpreso } from './estadoImpreso';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { Button, IconButton } from '@/components/ui/button';
 
 interface DocumentoPendiente {
   id: string;
@@ -114,13 +115,9 @@ export function ModalEstadoCuenta({
               </p>
             </div>
           </div>
-          <button
-            onClick={onCerrar}
-            className="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition-colors shrink-0"
-            aria-label="Cerrar"
-          >
+          <IconButton type="button" size="icon" onClick={onCerrar} aria-label="Cerrar" className="shrink-0">
             <X className="w-5 h-5" />
-          </button>
+          </IconButton>
         </div>
 
         <div className="p-5 overflow-y-auto space-y-5">
@@ -234,19 +231,14 @@ export function ModalEstadoCuenta({
             Este panel es para consultar. Para registrar {tipo === 'clientes' ? 'un cobro' : 'un pago'}, ve a {P.irA.replace('Ir a ', '')}.
           </p>
           <div className="flex items-center gap-2">
-            <button
-              onClick={imprimir}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-neutral-900 hover:bg-neutral-800 rounded-lg transition-colors"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Imprimir estado</span>
-            </button>
-            <button
-              onClick={onCerrar}
-              className="px-4 py-2 text-xs font-semibold text-neutral-700 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors"
-            >
+            {/* Lote 272: Cerrar primero y la principal la ultima (estandar de UI); imprimir es "documento". */}
+            <Button type="button" variant="secondary" onClick={onCerrar}>
               Cerrar
-            </button>
+            </Button>
+            <Button type="button" variant="documento" onClick={imprimir}>
+              <Printer />
+              <span>Imprimir estado</span>
+            </Button>
           </div>
         </div>
       </div>
