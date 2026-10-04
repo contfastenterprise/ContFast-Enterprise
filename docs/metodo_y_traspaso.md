@@ -2113,6 +2113,28 @@ Además, fuera de la tabla:
   fila de los totales del mes; sin ella, la fila se alinea a la derecha (`md:justify-end`) para que
   los totales no se vayan a la izquierda. Banco `verificar_sin_powered_by.ts`: 2 comprobaciones y un
   invariante (los totales siguen), contraprueba **2 FALLA**, dos mutantes y dos muertos.
+- **Lote 267: Cuentas por Cobrar, los clientes en una lista que se despliega.** Pedido del dueño
+  (2026-10-03): *"en la página dashboard/receivables los clientes deben verse en una lista que se
+  pueda expandir y contraer, parecida a la de /dashboard/receivables-report"*. Antes cada cliente era
+  una tarjeta con todas sus facturas **siempre** a la vista. Ahora la pestaña "Balances de Clientes"
+  es una tabla como la del reporte — Cliente, RNC/Cédula, Facturas Pendientes, Balance Pendiente y
+  Acciones — y las facturas salen solo al pulsar el nombre o la flecha (los dos son botones y dicen
+  con `aria-expanded` si están abiertos). **Uno a la vez**, como en el reporte: abrir otro cierra el
+  anterior. "Imprimir" y "Registrar Cobro" se quedan en la fila. La consulta (`getPendingAR`) trae
+  ahora el RNC del cliente, que la fila enseña.
+  Las reglas viven en `services/cartera/listaDeClientes.ts` (puras): `alternarCliente`,
+  `inicialesDelCliente` y **`estaVencida`**, que arregla de paso un defecto: "Vencida" se decidía con
+  `new Date(vencimiento) < new Date()`, y un vencimiento sin hora es medianoche **UTC** — en RD
+  (UTC−4) la factura que vence hoy salía vencida desde las 20:00 del día anterior (la trampa de los
+  lotes 158 y 174). Ahora se comparan **días de RD** (`diaRD`), y la que vence hoy aún no está vencida.
+  El detalle de cada cliente es `DetalleDelCliente`, en el mismo fichero (React Doctor: JSX demasiado
+  anidado; y así las fechas siguen donde las vigila `verificar_fechas_pantallas`). Se anima opacidad
+  y desplazamiento, **no la altura** (animar `height` recalcula el diseño en cada fotograma).
+  **Se miró en el navegador** con la página temporal: la lista plegada, un cliente desplegado y abrir
+  otro cerrando el primero.
+  Banco `verificar_cobros_desplegables.ts`: 10 comprobaciones y 3 invariantes (Imprimir y Registrar
+  Cobro siguen, la búsqueda y el error de carga, las fechas por `formatDateDisplay`), contraprueba
+  **10 FALLA**, nueve mutantes y nueve muertos.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3302,5 +3324,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 268 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 267 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

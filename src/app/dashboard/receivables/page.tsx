@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, Receipt, Plus, RefreshCw, X, HandCoins, Building2, Calendar, CreditCard, Landmark, CheckCircle2, AlertCircle, Printer, Eye, History, FileText, Sparkles } from 'lucide-react';
+import { Search, Receipt, Plus, RefreshCw, X, HandCoins, Building2, Calendar, CreditCard, Landmark, CheckCircle2, AlertCircle, Printer, Eye, History, FileText, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { alternarCliente, inicialesDelCliente, estaVencida } from '@/services/cartera/listaDeClientes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
-import { formatDateDisplay, formatDateTimeDisplay } from '@/utils/fechasLocales';
+import { formatDateDisplay, formatDateTimeDisplay, diaRD } from '@/utils/fechasLocales';
 import { entraPorBanco, motivoParaNoRegistrarCobro } from '@/services/cartera/cuentaDelCobro';
 
 // -- Types --
@@ -25,6 +26,8 @@ interface InvoiceAR {
 interface CustomerAR {
   customerId: string;
   customerName: string;
+  //  Lote 267: el RNC o cedula, para la columna de la lista desplegable.
+  customerRnc?: string | null;
   totalBalance: number;
   invoices: InvoiceAR[];
 }
@@ -38,6 +41,72 @@ const fmt = (val: number) => {
   }).format(val || 0);
 };
 
+/**
+ * Lote 267: las facturas de un cliente desplegado, como el detalle del reporte de cuentas por
+ * cobrar. Componente aparte por React Doctor (el JSX quedaba demasiado anidado), y en ESTE fichero
+ * para que las fechas sigan donde las vigila `verificar_fechas_pantallas`. Se anima la opacidad y un
+ * desplazamiento (`transform`), no la altura: animar `height` recalcula el diseno en cada fotograma.
+ */
+function DetalleDelCliente({ invoices }: { invoices: InvoiceAR[] }) {
+  //  El dia de RD, UNA vez al abrir el detalle (no `new Date()` en cada fila del render).
+  const [hoy] = useState(() => diaRD());
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+    >
+      <div className="p-6">
+        <div className="bg-white rounded-xl border border-slate-200/50 shadow-sm p-4">
+          <h3 className="font-bold text-[#003366] flex items-center gap-2 mb-4 pb-4 border-b border-slate-100">
+            <Receipt className="w-5 h-5 text-amber-500" /> Detalle de Cuentas por Cobrar
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-slate-50/80 text-[10px] text-slate-500 uppercase font-bold tracking-wider border-b border-slate-200">
+                <tr>
+                  <th className="px-4 py-2.5">Factura</th>
+                  <th className="px-4 py-2.5">NCF / Documento</th>
+                  <th className="px-4 py-2.5">Fecha Emisión</th>
+                  <th className="px-4 py-2.5">Vencimiento</th>
+                  <th className="px-4 py-2.5 text-right">Monto Original</th>
+                  <th className="px-4 py-2.5 text-right">Balance Restante</th>
+                  <th className="px-4 py-2.5 text-center">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {invoices.map(inv => {
+                  const isOverdue = estaVencida(inv.dueDate, inv.balance, hoy);
+                  return (
+                    <tr key={inv.arId} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-2.5 font-mono font-bold text-[#003366]">{inv.codigoFactura || 'N/A'}</td>
+                      <td className="px-4 py-2.5 font-mono text-slate-500">{inv.invoiceNumber}</td>
+                      <td className="px-4 py-2.5 text-slate-500">{formatDateDisplay(inv.invoiceDate)}</td>
+                      <td className="px-4 py-2.5">
+                        <span className={clsx("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold", isOverdue ? 'bg-rose-500/10 text-rose-600 border border-rose-500/10' : 'text-slate-600')}>
+                          {isOverdue && <AlertCircle className="w-3.5 h-3.5 text-rose-500" />}
+                          {formatDateDisplay(inv.dueDate)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-slate-500 font-mono">{fmt(inv.amount)}</td>
+                      <td className="px-4 py-2.5 text-right font-mono font-bold text-slate-800">{fmt(inv.balance)}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        <span className={clsx("px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider", isOverdue ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700')}>
+                          {isOverdue ? 'Vencida' : 'Pendiente'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function ReceivablesPage() {
   const [loading, setLoading] = useState(true);
   // P2-37: TRES errores, no uno. Los cuatro cargadores de esta pantalla
@@ -47,6 +116,8 @@ export default function ReceivablesPage() {
   const [errorRecibos, setErrorRecibos] = useState<string | null>(null);
   const [errorEstado, setErrorEstado] = useState<string | null>(null);
   const [customers, setCustomers] = useState<CustomerAR[]>([]);
+  //  Lote 267: el cliente desplegado en "Balances de Clientes" (uno a la vez, como el reporte).
+  const [clienteAbierto, setClienteAbierto] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Modal State
@@ -513,79 +584,84 @@ export default function ReceivablesPage() {
                   <p className="text-on-surface-variant/70 mt-2">No hay facturas pendientes de cobro en este momento.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {filteredCustomers.map(customer => (
-                <div key={customer.customerId} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                  {/* Customer Header */}
-                  <div className="bg-slate-50 border-b border-slate-200 p-4 flex flex-wrap justify-between items-center gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 bg-[#003366]/10 text-[#003366] rounded-lg flex items-center justify-center">
-                        <Building2 className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-slate-800">{customer.customerName}</h3>
-                        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{customer.invoices.length} {customer.invoices.length === 1 ? 'Factura Pendiente' : 'Facturas Pendientes'}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Balance Total</p>
-                        <p className="font-mono text-sm font-bold text-rose-600">{fmt(customer.totalBalance)}</p>
-                      </div>
-                      <button
-                        onClick={() => handlePrintCustomerStatement(customer.customerId)}
-                        disabled={printingCustomerId === customer.customerId}
-                        className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                      >
-                        <Printer className="h-3.5 w-3.5" /> Imprimir
-                      </button>
-                      <button
-                        onClick={() => handleOpenPayment(customer)}
-                        className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                      >
-                        <Receipt className="h-3.5 w-3.5" /> Registrar Cobro
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Invoices List */}
+                //  LOTE 267: una tabla con una fila por cliente que se despliega y se contrae, como la de
+                //  /dashboard/receivables-report (pedido del dueño). Antes cada cliente era una tarjeta
+                //  con sus facturas SIEMPRE a la vista. Un cliente abierto a la vez (`alternarCliente`).
+                //  La fila no es pulsable entera: lo son el nombre y la flecha, que son botones (teclado
+                //  y lector de pantalla), y "Imprimir" y "Registrar Cobro" siguen en la fila.
+                <div className="bg-white rounded-2xl border border-slate-200/30 shadow-lg overflow-hidden">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-slate-50 border-b border-slate-200">
+                    <table className="w-full text-sm text-left">
+                      <thead className="bg-[#003366] text-white">
                         <tr>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Factura</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">NCF / Documento</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha Emisión</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Vencimiento</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Monto Original</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Balance Restante</th>
+                          <th className="px-6 py-4 font-bold rounded-tl-xl">Cliente</th>
+                          <th className="px-6 py-4 font-bold">RNC/Cédula</th>
+                          <th className="px-6 py-4 text-right font-bold">Facturas Pendientes</th>
+                          <th className="px-6 py-4 text-right font-bold">Balance Pendiente</th>
+                          <th className="px-6 py-4 text-center font-bold rounded-tr-xl">Acciones</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {customer.invoices.map(inv => {
-                          const isOverdue = new Date(inv.dueDate) < new Date() && inv.balance > 0;
-                          return (
-                            <tr key={inv.arId} className="hover:bg-slate-50/60 transition-colors">
-                              <td className="px-4 py-2 font-mono font-bold text-[#003366]">{inv.codigoFactura || 'N/A'}</td>
-                              <td className="px-4 py-2 font-mono text-slate-500">{inv.invoiceNumber}</td>
-                              <td className="px-4 py-2 text-slate-500">{formatDateDisplay(inv.invoiceDate)}</td>
-                              <td className="px-4 py-2">
-                                <span className={clsx("inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium", isOverdue ? 'bg-rose-100 text-rose-700' : 'text-slate-500')}>
-                                  {isOverdue && <AlertCircle className="w-3 h-3" />}
-                                  {formatDateDisplay(inv.dueDate)}
-                                </span>
+                      {filteredCustomers.map(customer => {
+                        const abierto = clienteAbierto === customer.customerId;
+                        const alternar = () => setClienteAbierto(alternarCliente(clienteAbierto, customer.customerId));
+                        return (
+                          <tbody key={customer.customerId}>
+                            <tr className={clsx('hover:bg-slate-50 transition-colors border-b border-slate-100', abierto && 'bg-slate-50/80 border-transparent')}>
+                              <td className="px-6 py-4">
+                                <button type="button" onClick={alternar} aria-expanded={abierto}
+                                  className="flex items-center gap-3 font-bold text-slate-800 text-left hover:text-[#003366]">
+                                  <span className="h-8 w-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm shrink-0" aria-hidden="true">
+                                    {inicialesDelCliente(customer.customerName)}
+                                  </span>
+                                  {customer.customerName}
+                                </button>
                               </td>
-                              <td className="px-4 py-2 text-right text-slate-500 font-mono">{fmt(inv.amount)}</td>
-                              <td className="px-4 py-2 text-right font-mono font-bold text-slate-800">{fmt(inv.balance)}</td>
+                              <td className="px-6 py-4 font-mono text-slate-600">{customer.customerRnc || 'N/A'}</td>
+                              <td className="px-6 py-4 text-right font-medium text-slate-600">{customer.invoices.length}</td>
+                              <td className="px-6 py-4 text-right font-mono font-bold text-rose-600">{fmt(customer.totalBalance)}</td>
+                              <td className="px-6 py-4">
+                                <div className="flex items-center justify-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handlePrintCustomerStatement(customer.customerId)}
+                                    disabled={printingCustomerId === customer.customerId}
+                                    className="flex items-center gap-1.5 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-3 py-1.5 h-8 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed text-xs"
+                                  >
+                                    <Printer className="h-3.5 w-3.5" /> Imprimir
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenPayment(customer)}
+                                    className="flex items-center gap-1.5 bg-[#003366] hover:bg-[#002244] text-white px-3 py-1.5 h-8 rounded-lg font-bold shadow-sm transition text-xs"
+                                  >
+                                    <Receipt className="h-3.5 w-3.5" /> Registrar Cobro
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={alternar}
+                                    aria-expanded={abierto}
+                                    aria-label={abierto ? `Ocultar las facturas de ${customer.customerName}` : `Ver las facturas de ${customer.customerName}`}
+                                    className="text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-full hover:bg-slate-200"
+                                  >
+                                    {abierto ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                  </button>
+                                </div>
+                              </td>
                             </tr>
-                          );
-                        })}
-                      </tbody>
+
+                            {abierto && (
+                              <tr className="bg-slate-50 border-b-2 border-[#003366]/20">
+                                <td colSpan={5} className="p-0">
+                                  <DetalleDelCliente invoices={customer.invoices} />
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        );
+                      })}
                     </table>
                   </div>
                 </div>
-              ))}
-            </div>
           )}
         </AnimatePresence>
           </>
