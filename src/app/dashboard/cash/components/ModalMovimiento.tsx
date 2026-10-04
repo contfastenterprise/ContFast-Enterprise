@@ -4,45 +4,27 @@
  * La ventana de entrada o salida de efectivo.
  * Salio de `cash/page.tsx` al partirla (lote 229), con el mismo marcado.
  */
-import { Plus, Minus, RefreshCw, X } from 'lucide-react';
-//  Lote 230: `m` y no `motion`; el `LazyMotion` lo pone la pagina.
-import { m, AnimatePresence } from 'framer-motion';
+import { Plus, Minus, RefreshCw } from 'lucide-react';
+import { Modal } from '@/components/ui/dialog';
 import clsx from 'clsx';
 import type { Caja } from '../hooks/useCaja';
-import { Button, IconButton } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 
 export function ModalMovimiento({ c }: { c: Caja }) {
+  //  Lote 279: la ventana comun (`Modal`). El fondo no cerraba (formulario), y mientras se
+  //  registra (`submitting`) no se cierra.
   return (
     <>
-      <AnimatePresence>
-        {c.showMoveModal && (
-          <m.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#001e40]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          >
-            <m.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden relative z-10"
-            >
-              <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200">
-                <div className="flex items-center gap-2">
-                  {c.moveType === 'cash_in'
-                    ? <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-200"><Plus className="w-4 h-4 text-emerald-600" /></div>
-                    : <div className="w-7 h-7 rounded-full bg-red-50 flex items-center justify-center border border-red-200"><Minus className="w-4 h-4 text-red-600" /></div>
-                  }
-                  <h3 className="text-sm font-bold text-slate-800">
-                    {c.moveType === 'cash_in' ? 'Entrada de Efectivo' : 'Salida de Efectivo'}
-                  </h3>
-                </div>
-                <IconButton type="button" onClick={() => c.setShowMoveModal(false)} aria-label="Cerrar la ventana del movimiento">
-                  <X className="w-4 h-4" />
-                </IconButton>
-              </div>
-
+      <Modal
+        isOpen={c.showMoveModal}
+        onClose={() => c.setShowMoveModal(false)}
+        bloqueada={c.submitting}
+        cerrarAlPulsarFuera={false}
+        maxWidth="md"
+        sinRelleno
+        icono={c.moveType === 'cash_in' ? <Plus /> : <Minus />}
+        title={c.moveType === 'cash_in' ? 'Entrada de Efectivo' : 'Salida de Efectivo'}
+      >
               <form onSubmit={c.handleAddMovement} className="p-4 space-y-4">
                 <div className="flex gap-2">
                   {(['cash_in', 'cash_out'] as const).map((t) => (
@@ -108,11 +90,8 @@ export function ModalMovimiento({ c }: { c: Caja }) {
                     Registrar {c.moveType === 'cash_in' ? 'Entrada' : 'Salida'}
                   </Button>
                 </div>
-              </form>
-            </m.div>
-          </m.div>
-        )}
-      </AnimatePresence>
+            </form>
+      </Modal>
     </>
   );
 }

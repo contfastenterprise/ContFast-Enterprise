@@ -5,31 +5,27 @@
  * Salio de `cash/page.tsx` al partirla (lote 229), con el mismo marcado.
  */
 import { CheckCircle2, Printer } from 'lucide-react';
-//  Lote 230: `m` y no `motion`; el `LazyMotion` lo pone la pagina.
-import { m, AnimatePresence } from 'framer-motion';
+import { Modal } from '@/components/ui/dialog';
 import clsx from 'clsx';
 import { Button } from '@/components/ui/button';
 import { fmt } from '../caja';
 import type { Caja } from '../hooks/useCaja';
 
 export function ModalCierre({ c }: { c: Caja }) {
+  //  Lote 279: la ventana comun (`Modal`). El fondo no cerraba y no tenia X: la unica salida era
+  //  "Volver al Inicio", y esa es su `onClose` (la X y Escape hacen lo mismo que ese boton).
   return (
     <>
-      <AnimatePresence>
-        {c.showSuccessModal && (
-          <m.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#001e40]/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          >
-            <m.div
-              initial={{ opacity: 0, scale: 0.9, y: 30 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              className="bg-white p-6 rounded-xl max-w-sm w-full shadow-2xl text-center border-t-4 border-[#c5a059]"
-            >
+      <Modal
+        isOpen={c.showSuccessModal}
+        onClose={c.handleSuccessClose}
+        cerrarAlPulsarFuera={false}
+        maxWidth="sm"
+        icono={<CheckCircle2 />}
+        title="Cierre Exitoso"
+      >
+            <div className="text-center">
               <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
-              <h2 className="text-xl font-bold text-[#001e40] mb-2">Cierre Exitoso</h2>
               <p className="text-slate-500 text-xs mb-4">
                 El arqueo ha sido procesado y el turno ha sido cerrado satisfactoriamente. La terminal está lista para el siguiente turno.
               </p>
@@ -96,10 +92,8 @@ export function ModalCierre({ c }: { c: Caja }) {
                   Volver al Inicio
                 </Button>
               </div>
-            </m.div>
-          </m.div>
-        )}
-      </AnimatePresence>
+            </div>
+      </Modal>
     </>
   );
 }

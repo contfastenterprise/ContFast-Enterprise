@@ -197,15 +197,25 @@ function main() {
   console.log('\n7) Lo que no cambia (invariante): textos, ejemplos, titulos, avisos y API\n');
   //  Las clases y los aria-label cambian a proposito. El titulo y la descripcion que pasan a props
   //  de la cabecera siguen siendo texto visible: se cuentan como texto.
-  const visible = (src: string) => {
-    const props = [...sinComentarios(src.replace(/\r\n/g, '\n')).matchAll(/\b(?:titulo|descripcion)="([^"]*)"/g)].map((m) => `texto:${m[1]}`);
+  //  Lote 279: lo mismo con las ventanas -- el `title`/`description` del `Modal` es el titulo de la
+  //  ventana (texto), no un globo.
+  const visible = (src0: string) => {
+    const src = src0.replace(/\r\n/g, '\n').replace(/<Modal\b[\s\S]*?\n\s*>/g, (ap) => ap.replace(/\btitle="([^"]*)"/g, 'titulo="$1"').replace(/\bdescription="([^"]*)"/g, 'descripcion="$1"'));
+    const props = [...sinComentarios(src).matchAll(/\b(?:titulo|descripcion)="([^"]*)"/g)].map((m) => `texto:${m[1]}`);
     return [...huella(src).filter((x) => !x.startsWith('clase:') && !x.startsWith('aria-label:')), ...props].sort();
   };
+  //  Lote 279, a proposito: el OCR no tenia titulo (lleva el del boton que lo abre) y el "Cerrar
+  //  Ventana" de la cabecera del detalle de la compra pasa a ser la X de la ventana comun.
+  const ANOTADOS: Record<string, { faltan: string[]; sobran: string[] }> = {
+    'src/app/dashboard/purchases/page.tsx': { faltan: ['texto:Cerrar Ventana'], sobran: ['texto:Lector OCR (Subir Factura)'] },
+  };
+  const quitar = (xs: string[], ys: string[]) => { const r = [...xs]; for (const y of ys) { const i = r.indexOf(y); if (i >= 0) r.splice(i, 1); else r.push(`(anotado y no visto) ${y}`); } return r; };
   const distintos: string[] = [];
   for (const f of FICHEROS) {
     let antes = '';
     try { antes = enCommit(BASE, f); } catch { distintos.push(`${f}: no existe en ${BASE}`); continue; }
-    const { faltan, sobran } = diferencia(visible(antes), visible(fuentes.get(f)!));
+    let { faltan, sobran } = diferencia(visible(antes), visible(fuentes.get(f)!));
+    if (ANOTADOS[f]) { faltan = quitar(faltan, ANOTADOS[f].faltan); sobran = quitar(sobran, ANOTADOS[f].sobran); }
     if (faltan.length || sobran.length) distintos.push(`${f.split('/').slice(-2).join('/')}: faltan ${JSON.stringify(faltan.slice(0, 2))} sobran ${JSON.stringify(sobran.slice(0, 2))}`);
   }
   invariante(`los ${FICHEROS.length} ficheros dicen lo mismo que en ${BASE}`, distintos.length === 0, distintos.slice(0, 4).join(' | '));

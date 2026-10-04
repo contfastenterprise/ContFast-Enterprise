@@ -6,11 +6,12 @@
  * Solo pinta: el estado y las acciones viven en `useCaja`.
  */
 import { useRouter } from 'next/navigation';
-import { Wallet, Lock, RefreshCw, CheckCircle2, X, Loader2 } from 'lucide-react';
+import { Wallet, Lock, RefreshCw, CheckCircle2, Loader2 } from 'lucide-react';
 //  Lote 230: `m` y no `motion`; el `LazyMotion` lo pone la pagina.
-import { m, AnimatePresence } from 'framer-motion';
+import { m } from 'framer-motion';
+import { Modal } from '@/components/ui/dialog';
 import type { Caja } from '../hooks/useCaja';
-import { Button, IconButton } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 
 export function VistaApertura({ c }: { c: Caja }) {
   const router = useRouter();
@@ -166,29 +167,18 @@ export function VistaApertura({ c }: { c: Caja }) {
       </div>
 
       {/* ── New POS Terminal Modal ────────────────────────────────────── */}
-      <AnimatePresence>
-        {c.showNewRegisterModal && (
-          <m.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          >
-            <m.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-sm rounded-xl shadow-xl overflow-hidden bg-white text-slate-800"
-            >
-              <div className="px-4 py-3 border-b border-slate-200 flex justify-between items-center bg-white">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800">Nueva Terminal de Caja</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Configure una nueva terminal para su empresa.</p>
-                </div>
-                <IconButton type="button" onClick={() => c.setShowNewRegisterModal(false)} aria-label="Cerrar la ventana de nueva terminal">
-                  <X className="w-4 h-4" />
-                </IconButton>
-              </div>
+      {/* Lote 279: la ventana comun (`Modal`). El fondo no cerraba (formulario), y mientras se
+          crea la terminal (`creatingRegister`) no se cierra. */}
+      <Modal
+        isOpen={c.showNewRegisterModal}
+        onClose={() => c.setShowNewRegisterModal(false)}
+        bloqueada={c.creatingRegister}
+        cerrarAlPulsarFuera={false}
+        maxWidth="sm"
+        sinRelleno
+        title="Nueva Terminal de Caja"
+        description="Configure una nueva terminal para su empresa."
+      >
               <form onSubmit={c.handleCreateRegister} className="p-4 space-y-4">
                 <div className="space-y-1">
                   <label htmlFor="caja-terminal-nombre" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Nombre de la Terminal <span className="text-red-500">*</span></label>
@@ -228,10 +218,7 @@ export function VistaApertura({ c }: { c: Caja }) {
                   </Button>
                 </div>
               </form>
-            </m.div>
-          </m.div>
-        )}
-      </AnimatePresence>
+      </Modal>
     </>
   );
 }

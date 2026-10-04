@@ -5,9 +5,9 @@ import {
   RefreshCw, Search, Plus, Minus, Save, Trash2, Box, Banknote, Calendar,
   Tag, FileText, CheckSquare, Square, Filter, ChevronRight, Eye, Info, ListFilter,
   DollarSign, ArrowUpRight, ShoppingCart, Activity, Printer, Clock, AlertTriangle,
-  Camera, Scan, Pencil, X, ChevronLeft, Check, LayoutList
+  Camera, Scan, Pencil, ChevronLeft, Check, LayoutList
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { roundMoney } from '@/utils/calculos';
 import InvoiceImageUploader from '@/components/InvoiceImageUploader';
@@ -28,6 +28,7 @@ import { lineasDeCompraConTasa } from '@/services/precios/cambioDeTasa';
 import { TasaDelDolarEnLinea } from '@/components/precios/TasaDelDolarEnLinea';
 import { Button, IconButton } from '@/components/ui/button';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { Modal } from '@/components/ui/dialog';
 
 interface Product { id: string; name: string; sku: string; cost: string; }
 interface Supplier { id: string; name: string; rnc: string; }
@@ -2423,50 +2424,38 @@ export default function PurchasesPage() {
         <GuaranteeChecksView />
       )}
 
-      {/* OCR Lector Modal */}
-      {showOcrModal && (
-        <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl relative p-6 border border-slate-200">
-            <Button type="button" variant="secondary" size="sm" className="absolute top-4 right-4 z-50"
-              onClick={() => setShowOcrModal(false)}>
-              Cerrar
-            </Button>
-            <div className="pt-4">
-              <InvoiceImageUploader onOcrComplete={handleOcrComplete} />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* OCR Lector Modal -- lote 279: la ventana comun (`Modal`). El fondo no cerraba; el boton
+          "Cerrar" de siempre queda en el pie. El titulo es el del boton que la abre. */}
+      <Modal
+        isOpen={showOcrModal}
+        onClose={() => setShowOcrModal(false)}
+        maxWidth="2xl"
+        cerrarAlPulsarFuera={false}
+        icono={<Camera />}
+        title="Lector OCR (Subir Factura)"
+        footer={
+          <Button type="button" variant="secondary"
+            onClick={() => setShowOcrModal(false)}>
+            Cerrar
+          </Button>
+        }
+      >
+        <InvoiceImageUploader onOcrComplete={handleOcrComplete} />
+      </Modal>
 
-      {/* Modal Agregar Proveedor */}
-      <AnimatePresence>
-        {showAddSupplierModal && (
-          <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-black/55 backdrop-blur-md">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-surface rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-[#003366]"
-            >
-              {/* Modal Header */}
-              <div className="bg-[#001733] text-white p-6 flex justify-between items-center border-b border-[#003366]">
-                <div>
-                  <h3 className="text-xl font-bold flex items-center gap-2">
-                    <Plus className="h-5 w-5" /> Agregar Nuevo Proveedor
-                  </h3>
-                  <p className="text-xs text-on-primary/80 mt-1">
-                    Crea un nuevo suplidor para utilizarlo de inmediato en tus compras.
-                  </p>
-                </div>
-                <IconButton
-                  type="button" className="bg-white/10 hover:bg-white/20 text-on-primary hover:text-on-primary" aria-label="Cerrar la ventana del proveedor"
-                  onClick={() => setShowAddSupplierModal(false)}>
-                  <X className="h-5 w-5" />
-                </IconButton>
-              </div>
-
-              {/* Modal Content / Form */}
-              <form onSubmit={handleAddSupplier} className="p-6 overflow-y-auto space-y-4">
+      {/* Modal Agregar Proveedor -- lote 279: la ventana comun. El fondo no cerraba (formulario) y
+          mientras se guarda (`isSavingSupplier`) no se cierra. */}
+      <Modal
+        isOpen={showAddSupplierModal}
+        onClose={() => setShowAddSupplierModal(false)}
+        bloqueada={isSavingSupplier}
+        cerrarAlPulsarFuera={false}
+        sinRelleno
+        icono={<Plus />}
+        title="Agregar Nuevo Proveedor"
+        description="Crea un nuevo suplidor para utilizarlo de inmediato en tus compras."
+      >
+              <form onSubmit={handleAddSupplier} className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-800 mb-2 font-sans">Nombre del Proveedor *</label>
                   <input
@@ -2542,39 +2531,24 @@ export default function PurchasesPage() {
                   </Button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
-      {/* Premium Detail Modal for Expense/Purchase */}
-      <AnimatePresence>
+      {/* Premium Detail Modal for Expense/Purchase -- lote 279: la ventana comun. El fondo no
+          cerraba. "Cerrar Ventana" de la cabecera pasa a ser la X; "Cerrar Detalle" sigue en el pie. */}
+      <Modal
+        isOpen={!!selectedExpense}
+        onClose={() => setSelectedExpense(null)}
+        maxWidth="4xl"
+        sinRelleno
+        cerrarAlPulsarFuera={false}
+        icono={<Info />}
+        title="Detalle de la Transacción"
+        description={selectedExpense && <>ID Transacción: {selectedExpense.id}</>}
+      >
         {selectedExpense && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/55 backdrop-blur-md">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
-            >
-              {/* Modal Header */}
-              <div className="bg-primary text-on-primary p-6 flex justify-between items-center">
-                <div>
-                  <h3 className="text-xl font-bold flex items-center gap-2">
-                    <Info className="h-5 w-5" /> Detalle de la Transacción
-                  </h3>
-                  <p className="text-xs text-on-primary/80 mt-1">
-                    ID Transacción: {selectedExpense.id}
-                  </p>
-                </div>
-                <Button type="button" variant="secondary" size="sm" className="bg-white/10 hover:bg-white/20 text-on-primary hover:text-on-primary border-white/20"
-                  onClick={() => setSelectedExpense(null)}>
-                  Cerrar Ventana
-                </Button>
-              </div>
-
+          <>
               {/* Modal Body */}
-              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              <div className="p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div className="bg-slate-50 p-4 rounded-lg">
                     <p className="text-[10px] uppercase font-bold text-slate-600">Tipo y Comprobante</p>
@@ -2719,10 +2693,9 @@ export default function PurchasesPage() {
                   Cerrar Detalle
                 </Button>
               </div>
-            </motion.div>
-          </div>
+          </>
         )}
-      </AnimatePresence>
+      </Modal>
     </div>
   );
 }

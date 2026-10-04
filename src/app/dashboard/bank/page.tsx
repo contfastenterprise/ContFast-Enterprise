@@ -1,18 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Landmark, ArrowRightLeft, RefreshCw, X, CreditCard, Building2, CheckCircle2, ArrowDownRight, ArrowUpRight, DollarSign, Search, Printer, Info } from 'lucide-react';
+import { Landmark, ArrowRightLeft, RefreshCw, CreditCard, Building2, CheckCircle2, ArrowDownRight, ArrowUpRight, DollarSign, Search, Printer, Info } from 'lucide-react';
 import DateRangePicker from '@/components/ui/date-range-picker';
-//  Lote 252: `m` dentro de `LazyMotion` y no `motion` (aviso de React Doctor).
-import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 import { leerRespuesta } from '@/utils/leerRespuesta';
 
-import { Button, IconButton } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { Modal } from '@/components/ui/dialog';
 interface BankAccount {
   id: string;
   bankName: string;
@@ -748,17 +747,19 @@ function VentanaDeMovimiento({ h }: { h: EstadoBankAccountsPage }) {
   const { selectedAccount, chartOfAccounts, showTxModal, setShowTxModal, submitting, txForm, setTxForm, handleRegisterTx } = h;
   return (
     <>
-      {/* MODAL: REGISTER TX */}
-      <LazyMotion features={domAnimation}>
-      <AnimatePresence>
-        {showTxModal && selectedAccount && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
-            <m.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50">
-                <h3 className="text-xl font-display font-bold text-slate-800 flex items-center gap-2"><ArrowRightLeft className="w-5 h-5 text-[#c5a059]" /> Registrar Movimiento</h3>
-                <IconButton type="button" onClick={() => setShowTxModal(false)} aria-label="Cerrar la ventana del movimiento"><X className="w-5 h-5" /></IconButton>
-              </div>
+      {/* MODAL: REGISTER TX -- lote 279: la ventana comun (`Modal`). El fondo no cerraba, y mientras
+          se procesa (`submitting`) no se cierra. */}
+      <Modal
+        isOpen={showTxModal && !!selectedAccount}
+        onClose={() => setShowTxModal(false)}
+        bloqueada={submitting}
+        cerrarAlPulsarFuera={false}
+        maxWidth="md"
+        sinRelleno
+        icono={<ArrowRightLeft />}
+        title="Registrar Movimiento"
+      >
+        {selectedAccount && (
               <form onSubmit={handleRegisterTx} className="p-4 space-y-4">
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
                   <div>
@@ -826,11 +827,8 @@ function VentanaDeMovimiento({ h }: { h: EstadoBankAccountsPage }) {
                   </Button>
                 </div>
               </form>
-            </m.div>
-          </div>
         )}
-      </AnimatePresence>
-      </LazyMotion>
+      </Modal>
     </>
   );
 }

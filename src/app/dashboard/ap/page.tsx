@@ -20,6 +20,7 @@ import { saleDelBanco, motivoParaNoRegistrarPago } from '@/services/cxp/cuentaDe
 
 import { Button, IconButton } from '@/components/ui/button';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { Modal } from '@/components/ui/dialog';
 // -- Types --
 interface BillAP {
   apId: string;
@@ -998,25 +999,21 @@ export default function AccountsPayablePage() {
       </div>
 
       {/* MODAL: REGISTRAR PAGO (With Ledger configuration) */}
-      <AnimatePresence>
-        {showPaymentModal && selectedSupplier && selectedBill && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPaymentModal(false)} className="absolute inset-0 bg-slate-50/80 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="relative z-10 flex flex-col w-full max-w-2xl max-h-[95vh] bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
-
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-[#003366] bg-[#001733] shrink-0">
-                <div>
-                  <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
-                    <FileSignature className="w-5 h-5 text-[#c5a059]" /> Registrar Pago Contable
-                  </h3>
-                  <p className="text-[#c5a059]/80 text-xs mt-1 font-mono">{selectedSupplier.supplierName} • Factura ID: {selectedBill.apId.slice(0, 8).toUpperCase()}</p>
-                </div>
-                <IconButton type="button" onClick={() => setShowPaymentModal(false)} aria-label="Cerrar la ventana del pago" className="text-slate-300 hover:text-white hover:bg-white/10"><X className="w-5 h-5" /></IconButton>
-              </div>
-
-              {/* Form body */}
-              <form onSubmit={handleSubmitPayment} className="p-4 space-y-5 overflow-y-auto flex-1">
+      {/* Lote 279: la ventana comun (`Modal`). El fondo ya cerraba (por defecto); mientras se
+          procesa el pago (`submitting`) no se cierra por ningun camino. Lo que pasa al confirmar
+          (los cheques en garantia, el envio del formulario) no cambia. */}
+      <Modal
+        isOpen={showPaymentModal && !!selectedSupplier && !!selectedBill}
+        onClose={() => setShowPaymentModal(false)}
+        bloqueada={submitting}
+        maxWidth="2xl"
+        sinRelleno
+        icono={<FileSignature />}
+        title="Registrar Pago Contable"
+        description={selectedSupplier && selectedBill && <>{selectedSupplier.supplierName} • Factura ID: {selectedBill.apId.slice(0, 8).toUpperCase()}</>}
+      >
+        {selectedSupplier && selectedBill && (
+              <form onSubmit={handleSubmitPayment} className="p-4 space-y-5">
 
                 {/* Lote 161: lo primero que se ve al ir a pagar, si la factura
                     ya tiene cheques en garantia pendientes de cobro. */}
@@ -1279,10 +1276,8 @@ export default function AccountsPayablePage() {
                 </div>
 
               </form>
-            </motion.div>
-          </div>
         )}
-      </AnimatePresence>
+      </Modal>
 
     </div>
   );

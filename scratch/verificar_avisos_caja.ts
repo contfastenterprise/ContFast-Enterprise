@@ -159,7 +159,9 @@ async function main() {
   } catch { mv = ''; }
   const botones = [...cerrar(htmls['apertura y nueva terminal'] ?? ''), ...cerrar(htmls['movimiento'] ?? ''), ...cerrar(mv)];
   ok('los tres botones de cerrar (una X) dicen que cierran',
-    botones.length === 3 && botones.every((b) => /aria-label="Cerrar[^"]+"/.test(b)), `${botones.length} botones`);
+    //  Lote 279: las tres ventanas son la comun, y su X dice "Cerrar" (sin mas: el titulo de la
+    //  ventana, enlazado con `aria-labelledby`, dice de que ventana es).
+    botones.length === 3 && botones.every((b) => /aria-label="Cerrar[^"]*"/.test(b)), `${botones.length} botones`);
   const arq = htmls['arqueo'] ?? '';
   const { DENOMINATIONS } = await import('../src/app/dashboard/cash/caja');
   const cantidades = [...arq.matchAll(/aria-label="Cantidad de ([^"]+)"/g)].map((m) => m[1]);
