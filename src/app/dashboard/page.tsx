@@ -6,8 +6,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useRbac } from '@/components/providers/rbacContext';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
-import { FileText, RefreshCw, AlertCircle, TrendingUp, CheckCircle2, Send, Eye, Plus, History as HistoryIcon, Clock, ChevronRight, Search, Activity, Users, ShoppingCart, X, LayoutDashboard } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { FileText, RefreshCw, AlertCircle, TrendingUp, CheckCircle2, Send, Eye, Plus, History as HistoryIcon, Clock, ChevronRight, Search, Activity, Users, ShoppingCart, LayoutDashboard } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Modal } from '@/components/ui/dialog';
 import clsx from 'clsx';
 import SkeletonBasic from '@/components/ui/skeleton';
 import { BorderRotate } from '@/components/ui/animated-gradient-border';
@@ -786,35 +787,26 @@ export default function DashboardPage() {
       </section></ScrollReveal>
 
       {/* ── Alerts Modal ────────────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {showAlertsModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/40 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[85vh]"
-            >
-              <div className="p-4 border-b border-slate-200/20 flex justify-between items-center bg-white">
-                <div className="flex items-center gap-3">
-                  <div className="bg-error/10 p-2.5 rounded-xl text-error">
-                    <AlertCircle className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <h3 className="font-headline-md text-xl font-bold text-primary">Alertas del Sistema</h3>
-                    <p className="text-sm font-medium text-slate-500/70 mt-0.5">Atiende estos {stats.alertCount} avisos para mantener el sistema al día</p>
-                  </div>
-                </div>
-                <IconButton
+      <Modal
+        isOpen={showAlertsModal}
+        onClose={() => setShowAlertsModal(false)}
+        title="Alertas del Sistema"
+        description={<>Atiende estos {stats.alertCount} avisos para mantener el sistema al día</>}
+        icono={<AlertCircle />}
+        maxWidth="2xl"
+        cerrarAlPulsarFuera={false}
+        footer={
+                <Button
                   type="button"
-                  aria-label="Cerrar"
-                  className="rounded-full"
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setShowAlertsModal(false)}
                 >
-                  <X className="h-5 w-5" />
-                </IconButton>
-              </div>
-              <div className="p-4 overflow-y-auto custom-scrollbar flex-1 space-y-4">
+                  Cerrar
+                </Button>
+        }
+      >
+              <div className="space-y-4">
                 {stats.alertsDetails && stats.alertsDetails.length > 0 ? (
                   stats.alertsDetails.map((alert) => (
                     <div key={alert.id} className="border border-slate-200/30 rounded-xl p-4 hover:bg-white transition-colors flex flex-col sm:flex-row gap-5 items-start">
@@ -850,20 +842,7 @@ export default function DashboardPage() {
                   </div>
                 )}
               </div>
-              <div className="p-4 border-t border-slate-200/20 bg-slate-50 text-right">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setShowAlertsModal(false)}
-                >
-                  Cerrar
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
         </>
       )}

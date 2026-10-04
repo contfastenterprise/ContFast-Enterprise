@@ -77,7 +77,9 @@ function main() {
     //  cada una cierre con SU manejador, en su `<Modal` (o, escrita a mano, con su aria-label).
     && ['setShowDetailModal', 'setShowReceiveModal'].every((n) => bp.includes(`${n}(false)} aria-label="Cerrar`)
       || bp.split(/<Modal\b/).slice(1).map((t) => t.slice(0, t.search(/\n\s*>\r?\n/))).some((a) => a.includes(`onClose={() => ${n}(false)}`)))
-    && /aria-label="Cerrar"/.test(s.empresas) && /aria-label="Buscar empresa por nombre o RNC"/.test(s.empresas));
+    //  Lote 280: la suscripcion es el Modal comun, cuya X lleva aria-label="Cerrar" (dialog.tsx).
+    && (/aria-label="Cerrar"/.test(s.empresas) || (/<Modal\b/.test(s.empresas) && /aria-label="Cerrar"/.test(leer('src/components/ui/dialog.tsx'))))
+    && /aria-label="Buscar empresa por nombre o RNC"/.test(s.empresas));
   ok('bancos: la tarjeta de cada cuenta se elige con el teclado, y "Rango de Fechas" no es una etiqueta suelta',
     /role="button"\s+tabIndex=\{0\}[\s\S]{0,300}onKeyDown=\{\(e\) => \{ if \(e\.key === 'Enter' \|\| e\.key === ' '\)/.test(s.bancos)
     && /<p className="[^"]*">Rango de Fechas<\/p>/.test(s.bancos));

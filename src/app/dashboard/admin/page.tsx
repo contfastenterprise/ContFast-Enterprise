@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, Fragment } from 'react';
-import { Shield, ShieldCheck, Plus, RefreshCw, X, CheckCircle2, Users as UsersIcon, KeyRound, Lock, UserCheck, UserX, UserSquare, CreditCard, Award, Zap, FileText, Layers, Calendar, Pencil, Ban, ChevronDown, ChevronRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Shield, ShieldCheck, Plus, RefreshCw, CheckCircle2, Users as UsersIcon, KeyRound, Lock, UserCheck, UserX, UserSquare, CreditCard, Award, Zap, FileText, Layers, Calendar, Pencil, Ban, ChevronDown, ChevronRight } from 'lucide-react';
+import { Modal } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 import Avatar from '@/components/ui/Avatar';
@@ -796,16 +796,16 @@ export default function AdminPage() {
       </div>
 
       {/* MODAL: NEW USER */}
-      <AnimatePresence>
-        {showNewUserModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-3xl bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
-                <h3 className="text-xl font-display font-bold text-white flex items-center gap-2"><UserSquare className="w-5 h-5 text-[#c5a059]" /> Nuevo Usuario</h3>
-                <IconButton type="button" onClick={() => setShowNewUserModal(false)} aria-label="Cerrar" className="text-on-surface-variant hover:text-primary hover:bg-white/10"><X className="w-5 h-5" /></IconButton>
-              </div>
-              <form onSubmit={handleCreateUser} className="p-6 space-y-6">
+      <Modal
+        isOpen={showNewUserModal}
+        onClose={() => setShowNewUserModal(false)}
+        title="Nuevo Usuario"
+        icono={<UserSquare />}
+        maxWidth="3xl"
+        cerrarAlPulsarFuera={false}
+        bloqueada={submitting}
+      >
+              <form onSubmit={handleCreateUser} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Left Column: Form Fields */}
                   <div className="space-y-4">
@@ -862,22 +862,19 @@ export default function AdminPage() {
                   </Button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
       {/* MODAL: EDIT USER */}
-      <AnimatePresence>
-        {showEditUserModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-3xl bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
-                <h3 className="text-xl font-display font-bold text-white flex items-center gap-2"><UserSquare className="w-5 h-5 text-[#c5a059]" /> Modificar Usuario</h3>
-                <IconButton type="button" onClick={() => setShowEditUserModal(false)} aria-label="Cerrar" className="text-on-surface-variant hover:text-primary hover:bg-white/10"><X className="w-5 h-5" /></IconButton>
-              </div>
-              <form onSubmit={handleEditUser} className="p-6 space-y-6">
+      <Modal
+        isOpen={showEditUserModal}
+        onClose={() => setShowEditUserModal(false)}
+        title="Modificar Usuario"
+        icono={<UserSquare />}
+        maxWidth="3xl"
+        cerrarAlPulsarFuera={false}
+        bloqueada={submitting}
+      >
+              <form onSubmit={handleEditUser} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Left Column: Form Fields */}
                   <div className="space-y-4">
@@ -934,22 +931,19 @@ export default function AdminPage() {
                   </Button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
       {/* MODAL: NEW ROLE */}
-      <AnimatePresence>
-        {showNewRoleModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
-                <h3 className="text-xl font-display font-bold text-white flex items-center gap-2"><KeyRound className="w-5 h-5 text-[#c5a059]" /> Nuevo Rol</h3>
-                <IconButton type="button" onClick={() => setShowNewRoleModal(false)} aria-label="Cerrar" className="text-on-surface-variant hover:text-primary hover:bg-white/10"><X className="w-5 h-5" /></IconButton>
-              </div>
-              <form onSubmit={handleCreateRole} className="p-6 space-y-5">
+      <Modal
+        isOpen={showNewRoleModal}
+        onClose={() => setShowNewRoleModal(false)}
+        title="Nuevo Rol"
+        icono={<KeyRound />}
+        maxWidth="md"
+        cerrarAlPulsarFuera={false}
+        bloqueada={submitting}
+      >
+              <form onSubmit={handleCreateRole} className="space-y-5">
                 <div>
                   <label className="text-sm font-semibold text-primary block mb-1">Nombre del Rol</label>
                   <input type="text" required value={roleForm.name} onChange={e => setRoleForm({ ...roleForm, name: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Ej. ventas, soporte, etc." />
@@ -967,25 +961,19 @@ export default function AdminPage() {
                   </Button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
       {/* MODAL: NEW / EDIT PLAN */}
-      <AnimatePresence>
-        {showPlanModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
-                <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-[#c5a059]" /> 
-                  {selectedPlan ? 'Editar Plan SaaS' : 'Nuevo Plan SaaS'}
-                </h3>
-                <IconButton type="button" onClick={() => setShowPlanModal(false)} aria-label="Cerrar" className="text-white hover:text-[#c5a059] hover:bg-white/10"><X className="w-5 h-5" /></IconButton>
-              </div>
-              <form onSubmit={handleSavePlan} className="p-6 space-y-4">
+      <Modal
+        isOpen={showPlanModal}
+        onClose={() => setShowPlanModal(false)}
+        title={selectedPlan ? 'Editar Plan SaaS' : 'Nuevo Plan SaaS'}
+        icono={<CreditCard />}
+        maxWidth="md"
+        cerrarAlPulsarFuera={false}
+        bloqueada={submitting}
+      >
+              <form onSubmit={handleSavePlan} className="space-y-4">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Nombre del Plan <span className="text-red-500">*</span></label>
                   <input type="text" required value={planForm.name} onChange={e => setPlanForm({ ...planForm, name: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-[#c5a059] outline-none transition-colors" placeholder="Ej. Básico, Profesional, Ilimitado" />
@@ -1027,10 +1015,7 @@ export default function AdminPage() {
                   </Button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
     </div>
   );

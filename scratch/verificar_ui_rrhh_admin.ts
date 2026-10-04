@@ -209,6 +209,21 @@ function textosDe(src: string, despues: boolean): string[] {
   for (const m of s.matchAll(/<CabeceraDePagina\b[\s\S]*?\btitulo="([^"]*)"/g)) if (esTexto(m[1])) h.push(`texto:${m[1]}`);
   for (const m of s.matchAll(/<CabeceraDePagina\b[\s\S]*?\bdescripcion="([^"]*)"/g)) if (esTexto(m[1])) h.push(`texto:${m[1]}`);
   for (const m of s.matchAll(/<AccionesDeFormulario\b[\s\S]*?\btextoPrincipal="([^"]*)"/g)) if (esTexto(m[1])) h.push(`texto:${m[1]}`);
+  //  Lote 280: el titulo y la descripcion de una ventana pasan a props del Modal comun. `huella` los
+  //  toma por `title:`; vuelven a ser el texto que eran. La etiqueta se recorta con llaves
+  //  equilibradas (`icono={<X />}` lleva un `>`).
+  for (const mm of s.matchAll(/<Modal\b/g)) {
+    let k = mm.index! + 6, prof = 0;
+    for (; k < s.length; k++) { const c = s[k]; if (c === '{') prof++; else if (c === '}') prof--; else if (c === '>' && prof === 0) break; }
+    const tag = s.slice(mm.index!, k);
+    for (const p of ['title', 'description']) {
+      const v = new RegExp(`\\s${p}="([^"]*)"`).exec(tag)?.[1];
+      if (v === undefined) continue;
+      const i = h.indexOf(`title:${v}`);
+      if (i >= 0) h.splice(i, 1);
+      if (esTexto(v)) h.push(`texto:${v}`);
+    }
+  }
   for (const b of botones(limpio)) {
     if (b.tag !== 'IconButton' || /\btitle=/.test(b.abre)) continue;
     const al = /aria-label="([^"]*)"/.exec(b.abre);

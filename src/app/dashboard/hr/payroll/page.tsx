@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Banknote, Plus, Calendar, ShieldCheck, RefreshCw, FileText, Trash2, Eye, Printer, X, Award } from 'lucide-react';
+import { Banknote, Plus, Calendar, ShieldCheck, RefreshCw, FileText, Trash2, Eye, Printer, Award } from 'lucide-react';
+import { Modal } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay } from '@/utils/fechasLocales';
@@ -499,20 +500,15 @@ export default function PayrollPage() {
       )}
 
       {/* Create Payroll Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white border border-slate-200 rounded-xl w-full max-w-md shadow-2xl p-4 relative">
-            <IconButton
-              type="button"
-              aria-label="Cerrar"
-              className="absolute right-4 top-4 rounded-full"
-              onClick={() => setShowCreateModal(false)}
-            >
-              <X className="h-5 w-5" />
-            </IconButton>
-            <h3 className="font-bold text-slate-800 text-base mb-4 flex items-center gap-1.5">
-              <Calendar className="h-5 w-5 text-[#003366]" /> Generar Nómina de Período
-            </h3>
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Generar Nómina de Período"
+        icono={<Calendar />}
+        maxWidth="md"
+        cerrarAlPulsarFuera={false}
+        bloqueada={submitting}
+      >
             <form onSubmit={handleCreatePayroll} className="space-y-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Frecuencia de la Nómina</label>
@@ -572,9 +568,7 @@ export default function PayrollPage() {
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
 
   );

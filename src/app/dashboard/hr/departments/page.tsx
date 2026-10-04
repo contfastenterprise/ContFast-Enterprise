@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Building2, Briefcase, Plus, Pencil, Trash2, X, RefreshCw } from 'lucide-react';
+import { Building2, Briefcase, Plus, Pencil, Trash2, RefreshCw } from 'lucide-react';
+import { Modal } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { useConfirm } from '@/providers/confirm-provider';
 import { Button, IconButton } from '@/components/ui/button';
@@ -283,20 +284,14 @@ export default function DepartmentsPage() {
       )}
 
       {/* Dept Modal */}
-      {showDeptModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-surface border border-outline rounded-xl w-full max-w-md shadow-2xl p-5 relative">
-            <IconButton
-              type="button"
-              aria-label="Cerrar"
-              className="absolute right-4 top-4 rounded-full"
-              onClick={() => setShowDeptModal(false)}
-            >
-              <X className="h-5 w-5" />
-            </IconButton>
-            <h3 className="font-bold text-on-surface text-base mb-4 flex items-center gap-1.5">
-              <Building2 className="h-5 w-5 text-primary" /> {editId ? 'Editar Departamento' : 'Nuevo Departamento'}
-            </h3>
+      <Modal
+        isOpen={showDeptModal}
+        onClose={() => setShowDeptModal(false)}
+        title={editId ? 'Editar Departamento' : 'Nuevo Departamento'}
+        icono={<Building2 />}
+        maxWidth="md"
+        cerrarAlPulsarFuera={false}
+      >
             <form onSubmit={handleDeptSubmit} className="space-y-4">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-on-surface-variant">Nombre Departamento</label>
@@ -319,25 +314,17 @@ export default function DepartmentsPage() {
               </div>
               <AccionesDeFormulario textoPrincipal="Guardar" alCancelar={() => setShowDeptModal(false)} />
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
 
       {/* Pos Modal */}
-      {showPosModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-surface border border-outline rounded-xl w-full max-w-md shadow-2xl p-5 relative">
-            <IconButton
-              type="button"
-              aria-label="Cerrar"
-              className="absolute right-4 top-4 rounded-full"
-              onClick={() => setShowPosModal(false)}
-            >
-              <X className="h-5 w-5" />
-            </IconButton>
-            <h3 className="font-bold text-on-surface text-base mb-4 flex items-center gap-1.5">
-              <Briefcase className="h-5 w-5 text-primary" /> {editId ? 'Editar Puesto' : 'Nuevo Puesto'}
-            </h3>
+      <Modal
+        isOpen={showPosModal}
+        onClose={() => setShowPosModal(false)}
+        title={editId ? 'Editar Puesto' : 'Nuevo Puesto'}
+        icono={<Briefcase />}
+        maxWidth="md"
+        cerrarAlPulsarFuera={false}
+      >
             <form onSubmit={handlePosSubmit} className="space-y-4">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-on-surface-variant">Nombre del Cargo/Puesto</label>
@@ -360,9 +347,7 @@ export default function DepartmentsPage() {
               </div>
               <AccionesDeFormulario textoPrincipal="Guardar" alCancelar={() => setShowPosModal(false)} />
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
 
   );

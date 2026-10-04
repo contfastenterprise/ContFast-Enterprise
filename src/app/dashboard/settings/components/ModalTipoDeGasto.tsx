@@ -2,23 +2,23 @@
  * Crear o editar un tipo de gasto.
  * Sale de `settings/page.tsx` en el lote 238, movido tal cual: solo pinta.
  */
-import { CheckCircle2, X } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import type { TiposDeGasto } from '../hooks/useTiposDeGasto';
 
-import { IconButton } from '@/components/ui/button';
+import { Modal } from '@/components/ui/dialog';
 import { AccionesDeFormulario } from '@/components/ui/acciones-de-formulario';
 
 export function ModalTipoDeGasto({ g }: { g: TiposDeGasto }) {
   return (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-              <div className="bg-[#001733] border-b border-[#003366] px-4 py-3 flex items-center justify-between text-white">
-                <h3 className="font-bold">{g.editingType ? 'Editar Tipo de Gasto' : 'Crear Tipo de Gasto'}</h3>
-                <IconButton className="text-slate-400 hover:text-white hover:bg-white/10" type="button" aria-label="Cerrar" onClick={() => g.setShowTypeModal(false)}>
-                  <X className="w-5 h-5" />
-                </IconButton>
-              </div>
-              <form onSubmit={g.handleSaveType} className="p-4 space-y-4">
+          <Modal
+            isOpen={g.showTypeModal}
+            onClose={() => g.setShowTypeModal(false)}
+            title={g.editingType ? 'Editar Tipo de Gasto' : 'Crear Tipo de Gasto'}
+            maxWidth="md"
+            cerrarAlPulsarFuera={false}
+            bloqueada={g.savingType}
+          >
+              <form onSubmit={g.handleSaveType} className="space-y-4">
                 <div className="space-y-1">
                   <label htmlFor="ajuste-codigo-dgii" className="block text-xs font-bold text-slate-700 uppercase">Código DGII</label>
                   <input id="ajuste-codigo-dgii"
@@ -62,7 +62,6 @@ export function ModalTipoDeGasto({ g }: { g: TiposDeGasto }) {
                   alCancelar={() => g.setShowTypeModal(false)}
                 />
               </form>
-            </div>
-          </div>
+          </Modal>
   );
 }

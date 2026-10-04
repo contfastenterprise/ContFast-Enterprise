@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import {
-  Palmtree, CalendarCheck, CalendarClock, Plus, X, RefreshCw, AlertCircle, Scale, Search,
+  Palmtree, CalendarCheck, CalendarClock, Plus, RefreshCw, AlertCircle, Scale, Search,
 } from 'lucide-react';
+import { Modal } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 import { Button, IconButton } from '@/components/ui/button';
@@ -312,26 +313,20 @@ export default function VacationsPage() {
       )}
 
       {/* Modal */}
-      {showModal && seleccionado && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl border border-outline bg-surface p-6 shadow-xl text-on-surface">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-lg font-bold">Movimiento de vacaciones</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {seleccionado.firstName} {seleccionado.lastName} ({seleccionado.employeeCode})
-                </p>
-              </div>
-              <IconButton
-                type="button"
-                onClick={() => setShowModal(false)}
-                aria-label="Cerrar"
-              >
-                <X className="h-5 w-5" />
-              </IconButton>
-            </div>
-
-            <div className="mt-4 grid grid-cols-3 gap-3 rounded-lg border border-outline bg-surface-variant/20 p-3 text-center text-xs">
+      {/* `seleccionado` fuera: los hijos se evaluan aunque la ventana este cerrada. Se abre con
+          `showModal && seleccionado`, como antes. */}
+      {seleccionado && (
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title="Movimiento de vacaciones"
+        description={<>{seleccionado.firstName} {seleccionado.lastName} ({seleccionado.employeeCode})</>}
+        icono={<Palmtree />}
+        maxWidth="md"
+        cerrarAlPulsarFuera={false}
+        bloqueada={submitting}
+      >
+            <div className="grid grid-cols-3 gap-3 rounded-lg border border-outline bg-surface-variant/20 p-3 text-center text-xs">
               <div>
                 <div className="text-on-surface-variant/70">Disponibles hoy</div>
                 <div className="mt-1 text-lg font-bold tabular-nums">{seleccionado.availableDays}</div>
@@ -408,8 +403,7 @@ export default function VacationsPage() {
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
+      </Modal>
       )}
     </div>
   );
