@@ -2061,6 +2061,11 @@ Además, fuera de la tabla:
   porque fijaban los márgenes viejos a propósito: `verificar_precios_en_dolares` (costo 100 → 125 /
   120 / 115 / 110) y `verificar_precios_en_dolares_db` (75 → 93,75 / 90 / 86,25 / 82,5); los dos
   pasan a la fórmula nueva. De paso, React Doctor: las cuatro etiquetas de precio enlazadas a su campo.
+- **Lote 268: fuera el letrero "Powered by MSeller API" de Facturación.** Pedido del dueño
+  (2026-10-03). Era una pastilla con un punto verde parpadeante, sola en la columna izquierda de la
+  fila de los totales del mes; sin ella, la fila se alinea a la derecha (`md:justify-end`) para que
+  los totales no se vayan a la izquierda. Banco `verificar_sin_powered_by.ts`: 2 comprobaciones y un
+  invariante (los totales siguen), contraprueba **2 FALLA**, dos mutantes y dos muertos.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3250,5 +3255,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 265 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 268 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
