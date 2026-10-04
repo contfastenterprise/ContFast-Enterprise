@@ -8,6 +8,7 @@ import { sql, and, eq } from 'drizzle-orm';
 import { siguienteCodigoFactura } from '@/services/invoice/codigoFactura';
 import { InvoiceCalculator } from '@/services/invoice/invoiceCalculator';
 import type { IssueInvoiceInput } from '@/services/invoice/types';
+import { guardarNivelesDeLineas } from '@/services/invoice/nivelDeLineaRepositorio';
 
 // Zod validation schema for saving a draft invoice
 const saveDraftSchema = z.object({
@@ -38,6 +39,9 @@ const saveDraftSchema = z.object({
       discount: z.number().nonnegative().default(0),
       taxRate: z.number().nonnegative().default(0.18),
       warehouseId: z.string().uuid().optional(),
+      //  Lote 266: el nivel de precio de la linea, para reabrir el borrador con el suyo (y poder
+      //  ofrecer el precio actual de ESE nivel). Opcional: un cuerpo sin el se guarda como antes.
+      priceTier: z.enum(['base', 'consumidor', 'mayorista', 'proveedor']).optional(),
     })
   ).min(1, 'La factura debe tener al menos una línea de producto'),
 });
@@ -157,7 +161,7 @@ export async function POST(req: NextRequest) {
 
       // Insert lines
       if (totals.itemLines.length > 0) {
-        await tx.insert(invoiceLines).values(
+        const insertadas = await tx.insert(invoiceLines).values(
           totals.itemLines.map((line) => ({
             invoiceId: invoice.id,
             productId: line.productId,
@@ -175,7 +179,11 @@ export async function POST(req: NextRequest) {
             taxRate: line.taxRate != null ? line.taxRate.toString() : null,
             taxCategory: line.taxCategory ?? null,
           }))
-        );
+        ).returning({ id: invoiceLines.id });
+        //  Lote 266: el nivel de cada linea, en la columna de la 0019 (si esta aplicada). La
+        //  calculadora conserva el orden de `data.lines`, y Postgres devuelve las filas de un
+        //  INSERT ... VALUES en el orden en que se insertaron: la linea i es la i.
+        await guardarNivelesDeLineas(tx, insertadas.map((f, i) => ({ id: f.id, nivel: data.lines[i]?.priceTier })));
       }
 
       // Insert taxes
