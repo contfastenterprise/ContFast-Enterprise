@@ -6,8 +6,9 @@
  * mismo marcado. Solo pinta: el estado vive en `useFormularioConduce`, que crea
  * la pagina, para que lo escrito sobreviva a cancelar como hasta ahora.
  */
-import { ArrowLeft, Check, FileText, Package, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Check, FileText, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AccionesDeFormulario } from '@/components/ui/acciones-de-formulario';
 import type { FormularioConduce } from '../hooks/useFormularioConduce';
 
 export function FormularioDeConduce({
@@ -22,12 +23,9 @@ export function FormularioDeConduce({
   return (
     <>
       <div>
-        <button
-          onClick={onSalir}
-          className="flex items-center gap-1 text-xs font-semibold text-[#C5A059] hover:underline mb-2"
-        >
-          <ArrowLeft className="h-4 w-4" /> Volver al listado
-        </button>
+        <Button type="button" variant="link" onClick={onSalir} className="h-auto px-0 text-xs gap-1 mb-2">
+          <ArrowLeft /> Volver al listado
+        </Button>
         <h2 className="text-2xl font-bold text-[#003366]">Nuevo Conduce de Entrega</h2>
         <p className="text-slate-500 text-sm">Registre un nuevo despacho de mercancías sobre una factura existente.</p>
       </div>
@@ -59,9 +57,9 @@ export function FormularioDeConduce({
                   variant="outline"
                   size="sm"
                   onClick={f.abrirBuscador}
-                  className="w-full h-8 text-xs font-semibold text-[#003366] dark:text-[#C5A059] border-dashed border-[#003366]/40 hover:border-[#003366] hover:bg-[#003366]/5 transition gap-1.5 justify-center cursor-pointer"
+                  className="w-full border-dashed"
                 >
-                  <FileText className="h-3.5 w-3.5 text-[#C5A059]" />
+                  <FileText />
                   <span>Vincular Factura Afectada</span>
                 </Button>
               )}
@@ -189,22 +187,14 @@ export function FormularioDeConduce({
         )}
 
         {/* Form Actions */}
-        <div className="flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={onSalir}
-            className="border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold h-8 px-3 py-1.5 rounded-lg text-xs transition"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={f.submitting || !f.targetInvoice}
-            className="bg-[#003366] hover:bg-[#002244] text-white font-bold h-8 px-3 py-1.5 rounded-lg shadow-md transition flex items-center gap-2 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            {f.submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Registrar Conduce
-          </button>
-        </div>
+        <AccionesDeFormulario
+          textoPrincipal="Registrar Conduce"
+          iconoPrincipal={<Check />}
+          guardando={f.submitting}
+          principalInactiva={!f.targetInvoice}
+          alCancelar={onSalir}
+          separada={false}
+        />
       </form>
     </>
   );

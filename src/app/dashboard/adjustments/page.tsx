@@ -13,6 +13,9 @@ import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { motivosValidosNota } from '@/schemas/factura';
 import clsx from 'clsx';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { AccionesDeFormulario } from '@/components/ui/acciones-de-formulario';
 import { SearchBar } from '@/components/ui/search-bar';
 import { esModificablePorNota, CODIGOS_NOTA } from '@/services/dgii/tiposComprobante';
 import { Pagination } from '@/components/ui/pagination';
@@ -351,22 +354,16 @@ export default function AdjustmentsPage() {
               exit={{ opacity: 0, y: -15 }}
               className="space-y-6"
             >
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
-                    Notas de Crédito / Débito
-                  </h1>
-                  <p className="text-on-surface-variant/80 text-sm mt-1">
-                    Gestión independiente de notas de ajuste y modificaciones de comprobantes (e-33 y e-34).
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowForm(true)}
-                  className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 text-sm"
-                >
-                  <Plus className="h-4 w-4" /> Crédito/Débito
-                </button>
-              </div>
+              <CabeceraDePagina
+                titulo="Notas de Crédito / Débito"
+                descripcion="Gestión independiente de notas de ajuste y modificaciones de comprobantes (e-33 y e-34)."
+                icono={<FileText />}
+                acciones={
+                  <Button type="button" onClick={() => setShowForm(true)}>
+                    <Plus /> Crédito/Débito
+                  </Button>
+                }
+              />
 
               {/* Filters Row */}
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4">
@@ -473,32 +470,34 @@ export default function AdjustmentsPage() {
                             </td>
                             <td className="px-6 py-4 text-right">
                               <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
+                                <IconButton
+                                  type="button"
                                   onClick={() => handleDownloadPdf(note)}
-                                  className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors animate-fade-in"
                                   title="Imprimir PDF"
+                                  aria-label={`Imprimir PDF de la nota ${note.ncf}`}
                                 >
-                                  <Printer className="h-4 w-4" />
-                                </button>
-                                <button
+                                  <Printer />
+                                </IconButton>
+                                <IconButton
                                   type="button"
                                   onClick={() => handleRefreshStatus(note)}
                                   disabled={refreshingId === note.id}
-                                  className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors disabled:opacity-40"
                                   title="Consultar estado DGII"
+                                  aria-label={`Consultar en la DGII el estado de la nota ${note.ncf}`}
                                 >
-                                  <RefreshCw className={clsx("h-4 w-4", refreshingId === note.id && "animate-spin")} />
-                                </button>
+                                  <RefreshCw className={clsx(refreshingId === note.id && "animate-spin")} />
+                                </IconButton>
                                 {['rejected', 'failed'].includes(note.status) && (
-                                  <button
+                                  <IconButton
                                     type="button"
                                     onClick={() => handleResubmit(note)}
                                     disabled={resubmittingId === note.id}
-                                    className="p-1.5 hover:bg-rose-50 text-rose-600 rounded-lg transition-colors disabled:opacity-40"
+                                    className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
                                     title="Reenviar a DGII"
+                                    aria-label={`Reenviar a la DGII la nota ${note.ncf}`}
                                   >
-                                    <ArrowRight className={clsx("h-4 w-4", resubmittingId === note.id && "animate-pulse")} />
-                                  </button>
+                                    <ArrowRight className={clsx(resubmittingId === note.id && "animate-pulse")} />
+                                  </IconButton>
                                 )}
                               </div>
                             </td>
@@ -533,12 +532,14 @@ export default function AdjustmentsPage() {
               className="space-y-6"
             >
               <div>
-                <button
+                <Button
+                  type="button"
+                  variant="link"
                   onClick={() => { setShowForm(false); setTargetInvoice(null); setAdjustedLines([]); }}
-                  className="flex items-center gap-1 text-xs font-semibold text-[#C5A059] hover:underline mb-2"
+                  className="h-auto px-0 text-xs gap-1 mb-2"
                 >
-                  <ArrowLeft className="h-4 w-4" /> Volver al listado
-                </button>
+                  <ArrowLeft /> Volver al listado
+                </Button>
                 <h2 className="text-2xl font-bold text-[#003366] tracking-tight">Emisión de Crédito/Débito</h2>
                 <p className="text-slate-500 text-sm">Registre un ajuste fiscal sobre un comprobante emitido previamente.</p>
               </div>
@@ -634,13 +635,15 @@ export default function AdjustmentsPage() {
                           </div>
                         </div>
                       ) : (
-                        <button
+                        <Button
                           type="button"
+                          variant="outline"
+                          size="lg"
                           onClick={() => { setShowInvoiceSearch(true); handleSearchInvoices(); }}
-                          className="w-full border border-[#003366] text-[#003366] hover:bg-[#003366]/5 rounded-xl py-3 px-4 font-bold text-sm transition-colors text-center"
+                          className="w-full"
                         >
                           Vincular Factura Afectada
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -754,22 +757,14 @@ export default function AdjustmentsPage() {
                   </div>
                 )}
 
-                <div className="flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => { setShowForm(false); setTargetInvoice(null); setAdjustedLines([]); }}
-                    className="border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold py-2.5 px-6 rounded-lg text-sm transition"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting || !targetInvoice}
-                    className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-8 rounded-lg shadow-md transition flex items-center gap-2 text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Emitir Nota
-                  </button>
-                </div>
+                <AccionesDeFormulario
+                  textoPrincipal="Emitir Nota"
+                  iconoPrincipal={<Check />}
+                  guardando={submitting}
+                  principalInactiva={!targetInvoice}
+                  alCancelar={() => { setShowForm(false); setTargetInvoice(null); setAdjustedLines([]); }}
+                  separada={false}
+                />
               </form>
             </motion.div>
           )}
@@ -791,9 +786,14 @@ export default function AdjustmentsPage() {
             <h3 className="font-bold flex items-center gap-2 text-base">
               <FileText className="w-5 h-5 text-[#C5A059]" /> Vincular Factura Afectada
             </h3>
-            <button onClick={() => setShowInvoiceSearch(false)} className="hover:bg-white/10 p-1.5 rounded-full transition-colors">
-              <X className="w-5 h-5" />
-            </button>
+            <IconButton
+              type="button"
+              aria-label="Cerrar"
+              onClick={() => setShowInvoiceSearch(false)}
+              className="rounded-full text-white hover:bg-white/10 hover:text-white"
+            >
+              <X className="size-5" />
+            </IconButton>
           </div>
 
           <div className="p-6 space-y-4">
@@ -805,12 +805,9 @@ export default function AdjustmentsPage() {
                 onChange={(e) => setInvoiceSearchQuery(e.target.value)}
                 className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none text-slate-900 focus:border-[#C5A059] focus:bg-white transition"
               />
-              <button
-                onClick={handleSearchInvoices}
-                className="bg-[#003366] text-white rounded-xl px-5 py-2.5 font-semibold text-sm hover:bg-[#002244] transition-colors"
-              >
+              <Button type="button" size="lg" onClick={handleSearchInvoices}>
                 Buscar
-              </button>
+              </Button>
             </div>
 
             <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100 border border-slate-100 rounded-xl">

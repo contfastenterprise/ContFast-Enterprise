@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Edit2, Trash2, Building2, MapPin, CheckCircle, XCircle, Printer, X, ShieldCheck } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Building2, MapPin, CheckCircle, XCircle, Printer, X, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 import { SearchBar } from '@/components/ui/search-bar';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -245,18 +246,12 @@ export default function WarehousesPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-800 flex items-center gap-2">
-            <Building2 className="h-7 w-7 text-amber-500" />
-            Gestión de Almacenes
-          </h1>
-          <p className="text-slate-500 text-xs mt-1">
-            Administra las ubicaciones físicas y sucursales de tu empresa.
-          </p>
-        </div>
-        <div className="flex gap-2 w-full md:w-auto shrink-0">
-          {/* Lote 243: en la cabecera, SOLO las pestanas (como en Compras). Los botones de la lista viven en la barra de la lista. */}
+      {/* Lote 243: en la cabecera, SOLO las pestanas (como en Compras). Los botones de la lista viven en la barra de la lista. */}
+      <CabeceraDePagina
+        titulo="Gestión de Almacenes"
+        descripcion="Administra las ubicaciones físicas y sucursales de tu empresa."
+        icono={<Building2 />}
+        acciones={
           <PestanasDeRegistro
             enFormulario={isModalOpen}
             lista="Almacenes"
@@ -267,8 +262,8 @@ export default function WarehousesPage() {
               setIsModalOpen(true);
             }}
           />
-        </div>
-      </div>
+        }
+      />
 
       {!isModalOpen && (<>
       {/* Search Bar */}
@@ -280,12 +275,11 @@ export default function WarehousesPage() {
             onChange={setSearchTerm}
           />
         </div>
-        <button
+        <Button variant="documento"
           onClick={handlePrintList}
-          className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-        >
-          <Printer className="h-4 w-4 text-slate-950" /> Imprimir
-        </button>
+          type="button">
+          <Printer /> Imprimir
+        </Button>
       </div>
 
       {/* List */}
@@ -323,35 +317,35 @@ export default function WarehousesPage() {
                   </div>
 
                   <div className="flex gap-1.5 justify-end pt-3 border-t border-slate-100 dark:border-slate-800">
-                    <button
+                    <IconButton
+                      type="button"
                       onClick={() => {
                         setCurrentWarehouse(warehouse);
                         setIsModalOpen(true);
                       }}
                       title="Editar"
-                      className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
+                      aria-label={`Editar almacén ${warehouse.name}`}
                     >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
+                      <Pencil />
+                    </IconButton>
+                    <IconButton
+                      type="button"
                       onClick={() => handleToggleStatus(warehouse)}
                       title={warehouse.status === 'active' ? 'Deshabilitar' : 'Habilitar'}
-                      className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
+                      aria-label={`${warehouse.status === 'active' ? 'Deshabilitar' : 'Habilitar'} almacén ${warehouse.name}`}
                     >
-                      {warehouse.status === 'active' ? (
-                        <XCircle className="w-4 h-4" />
-                      ) : (
-                        <CheckCircle className="w-4 h-4" />
-                      )}
-                    </button>
+                      {warehouse.status === 'active' ? <XCircle /> : <CheckCircle />}
+                    </IconButton>
                     {(currentUserRole === 'sistemas' || currentUserRole === 'sistema') && (
-                      <button
+                      <IconButton
+                        type="button"
                         onClick={() => handleDelete(warehouse.id)}
                         title="Eliminar permanentemente"
-                        className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"
+                        aria-label={`Eliminar almacén ${warehouse.name}`}
+                        className="hover:bg-rose-50 hover:text-rose-600"
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                        <Trash2 />
+                      </IconButton>
                     )}
                   </div>
                 </Card>
@@ -414,21 +408,17 @@ export default function WarehousesPage() {
           </div>
         </form>
           <div className="flex justify-end gap-3 pt-4 mt-4 border-t border-slate-200 max-w-2xl">
-            <button
+            <Button variant="secondary"
               type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-            >
+              onClick={() => setIsModalOpen(false)}>
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              form="warehouse-form"
-              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-            >
-              <ShieldCheck className="w-4 h-4" />
+              form="warehouse-form">
+              <ShieldCheck />
               Guardar Cambios
-            </button>
+            </Button>
           </div>
         </PanelDeRegistro>
       )}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Package, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Archive, DollarSign, Building2, Layers, Printer, ShieldCheck, ChevronDown, Save, Tag, Check, ChevronLeft, ChevronRight, LayoutList } from 'lucide-react';
+import { Package, Search, Plus, Pencil, Trash2, X, RefreshCw, AlertTriangle, Archive, DollarSign, Building2, Layers, Printer, ShieldCheck, ChevronDown, Save, Tag, Check, ChevronLeft, ChevronRight, LayoutList } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BarcodeRenderer from '@/components/ui/BarcodeRenderer';
 import { toast } from 'sonner';
@@ -28,7 +28,9 @@ const CAMPOS_CON_SITIO = [
   'promotionalPrice', 'unitOfMeasure', 'status',
 ];
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
-import { Button } from '@/components/ui/button';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { AccionesDeFormulario } from '@/components/ui/acciones-de-formulario';
 import { SearchBar } from '@/components/ui/search-bar';
 import { Pagination } from '@/components/ui/pagination';
 import { useConfirm } from '@/providers/confirm-provider';
@@ -934,13 +936,14 @@ export default function ProductsPage() {
         <div className="space-y-1">
           <div className="flex justify-between items-center">
             <label className="text-xs font-semibold text-[#001e40]">Categoría <span className="text-[#c5a059]">*</span></label>
-            <button
+            <Button
               type="button"
+              variant="link"
               onClick={() => setShowCategoryModal(true)}
-              className="text-xs text-[#c5a059] hover:text-[#d4b069] font-bold flex items-center gap-1 transition-colors"
+              className="h-auto px-0 text-xs gap-1"
             >
-              <Plus className="h-3 w-3" /> Nueva
-            </button>
+              <Plus className="size-3" /> Nueva
+            </Button>
           </div>
           <select
             value={formData.categoryId}
@@ -1043,17 +1046,18 @@ export default function ProductsPage() {
                 />
                 Autocalcular
               </label>
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
                 onClick={() => {
                   setManualPricesEnabled(true);
                   setShowPricesModal(true);
                 }}
-                className="text-[11px] flex items-center gap-1 bg-[#c5a059] text-[#001e40] px-2 py-1 rounded-md font-bold hover:bg-[#d4b069] transition-colors"
               >
-                <Edit2 className="h-3 w-3" />
+                <Pencil />
                 {manualPricesEnabled ? 'Editar Precios' : 'Ajustar Manual'}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -1186,15 +1190,16 @@ export default function ProductsPage() {
         <div className="space-y-2 col-span-1 md:col-span-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-[#001e40]">Código de Barra Principal</label>
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={handleGenerateBarcode}
               disabled={generatingBarcode}
-              className="text-[11px] flex items-center gap-1 bg-[#003366] text-white px-2 py-1 rounded-md font-bold hover:bg-[#002244] transition-colors disabled:opacity-50"
             >
-              {generatingBarcode ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
+              {generatingBarcode ? <RefreshCw className="animate-spin" /> : <Plus />}
               Generar Automático
-            </button>
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -1265,13 +1270,14 @@ export default function ProductsPage() {
                     <option value="upca">UPC-A</option>
                     <option value="qrcode">QR</option>
                   </select>
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={handleAddSecondaryBarcode}
-                    className="bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] font-bold text-xs px-3 py-1.5 rounded-lg transition-colors shrink-0"
                   >
                     Añadir
-                  </button>
+                  </Button>
                 </div>
 
                 {secondaryBarcodes.length > 0 && (
@@ -1282,13 +1288,14 @@ export default function ProductsPage() {
                           <span className="text-xs font-mono font-bold text-slate-700">{b.barcode}</span>
                           <span className="text-[8px] uppercase font-bold text-slate-400">{b.barcodeType}</span>
                         </div>
-                        <button
+                        <IconButton
                           type="button"
                           onClick={() => handleDeleteSecondaryBarcode(idx, b.id)}
-                          className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"
+                          aria-label={`Eliminar el código secundario ${b.barcode}`}
+                          className="hover:bg-rose-50 hover:text-rose-600"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                          <Trash2 />
+                        </IconButton>
                       </div>
                     ))}
                   </div>
@@ -1362,18 +1369,14 @@ export default function ProductsPage() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
 
       {/* Header section with title and CTA */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-primary font-display flex items-center gap-2">
-            <Package className="h-8 w-8 text-[#c5a059]" />
-            Catálogo de Productos
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">Gestiona tu inventario, precios y servicios facturables.</p>
-        </div>
-        <div className="flex gap-2.5 flex-wrap">
-          {/* Lote 243: en la cabecera, SOLO las pestanas (como en Compras). Los botones de la lista viven en la barra de la lista. */}
-          {/* Las pestanas, como en Compras: el catalogo, y registrar (o editar). Desde el lote 242,
-              el mismo componente que almacenes, categorias y conduces. */}
+      {/* Lote 243: en la cabecera, SOLO las pestanas (como en Compras). Los botones de la lista viven en la barra de la lista. */}
+      {/* Las pestanas, como en Compras: el catalogo, y registrar (o editar). Desde el lote 242,
+          el mismo componente que almacenes, categorias y conduces. */}
+      <CabeceraDePagina
+        titulo="Catálogo de Productos"
+        descripcion="Gestiona tu inventario, precios y servicios facturables."
+        icono={<Package />}
+        acciones={
           <PestanasDeRegistro
             enFormulario={showModal}
             lista="Catálogo"
@@ -1382,8 +1385,8 @@ export default function ProductsPage() {
             alVerLista={() => { setErrores({}); setShowModal(false); dolar.cerrar(); }}
             alRegistrar={openNewModal}
           />
-        </div>
-      </div>
+        }
+      />
 
       {!showModal && enDolar && (
         <PreciosEnDolares d={dolar} alVolver={() => { dolar.cerrar(); fetchProducts(search, selectedCategory, page); }} />
@@ -1445,21 +1448,15 @@ export default function ProductsPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={dolar.abrir}
-              className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-[#003366] px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition justify-center text-sm"
-            >
-              <DollarSign className="h-4 w-4" />
+            <Button type="button" variant="secondary" onClick={dolar.abrir}>
+              <DollarSign />
               Precios en dólares
-            </button>
-            <button
-              onClick={() => router.push('/dashboard/products/barcodes')}
-              className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-            >
-              <Printer className="h-4 w-4" />
+            </Button>
+            <Button variant="documento" type="button"
+              onClick={() => router.push('/dashboard/products/barcodes')}>
+              <Printer />
               Gestión de Códigos
-            </button>
+            </Button>
             <div className="relative flex items-center h-9 z-20 shadow-sm rounded-lg">
               <button
                 type="button"
@@ -1481,6 +1478,8 @@ export default function ProductsPage() {
                 }}
                 className="flex items-center justify-center rounded-r-lg bg-[#C5A059] hover:bg-[#b08c4a] border-l border-[#a08044] px-2.5 h-full text-slate-950 transition active:scale-[0.98] outline-none"
                 title="Más opciones de impresión"
+                aria-label="Más opciones de impresión"
+                aria-expanded={printDropdownOpen}
               >
                 <ChevronDown className="h-4 w-4" />
               </button>
@@ -1568,9 +1567,9 @@ export default function ProductsPage() {
                 )}
               </AnimatePresence>
             </div>
-            <button onClick={() => fetchProducts(search, selectedCategory, page)} className="p-2 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors">
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin text-amber-500' : ''}`} />
-            </button>
+            <IconButton type="button" size="icon" onClick={() => fetchProducts(search, selectedCategory, page)} aria-label="Recargar productos">
+              <RefreshCw className={loading ? 'animate-spin text-amber-500' : ''} />
+            </IconButton>
           </div>
         </div>
 
@@ -1638,24 +1637,25 @@ export default function ProductsPage() {
                       <span className="text-slate-700 text-sm">{formatCurrency(p.cost)}</span>
                     </div>
                     <div className="flex gap-1">
-                      <button
+                      <IconButton type="button" size="icon" onClick={() => openInventoryModal(p)} aria-label={`Ver inventario de ${p.name}`}>
+                        <Layers />
+                      </IconButton>
+                      <IconButton type="button" size="icon" onClick={() => openEditModal(p)} aria-label={`Editar producto ${p.name}`}>
+                        <Pencil />
+                      </IconButton>
+                      <IconButton
                         type="button"
+                        size="icon"
                         onClick={() => {
                           setLabelSelectedProduct(p);
                           setLabelPrintMode('single');
                           setLabelQuantity(1);
                           setShowLabelModal(true);
                         }}
-                        className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10"
+                        aria-label={`Imprimir etiquetas de ${p.name}`}
                       >
-                        <Printer className="h-4 w-4" />
-                      </button>
-                      <button onClick={() => openInventoryModal(p)} className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10">
-                        <Layers className="h-4 w-4" />
-                      </button>
-                      <button onClick={() => openEditModal(p)} className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10">
-                        <Edit2 className="h-4 w-4" />
-                      </button>
+                        <Printer />
+                      </IconButton>
                     </div>
                   </div>
                 </div>
@@ -1751,7 +1751,13 @@ export default function ProductsPage() {
                       </td>
                       <td className="px-4 py-2.5 align-middle text-right">
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
+                          <IconButton type="button" onClick={() => openInventoryModal(p)} title="Ver Inventario" aria-label={`Ver inventario de ${p.name}`}>
+                            <Layers />
+                          </IconButton>
+                          <IconButton type="button" onClick={() => openEditModal(p)} title="Editar" aria-label={`Editar producto ${p.name}`}>
+                            <Pencil />
+                          </IconButton>
+                          <IconButton
                             type="button"
                             onClick={() => {
                               setLabelSelectedProduct(p);
@@ -1760,16 +1766,10 @@ export default function ProductsPage() {
                               setShowLabelModal(true);
                             }}
                             title="Imprimir Etiquetas"
-                            className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
+                            aria-label={`Imprimir etiquetas de ${p.name}`}
                           >
-                            <Printer className="h-3.5 w-3.5" />
-                          </button>
-                          <button onClick={() => openInventoryModal(p)} title="Ver Inventario" className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10">
-                            <Layers className="h-3.5 w-3.5" />
-                          </button>
-                          <button onClick={() => openEditModal(p)} title="Editar" className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10">
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </button>
+                            <Printer />
+                          </IconButton>
                         </div>
                       </td>
                     </tr>
@@ -1851,47 +1851,35 @@ export default function ProductsPage() {
                       recorrer, asi que el hueco queda vacio. */}
                   {!vistaCompleta ? (
                     <div className="flex items-center gap-2">
-                      <button
+                      <Button
                         type="button"
+                        variant="secondary"
                         onClick={() => { setErrores({}); setPaso(p => Math.max(1, p - 1)); }}
                         disabled={paso === 1}
-                        className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition disabled:opacity-40 disabled:hover:bg-slate-100"
                       >
-                        <ChevronLeft className="w-4 h-4" /> Atrás
-                      </button>
+                        <ChevronLeft /> Atrás
+                      </Button>
                       {paso < PASOS.length && (
-                        <button
+                        <Button
                           type="button"
+                          variant="outline"
                           onClick={avanzar}
-                          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg text-xs font-bold text-white bg-[#c5a059] hover:bg-[#b8934f] transition active:scale-95"
                         >
-                          Siguiente <ChevronRight className="w-4 h-4" />
-                        </button>
+                          Siguiente <ChevronRight />
+                        </Button>
                       )}
                     </div>
                   ) : (
                     <span />
                   )}
 
-                  <div className="flex items-center gap-3">
-                  <Button size="sm"
-                    type="button"
-                    variant="ghost"
-                    onClick={() => { setErrores({}); setShowModal(false); }}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
-                    <X className="w-4 h-4" />
-                    Cancelar
-                  </Button>
-                  <Button size="sm"
-                    type="submit"
-                    disabled={submitting}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
-                    {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                    {editId ? 'Guardar Cambios' : 'Registrar Producto'}
-                  </Button>
-                  </div>
+                  <AccionesDeFormulario
+                    textoPrincipal={editId ? 'Guardar Cambios' : 'Registrar Producto'}
+                    iconoPrincipal={<ShieldCheck />}
+                    guardando={submitting}
+                    alCancelar={() => { setErrores({}); setShowModal(false); }}
+                    separada={false}
+                  />
                 </div>
               </form>
         </PanelDeRegistro>
@@ -1916,9 +1904,9 @@ export default function ProductsPage() {
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <Package className="h-5 w-5 text-[#c5a059]" /> Nueva Categoría
                 </h3>
-                <button onClick={() => setShowCategoryModal(false)} className="text-white/70 hover:text-white cursor-pointer">
-                  <X className="h-5 w-5" />
-                </button>
+                <IconButton type="button" aria-label="Cerrar" onClick={() => setShowCategoryModal(false)} className="text-white/70 hover:bg-white/10 hover:text-white">
+                  <X className="size-5" />
+                </IconButton>
               </div>
 
               <form onSubmit={handleCreateCategory} className="p-6 space-y-5">
@@ -1945,25 +1933,12 @@ export default function ProductsPage() {
                   />
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                  <Button size="sm"
-                    type="button"
-                    variant="ghost"
-                    onClick={() => setShowCategoryModal(false)}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
-                    <X className="w-4 h-4" />
-                    Cancelar
-                  </Button>
-                  <Button size="sm"
-                    type="submit"
-                    disabled={submittingCategory}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
-                    {submittingCategory ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                    Guardar
-                  </Button>
-                </div>
+                <AccionesDeFormulario
+                  textoPrincipal="Guardar"
+                  iconoPrincipal={<ShieldCheck />}
+                  guardando={submittingCategory}
+                  alCancelar={() => setShowCategoryModal(false)}
+                />
               </form>
             </motion.div>
           </div>
@@ -1989,9 +1964,9 @@ export default function ProductsPage() {
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <DollarSign className="h-5 w-5 text-[#c5a059]" /> Edición Manual de Precios
                 </h3>
-                <button onClick={() => setShowPricesModal(false)} className="text-white/70 hover:text-white cursor-pointer">
-                  <X className="h-5 w-5" />
-                </button>
+                <IconButton type="button" aria-label="Cerrar" onClick={() => setShowPricesModal(false)} className="text-white/70 hover:bg-white/10 hover:text-white">
+                  <X className="size-5" />
+                </IconButton>
               </div>
 
               <div className="p-6 space-y-5">
@@ -2063,12 +2038,12 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="flex justify-end pt-4">
-                  <Button size="sm"
+                  <Button
                     type="button"
                     onClick={() => setShowPricesModal(false)}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white border-transparent font-semibold shadow-sm cursor-pointer w-full justify-center"
+                    className="w-full"
                   >
-                    <ShieldCheck className="w-4 h-4" />
+                    <ShieldCheck />
                     Confirmar Precios
                   </Button>
                 </div>
@@ -2097,9 +2072,9 @@ export default function ProductsPage() {
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                   <Building2 className="h-5 w-5 text-[#c5a059]" /> Inventario: {selectedProduct.name}
                 </h3>
-                <button onClick={() => setShowInventoryModal(false)} className="text-slate-400 hover:text-white transition-colors cursor-pointer">
-                  <X className="h-5 w-5" />
-                </button>
+                <IconButton type="button" aria-label="Cerrar" onClick={() => setShowInventoryModal(false)} className="text-white/70 hover:bg-white/10 hover:text-white">
+                  <X className="size-5" />
+                </IconButton>
               </div>
               <div className="p-0 overflow-y-auto max-h-[70vh]">
                 <table className="w-full text-left border-collapse">
@@ -2175,14 +2150,15 @@ export default function ProductsPage() {
                                     className="w-20 bg-slate-50 border border-slate-200 rounded-lg px-1.5 py-1 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-right font-mono"
                                   />
                                 </div>
-                                <button
+                                <IconButton
+                                  type="button"
                                   onClick={() => handleSaveLimits(w.id)}
                                   disabled={submittingLimitId === w.id || (inlineMinForm[w.id] === undefined && inlineMaxForm[w.id] === undefined)}
-                                  className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
                                   title="Guardar límites"
+                                  aria-label={`Guardar los límites de ${w.name}`}
                                 >
-                                  {submittingLimitId === w.id ? <RefreshCw className="h-3.5 h-3.5 animate-spin" /> : <Save className="h-3.5 h-3.5" />}
-                                </button>
+                                  {submittingLimitId === w.id ? <RefreshCw className="animate-spin" /> : <Save />}
+                                </IconButton>
                               </div>
                             </td>
                             <td className="px-4 py-2.5 text-xs text-right">
@@ -2194,14 +2170,15 @@ export default function ProductsPage() {
                                   onChange={(e) => setInlineAdjustForm({ ...inlineAdjustForm, [w.id]: e.target.value })}
                                   className="w-24 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none text-right font-mono"
                                 />
-                                <button
+                                <IconButton
+                                  type="button"
                                   onClick={() => handleInlineAdjust(w.id)}
                                   disabled={submittingAdjustId === w.id || inlineAdjustForm[w.id] === undefined || inlineAdjustForm[w.id] === currentQuantity}
                                   title="Guardar cambio"
-                                  className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
+                                  aria-label={`Guardar la existencia de ${w.name}`}
                                 >
-                                  {submittingAdjustId === w.id ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Edit2 className="h-4 w-4" />}
-                                </button>
+                                  {submittingAdjustId === w.id ? <RefreshCw className="animate-spin" /> : <Pencil />}
+                                </IconButton>
                               </div>
                             </td>
                           </tr>
@@ -2238,9 +2215,9 @@ export default function ProductsPage() {
                     <Printer className="h-5 w-5 text-[#c5a059]" />
                     Generar Etiquetas de Código de Barras
                   </h3>
-                  <button onClick={() => setShowLabelModal(false)} className="text-slate-400 hover:text-slate-600">
-                    <X className="h-5 w-5" />
-                  </button>
+                  <IconButton type="button" aria-label="Cerrar" onClick={() => setShowLabelModal(false)}>
+                    <X className="size-5" />
+                  </IconButton>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2417,13 +2394,13 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="flex gap-2 justify-end pt-3 border-t">
-                  <button onClick={() => setShowLabelModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  <Button type="button" variant="secondary" onClick={() => setShowLabelModal(false)}>
                     Cancelar
-                  </button>
-                  <button onClick={handlePrintLabels} className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
-                    <Printer className="h-4 w-4" />
+                  </Button>
+                  <Button type="button" variant="documento" onClick={handlePrintLabels}>
+                    <Printer />
                     Mandar a Imprimir
-                  </button>
+                  </Button>
                 </div>
               </div>
 

@@ -4,8 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Search, RefreshCw, Printer, Plus, Check, X,
-  Layers, Package, AlertCircle, Edit2, Save
+  Layers, Package, AlertCircle, Pencil, Save
 } from 'lucide-react';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { AccionesDeFormulario } from '@/components/ui/acciones-de-formulario';
 import { Pagination } from '@/components/ui/pagination';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
@@ -370,46 +373,49 @@ export default function BarcodeDashboardPage() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
       
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.push('/dashboard/products')}
-            className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 transition-colors"
-            title="Volver a Productos"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-[#003366] font-display flex items-center gap-2">
-              <Layers className="h-8 w-8 text-[#c5a059]" />
-              Gestión Unificada de Códigos
-            </h1>
-            <p className="text-slate-500 text-sm mt-1">Crea, edita, audita y previsualiza códigos de barra en un solo panel.</p>
-          </div>
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              setLabelPrintMode(selectedProductIds.length > 0 ? 'selected' : 'all');
-              if (products.length > 0) {
-                setLabelSelectedProduct(products[0]);
-              }
-              setShowLabelModal(true);
-            }}
-            className="bg-[#c5a059] hover:bg-[#b08e4f] text-[#001e40] font-bold py-2.5 px-5 rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 text-sm shrink-0"
-          >
-            <Printer className="h-4 w-4" />
-            {selectedProductIds.length > 0 ? `Imprimir Selección (${selectedProductIds.length})` : 'Imprimir Etiquetas'}
-          </button>
-          <button
-            onClick={handleBulkGenerate}
-            disabled={bulkGenerating || loading}
-            className="bg-[#003366] hover:bg-[#002244] text-white font-bold py-2.5 px-6 rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 text-sm shrink-0 disabled:opacity-50"
-          >
-            {bulkGenerating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Autogenerar Faltantes
-          </button>
+      <div className="flex items-start gap-3">
+        <IconButton
+          type="button"
+          size="icon"
+          onClick={() => router.push('/dashboard/products')}
+          title="Volver a Productos"
+          aria-label="Volver a Productos"
+          className="mt-0.5"
+        >
+          <ArrowLeft />
+        </IconButton>
+        <div className="flex-1 min-w-0">
+          <CabeceraDePagina
+            titulo="Gestión Unificada de Códigos"
+            descripcion="Crea, edita, audita y previsualiza códigos de barra en un solo panel."
+            icono={<Layers />}
+            acciones={
+              <>
+                <Button
+                  type="button"
+                  variant="documento"
+                  onClick={() => {
+                    setLabelPrintMode(selectedProductIds.length > 0 ? 'selected' : 'all');
+                    if (products.length > 0) {
+                      setLabelSelectedProduct(products[0]);
+                    }
+                    setShowLabelModal(true);
+                  }}
+                >
+                  <Printer />
+                  {selectedProductIds.length > 0 ? `Imprimir Selección (${selectedProductIds.length})` : 'Imprimir Etiquetas'}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleBulkGenerate}
+                  disabled={bulkGenerating || loading}
+                >
+                  {bulkGenerating ? <RefreshCw className="animate-spin" /> : <Plus />}
+                  Autogenerar Faltantes
+                </Button>
+              </>
+            }
+          />
         </div>
       </div>
 
@@ -439,18 +445,21 @@ export default function BarcodeDashboardPage() {
         {/* Filter Tabs */}
         <div className="flex bg-slate-100 p-1 rounded-lg gap-1 self-start">
           <button
+            type="button"
             onClick={() => { setFilterType('all'); setPage(1); }}
             className={`px-4 py-1.5 rounded-md text-xs font-bold transition ${filterType === 'all' ? 'bg-[#003366] text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
           >
             Todos
           </button>
           <button
+            type="button"
             onClick={() => { setFilterType('with_code'); setPage(1); }}
             className={`px-4 py-1.5 rounded-md text-xs font-bold transition ${filterType === 'with_code' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
           >
             Con Código
           </button>
           <button
+            type="button"
             onClick={() => { setFilterType('without_code'); setPage(1); }}
             className={`px-4 py-1.5 rounded-md text-xs font-bold transition ${filterType === 'without_code' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200'}`}
           >
@@ -553,14 +562,14 @@ export default function BarcodeDashboardPage() {
                               className="bg-white border border-slate-350 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-mono focus:border-[#c5a059] outline-none w-36"
                               placeholder="Código de barra..."
                             />
-                            <button
+                            <Button
                               type="button"
+                              size="sm"
                               onClick={() => handleGenerateInline(p.id)}
-                              className="px-2.5 py-1.5 bg-[#003366] hover:bg-[#002244] text-white rounded text-[10px] font-bold shrink-0 transition-colors"
                               title="Generar Código Automático"
                             >
                               Auto
-                            </button>
+                            </Button>
                             <select
                               value={editFormat}
                               onChange={(e) => setEditFormat(e.target.value)}
@@ -597,24 +606,37 @@ export default function BarcodeDashboardPage() {
                       <td className="px-5 py-4 text-right">
                         {isEditing ? (
                           <div className="flex justify-end gap-1.5">
-                            <button
+                            <IconButton
+                              type="button"
                               onClick={() => handleSaveBarcode(p.id)}
-                              className="p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors"
+                              className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700"
                               title="Guardar"
+                              aria-label={`Guardar el código de ${p.name}`}
                             >
-                              <Save className="h-4 w-4" />
-                            </button>
-                            <button
+                              <Save />
+                            </IconButton>
+                            <IconButton
+                              type="button"
                               onClick={handleCancelEdit}
-                              className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition-colors"
+                              className="bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700"
                               title="Cancelar"
+                              aria-label={`Cancelar la edición del código de ${p.name}`}
                             >
-                              <X className="h-4 w-4" />
-                            </button>
+                              <X />
+                            </IconButton>
                           </div>
                         ) : (
                           <div className="flex justify-end gap-1.5">
-                            <button
+                            <IconButton
+                              type="button"
+                              onClick={() => handleStartEdit(p)}
+                              title="Editar o Generar Código"
+                              aria-label={`Editar o generar el código de ${p.name}`}
+                            >
+                              <Pencil />
+                            </IconButton>
+                            <IconButton
+                              type="button"
                               onClick={() => {
                                 setLabelSelectedProduct(p);
                                 setLabelPrintMode('single');
@@ -622,18 +644,12 @@ export default function BarcodeDashboardPage() {
                                 setShowLabelModal(true);
                               }}
                               disabled={!p.barcode}
-                              className="p-1.5 bg-amber-50 text-amber-600 hover:bg-amber-100 disabled:opacity-40 rounded-lg transition-colors"
+                              className="text-amber-700 hover:bg-amber-50 hover:text-amber-800"
                               title="Imprimir Etiquetas"
+                              aria-label={`Imprimir etiquetas de ${p.name}`}
                             >
-                              <Printer className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleStartEdit(p)}
-                              className="p-1.5 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-700 rounded-lg transition-colors"
-                              title="Editar o Generar Código"
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </button>
+                              <Printer />
+                            </IconButton>
                           </div>
                         )}
                       </td>
@@ -683,9 +699,9 @@ export default function BarcodeDashboardPage() {
                     <Printer className="h-5 w-5 text-[#c5a059]" />
                     Generar Etiquetas de Código de Barras
                   </h3>
-                  <button onClick={() => setShowLabelModal(false)} className="text-slate-400 hover:text-slate-600">
-                    <X className="h-5 w-5" />
-                  </button>
+                  <IconButton type="button" aria-label="Cerrar" onClick={() => setShowLabelModal(false)}>
+                    <X className="size-5" />
+                  </IconButton>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -876,15 +892,13 @@ export default function BarcodeDashboardPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-2 justify-end pt-3 border-t">
-                  <button onClick={() => setShowLabelModal(false)} className="px-4 py-2 border border-slate-350 text-slate-700 font-bold text-xs rounded-lg transition-colors bg-white hover:bg-slate-50">
-                    Cancelar
-                  </button>
-                  <button onClick={handlePrintLabels} className="bg-[#003366] hover:bg-[#002244] text-white font-bold text-xs px-5 py-2 rounded-lg shadow-md transition-colors flex items-center gap-1.5">
-                    <Printer className="h-4 w-4" />
-                    Mandar a Imprimir
-                  </button>
-                </div>
+                <AccionesDeFormulario
+                  textoPrincipal="Mandar a Imprimir"
+                  tipoPrincipal="button"
+                  alPrincipal={handlePrintLabels}
+                  iconoPrincipal={<Printer />}
+                  alCancelar={() => setShowLabelModal(false)}
+                />
               </div>
 
               {/* Previsualización */}

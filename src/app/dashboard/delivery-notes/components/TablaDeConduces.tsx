@@ -7,6 +7,7 @@
  */
 import { Check, Eye, Printer, ShieldAlert, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
+import { IconButton } from '@/components/ui/button';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 
 export function TablaDeConduces({
@@ -64,48 +65,54 @@ export function TablaDeConduces({
               </td>
               <td className="px-4 py-2.5 align-middle text-right">
                 <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
+                  <IconButton
                     type="button"
                     onClick={() => onVer(note.id)}
-                    className="p-1.5 hover:bg-slate-50 rounded text-slate-600 transition-colors"
                     title="Ver Conduce"
                     aria-label={`Ver conduce ${note.deliveryNumber}`}
                   >
-                    <Eye className="h-3.5 w-3.5" />
-                  </button>
-                  <button
+                    <Eye />
+                  </IconButton>
+                  <IconButton
+                    type="button"
                     onClick={() => onImprimir(note.id)}
-                    className="p-1.5 hover:bg-slate-50 rounded text-slate-600 transition-colors"
                     title="Imprimir Conduce"
+                    aria-label={`Imprimir conduce ${note.deliveryNumber}`}
                   >
-                    <Printer className="h-3.5 w-3.5" />
-                  </button>
+                    <Printer />
+                  </IconButton>
                   {note.status === 'draft' && (
                     <>
-                      <button
+                      <IconButton
+                        type="button"
                         onClick={() => onAprobar(note.id)}
-                        className="p-1.5 hover:bg-emerald-50 rounded text-emerald-600 transition-colors"
+                        className="text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700"
                         title="Aprobar y Despachar Inventario"
+                        aria-label={`Aprobar y despachar el conduce ${note.deliveryNumber}`}
                       >
-                        <Check className="h-3.5 w-3.5" />
-                      </button>
-                      <button
+                        <Check />
+                      </IconButton>
+                      <IconButton
+                        type="button"
                         onClick={() => onAnular(note.id)}
-                        className="p-1.5 hover:bg-rose-50 rounded text-rose-600 transition-colors"
+                        className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
                         title="Eliminar Borrador"
+                        aria-label={`Eliminar el borrador ${note.deliveryNumber}`}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                        <Trash2 />
+                      </IconButton>
                     </>
                   )}
                   {note.status === 'approved' && (
-                    <button
+                    <IconButton
+                      type="button"
                       onClick={() => onAnular(note.id)}
-                      className="p-1.5 hover:bg-rose-50 rounded text-rose-600 transition-colors"
+                      className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
                       title="Anular y Revertir Inventario"
+                      aria-label={`Anular el conduce ${note.deliveryNumber} y revertir el inventario`}
                     >
-                      <ShieldAlert className="h-4 w-4" />
-                    </button>
+                      <ShieldAlert />
+                    </IconButton>
                   )}
                 </div>
               </td>

@@ -25,6 +25,7 @@ import { TasaDelDia } from './TasaDelDia';
 import { AtarProductoAlDolar } from './AtarProductoAlDolar';
 import { TablaDePreciosEnDolares } from './TablaDePreciosEnDolares';
 
+import { Button } from '@/components/ui/button';
 export function PreciosEnDolares({ d, alVolver }: { d: PreciosEnDolaresDeProductos; alVolver: () => void }) {
   const confirm = useConfirm();
   const { datos } = d;
@@ -62,18 +63,17 @@ export function PreciosEnDolares({ d, alVolver }: { d: PreciosEnDolaresDeProduct
             Si cambias el costo o el precio en dólares de un producto, aplícalo con «Aplicar precios».
           </p>
         </div>
-        <button type="button" onClick={alVolver}
-          className="flex items-center gap-2 h-9 px-4 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-bold hover:bg-slate-50 transition">
-          <ArrowLeft className="h-4 w-4" />Volver al catálogo
-        </button>
+        <Button type="button" variant="secondary" onClick={alVolver}>
+          <ArrowLeft />Volver al catálogo
+        </Button>
       </div>
 
       {d.error && (
         <div role="alert" className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-center justify-between gap-3 flex-wrap">
           <p className="text-sm font-semibold text-rose-700">{d.error}</p>
-          <button type="button" onClick={d.cargar} className="h-8 px-3 rounded-lg bg-white border border-rose-200 text-rose-700 text-xs font-bold hover:bg-rose-100">
+          <Button type="button" variant="secondary" size="sm" onClick={d.cargar} className="border-rose-200 text-rose-700 hover:bg-rose-100 hover:text-rose-800">
             Reintentar
-          </button>
+          </Button>
         </div>
       )}
 
@@ -99,10 +99,9 @@ export function PreciosEnDolares({ d, alVolver }: { d: PreciosEnDolaresDeProduct
                       ? 'Ningún precio por cambiar: todos están al día con la tasa vigente.'
                       : `${d.marcados.length} ${d.marcados.length === 1 ? 'producto marcado' : 'productos marcados'}. El costo pasa a "costo en dólares × tasa"; el precio base, a "precio en dólares × tasa" si lo tiene, y los demás precios conservan su margen.`}
                 </p>
-                <button type="button" onClick={confirmarYAplicar} disabled={!datos.tasa || d.marcados.length === 0 || d.ocupado}
-                  className="h-9 px-4 rounded-lg bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed">
+                <Button type="button" onClick={confirmarYAplicar} disabled={!datos.tasa || d.marcados.length === 0 || d.ocupado}>
                   Aplicar precios
-                </button>
+                </Button>
               </div>
             )}
           </div>

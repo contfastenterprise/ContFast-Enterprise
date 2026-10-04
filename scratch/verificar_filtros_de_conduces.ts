@@ -80,7 +80,11 @@ async function main() {
     ok(E2[0], opciones.join('|') === ':Todos|draft:Borrador|approved:Despachado|voided:Anulado' && /<label for="filtro-estado-conduce"/.test(sin) && /<select id="filtro-estado-conduce"/.test(sin), opciones.join('|'));
     const con = pinta({ estado: 'approved', desde: '2026-09-01', hasta: '2026-09-30' });
     ok(E2[1], /<option value="approved" selected="">Despachado<\/option>/.test(con) && /01\/09\/2026 – 30\/09\/2026/.test(con) && /Seleccionar rango de fecha/.test(sin));
-    ok(E2[2], !/Quitar filtros/.test(sin) && /<button type="button"[^>]*>.*Quitar filtros<\/button>/.test(con) && /Quitar filtros/.test(pinta({ desde: '2026-09-01', hasta: '2026-09-01' })));
+    //  Lote 271: el boton es ahora el `<Button>` de la casa, que pinta `class` antes que `type`. Lo
+    //  vigilado no cambia: es un boton que NO envia el formulario (con `type="button"`, en cualquier orden).
+    //  Y se mira SU etiqueta: un `.*` desde cualquier `<button` empezaba en el del selector de fechas, que va
+    //  antes y tambien es `type="button"`, y quitarle el tipo al de "Quitar filtros" no hacia fallar nada.
+    ok(E2[2], !/Quitar filtros/.test(sin) && /<button\b[^>]*\btype="button"[^>]*>(?:(?!<\/?button\b).)*Quitar filtros<\/button>/.test(con) && /Quitar filtros/.test(pinta({ desde: '2026-09-01', hasta: '2026-09-01' })));
   }
 
   console.log('\n3) De la pantalla a la base\n');

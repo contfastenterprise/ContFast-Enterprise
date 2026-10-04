@@ -15,6 +15,7 @@ import { enPesos, leerCostoUsd } from '@/services/precios/preciosEnDolares';
 import { alternar, marcarTodos, sinMarcar } from '@/services/precios/seleccionDeProductos';
 import type { ProductoParaAtar } from '../hooks/usePreciosEnDolares';
 
+import { Button } from '@/components/ui/button';
 const campo = 'h-9 bg-slate-50 border border-slate-200 rounded-lg px-3 text-sm text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none';
 
 export function AtarProductoAlDolar({ encontrados, ocupado, alBuscar, alAtar }: {
@@ -96,10 +97,10 @@ export function AtarProductoAlDolar({ encontrados, ocupado, alBuscar, alAtar }: 
           <input id="dolar-costo" type="text" inputMode="decimal" autoComplete="off" value={costo} onChange={(e) => setCosto(e.target.value)}
             placeholder="Costo en US$" className={`${campo} w-36`} aria-describedby={aviso ? 'dolar-costo-aviso' : undefined} />
         </div>
-        <button type="submit" disabled={elegidos.length === 0 || !leido.bien || ocupado}
-          className="h-9 px-4 rounded-lg bg-[#003366] hover:bg-[#002244] text-white text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
+        <Button type="submit" disabled={elegidos.length === 0 || !leido.bien || ocupado}
+          className="whitespace-nowrap">
           {elegidos.length > 1 ? `Añadir ${elegidos.length} productos` : 'Añadir'}
-        </button>
+        </Button>
       </div>
       {elegidos.length > 0 && (
         <ul className="flex flex-wrap gap-1.5" aria-label="Productos marcados">

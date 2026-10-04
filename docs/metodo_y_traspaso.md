@@ -2199,6 +2199,40 @@ Además, fuera de la tabla:
   acciones de más del pie, porque nada lo probaba. Y el banco se cazó a sí mismo con la trampa del
   lote 210: `/disabled/` casaba con la CLASE `disabled:opacity-50` de los dos botones; se ancla al
   atributo.
+- **Lotes 271 a 274: las pantallas, al estándar de UI — por cuatro agentes a la vez.** Pedido del
+  dueño (2026-10-03), que además dejó una regla para esta y toda sesión: *"siempre trabajar con
+  múltiples agentes dependiendo la necesidad"*. El panel se repartió en cuatro grupos de ficheros que
+  no se pisan — **271 Inventario**, **272 Ventas**, **273 Compras y Finanzas**, **274 RRHH,
+  administración y sistema** —, un agente por grupo, cada uno en su `git worktree` y su rama sacada del
+  270, con el mismo encargo: botones al componente (con `scratch/_to_delete/migrar_botones.mjs`, que
+  convierte los que tienen las clases EXACTAS de la casa, y a mano los que se desviaban), cabeceras a
+  `CabeceraDePagina`, pies en orden `[Cancelar] [Principal]`, `aria-label` en todo botón de solo icono,
+  `type` explícito, y los iconos del estándar. **Sin tocar la lógica.** El principal revisó, encadenó
+  las ramas (271 → 272 → 273 → 274) y bajó los techos del trinquete en cada eslabón.
+  **Cómo se comprobó que no cambió la lógica, además de los bancos de cada agente**: dos guiones del
+  principal comparan cada fichero contra la base. `comparar_logica_ui.mjs` cuenta, con repeticiones,
+  los valores de `onClick`, `onSubmit`, `onChange`, `disabled`, `href` y las llamadas `fetch`: **0
+  diferencias** salvo los pies pasados a `AccionesDeFormulario`, donde el mismo manejador va ahora en
+  `alCancelar`/`alPrincipal`/`guardando`/`principalInactiva` — comprobados uno a uno.
+  `type_en_formularios.mjs` busca botones que estaban dentro de un `<form>` sin `type` y ahora llevan
+  `type="button"` (dejarían de enviar): **ninguno** en los cuatro lotes.
+  **Lote 271 (Inventario: productos, códigos de barra, almacenes, inventario, conduces, ajustes).** 69
+  botones al componente (37 `IconButton`), 10 cabeceras, 6 pies a `AccionesDeFormulario`, 59 `type`,
+  `Edit2` → `Pencil`, y las acciones de fila de productos y códigos en el orden del estándar (Ver ·
+  Editar · Imprimir). Por función: "Aplicar Despacho" y "Aplicar precios" (dorados) pasan a
+  `primary`; "Generar Automático" a `outline`; "Volver al listado" (dorado sobre blanco, 2,4:1) a
+  `link`. **Excepción a propósito**: el Imprimir partido de productos (botón + desplegable) se queda;
+  su mitad gana `aria-label` y `aria-expanded`. Banco `verificar_ui_inventario.ts`: 10 comprobaciones
+  y 4 invariantes (textos, ejemplos, títulos, avisos y API iguales a la base), contraprueba 10 FALLA,
+  quince mutantes y quince muertos. Re-anclados a la propiedad: `verificar_filtros_de_conduces` (su
+  `.*` arrancaba en el botón del selector de fechas y no veía el de "Quitar filtros": un mutante que le
+  quitaba el `type` **sobrevivía**), `verificar_productos_por_pasos` y `verificar_ver_conduce`.
+  **Dos trampas del trabajo en paralelo, para la próxima vez**: (1) **`refs/stash` es COMPARTIDO entre
+  worktrees** — un agente hizo `git stash pop` y le salió el stash de otro; se recuperó todo, pero en
+  paralelo **no se usa `git stash`**: la base se mide con `git show <base>:<fichero>`. (2)
+  `migrar_botones.mjs` dejaba `\r\r\n` al insertar el `import` en ficheros CRLF (el `$` multilínea deja
+  el `\r` dentro de la coincidencia) y el diff salía con el fichero entero; corregido en la herramienta
+  y normalizados los ficheros.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3388,5 +3422,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 270 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 271 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
