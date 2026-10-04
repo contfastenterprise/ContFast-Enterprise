@@ -13,7 +13,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Modal } from '@/components/ui/dialog';
 import BarcodeRenderer from '@/components/ui/BarcodeRenderer';
 
 interface Product {
@@ -678,32 +678,19 @@ export default function BarcodeDashboardPage() {
        </div>
 
       {/* Diálogo Avanzado de Impresión de Etiquetas */}
-      <AnimatePresence>
-        {showLabelModal && (
-          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setShowLabelModal(false)}
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-4xl bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row no-print"
-            >
+      {/* Lote 277: la ventana de la casa. Su fondo ya cerraba al pulsarlo (`cerrarAlPulsarFuera` por defecto). */}
+      <Modal
+        isOpen={showLabelModal}
+        onClose={() => setShowLabelModal(false)}
+        title="Generar Etiquetas de Código de Barras"
+        icono={<Printer />}
+        maxWidth="4xl"
+        className="no-print"
+        sinRelleno
+      >
+            <div className="flex flex-col md:flex-row">
               {/* Ajustes */}
               <div className="flex-1 p-6 space-y-5 max-h-[85vh] overflow-y-auto">
-                <div className="flex justify-between items-center border-b pb-4">
-                  <h3 className="text-lg font-bold text-[#003366] flex items-center gap-2">
-                    <Printer className="h-5 w-5 text-[#c5a059]" />
-                    Generar Etiquetas de Código de Barras
-                  </h3>
-                  <IconButton type="button" aria-label="Cerrar" onClick={() => setShowLabelModal(false)}>
-                    <X className="size-5" />
-                  </IconButton>
-                </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Modo de Selección</label>
@@ -950,10 +937,8 @@ export default function BarcodeDashboardPage() {
                   Vista escalada. La impresión física se adaptará al tamaño real en milímetros.
                 </p>
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+            </div>
+      </Modal>
 
       {/* Elementos Imprimibles Ocultos */}
       <div className="print-area" style={{ display: 'none' }}>

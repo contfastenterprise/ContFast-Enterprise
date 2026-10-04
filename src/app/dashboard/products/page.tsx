@@ -31,6 +31,8 @@ import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { Button, IconButton } from '@/components/ui/button';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 import { AccionesDeFormulario } from '@/components/ui/acciones-de-formulario';
+//  Lote 277: las cuatro ventanas de esta pagina son la de la casa (`Modal`).
+import { Modal } from '@/components/ui/dialog';
 import { SearchBar } from '@/components/ui/search-bar';
 import { Pagination } from '@/components/ui/pagination';
 import { useConfirm } from '@/providers/confirm-provider';
@@ -1886,29 +1888,16 @@ export default function ProductsPage() {
       )}
 
       {/* Sub-Modal New Category */}
-      <AnimatePresence>
-        {showCategoryModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setShowCategoryModal(false)}
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-sm bg-white border border-[#003366] rounded-xl shadow-2xl overflow-hidden"
-            >
-              <div className="flex justify-between items-center p-4 border-b border-[#003366] bg-[#001733]">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Package className="h-5 w-5 text-[#c5a059]" /> Nueva Categoría
-                </h3>
-                <IconButton type="button" aria-label="Cerrar" onClick={() => setShowCategoryModal(false)} className="text-white/70 hover:bg-white/10 hover:text-white">
-                  <X className="size-5" />
-                </IconButton>
-              </div>
-
+      {/* Su fondo cerraba al pulsarlo (por defecto); mientras se guarda no se cierra. */}
+      <Modal
+        isOpen={showCategoryModal}
+        onClose={() => setShowCategoryModal(false)}
+        title="Nueva Categoría"
+        icono={<Package />}
+        maxWidth="sm"
+        bloqueada={submittingCategory}
+        sinRelleno
+      >
               <form onSubmit={handleCreateCategory} className="p-6 space-y-5">
                 <div className="space-y-1.5">
                   <label className="text-xs font-semibold text-primary">Nombre de Categoría <span className="text-[#c5a059]">*</span></label>
@@ -1940,35 +1929,18 @@ export default function ProductsPage() {
                   alCancelar={() => setShowCategoryModal(false)}
                 />
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
       {/* Sub-Modal Edit Prices */}
-      <AnimatePresence>
-        {showPricesModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setShowPricesModal(false)}
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-md bg-white border border-[#003366] rounded-xl shadow-2xl overflow-hidden"
-            >
-              <div className="flex justify-between items-center p-4 border-b border-[#003366] bg-[#0b1120]">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-[#c5a059]" /> Edición Manual de Precios
-                </h3>
-                <IconButton type="button" aria-label="Cerrar" onClick={() => setShowPricesModal(false)} className="text-white/70 hover:bg-white/10 hover:text-white">
-                  <X className="size-5" />
-                </IconButton>
-              </div>
-
+      {/* Su fondo cerraba al pulsarlo (por defecto). */}
+      <Modal
+        isOpen={showPricesModal}
+        onClose={() => setShowPricesModal(false)}
+        title="Edición Manual de Precios"
+        icono={<DollarSign />}
+        maxWidth="md"
+        sinRelleno
+      >
               <div className="p-6 space-y-5">
                 <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 p-3 rounded-lg flex items-start gap-3">
                   <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
@@ -2048,34 +2020,21 @@ export default function ProductsPage() {
                   </Button>
                 </div>
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
       {/* Sub-Modal Inventory */}
-      <AnimatePresence>
-        {showInventoryModal && selectedProduct && (
-          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setShowInventoryModal(false)}
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-5xl bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden"
-            >
-              <div className="flex justify-between items-center p-4 border-b border-slate-200 bg-[#001733] text-white">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-[#c5a059]" /> Inventario: {selectedProduct.name}
-                </h3>
-                <IconButton type="button" aria-label="Cerrar" onClick={() => setShowInventoryModal(false)} className="text-white/70 hover:bg-white/10 hover:text-white">
-                  <X className="size-5" />
-                </IconButton>
-              </div>
+      {/* Su fondo cerraba al pulsarlo (por defecto). Mientras se guarda una existencia o un limite
+          no se cierra. El cuerpo lee `selectedProduct`: solo se arma con el producto puesto. */}
+      <Modal
+        isOpen={showInventoryModal && !!selectedProduct}
+        onClose={() => setShowInventoryModal(false)}
+        title={<>Inventario: {selectedProduct?.name}</>}
+        icono={<Building2 />}
+        maxWidth="5xl"
+        bloqueada={submittingAdjustId !== null || submittingLimitId !== null}
+        sinRelleno
+      >
+        {selectedProduct && (
               <div className="p-0 overflow-y-auto max-h-[70vh]">
                 <table className="w-full text-left border-collapse">
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
@@ -2188,38 +2147,23 @@ export default function ProductsPage() {
                   </tbody>
                 </table>
               </div>
-            </motion.div>
-          </div>
         )}
-      </AnimatePresence>
+      </Modal>
 
       {/* Diálogo Avanzado de Impresión de Etiquetas */}
-      <AnimatePresence>
-        {showLabelModal && (
-          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-              onClick={() => setShowLabelModal(false)}
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-4xl bg-white border border-[#003366] rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row no-print"
-            >
+      {/* Su fondo cerraba al pulsarlo (por defecto). */}
+      <Modal
+        isOpen={showLabelModal}
+        onClose={() => setShowLabelModal(false)}
+        title="Generar Etiquetas de Código de Barras"
+        icono={<Printer />}
+        maxWidth="4xl"
+        className="no-print"
+        sinRelleno
+      >
+            <div className="flex flex-col md:flex-row">
               {/* Ajustes */}
               <div className="flex-1 p-4 space-y-5 max-h-[85vh] overflow-y-auto">
-                <div className="flex justify-between items-center border-b pb-4">
-                  <h3 className="text-lg font-bold text-[#003366] flex items-center gap-2">
-                    <Printer className="h-5 w-5 text-[#c5a059]" />
-                    Generar Etiquetas de Código de Barras
-                  </h3>
-                  <IconButton type="button" aria-label="Cerrar" onClick={() => setShowLabelModal(false)}>
-                    <X className="size-5" />
-                  </IconButton>
-                </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Modo de Selección</label>
@@ -2447,10 +2391,8 @@ export default function ProductsPage() {
                   Vista escalada. La impresión física se adaptará al tamaño real en milímetros.
                 </p>
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+            </div>
+      </Modal>
 
       {/* Elementos Imprimibles Ocultos */}
       <div className="print-area" style={{ display: 'none' }}>

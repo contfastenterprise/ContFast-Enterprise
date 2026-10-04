@@ -116,7 +116,15 @@ const CASA = [
 const DESVIACION = /(^|\s)(h-9|h-10|h-12|py-[0-9.]+|px-[1-9][0-9.]*|rounded-(md|xl|2xl)|rounded(?=\s|$)|font-semibold|transition-colors|disabled:opacity-40|hover:-translate-\S+)(?=\s|$)/;
 
 /** Lo visible que no es clase ni aria-label (la huella de los lotes 253-255). */
-const visibles = (src: string): string[] => huella(src).filter((x) => !x.startsWith('clase:') && !x.startsWith('aria-label:'));
+//  Lote 277: el titulo de una ventana pasa del texto de su `<h3>` a la propiedad `title` del `<Modal>`.
+//  Es el mismo texto visible: cuenta como texto, no como el atributo `title` (el globo de un boton).
+//  `[^<]*?`: no salta de un `<Modal` cuyo titulo no es una cadena a un `title=` de otro elemento.
+const titulosDeVentana = (src: string): string[] => [...src.replace(/\r\n/g, '\n').matchAll(/<Modal\b[^<]*?\btitle="([^"]*)"/g)].map((m) => m[1]);
+const visibles = (src: string): string[] => {
+  const h = huella(src).filter((x) => !x.startsWith('clase:') && !x.startsWith('aria-label:'));
+  for (const t of titulosDeVentana(src)) { const i = h.indexOf(`title:${t}`); if (i >= 0) h.splice(i, 1, `texto:${t}`); }
+  return h;
+};
 /**
  * Los textos que ahora viajan como PROPIEDAD de un componente (titulo, descripcion, texto del pie, y el
  * "Cancelar" que pone `AccionesDeFormulario`). La huella no los veia antes cuando eran una sola palabra o

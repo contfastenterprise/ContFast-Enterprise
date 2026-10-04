@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  Plus, Search, FileText, Download, Check, RefreshCw, X, Trash2,
+  Plus, Search, FileText, Download, Check, RefreshCw, Trash2,
   ArrowLeft, Calendar, Filter, Eye, Printer, XCircle,
   AlertCircle, Building2, Mail,
   Package, Users, FileMinus, FilePlus, ArrowUpRight, ArrowDownLeft, ArrowRight
@@ -16,6 +16,8 @@ import clsx from 'clsx';
 import { Button, IconButton } from '@/components/ui/button';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 import { AccionesDeFormulario } from '@/components/ui/acciones-de-formulario';
+//  Lote 277: la ventana de buscar la factura es la de la casa.
+import { Modal } from '@/components/ui/dialog';
 import { SearchBar } from '@/components/ui/search-bar';
 import { esModificablePorNota, CODIGOS_NOTA } from '@/services/dgii/tiposComprobante';
 import { Pagination } from '@/components/ui/pagination';
@@ -773,29 +775,16 @@ export default function AdjustmentsPage() {
     </div>
 
       {/* MODAL: Invoice search popup */ }
-  <AnimatePresence>
-    {showInvoiceSearch && (
-      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-xl w-full overflow-hidden"
-        >
-          <div className="bg-[#003366] text-white px-6 py-4 flex items-center justify-between">
-            <h3 className="font-bold flex items-center gap-2 text-base">
-              <FileText className="w-5 h-5 text-[#C5A059]" /> Vincular Factura Afectada
-            </h3>
-            <IconButton
-              type="button"
-              aria-label="Cerrar"
-              onClick={() => setShowInvoiceSearch(false)}
-              className="rounded-full text-white hover:bg-white/10 hover:text-white"
-            >
-              <X className="size-5" />
-            </IconButton>
-          </div>
-
+  {/* Su fondo no cerraba la ventana: `cerrarAlPulsarFuera={false}` conserva eso. */}
+  <Modal
+    isOpen={showInvoiceSearch}
+    onClose={() => setShowInvoiceSearch(false)}
+    title="Vincular Factura Afectada"
+    icono={<FileText />}
+    maxWidth="xl"
+    cerrarAlPulsarFuera={false}
+    sinRelleno
+  >
           <div className="p-6 space-y-4">
             <div className="flex gap-2">
               <input
@@ -837,10 +826,7 @@ export default function AdjustmentsPage() {
               )}
             </div>
           </div>
-        </motion.div>
-      </div>
-    )}
-  </AnimatePresence>
+  </Modal>
     </>
     
   );

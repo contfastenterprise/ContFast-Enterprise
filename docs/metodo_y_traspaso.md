@@ -2341,6 +2341,47 @@ Además, fuera de la tabla:
   dos invariantes, contraprueba **16 FALLA**, once mutantes y once muertos — **uno pareció sobrevivir y
   era equivalente**: quitaba `role="dialog"` del COMENTARIO de cabecera (la primera aparición del
   texto); repetido sobre el código, muere.
+- **Lotes 277 a 280: las ventanas escritas a mano, al `Modal` común — otra vez cuatro agentes a la
+  vez.** Mismo reparto que en los lotes 271-274 (Inventario, Ventas, Compras y Finanzas, RRHH y
+  administración), cada uno en su worktree y su rama sacada del 276, con un encargo común: la misma
+  variable abre la ventana, **el mismo manejador la cierra** (su X, y su fondo si lo cerraba), los
+  mismos botones hacen lo mismo. **Pulsar fuera hace lo que hacía**: si el fondo de la ventana vieja no
+  cerraba (lo normal en los formularios), `cerrarAlPulsarFuera={false}`. Y lo que ganan todas por ser el
+  `Modal`: se anuncian como ventana, el foco entra y vuelve, Tab no se escapa, Escape cierra solo la de
+  arriba y, con `bloqueada={<guardando>}`, no se cierran mientras se guarda.
+  **Cifras**: **43 ventanas** pasadas — 7 en Inventario (277), 10 en Ventas (278), 15 en Compras y
+  Finanzas (279), 11 en RRHH y administración (280) —, **ninguna excepción**. Cierran al pulsar fuera
+  18 (las que ya lo hacían); no, 25. `bloqueada` en 24. `capa` en las que se abren encima de otra (la
+  recepción del pedido sobre su detalle, el asiento, la suscripción). Los `fixed inset-0` que quedan en
+  esos grupos **no son ventanas**: capas transparentes que cierran un desplegable al pulsar fuera
+  (imprimir en productos, buscar producto en transferencias, guardar en facturas y cotizaciones).
+  **Cómo se comprobó que no cambió la lógica**: `comparar_logica_ui.mjs` da en los cuatro lotes **solo
+  `onClick` de cierre que desaparecen** (−1 la X; −2 la X y el fondo) — y el principal comprobó, uno a
+  uno, que la MISMA expresión es ahora el `onClose` de su `Modal`; ningún `onSubmit`, `onChange`,
+  `disabled`, `href` ni `fetch` cambió. `type_en_formularios.mjs`: 0. Los formularios conservan su
+  `onSubmit` y su botón de enviar dentro, así que Enter sigue enviando.
+  **Lo que se miró aparte**: la ventana del cierre de caja (arqueo ciego, lote 172) no tenía X: su
+  `onClose` es el mismo "Volver al Inicio", y sale **después** de cerrar la sesión, así que Escape no
+  tiene efecto contable. En facturas y e-CF, emitir, imprimir, notas, reenviar y dar de baja no se
+  tocaron (el banco del 278 cuenta las llamadas al confirmar, iguales a la base). Nómina y
+  liquidaciones: solo la ventana. Y dos ventanas que se abrían con `x && seleccionado`: los hijos de un
+  componente se evalúan aunque esté cerrado, y `seleccionado.firstName` con `null` revienta — el
+  `Modal` va dentro de `{seleccionado && …}` con la misma condición.
+  **Bancos**: `verificar_ventanas_inventario.ts` (39 y 3 invariantes), `verificar_ventanas_ventas.ts`
+  (39 y 2), `verificar_ventanas_compras_finanzas.ts` (32 y 2), `verificar_ventanas_rrhh_admin.ts` (54 y
+  2); contraprueba 100 % FALLA en los cuatro, y 57 mutantes, todos muertos. Re-anclados a la propiedad,
+  cada uno con su mutante: `verificar_ui_inventario`, `verificar_producto_en_pestana`,
+  `verificar_cartera_lote2`, `verificar_ui_ventas`, `verificar_avisos_caja`,
+  `verificar_avisos_pantallas_en_pestanas`, `verificar_empresas_y_pedidos_en_pestanas`,
+  `verificar_retenciones_y_bancos_en_pestanas`, `verificar_ui_compras_finanzas` y
+  `verificar_ui_rrhh_admin`. Dos de ellos los tocaron dos agentes (pedidos el 279, empresas el 280); al
+  encadenar se juntaron las dos mitades.
+  **Un hueco de un banco viejo, anotado y sin cerrar**: `scratch/huellaDePantalla.ts` no ve el texto
+  que va detrás de una expresión (`{stats.alertCount} avisos para…`). El banco del 280 lo recoge por su
+  cuenta; los del lote 253-255 y el 274 siguen con el hueco.
+  **Una trampa más del entorno, que costó dos bancos**: un heredoc de Bash (`<<'EOF'`) convierte `\\` en
+  `\`, y un guion de Python con `\\b` metió el carácter de retroceso (0x08) en dos bancos. Se vio y se
+  corrigió; la regla de la sección 4 (los guiones que tocan código, a fichero) sigue siendo la cura.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3530,5 +3571,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 276 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 280 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
