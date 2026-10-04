@@ -9,6 +9,7 @@ import { useRef, useState } from 'react';
 import { FileCheck, RefreshCw, Truck } from 'lucide-react';
 import { toast } from 'sonner';
 import { leerRespuesta } from '@/utils/leerRespuesta';
+import { Button } from '@/components/ui/button';
 
 export function AplicarPorCodigo({ onAplicado }: { onAplicado: () => void }) {
   const [applyCode, setApplyCode] = useState('');
@@ -75,10 +76,12 @@ export function AplicarPorCodigo({ onAplicado }: { onAplicado: () => void }) {
           onChange={(e) => setApplyCode(e.target.value)}
           className="h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors w-full sm:w-80 font-mono"
         />
-        <button
+        <Button
+          type="button"
+          size="sm"
           onClick={handleApplyCode}
           disabled={applying}
-          className="bg-[#c5a059] hover:bg-[#d4b069] text-[#001e40] font-bold h-8 px-3 py-1.5 rounded-lg shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 text-xs shrink-0 disabled:opacity-50"
+          className="shrink-0"
         >
           {applying ? (
             <RefreshCw className="h-4 w-4 animate-spin" />
@@ -86,7 +89,7 @@ export function AplicarPorCodigo({ onAplicado }: { onAplicado: () => void }) {
             <FileCheck className="h-4 w-4" />
           )}
           <span>Aplicar Despacho</span>
-        </button>
+        </Button>
       </div>
     </div>
   );

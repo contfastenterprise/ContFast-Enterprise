@@ -235,8 +235,12 @@ ok('empezar de cero vuelve al paso 1 y a la vista por pasos',
 
 // El "Siguiente" no puede salir en el ultimo paso -- no hay a donde --, pero
 // guardar tiene que salir en TODOS, que es la decision de este lote.
+//  Lote 271: los dos pies (producto y categoria) son ahora `<AccionesDeFormulario>`, cuya principal
+//  envia por defecto (`tipoPrincipal="submit"`). Lo que se cuenta es lo mismo: dos botones que envian.
+const envian = (s: string): number => veces(s, "type=\"submit\"")
+  + [...s.matchAll(/<AccionesDeFormulario\b([\s\S]*?)\r?\n\s*\/>/g)].filter((m) => !/tipoPrincipal="button"/.test(m[1])).length;
 ok('el Siguiente desaparece en el ultimo paso; guardar no',
-  tiene(src, '{paso < PASOS.length && (') && veces(src, "type=\"submit\"") === 2);
+  tiene(src, '{paso < PASOS.length && (') && envian(src) === 2);
 
 // ============================================================================
 // C. LO QUE SE MOVIO, SE MOVIO ENTERO

@@ -140,9 +140,10 @@ async function main() {
   // Acotado al boton: el visor aparece tambien donde se pinta.
   //  LOTE 226: la tabla salio de la pagina al partirla. El ojo vive en
   //  `TablaDeConduces` y la pagina le pasa el visor; lo vigilado no cambia.
+  //  LOTE 271: el icono ya no lleva clase (lo dimensiona el `IconButton`): se mira el icono.
   const tabla = sinComentarios(leer('src/app/dashboard/delivery-notes/components/TablaDeConduces.tsx'));
   ok('un icono de ojo en acciones abre ESE conduce',
-    /onClick=\{\(\) => onVer\(note\.id\)\}[\s\S]{0,700}<Eye className/.test(tabla) && /onVer=\{visor\.abrir\}/.test(pagina));
+    /onClick=\{\(\) => onVer\(note\.id\)\}[\s\S]{0,700}<Eye\b/.test(tabla) && /onVer=\{visor\.abrir\}/.test(pagina));
   ok('  y es un boton que no envia formularios', /type="button"\s*onClick=\{\(\) => onVer\(note\.id\)\}/.test(tabla));
   ok('se pinta con el visor, y recarga la lista tras despachar',
     /<VerConduce visor=\{visor\} onDespachado=\{loadDeliveryNotes\} \/>/.test(pagina));

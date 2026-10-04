@@ -14,6 +14,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { PestanasDeRegistro } from '@/components/ui/pestanas-de-registro';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 import { Plus, RefreshCw, Truck } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
 //  Lote 227: `m` dentro de `LazyMotion` y no `motion` (aviso de React Doctor):
@@ -193,17 +194,12 @@ export default function DeliveryNotesPage() {
                 exit={{ opacity: 0, y: -15 }}
                 className="space-y-6"
               >
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                  <div>
-                    <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
-                      Conduces de Entrega
-                    </h1>
-                    <p className="text-slate-500 text-sm mt-1">
-                      Controle la salida física de mercancías asociadas a facturas de venta.
-                    </p>
-                  </div>
-                  <PestanasDeRegistro enFormulario={showForm} lista="Conduces" alVerLista={salirDelFormulario} alRegistrar={() => setShowForm(true)} />
-                </div>
+                <CabeceraDePagina
+                  titulo="Conduces de Entrega"
+                  descripcion="Controle la salida física de mercancías asociadas a facturas de venta."
+                  icono={<Truck />}
+                  acciones={<PestanasDeRegistro enFormulario={showForm} lista="Conduces" alVerLista={salirDelFormulario} alRegistrar={() => setShowForm(true)} />}
+                />
 
                 {/* Quick Action: Apply Delivery Note or Invoice Stock Deduction */}
                 <AplicarPorCodigo onAplicado={loadDeliveryNotes} />

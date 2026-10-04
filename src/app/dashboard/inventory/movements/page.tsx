@@ -9,6 +9,8 @@ import { formatDateDisplay, formatDateTimeDisplay, formatTimeDisplay } from '@/u
 import { Pagination } from '@/components/ui/pagination';
 
 
+import { Button } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 interface Movement {
   id: string;
   type: string;
@@ -278,23 +280,17 @@ export default function MovementsPage() {
 
   return (
     <div className="space-y-8 animate-fade-in-up pb-10">
-      <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-        <div>
-          <h1 className="font-display-lg text-3xl md:text-4xl text-primary tracking-tight font-extrabold flex items-center gap-3">
-            <HistoryIcon className="h-8 w-8 text-primary" /> Historial de Movimientos
-          </h1>
-          <p className="font-body-lg text-on-surface-variant/80 mt-1">
-            Auditoría de entradas, salidas y traslados de inventario por almacén.
-          </p>
-        </div>
-        <button
-          onClick={handlePrintList}
-          className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-        >
-          <Printer className="h-3.5 w-3.5" />
-          Imprimir
-        </button>
-      </header>
+      <CabeceraDePagina
+        titulo="Historial de Movimientos"
+        descripcion="Auditoría de entradas, salidas y traslados de inventario por almacén."
+        icono={<HistoryIcon />}
+        acciones={
+          <Button variant="documento" type="button" onClick={handlePrintList}>
+            <Printer />
+            Imprimir
+          </Button>
+        }
+      />
 
       {/* Summary Cards */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">

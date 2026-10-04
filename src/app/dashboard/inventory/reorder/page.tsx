@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Package, RefreshCw, AlertTriangle, ArrowRight, ShoppingCart, DollarSign, Layers } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 import { toast } from 'sonner';
 
 interface ReorderSuggestion {
@@ -59,24 +61,17 @@ export default function ReorderSuggestionsPage() {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
-            Sugerencias de Reorden WMS
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Listado de productos con inventario por debajo del stock mínimo. Planea tus compras de reabastecimiento eficientemente.
-          </p>
-        </div>
-        <button
-          onClick={fetchSuggestions}
-          disabled={loading}
-          className="bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 transition-colors cursor-pointer"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Actualizar
-        </button>
-      </div>
+      <CabeceraDePagina
+        titulo="Sugerencias de Reorden WMS"
+        descripcion="Listado de productos con inventario por debajo del stock mínimo. Planea tus compras de reabastecimiento eficientemente."
+        icono={<Layers />}
+        acciones={
+          <Button type="button" onClick={fetchSuggestions} disabled={loading}>
+            <RefreshCw className={loading ? 'animate-spin' : ''} />
+            Actualizar
+          </Button>
+        }
+      />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -174,12 +169,9 @@ export default function ReorderSuggestionsPage() {
                           +{item.reorderQuantity} <span className="text-[10px] text-slate-400 uppercase">{item.unitOfMeasure}</span>
                         </td>
                         <td className="py-4 px-4 text-right">
-                          <button
-                            onClick={() => handleGeneratePurchase(item)}
-                            className="bg-[#003366] hover:bg-[#002244] text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 transition ml-auto cursor-pointer"
-                          >
-                            Generar Compra <ArrowRight className="w-3.5 h-3.5" />
-                          </button>
+                          <Button type="button" size="sm" onClick={() => handleGeneratePurchase(item)}>
+                            Generar Compra <ArrowRight />
+                          </Button>
                         </td>
                       </tr>
                     );
