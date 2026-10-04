@@ -2266,6 +2266,31 @@ Además, fuera de la tabla:
   corte entre los dos commits de su lote, como en los lotes 227, 230 y 237) y
   `verificar_avisos_pantallas_en_pestanas` (los dos cierres de pedidos llevan un `aria-label` que
   empieza por "Cerrar").
+  **Lote 274 (RRHH, administración y sistema: RRHH, empresas, configuración, herramientas, soporte,
+  inicio, el marco del panel, acceso, asistente de configuración, BI, agente y los componentes
+  comunes).** 136 botones al componente (50 `IconButton`), 19 cabeceras (el `<h1>` dorado del asistente
+  de configuración pasa a azul marino; BI y el Agente conservan su modo pestaña del lote 208, y en el
+  inicio las pestañas van en `acciones` sin tocar tarjetas ni gráficos), 56 `aria-label` (incluidos el
+  cierre del cajón móvil del menú, los grupos plegados y los ojos de contraseña), ~150 `type`, y
+  `FileText` → `Printer` en "Imprimir liquidación". `boton-buscar-dgii` usa por dentro
+  `<Button variant="documento" size="sm">` sin cambiar su API; `confirm-dialog` y `estado-carga`, el
+  `Button`. **Un pie al revés más**: el aviso de instalar la aplicación (`[Instalar ahora][Quizás
+  luego]`). **Excepciones a propósito**: el botón dorado de las pantallas de acceso (lote 173, lo vigila
+  `verificar_pantalla_acceso`), `global-error.tsx` (estilos en línea: se pinta sin hoja de estilos), la
+  paginación propia del inicio (lote 133) y el diagnóstico de permisos del menú. Banco
+  `verificar_ui_rrhh_admin.ts`: 11 comprobaciones y un invariante, contraprueba 11 FALLA, catorce
+  mutantes y catorce muertos — **uno sobrevivió primero**: cambiar `'Guardar Empleado'` dentro de un
+  ternario, porque la huella no ve las cadenas de las expresiones; ahora las lee del cuerpo de cada
+  botón. Re-anclados (todos con su mutante): `verificar_boton_buscar_dgii` (mira la clase que el botón
+  PINTA, no la de su fuente), `verificar_avisos_portada`, `verificar_avisos_configuracion`,
+  `verificar_partir_empleados_y_empresas`, `verificar_pestanas_solas` (cuenta también `IconButton`: un
+  mutante que ponía uno junto a las pestañas **sobrevivía**), `verificar_rrhh_en_pestanas` y
+  `verificar_pestanas_del_inicio`. Al encadenar, `verificar_partir_retenciones_y_horas_extra` lo habían
+  re-anclado el 273 y el 274 **de la misma forma** (comparar contra el commit fijo del corte); se quedó
+  la del 273.
+  **El trinquete tras los cuatro lotes**: botones a mano con las clases de la casa, de 86/35/23
+  (primario/secundario/dorado) a **5/0/1** — los partidos y las excepciones anotadas —; de solo icono
+  sin ningún nombre, de 99 a **19**, casi todos de la tienda pública (fuera a propósito, lote 231).
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3455,5 +3480,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 273 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 274 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

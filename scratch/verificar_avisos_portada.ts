@@ -185,7 +185,9 @@ async function main() {
     const guardarInactivo = (html: string) => {
       const i = html.indexOf('Guardar portada');
       const etiqueta = i < 0 ? '' : html.slice(html.lastIndexOf('<button', i), html.indexOf('>', html.lastIndexOf('<button', i)) + 1);
-      return /^<button type="button" disabled=""/.test(etiqueta);
+      //  Lote 274: el boton es el `Button` de la casa, que pinta la clase antes que el resto: se mira
+      //  que la etiqueta LLEVE los dos atributos, no el orden en que salen.
+      return /^<button\b/.test(etiqueta) && /\stype="button"/.test(etiqueta) && /\sdisabled=""/.test(etiqueta);
     };
     ok(E2[3], !guardarInactivo(con) && /Guardar portada<\/button>/.test(con) && guardarInactivo(dibujar({ ...lleno, pasaDelTope: true }))
       && guardarInactivo(dibujar({ ...lleno, guardando: true })) && guardarInactivo(dibujar({ ...lleno, subiendo: true })));

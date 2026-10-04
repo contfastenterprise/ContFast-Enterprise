@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Users, Search, Edit2, Trash2, RefreshCw, AlertTriangle, Building2, Briefcase, Mail, Phone, Calendar, UserCheck } from 'lucide-react';
+import { Users, Search, Pencil, Trash2, RefreshCw, AlertTriangle, Building2, Briefcase, Mail, Phone, Calendar, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
@@ -10,6 +10,8 @@ import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de
 import { Pagination } from '@/components/ui/pagination';
 import { leerRespuesta } from '@/utils/leerRespuesta';
 
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 interface Employee {
   id: string;
   employeeCode: string;
@@ -42,24 +44,19 @@ export default function EmployeesPage() {
 
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
-            <Users className="h-6 w-6 text-[#c5a059]" /> Colaboradores / Empleados
-          </h1>
-          <p className="text-sm text-slate-500">
-            Administración de ficha de datos personales y laborales del personal.
-          </p>
-        </div>
-        {/* Lote 249: en la cabecera, SOLO las pestanas (como en Compras). */}
-        <PestanasDeRegistro
+      {/* Lote 249: en la cabecera, SOLO las pestanas (como en Compras). */}
+      <CabeceraDePagina
+        titulo="Colaboradores / Empleados"
+        descripcion="Administración de ficha de datos personales y laborales del personal."
+        icono={<Users />}
+        acciones={<PestanasDeRegistro
           enFormulario={showModal}
           lista="Empleados"
           editando={!!editId}
           alVerLista={() => setShowModal(false)}
           alRegistrar={handleOpenCreate}
-        />
-      </div>
+        />}
+      />
 
       {!showModal && (<>
 
@@ -70,15 +67,15 @@ export default function EmployeesPage() {
           value={search}
           onChange={setSearch}
         />
-        <button
+        <IconButton
+          variant="secondary"
           type="button"
           onClick={fetchData}
           title="Recargar"
           aria-label="Recargar"
-          className="flex items-center justify-center h-8 w-8 border border-slate-200 hover:bg-slate-50 rounded-lg transition text-slate-700"
         >
           <RefreshCw className="h-4.5 w-4.5" />
-        </button>
+        </IconButton>
       </div>
 
       <TablaDeEmpleados h={h} />
@@ -335,20 +332,24 @@ function TablaDeEmpleados({ h }: { h: EstadoEmployeesPage }) {
                   </div>
                   
                   <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                    <button
+                    <IconButton
+                      type="button"
+                      aria-label="Editar empleado"
+                      className="bg-slate-100 hover:text-[#003366] hover:bg-[#003366]/10"
                       onClick={() => handleOpenEdit(emp)}
-                      className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10 flex items-center justify-center"
                       title="Editar"
                     >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                    <button
+                      <Pencil className="h-4 w-4" />
+                    </IconButton>
+                    <IconButton
+                      type="button"
+                      aria-label="Eliminar empleado"
+                      className="bg-slate-100 hover:text-rose-600 hover:bg-rose-50"
                       onClick={() => handleDelete(emp.id)}
-                      className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center"
                       title="Eliminar"
                     >
                       <Trash2 className="h-4 w-4" />
-                    </button>
+                    </IconButton>
                   </div>
                 </div>
               ))}
@@ -393,20 +394,24 @@ function TablaDeEmpleados({ h }: { h: EstadoEmployeesPage }) {
                       </td>
                       <td className="px-4 py-2.5 align-middle text-right">
                         <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button
+                          <IconButton
+                            type="button"
+                            aria-label="Editar empleado"
+                            className="hover:text-[#003366] hover:bg-[#003366]/10"
                             onClick={() => handleOpenEdit(emp)}
-                            className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
                             title="Editar"
                           >
-                            <Edit2 className="h-3.5 w-3.5" />
-                          </button>
-                          <button
+                            <Pencil className="h-3.5 w-3.5" />
+                          </IconButton>
+                          <IconButton
+                            type="button"
+                            aria-label="Eliminar empleado"
+                            className="hover:text-rose-600 hover:bg-rose-50"
                             onClick={() => handleDelete(emp.id)}
-                            className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"
                             title="Eliminar"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                          </IconButton>
                         </div>
                       </td>
                     </tr>
@@ -641,21 +646,20 @@ function FormularioDeEmpleado({ h }: { h: EstadoEmployeesPage }) {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-              <button
+            <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
+              <Button variant="secondary"
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-              >
+                className="flex">
                 Cancelar
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
                 type="submit"
                 disabled={submitting}
-                className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 {submitting ? 'Guardando...' : 'Guardar Empleado'}
-              </button>
+              </Button>
             </div>
           </form>
         </PanelDeRegistro>

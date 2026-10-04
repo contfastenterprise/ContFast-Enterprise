@@ -8,6 +8,7 @@
 import { useRef } from 'react';
 import { ImagePlus, Loader2, Trash2 } from 'lucide-react';
 import { FOTO_ENTERA } from '@/utils/fotoEntera';
+import { Button } from '@/components/ui/button';
 
 const TIPOS = 'image/jpeg,image/png,image/webp';
 
@@ -35,15 +36,26 @@ export function ImagenDeLaPortada({ imagenUrl, subiendo, subir, quitar }: {
       <input ref={fichero} id="portada-imagen" type="file" accept={TIPOS} aria-labelledby="etiqueta-portada-imagen" className="sr-only"
         onChange={(e) => alElegir(e.target.files?.[0])} />
       <div className="flex items-center gap-2">
-        <button type="button" onClick={() => fichero.current?.click()} disabled={subiendo}
-          className="text-xs font-bold text-[#c5a059] hover:text-[#d4b069] disabled:opacity-50">
+        <Button
+          variant="outline"
+          size="sm"
+          type="button"
+          onClick={() => fichero.current?.click()}
+          disabled={subiendo}
+        >
           {imagenUrl ? 'Cambiar' : 'Subir imagen'}
-        </button>
+        </Button>
         {imagenUrl && (
-          <button type="button" onClick={quitar} disabled={subiendo}
-            className="flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-rose-600 disabled:opacity-50">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hover:text-rose-600"
+            type="button"
+            onClick={quitar}
+            disabled={subiendo}
+          >
             <Trash2 className="h-3 w-3" aria-hidden="true" /> Quitar
-          </button>
+          </Button>
         )}
       </div>
       <p className="text-[10px] text-slate-500">JPG, PNG o WebP. Se reduce sola al subirla; mejor apaisada.</p>

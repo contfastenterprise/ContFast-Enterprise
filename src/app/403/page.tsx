@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ShieldAlert, ArrowLeft, Home } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
 
 export default function ForbiddenPage() {
   return (
@@ -34,21 +35,23 @@ export default function ForbiddenPage() {
         </p>
 
         <div className="flex flex-col gap-3">
-          <Link
-            href="/dashboard"
-            className="flex items-center justify-center gap-2 w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-4 rounded-xl transition duration-200 shadow-lg shadow-indigo-600/20 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-          >
-            <Home className="w-4 h-4" />
-            Volver al Dashboard
-          </Link>
+          <Button asChild size="lg" className="w-full">
+            <Link href="/dashboard">
+              <Home className="w-4 h-4" />
+              Volver al Dashboard
+            </Link>
+          </Button>
           
-          <button
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            className="w-full"
             onClick={() => window.history.back()}
-            className="flex items-center justify-center gap-2 w-full bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-slate-300 font-semibold py-3 px-4 rounded-xl transition duration-200 focus:outline-none focus:ring-2 focus:ring-slate-700"
           >
             <ArrowLeft className="w-4 h-4" />
             Regresar a la página anterior
-          </button>
+          </Button>
         </div>
       </motion.div>
     </div>

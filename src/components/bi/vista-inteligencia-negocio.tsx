@@ -12,6 +12,8 @@ import {
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
 import DateRangePicker from '@/components/ui/date-range-picker';
+import { Button } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 // Dynamically import Recharts-based BI views without SSR
 const BIGeneral = dynamic(() => import('@/components/bi/bi-general'), { 
@@ -278,25 +280,22 @@ export default function VistaInteligenciaNegocio({ enPestana = false }: { enPest
              BOTON de sincronizar NO: es función, no adorno, y sin él la pestaña no podría
              recargar el análisis. Por eso no se esconde la cabecera entera.  */}
         {enPestana ? <div /> : (
-        <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-[#003366] flex items-center gap-2">
-            <BarChart2 className="w-8 h-8 text-primary" />
-            Inteligencia de Negocios
-          </h1>
-          <p className="text-sm text-on-surface-variant font-medium">
-            Dashboards BI corporativos y analítica avanzada en tiempo real
-          </p>
-        </div>
+        <CabeceraDePagina
+          titulo="Inteligencia de Negocios"
+          descripcion="Dashboards BI corporativos y analítica avanzada en tiempo real"
+          icono={<BarChart2 />}
+        />
         )}
         
-        <button 
+        <Button
+          type="button"
+          variant="secondary"
           onClick={loadTabStats}
           disabled={tabLoading}
-          className="flex items-center gap-2 px-4 py-2 border border-outline-variant/30 bg-surface-bright hover:bg-slate-50 rounded-xl text-xs font-bold text-on-surface-variant disabled:opacity-50 cursor-pointer shadow-sm transition-colors"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${tabLoading ? 'animate-spin' : ''}`} />
           Sincronizar Análisis
-        </button>
+        </Button>
       </div>
 
       {/* ─── GLOBAL FILTERS ACCORDION ─── */}
@@ -442,54 +441,54 @@ export default function VistaInteligenciaNegocio({ enPestana = false }: { enPest
         </div>
 
         <div className="flex justify-end pt-2">
-          <button 
+          <Button
+            type="button"
             onClick={handleApplyFilters}
-            className="flex items-center gap-2 px-6 py-2.5 bg-[#003366] text-white hover:bg-[#002244] rounded-xl text-xs font-bold cursor-pointer transition-colors shadow-sm"
           >
             Aplicar Filtros de Negocios
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* ─── TAB NAVIGATION SECTION ─── */}
       <div className="flex overflow-x-auto gap-2 p-1.5 bg-surface-variant/40 rounded-2xl w-fit max-w-full custom-scrollbar">
-        <button
+        <button type="button"
           onClick={() => setActiveTab('general')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'general' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
         >
           General Ejecutiva
         </button>
-        <button
+        <button type="button"
           onClick={() => setActiveTab('products')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'products' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
         >
           Productos
         </button>
-        <button
+        <button type="button"
           onClick={() => setActiveTab('inventory')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'inventory' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
         >
           Inventario
         </button>
-        <button
+        <button type="button"
           onClick={() => setActiveTab('customers')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'customers' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
         >
           Clientes
         </button>
-        <button
+        <button type="button"
           onClick={() => setActiveTab('billing')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'billing' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
         >
           Ventas y e-CF
         </button>
-        <button
+        <button type="button"
           onClick={() => setActiveTab('purchases')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'purchases' ? 'bg-surface-bright text-[#003366] shadow-xs' : 'text-on-surface-variant hover:text-on-surface'}`}
         >
           Compras y Egresos
         </button>
-        <button
+        <button type="button"
           onClick={() => setActiveTab('alerts')}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${activeTab === 'alerts' ? 'bg-surface-bright text-[#003366] shadow-xs flex items-center gap-1' : 'text-on-surface-variant hover:text-on-surface flex items-center gap-1'}`}
         >

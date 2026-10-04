@@ -6,6 +6,7 @@ import { parseFraction, decimalToFraccion } from '@/utils/calculos';
 import { windowProfiles } from '@/utils/profilesRegistry';
 import { toast } from 'sonner';
 import { useConfirm } from '@/providers/confirm-provider';
+import { IconButton } from '@/components/ui/button';
 
 export interface TablaDesgloseHandle {
   agregarFila: () => void;
@@ -254,13 +255,15 @@ const TablaDesglose = forwardRef<TablaDesgloseHandle, Props>(
 
                 {/* 4. Botón de Eliminar */}
                 <div className="self-center">
-                  <button
+                  <IconButton
+                    type="button"
+                    size="icon"
+                    aria-label="Eliminar registro"
+                    className="text-slate-400 hover:text-red-500 hover:bg-red-50"
                     onClick={() => eliminarFila(fila.id)}
-                    className="p-2 text-slate-400 hover:text-red-500 rounded-xl hover:bg-red-50 transition"
-                    title="Eliminar registro"
                   >
                     <Trash2 className="h-4.5 w-4.5" />
-                  </button>
+                  </IconButton>
                 </div>
               </div>
             ))}

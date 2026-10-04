@@ -7,6 +7,8 @@ import { useConfirm } from '@/providers/confirm-provider';
 import TablaDesglose, { type TablaDesgloseHandle } from './TablaDesglose';
 import { formatTimeDisplay } from '@/utils/fechasLocales';
 
+import { Button } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 export default function DesgloseVentanasPage() {
   const confirm = useConfirm();
   const [ancho, setAncho] = useState('');
@@ -146,45 +148,39 @@ export default function DesgloseVentanasPage() {
 
       <div className="p-6 w-full space-y-6">
         {/* Encabezado Principal Rediseñado */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="p-2 bg-[#003366]/5 rounded-xl text-[#003366]">
-                <Layers className="h-6 w-6" />
-              </span>
-              <h1 className="text-2xl font-bold text-[#003366] tracking-tight">
-                Optimizador & Desglose de Ventanas
-              </h1>
-            </div>
-            <p className="text-slate-500 text-sm pl-12">
-              Cálculo técnico exacto de perfiles de aluminio y cristales para sistemas de correderas.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <button
+        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+          <CabeceraDePagina
+            titulo="Optimizador & Desglose de Ventanas"
+            descripcion="Cálculo técnico exacto de perfiles de aluminio y cristales para sistemas de correderas."
+            icono={<Layers />}
+            acciones={<>
+            <Button
+              type="button"
+              variant="secondary"
               onClick={handleLimpiar}
-              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               <RotateCcw className="h-4 w-4" />
               Limpiar Todo
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
               onClick={handleSaveDraft}
-              className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
-              <Save className="h-4 w-4 text-[#C5A059]" />
+              <Save className="h-4 w-4" />
               Guardar Borrador
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
+              variant="documento"
               onClick={handlePrint}
               disabled={isPrinting}
-              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               <Printer className="h-4 w-4" />
               {isPrinting ? 'Generando PDF...' : 'Imprimir'}
-            </button>
-          </div>
+            </Button>
+          </>}
+          />
         </div>
 
         {/* 1. Fila Horizontal Superior: Configuración Técnica (Ancho Completo) */}
@@ -284,14 +280,15 @@ export default function DesgloseVentanasPage() {
 
             {/* Botón de Agregar */}
             <div className="md:col-span-1">
-              <button
+              <Button
+                type="button"
+                className="w-full"
                 onClick={handleAdd}
                 disabled={!enable}
-                className="w-full flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 <Plus className="h-5 w-5" />
                 <span>Add</span>
-              </button>
+              </Button>
             </div>
           </div>
         </div>

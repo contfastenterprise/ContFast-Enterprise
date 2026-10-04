@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import clsx from 'clsx';
 import Avatar from './Avatar';
 import { useConfirm } from '@/providers/confirm-provider';
+import { Button } from '@/components/ui/button';
 
 interface AvatarUploaderProps {
   currentAvatarUrl?: string | null;
@@ -350,25 +351,28 @@ export default function AvatarUploader({
             <span className="text-xs font-semibold text-on-surface-variant truncate max-w-[200px]">
               {selectedFile?.name || 'Imagen seleccionada'}
             </span>
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-rose-500 hover:text-rose-600 hover:bg-rose-50"
               type="button"
               disabled={uploading}
               onClick={handleCancelSelection}
-              className="text-xs text-rose-500 hover:text-rose-600 font-bold flex items-center gap-1 cursor-pointer disabled:opacity-50"
             >
               <X className="w-3.5 h-3.5" /> Cancelar
-            </button>
+            </Button>
           </div>
 
-          <button
+          <Button
+            size="lg"
+            className="w-full"
             type="button"
             onClick={handleUpload}
             disabled={uploading}
-            className="w-full bg-primary hover:bg-primary/95 text-white font-bold py-2.5 px-4 rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {uploading ? <RefreshCw className="w-4 h-4 animate-spin" /> : null}
             Guardar Foto
-          </button>
+          </Button>
         </div>
       )}
 

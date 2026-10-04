@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Users, Banknote, Calendar, ShieldAlert, Award, FileText, HeartPulse, ShieldCheck, RefreshCw, BarChart3, TrendingUp, UserCheck, Palmtree, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { Button } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 // Format currency helper
 const formatCurrency = (val: number | string) => {
@@ -138,22 +140,16 @@ export default function HRDashboard() {
 
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-on-surface flex items-center gap-2">
-            <Users className="h-6 w-6 text-primary" /> Dashboard de Recursos Humanos
-          </h1>
-          <p className="text-sm text-on-surface-variant/80">
-            Estadísticas, nómina activa y aportes de seguridad social (TSS/DGII) de República Dominicana.
-          </p>
-        </div>
-        <button
-          onClick={fetchDashboardData}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-surface hover:bg-surface-variant text-on-surface border border-outline rounded-lg transition"
-        >
-          <RefreshCw className="h-3.5 w-3.5" /> Actualizar
-        </button>
-      </div>
+      <CabeceraDePagina
+        titulo="Dashboard de Recursos Humanos"
+        descripcion="Estadísticas, nómina activa y aportes de seguridad social (TSS/DGII) de República Dominicana."
+        icono={<Users />}
+        acciones={
+          <Button type="button" variant="secondary" onClick={fetchDashboardData}>
+            <RefreshCw /> Actualizar
+          </Button>
+        }
+      />
 
       {/* Info Indicators Panel */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

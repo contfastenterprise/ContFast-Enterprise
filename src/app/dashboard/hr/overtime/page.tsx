@@ -8,6 +8,8 @@ import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 import { leerRespuesta } from '@/utils/leerRespuesta';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 // Format currency helper
 const formatCurrency = (val: number | string) => {
@@ -31,24 +33,19 @@ export default function OvertimeAndEntriesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Ingresos, Deducciones y Horas Extras
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400">
-            Gestione las horas extras, bonificaciones y deducciones que se aplicarán en la próxima nómina.
-          </p>
-        </div>
-        {/* Lote 249: en la cabecera, SOLO las pestanas (como en Compras). Recargar baja a la fila de
-            las pestanas de contenido; lo que se registra es del tipo de la pestana de contenido elegida. */}
-        <PestanasDeRegistro
+      {/* Lote 249: en la cabecera, SOLO las pestanas (como en Compras). Recargar baja a la fila de
+          las pestanas de contenido; lo que se registra es del tipo de la pestana de contenido elegida. */}
+      <CabeceraDePagina
+        titulo="Ingresos, Deducciones y Horas Extras"
+        descripcion="Gestione las horas extras, bonificaciones y deducciones que se aplicarán en la próxima nómina."
+        icono={<Clock />}
+        acciones={<PestanasDeRegistro
           enFormulario={showModal}
           lista="Novedades"
           alVerLista={() => setShowModal(false)}
           alRegistrar={handleOpenModal}
-        />
-      </div>
+        />}
+      />
 
       {!showModal && (<>
 
@@ -66,6 +63,7 @@ export default function OvertimeAndEntriesPage() {
             const active = activeTab === tab;
             return (
               <button
+                type="button"
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`border-b-2 py-4 px-1 text-sm font-medium whitespace-nowrap ${active
@@ -78,15 +76,17 @@ export default function OvertimeAndEntriesPage() {
             );
           })}
         </nav>
-        <button
+        <IconButton
+          variant="secondary"
+          size="icon"
+          className="mb-2"
           type="button"
           onClick={fetchData}
           title="Recargar"
           aria-label="Recargar"
-          className="mb-2 inline-flex items-center justify-center rounded-md border border-outline bg-surface p-2 text-sm font-medium text-on-surface shadow-sm hover:bg-surface-variant transition"
         >
           <RefreshCw className="h-4 w-4" />
-        </button>
+        </IconButton>
       </div>
 
       <TablaDeNovedades h={h} />
@@ -350,13 +350,14 @@ function TablaDeNovedades({ h }: { h: EstadoOvertimeAndEntriesPage }) {
           <p className="mt-1 text-sm text-on-surface-variant/70">
             Comience agregando un nuevo registro para este periodo.
           </p>
-          <button
+          <Button
+            type="button"
+            className="mt-4"
             onClick={handleOpenModal}
-            className="mt-4 inline-flex items-center rounded-md bg-[#003366] px-3 py-2 text-sm font-semibold text-white shadow hover:bg-[#001e40] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#003366]"
           >
-            <Plus className="-ml-0.5 mr-1.5 h-4 w-4" />
+            <Plus className="h-4 w-4" />
             Agregar Registro
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-outline bg-surface shadow-sm">
@@ -420,15 +421,15 @@ function TablaDeNovedades({ h }: { h: EstadoOvertimeAndEntriesPage }) {
                       </td>
                       <td className="p-4 text-right">
                         {record.status === 'pending' ? (
-                          <button
+                          <IconButton
+                            className="text-rose-600 hover:text-rose-900 hover:bg-rose-50"
                             type="button"
                             onClick={() => handleDelete(record.id)}
                             title="Eliminar"
                             aria-label="Eliminar registro"
-                            className="inline-flex items-center justify-center text-rose-600 hover:text-rose-900 dark:hover:text-rose-400 p-1 rounded hover:bg-rose-55 dark:hover:bg-rose-950/20"
                           >
                             <Trash2 className="h-4 w-4" />
-                          </button>
+                          </IconButton>
                         ) : (
                           <span className="text-slate-400 text-xs italic">Inmutable</span>
                         )}
@@ -582,21 +583,20 @@ function FormularioDeNovedad({ h }: { h: EstadoOvertimeAndEntriesPage }) {
             )}
 
             {/* Action Buttons */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-              <button
+            <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+              <Button
+                variant="secondary"
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="inline-flex items-center justify-center rounded-md border border-outline bg-surface px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-variant transition"
               >
                 Cancelar
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center justify-center rounded-md bg-[#003366] px-4 py-2 text-sm font-medium text-white shadow hover:bg-[#001e40] disabled:opacity-50"
               >
                 {submitting ? 'Guardando...' : 'Guardar Registro'}
-              </button>
+              </Button>
             </div>
           </form>
         </PanelDeRegistro>

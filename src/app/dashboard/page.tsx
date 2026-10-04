@@ -6,9 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useRbac } from '@/components/providers/rbacContext';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
-import {
-  FileText, RefreshCw, AlertCircle, TrendingUp, CheckCircle2, Send, Eye, Plus, History as HistoryIcon, Clock, ChevronRight, Search, Activity, Users, ShoppingCart, X
-} from 'lucide-react';
+import { FileText, RefreshCw, AlertCircle, TrendingUp, CheckCircle2, Send, Eye, Plus, History as HistoryIcon, Clock, ChevronRight, Search, Activity, Users, ShoppingCart, X, LayoutDashboard } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import SkeletonBasic from '@/components/ui/skeleton';
@@ -17,6 +15,8 @@ import { SearchBar } from '@/components/ui/search-bar';
 import dynamic from 'next/dynamic';
 import { formatDateDisplay, formatTimeDisplay } from '@/utils/fechasLocales';
 import { pestanasVisibles, pestanaActiva } from '@/utils/pestanasDelInicio';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 //  LOTE 208: las dos pantallas que salieron del menu lateral, ahora pestañas de aqui.
 //
@@ -298,25 +298,24 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-10 pb-8 animate-fade-in-up">
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-        <div>
-          <h1 className="font-display-lg text-3xl md:text-4xl text-primary tracking-tight font-extrabold">Dashboard Principal</h1>
-          <p className="font-body-lg text-slate-500/80 mt-1">Resumen ejecutivo y operaciones pendientes para hoy.</p>
-        </div>
-
-        {/* ── Pestañas, arriba a la derecha (pedido del dueño) ───────────────
+      {/* ── Pestañas, arriba a la derecha (pedido del dueño) ───────────────
              LOTE 208: Inteligencia de Negocio y el Agente Empresarial salen del menú
              lateral y se ven desde aquí. El menú tiene cincuenta elementos —medidos en
              el lote 189— y estas dos son pantallas de CONSULTA: se miran desde el
              inicio, no son sitios donde se registre nada.
 
-             Van DENTRO de la cabecera, que ya reparte con `justify-between`, así que el
-             grupo queda a la derecha del título sin tocar el resto de la pantalla.
+             Van DENTRO de la cabecera (`acciones` de `CabeceraDePagina`, que reparte con
+             `justify-between`), así que el grupo queda a la derecha del título sin tocar el
+             resto de la pantalla.
 
              La barra solo sale si hay algo más que el Resumen: para quien no puede ver
              ninguna de las dos, un selector con una sola opción no dice nada y ocupa. */}
-        {visibles.length > 1 && (
+      {/* ── Header ──────────────────────────────────────────────────────────── */}
+      <CabeceraDePagina
+        titulo="Dashboard Principal"
+        descripcion="Resumen ejecutivo y operaciones pendientes para hoy."
+        icono={<LayoutDashboard />}
+        acciones={visibles.length > 1 && (
           <nav
             aria-label="Secciones del inicio"
             className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white/70 p-1 shrink-0 self-start"
@@ -341,7 +340,7 @@ export default function DashboardPage() {
             ))}
           </nav>
         )}
-      </header>
+      />
 
       {/*  LAS OTRAS DOS PESTAÑAS. Se pasan `enPestana` para que no repitan su propio
            título —ya lo dice la pestaña— pero conserven su botón de acción, que es
@@ -380,12 +379,15 @@ export default function DashboardPage() {
               </p>
             </div>
           </div>
-          <button
+          <Button
+            type="button"
+            variant="warning"
+            size="sm"
+            className="shrink-0"
             onClick={() => router.push('/dashboard/purchases?tab=cheques')}
-            className="bg-amber-600 hover:bg-amber-750 text-white px-3 py-1.5 h-8 text-xs rounded-lg font-bold transition hover:shadow-md hover:shadow-amber-600/20 active:scale-95 cursor-pointer shrink-0"
           >
             Ver y Aplicar
-          </button>
+          </Button>
         </motion.div>
       )}
 
@@ -501,24 +503,26 @@ export default function DashboardPage() {
       <div className="flex justify-end items-center gap-2">
         <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm p-1.5 rounded-xl flex gap-1.5">
           <button
-            onClick={() => setChartPeriod('semana')}
+            type="button"
             className={clsx(
               "px-4 py-2 text-xs rounded-lg font-bold transition duration-300 cursor-pointer",
               chartPeriod === 'semana'
                 ? "bg-[#003366] text-white shadow-md shadow-[#003366]/20"
                 : "text-slate-500/80 hover:bg-slate-100 hover:text-[#003366]"
             )}
+            onClick={() => setChartPeriod('semana')}
           >
             Vista Semanal
           </button>
           <button
-            onClick={() => setChartPeriod('mes')}
+            type="button"
             className={clsx(
               "px-4 py-2 text-xs rounded-lg font-bold transition duration-300 cursor-pointer",
               chartPeriod === 'mes'
                 ? "bg-[#003366] text-white shadow-md shadow-[#003366]/20"
                 : "text-slate-500/80 hover:bg-slate-100 hover:text-[#003366]"
             )}
+            onClick={() => setChartPeriod('mes')}
           >
             Vista Mensual
           </button>
@@ -579,12 +583,15 @@ export default function DashboardPage() {
               <div className="text-center text-sm text-slate-500/60 py-4">No hay actividad reciente.</div>
             )}
           </div>
-          <button 
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-6 w-full"
             onClick={() => router.push('/dashboard/invoices')}
-            className="mt-6 w-full text-center text-primary font-label-md font-bold hover:bg-primary/5 py-1.5 h-8 rounded-lg transition border border-primary/10 text-sm cursor-pointer"
           >
             Ver todo el historial
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -593,7 +600,7 @@ export default function DashboardPage() {
         <div className="p-4 border-b border-slate-200/20 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h4 className="font-headline-md text-xl font-bold text-primary">Últimos Comprobantes Emitidos</h4>
-            <p className="text-body-sm text-slate-500/60 mt-1 font-medium">Monitoreo en tiempo real de transacciones</p>
+            <p className="text-sm text-slate-500/60 mt-1 font-medium">Monitoreo en tiempo real de transacciones</p>
           </div>
           <div className="w-full md:w-80">
             <SearchBar
@@ -636,17 +643,21 @@ export default function DashboardPage() {
                     <div className="flex justify-between items-center mt-1">
                       <span className="font-mono-data font-extrabold text-slate-800 text-sm">{fmt(parseFloat(inv.total))}</span>
                       <div className="flex gap-2">
-                        <button
+                        <IconButton
+                          type="button"
+                          aria-label="Ver PDF de la factura"
+                          className="bg-slate-100 hover:bg-primary hover:text-on-primary"
                           onClick={(e) => { e.stopPropagation(); handleViewPdf(inv.id, e); }}
-                          className="p-2 text-slate-600 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-lg transition"
                           title="Ver PDF"
                         >
                           <Eye className="h-4 w-4" />
-                        </button>
-                        <button
+                        </IconButton>
+                        <IconButton
+                          type="button"
+                          aria-label="Reenviar la factura por correo"
+                          className="bg-slate-100 hover:bg-primary hover:text-on-primary"
                           onClick={(e) => { e.stopPropagation(); handleResendEmail(inv.id, e); }}
                           disabled={resendingId === inv.id}
-                          className="p-2 text-slate-600 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-lg transition disabled:opacity-50"
                           title="Reenviar por Correo"
                         >
                           {resendingId === inv.id ? (
@@ -654,7 +665,7 @@ export default function DashboardPage() {
                           ) : (
                             <Send className="h-4 w-4" />
                           )}
-                        </button>
+                        </IconButton>
                       </div>
                     </div>
                   </div>
@@ -709,17 +720,21 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-4 py-2.5 text-xs">
                           <div className="flex gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
-                            <button
+                            <IconButton
+                              type="button"
+                              aria-label="Ver PDF de la factura"
+                              className="bg-slate-100 hover:bg-primary hover:text-on-primary shadow-sm"
                               onClick={(e) => { e.stopPropagation(); handleViewPdf(inv.id, e); }}
-                              className="p-2 text-slate-500 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-xl transition shadow-sm"
                               title="Ver PDF"
                             >
                               <Eye className="h-4 w-4" />
-                            </button>
-                            <button
+                            </IconButton>
+                            <IconButton
+                              type="button"
+                              aria-label="Reenviar la factura por correo"
+                              className="bg-slate-100 hover:bg-primary hover:text-on-primary shadow-sm"
                               onClick={(e) => { e.stopPropagation(); handleResendEmail(inv.id, e); }}
                               disabled={resendingId === inv.id}
-                              className="p-2 text-slate-500 bg-slate-100 hover:bg-primary hover:text-on-primary rounded-xl transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                               title="Reenviar por Correo"
                             >
                               {resendingId === inv.id ? (
@@ -727,7 +742,7 @@ export default function DashboardPage() {
                               ) : (
                                 <Send className="h-4 w-4" />
                               )}
-                            </button>
+                            </IconButton>
                           </div>
                         </td>
                       </tr>
@@ -747,20 +762,22 @@ export default function DashboardPage() {
         <div className="p-4 bg-slate-50/30 flex flex-col md:flex-row justify-between items-center gap-4">
           <span className="text-xs text-slate-500/70 font-medium">Mostrando <span className="text-primary font-bold">{displayedInvoices.length}</span> de los {filteredInvoices.length} más recientes (Historial total: {stats.totalInvoices})</span>
           <div className="flex gap-2">
-            <button 
+            <button
+              type="button"
+              className="px-3 py-1.5 h-8 text-xs rounded-lg border border-slate-200/30 hover:bg-white hover:shadow-sm transition font-bold text-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1.5 h-8 text-xs rounded-lg border border-slate-200/30 hover:bg-white hover:shadow-sm transition font-bold text-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Anterior
             </button>
-            <button className="px-3 py-1.5 h-8 text-xs rounded-lg bg-primary text-on-primary shadow-md shadow-primary/20 transition font-bold">
+            <button type="button" className="px-3 py-1.5 h-8 text-xs rounded-lg bg-primary text-on-primary shadow-md shadow-primary/20 transition font-bold">
               {currentPage} de {totalPages}
             </button>
-            <button 
+            <button
+              type="button"
+              className="px-3 py-1.5 h-8 text-xs rounded-lg border border-slate-200/30 hover:bg-white hover:shadow-sm transition font-bold text-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1.5 h-8 text-xs rounded-lg border border-slate-200/30 hover:bg-white hover:shadow-sm transition font-bold text-slate-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Siguiente
             </button>
@@ -788,12 +805,14 @@ export default function DashboardPage() {
                     <p className="text-sm font-medium text-slate-500/70 mt-0.5">Atiende estos {stats.alertCount} avisos para mantener el sistema al día</p>
                   </div>
                 </div>
-                <button
+                <IconButton
+                  type="button"
+                  aria-label="Cerrar"
+                  className="rounded-full"
                   onClick={() => setShowAlertsModal(false)}
-                  className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors"
                 >
                   <X className="h-5 w-5" />
-                </button>
+                </IconButton>
               </div>
               <div className="p-4 overflow-y-auto custom-scrollbar flex-1 space-y-4">
                 {stats.alertsDetails && stats.alertsDetails.length > 0 ? (
@@ -808,12 +827,13 @@ export default function DashboardPage() {
                         
                         <div className="mt-4">
                           <button
-                            onClick={() => router.push(alert.actionLink)}
+                            type="button"
                             className={clsx("inline-flex items-center gap-1 text-sm font-bold transition-colors underline-offset-4 hover:underline", 
                               alert.type === 'invoice_rejected' 
                                 ? "text-error hover:text-red-800" 
                                 : "text-amber-700 hover:text-amber-900"
                             )}
+                            onClick={() => router.push(alert.actionLink)}
                           >
                             {alert.actionText}
                             <ChevronRight className="h-4 w-4" />
@@ -831,12 +851,14 @@ export default function DashboardPage() {
                 )}
               </div>
               <div className="p-4 border-t border-slate-200/20 bg-slate-50 text-right">
-                <button
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setShowAlertsModal(false)}
-                  className="px-3 py-1.5 h-8 text-xs rounded-lg font-bold bg-white border border-slate-200/30 hover:bg-slate-100 transition-colors"
                 >
                   Cerrar
-                </button>
+                </Button>
               </div>
             </motion.div>
           </div>

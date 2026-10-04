@@ -17,6 +17,7 @@ import { esAdminOSistemas } from '@/utils/rolMatch';
 import { PageLoader } from '@/components/ui/PageLoader';
 import { ConfirmProvider } from '@/providers/confirm-provider';
 import type { ModoOperativo } from '@/services/dgii/modoPeticion';
+import { IconButton } from '@/components/ui/button';
 
 /**
  * Componente hijo que consume useRbac() para saber cuándo
@@ -375,28 +376,32 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
         )}>
           <div className="flex items-center gap-3 min-w-0">
             {/* Mobile hamburger */}
-            <button
-              className="md:hidden p-2 rounded-lg transition hover:bg-slate-200/50 text-inherit"
+            <IconButton
+              type="button"
+              size="icon"
+              className="md:hidden text-inherit hover:bg-slate-200/50"
               onClick={() => setMobileOpen(true)}
               aria-label="Abrir menú"
             >
               <Menu className="h-5 w-5" strokeWidth={1.5} />
-            </button>
+            </IconButton>
   
-            <button
+            <IconButton
+              type="button"
+              size="icon"
+              aria-label={sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'}
+              className="hidden md:inline-flex text-inherit hover:bg-slate-200/50"
               onClick={() => setSidebarCollapsed(prev => {
                 const next = !prev;
                 localStorage.setItem('sidebarCollapsed', JSON.stringify(next));
                 return next;
                 })}
-              className="hidden md:flex p-2 rounded-lg transition hover:bg-slate-200/50 text-inherit"
-              title={sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'}
             >
               {sidebarCollapsed
                 ? <PanelLeftOpen className="h-5 w-5" strokeWidth={1.5} />
                 : <PanelLeftClose className="h-5 w-5" strokeWidth={1.5} />
               }
-            </button>
+            </IconButton>
   
             {/* App Logo */}
             <div className="flex items-center">

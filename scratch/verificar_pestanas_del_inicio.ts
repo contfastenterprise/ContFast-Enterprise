@@ -194,6 +194,18 @@ async function main() {
   const cabecera = (() => {
     const t = inicio.indexOf('Dashboard Principal');
     if (t < 0) return '';
+    //  LOTE 274 (estandar de UI): la cabecera es `CabeceraDePagina`, que pinta el `<header>` con su
+    //  `justify-between` y pone `acciones` a la derecha del titulo. La cabecera es entonces la etiqueta
+    //  entera del componente (contando llaves) y, para la caja, el propio componente; y la barra tiene
+    //  que ir DENTRO de `acciones`, que es lo que la manda arriba a la derecha.
+    const c = inicio.lastIndexOf('<CabeceraDePagina', t);
+    if (c >= 0 && !inicio.slice(c, t).includes('/>')) {
+      let k = c, prof = 0;
+      for (; k < inicio.length; k++) { const ch = inicio[k]; if (ch === '{') prof++; else if (ch === '}') prof--; else if (ch === '>' && prof === 0) break; }
+      const etiqueta = inicio.slice(c, k + 1);
+      const caja = /<header\b[^>]*justify-between/.test(leer('src/components/ui/cabecera-de-pagina.tsx')) ? ' justify-between' : '';
+      return /acciones=\{[\s\S]*<nav/.test(etiqueta) ? etiqueta + caja : '';
+    }
     const i = inicio.lastIndexOf('<header', t);
     const j = inicio.indexOf('</header>', t);
     return i < 0 || j < 0 ? '' : inicio.slice(i, j);

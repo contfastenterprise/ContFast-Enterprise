@@ -2,6 +2,7 @@
 
 import { FileQuestion, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
 
 export default function NotFound() {
   const router = useRouter();
@@ -27,13 +28,15 @@ export default function NotFound() {
           </p>
 
           <div className="flex w-full">
-            <button
+            <Button
+              type="button"
+              size="lg"
+              className="w-full"
               onClick={() => router.back()}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#001e40] text-white font-semibold hover:bg-[#00142a] shadow-md hover:shadow-lg transition active:scale-95"
             >
-              <ArrowLeft className="h-5 w-5 text-[#c5a059]" />
+              <ArrowLeft className="h-5 w-5" />
               Regresar
-            </button>
+            </Button>
           </div>
         </div>
       </div>

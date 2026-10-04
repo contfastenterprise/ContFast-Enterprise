@@ -94,7 +94,7 @@ export default function CampanaAvisos() {
     const Icono = ICONO[a.type as keyof typeof ICONO] ?? Info;
     return (
       <li key={a.id}>
-        <button
+        <button type="button"
           onClick={() => abrir(a)}
           className={clsx('w-full text-left px-4 py-3 hover:bg-slate-50 transition flex gap-3', leido ? 'opacity-70' : 'bg-amber-50/60')}
         >
@@ -114,7 +114,7 @@ export default function CampanaAvisos() {
 
   return (
     <div className="relative">
-      <button
+      <button type="button"
         onClick={() => setAbierta((v) => !v)}
         className="relative p-2 rounded-lg transition hover:bg-slate-200/50 text-inherit"
         title={sinLeer > 0 ? `${sinLeer} aviso(s) sin leer` : 'Avisos'}
@@ -147,7 +147,7 @@ export default function CampanaAvisos() {
                 )}
               </span>
               {sinLeer > 0 && (
-                <button onClick={marcarTodos} className="text-xs font-semibold text-[#003366] hover:underline flex items-center gap-1">
+                <button type="button" onClick={marcarTodos} className="text-xs font-semibold text-[#003366] hover:underline flex items-center gap-1">
                   <CheckCheck className="h-3.5 w-3.5" /> Marcar todo leído
                 </button>
               )}

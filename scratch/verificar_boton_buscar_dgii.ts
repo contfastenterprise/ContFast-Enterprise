@@ -138,8 +138,18 @@ async function main() {
   // ───────────────────────────────────────────────────────────────────────────
   console.log('\n2) El estilo del botón, uno solo\n');
   // ───────────────────────────────────────────────────────────────────────────
-  const comp = sinComentarios(leer(COMPONENTE));
-  const clase = /className="([^"]*)"/.exec(comp)?.[1] ?? '';
+  //  LOTE 274: el componente pasa a ser el `Button` de la casa (variante `documento`, tamaño `sm`),
+  //  asi que la clase ya no esta escrita en su fuente: se mira la que PINTA, que es la propiedad que
+  //  este apartado vigila (dorado, texto oscuro, h-8). Leer la fuente miraba la forma.
+  let clase = '';
+  try {
+    const [React, { renderToStaticMarkup }, M] = await Promise.all([
+      import('react'), import('react-dom/server'), import('../src/components/ui/boton-buscar-dgii'),
+    ]);
+    const html = renderToStaticMarkup(React.createElement(M.BotonBuscarDgii, { onClick: () => {}, buscando: false } as never));
+    clase = /<button[^>]*class="([^"]*)"/.exec(html)?.[1] ?? '';
+  } catch { clase = ''; }
+  void sinComentarios; void COMPONENTE;
   ok('dorado de la casa, el de "Imprimir"', /\bbg-\[#C5A059\]/i.test(clase));
   ok('  con texto OSCURO (el blanco sobre dorado no se lee)', /\btext-slate-950\b/.test(clase) && !/\btext-white\b/.test(clase));
   ok('  y NO el azul marino del botón que guarda', clase !== '' && !/#003366|#002244/i.test(clase));

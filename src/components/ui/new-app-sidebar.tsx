@@ -402,7 +402,7 @@ function SearchModal({ onClose, favoritos }: { onClose: () => void; favoritos: s
           {results.length > 0 ? (
             <div className="p-2 flex flex-col gap-0.5">
               {results.map((item, i) => (
-                <button
+                <button type="button"
                   key={item.href}
                   onClick={() => handleSelect(item.href)}
                   onMouseEnter={() => setSeleccion(i)}
@@ -735,7 +735,9 @@ function SidebarContent({
               {collapsed ? (
                 <div className="relative">
                   <button
+                    type="button"
                     title={group.title}
+                    aria-label={group.title}
                     className={clsx(
                       'group flex items-center justify-center rounded-xl w-full p-3 transition duration-300 select-none cursor-pointer',
                       isGroupActive
@@ -790,7 +792,7 @@ function SidebarContent({
                 </div>
               ) : (
                 <>
-                  <button
+                  <button type="button"
                     ref={(el) => { refsDeGrupo.current[group.title] = el; }}
                     onClick={() => toggleGroup(group.title)}
                     className={clsx(
@@ -985,7 +987,7 @@ export default function NewAppSidebar({
 
         {/* Search button */}
         <div className={clsx('px-3 pt-3 pb-2', !collapsed && 'px-4')}>
-          <button
+          <button type="button"
             id="sidebar-search-btn"
             onClick={() => setSearchOpen(true)}
             className={clsx(
@@ -1045,7 +1047,9 @@ export default function NewAppSidebar({
 
               {/* Close button */}
               <button
+                type="button"
                 onClick={onMobileClose}
+                aria-label="Cerrar menú"
                 className="absolute top-4 right-4 p-2 rounded-xl text-on-surface-variant/50 hover:bg-surface-container hover:text-on-surface transition-colors"
               >
                 <X className="w-5 h-5" strokeWidth={1.5} />
@@ -1053,7 +1057,7 @@ export default function NewAppSidebar({
 
               {/* Search */}
               <div className="px-4 pt-2 pb-2">
-                <button
+                <button type="button"
                   onClick={() => { setSearchOpen(true); onMobileClose(); }}
                   className="w-full flex items-center gap-3 rounded-xl px-3 py-2 border border-outline-variant/20 bg-surface-container-low text-on-surface-variant/50 hover:bg-surface-container hover:text-on-surface transition duration-300"
                 >
@@ -1119,7 +1123,7 @@ export default function NewAppSidebar({
             </div>
           </div>
         ) : (
-          <button
+          <button type="button"
             onClick={() => setDiagExpanded(true)}
             className="fixed bottom-4 right-4 z-[9999] bg-indigo-600 hover:bg-indigo-700 text-white font-mono text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-lg border border-indigo-400/30 transition-transform active:scale-95 select-none"
             title="Mostrar panel de diagnóstico"

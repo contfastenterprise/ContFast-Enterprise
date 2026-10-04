@@ -30,7 +30,10 @@ export default function GlobalError({
           El error quedó registrado. Puedes intentarlo de nuevo.
           {error.digest ? ` (Referencia: ${error.digest})` : ''}
         </p>
+        {/* Se queda con estilos en linea, a proposito: global-error sustituye al layout raiz y
+            puede pintarse sin la hoja de estilos de la aplicacion (el componente Button no se veria). */}
         <button
+          type="button"
           onClick={() => unstable_retry()}
           style={{ background: '#003366', color: '#fff', border: 0, borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer' }}
         >

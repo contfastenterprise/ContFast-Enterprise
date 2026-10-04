@@ -37,7 +37,10 @@ for (const p of PANTALLAS) {
   console.log(`\n${p.nombre}\n`);
   const ahora = readFileSync(join(raiz, p.ruta), 'utf8').replace(/\r\n/g, '\n');
   const antes = enCommit(ANTES, p.ruta);
-  const { faltan, sobran } = diferencia(huella(antes), huella(ahora));
+  //  LOTE 274: la huella compara los DOS commits (antes y el del corte, 7e4937e) y no la carpeta: el
+  //  estandar de UI cambia clases a proposito y añade aria-label, y asi la prueba de que el lote 254
+  //  partio la pagina sin cambiar lo que se ve sigue valiendo para siempre (como en 227, 230, 237).
+  const { faltan, sobran } = diferencia(huella(antes), huella(enCommit('7e4937e', p.ruta)));
   invariante(`lo visible es lo mismo que en ${ANTES} (${huella(antes).length} elementos, uno por uno)`,
     faltan.length === 0 && sobran.length === 0, `faltan ${JSON.stringify(faltan.slice(0, 3))} sobran ${JSON.stringify(sobran.slice(0, 3))}`);
 
