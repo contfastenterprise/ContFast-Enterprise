@@ -64,6 +64,7 @@ export default function CashPage() {
       <div className="flex items-center gap-1 border-b border-slate-200 bg-white px-4 pt-2">
         {TABS.map((tab) => (
           <button
+            type="button"
             key={tab.id}
             onClick={() => caja.handleTabChange(tab.id)}
             className={clsx(

@@ -15,6 +15,8 @@ import {
 
 import Loading from '../accounting/loading';
 
+import { Button } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 interface SummaryData {
   cxc: {
     totalPending: number;
@@ -81,12 +83,11 @@ export default function FinancialDashboard() {
         <AlertTriangle className="w-16 h-16 text-rose-600" />
         <h2 className="text-xl font-bold">Error al cargar el dashboard</h2>
         <p className="text-slate-500">{error}</p>
-        <button
-          onClick={fetchData}
-          className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-        >
+        <Button
+          type="button"
+          onClick={fetchData}>
           <RefreshCw className="w-4 h-4" /> Reintentar
-        </button>
+        </Button>
       </div>
 
     );
@@ -113,21 +114,19 @@ export default function FinancialDashboard() {
 
     <div className="w-full space-y-6 p-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-200 pb-5 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Landmark className="text-[#003366] w-7 h-7" /> Dashboard de Control Financiero
-          </h1>
-          <p className="text-sm text-slate-500">
-            Resumen ejecutivo y estado general de las Cuentas por Cobrar (CxC) y Cuentas por Pagar (CxP).
-          </p>
-        </div>
-        <button
-          onClick={fetchData}
-          className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-        >
-          <RefreshCw className="w-4 h-4" /> Recargar
-        </button>
+      <div className="border-b border-slate-200 pb-5">
+        <CabeceraDePagina
+          titulo="Dashboard de Control Financiero"
+          descripcion="Resumen ejecutivo y estado general de las Cuentas por Cobrar (CxC) y Cuentas por Pagar (CxP)."
+          icono={<Landmark />}
+          acciones={
+            <Button variant="secondary"
+              type="button"
+              onClick={fetchData}>
+              <RefreshCw className="w-4 h-4" /> Recargar
+            </Button>
+          }
+        />
       </div>
 
       {/* KPIs Row */}

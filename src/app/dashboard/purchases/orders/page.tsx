@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Eye, FileText, Search, Plus, Edit2, Trash2, X, RefreshCw, Printer, AlertTriangle, Filter, Mail, Copy, CheckCircle2, History } from 'lucide-react';
+import { Eye, FileText, Search, Plus, Pencil, Trash2, X, RefreshCw, Printer, AlertTriangle, Filter, Mail, Copy, CheckCircle2, History } from 'lucide-react';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 //  Lote 252: `m` dentro de `LazyMotion` y no `motion` (aviso de React Doctor).
 import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
@@ -10,6 +10,8 @@ import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay, formatDateTimeDisplay } from '@/utils/fechasLocales';
 import { leerRespuesta } from '@/utils/leerRespuesta';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 interface OrderLine {
   id?: string;
@@ -114,25 +116,21 @@ export default function PurchaseOrdersPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
-            <FileText className="h-8 w-8 text-[#005E63]" />
-            Pedidos a Suplidores
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Gestión logística de pedidos de mercancías a proveedores sin facturación.
-          </p>
-        </div>
-        {/* Lote 250: en la cabecera, SOLO las pestanas (como en Compras). */}
-        <PestanasDeRegistro
-          enFormulario={showFormModal}
-          lista="Pedidos"
-          editando={!!editId}
-          alVerLista={() => setShowFormModal(false)}
-          alRegistrar={openNewModal}
-        />
-      </div>
+      <CabeceraDePagina
+        titulo="Pedidos a Suplidores"
+        descripcion="Gestión logística de pedidos de mercancías a proveedores sin facturación."
+        icono={<FileText />}
+        acciones={
+          /* Lote 250: en la cabecera, SOLO las pestanas (como en Compras). */
+          <PestanasDeRegistro
+            enFormulario={showFormModal}
+            lista="Pedidos"
+            editando={!!editId}
+            alVerLista={() => setShowFormModal(false)}
+            alRegistrar={openNewModal}
+          />
+        }
+      />
 
       {!showFormModal && (<>
       <FiltrosDePedidos h={h} />
@@ -657,23 +655,19 @@ function FiltrosDePedidos({ h }: { h: EstadoPurchaseOrdersPage }) {
           />
         </div>
 
-        <button
-          onClick={fetchOrders}
-          className="w-full md:w-auto bg-slate-100 text-[#003366] px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-200 transition-colors h-8 flex items-center justify-center gap-2 border border-slate-300 cursor-pointer"
-        >
+        <Button type="button" variant="secondary" size="sm" className="w-full md:w-auto"
+          onClick={fetchOrders}>
           <Filter className="h-4 w-4" />
           FILTRAR
-        </button>
+        </Button>
 
         {filteredOrders.length > 0 && (
-          <button
-            type="button"
-            onClick={handlePrintAll}
-            className="w-full md:w-auto bg-[#005E63] text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#004d51] transition-colors h-8 flex items-center justify-center gap-2 cursor-pointer"
-          >
+          <Button
+            type="button" variant="documento" size="sm" className="w-full md:w-auto"
+            onClick={handlePrintAll}>
             <Printer className="h-4 w-4" />
             REPORTE PDF
-          </button>
+          </Button>
         )}
       </div>
     </>
@@ -729,16 +723,16 @@ function TablaDePedidos({ h }: { h: EstadoPurchaseOrdersPage }) {
                       {order.totalItemsCount} Artículos
                     </span>
                     <div className="flex gap-1.5">
-                      <button type="button" onClick={() => viewOrderDetails(order.id)} aria-label="Ver pedido" title="Ver pedido" className="p-2 bg-slate-100 rounded text-slate-500 hover:text-[#005E63]">
+                      <IconButton type="button" className="bg-slate-100 hover:text-[#005E63]" onClick={() => viewOrderDetails(order.id)} aria-label="Ver pedido" title="Ver pedido">
                         <Eye className="h-4 w-4" />
-                      </button>
-                      <button type="button" onClick={() => handlePrint(order.id)} aria-label="Imprimir pedido" title="Imprimir pedido" className="p-2 bg-slate-100 rounded text-slate-500 hover:text-[#005E63]">
+                      </IconButton>
+                      <IconButton type="button" className="bg-slate-100 hover:text-[#005E63]" onClick={() => handlePrint(order.id)} aria-label="Imprimir pedido" title="Imprimir pedido">
                         <Printer className="h-4 w-4" />
-                      </button>
+                      </IconButton>
                       {order.status === 'Draft' && (
-                        <button type="button" onClick={() => openEditModal(order.id)} aria-label="Editar pedido" title="Editar pedido" className="p-2 bg-slate-100 rounded text-slate-500 hover:text-[#C5A059]">
-                          <Edit2 className="h-4 w-4" />
-                        </button>
+                        <IconButton type="button" className="bg-slate-100 hover:text-[#C5A059]" onClick={() => openEditModal(order.id)} aria-label="Editar pedido" title="Editar pedido">
+                          <Pencil className="h-4 w-4" />
+                        </IconButton>
                       )}
                     </div>
                   </div>
@@ -797,16 +791,16 @@ function TablaDePedidos({ h }: { h: EstadoPurchaseOrdersPage }) {
                         </span>
                       </td>
                       <td className="px-4 py-2.5 align-middle text-right space-x-2 whitespace-nowrap">
-                        <button type="button" onClick={() => viewOrderDetails(order.id)} aria-label="Ver pedido" className="p-1 text-xs text-slate-500 hover:text-[#005E63] cursor-pointer font-bold" title="Ver Detalles">
+                        <Button type="button" variant="ghost" size="sm" className="hover:text-[#005E63]" onClick={() => viewOrderDetails(order.id)} aria-label="Ver pedido" title="Ver Detalles">
                           Ver
-                        </button>
-                        <button type="button" onClick={() => handlePrint(order.id)} aria-label="Imprimir pedido" className="p-1 text-xs text-slate-500 hover:text-[#005E63] cursor-pointer" title="Imprimir PDF">
+                        </Button>
+                        <IconButton type="button" className="hover:text-[#005E63]" onClick={() => handlePrint(order.id)} aria-label="Imprimir pedido" title="Imprimir PDF">
                           <Printer className="h-4 w-4 inline" />
-                        </button>
+                        </IconButton>
                         {order.status === 'Draft' && (
-                          <button type="button" onClick={() => openEditModal(order.id)} aria-label="Editar pedido" className="p-1 text-xs text-slate-500 hover:text-[#C5A059] cursor-pointer" title="Editar">
-                            <Edit2 className="h-4 w-4 inline" />
-                          </button>
+                          <IconButton type="button" className="hover:text-[#C5A059]" onClick={() => openEditModal(order.id)} aria-label="Editar pedido" title="Editar">
+                            <Pencil className="h-4 w-4 inline" />
+                          </IconButton>
                         )}
                       </td>
                     </tr>
@@ -879,13 +873,11 @@ function FormularioDePedido({ h }: { h: EstadoPurchaseOrdersPage }) {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h3 className="text-xs font-bold text-[#003366] uppercase tracking-wider">Productos Solicitados</h3>
-                <button
-                  type="button"
-                  onClick={handleAddLinePlaceholder}
-                  className="bg-slate-100 text-[#003366] border border-slate-200 px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-slate-200 flex items-center gap-1.5 cursor-pointer"
-                >
+                <Button
+                  type="button" variant="outline" size="sm"
+                  onClick={handleAddLinePlaceholder}>
                   <Plus className="h-4 w-4" /> Buscar y Agregar Producto
-                </button>
+                </Button>
               </div>
 
               {/* Autocomplete Input */}
@@ -893,9 +885,9 @@ function FormularioDePedido({ h }: { h: EstadoPurchaseOrdersPage }) {
                 <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3 relative">
                   <div className="flex justify-between items-center">
                     <label htmlFor="pedido-9" className="text-[10px] font-bold text-slate-500 uppercase">Escriba Nombre, SKU o Código de Barra del Producto</label>
-                    <button type="button" onClick={() => setActiveLineIndex(null)} aria-label="Cerrar la búsqueda" className="text-slate-400 hover:text-slate-500">
+                    <IconButton type="button" onClick={() => setActiveLineIndex(null)} aria-label="Cerrar la búsqueda">
                       <X className="h-4 w-4" />
-                    </button>
+                    </IconButton>
                   </div>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -1007,9 +999,9 @@ function FormularioDePedido({ h }: { h: EstadoPurchaseOrdersPage }) {
                             />
                           </td>
                           <td className="px-4 py-2.5 text-center">
-                            <button type="button" onClick={() => handleRemoveLine(idx)} aria-label={`Quitar ${line.productName}`} className="p-1 text-rose-500 hover:text-rose-600 cursor-pointer">
+                            <IconButton type="button" className="text-rose-500 hover:text-rose-600 hover:bg-rose-50" onClick={() => handleRemoveLine(idx)} aria-label={`Quitar ${line.productName}`}>
                               <X className="h-4 w-4" />
-                            </button>
+                            </IconButton>
                           </td>
                         </tr>
                       ))
@@ -1033,20 +1025,16 @@ function FormularioDePedido({ h }: { h: EstadoPurchaseOrdersPage }) {
 
             {/* Actions */}
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 bg-slate-50/50 p-4 -mx-4 -mb-4">
-              <button
-                type="button"
-                onClick={() => setShowFormModal(false)}
-                className="px-3 py-1.5 h-8 text-xs rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold transition-colors cursor-pointer flex items-center justify-center"
-              >
+              <Button
+                type="button" variant="secondary" size="sm"
+                onClick={() => setShowFormModal(false)}>
                 Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="bg-[#005E63] text-white px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-[#004d51] transition-colors flex items-center justify-center cursor-pointer disabled:opacity-50"
-              >
+              </Button>
+              <Button
+                type="submit" size="sm"
+                disabled={submitting}>
                 {submitting ? 'Guardando...' : 'Guardar Pedido'}
-              </button>
+              </Button>
             </div>
           </form>
         </PanelDeRegistro>
@@ -1080,9 +1068,9 @@ function VentanasDePedido({ h }: { h: EstadoPurchaseOrdersPage }) {
                     {statusLabels[activeOrder.status]}
                   </span>
                 </div>
-                <button type="button" onClick={() => setShowDetailModal(false)} aria-label="Cerrar" className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
+                <IconButton type="button" onClick={() => setShowDetailModal(false)} aria-label="Cerrar el detalle del pedido">
                   <X className="h-5 w-5" />
-                </button>
+                </IconButton>
               </div>
 
               {/* Content */}
@@ -1181,52 +1169,42 @@ function VentanasDePedido({ h }: { h: EstadoPurchaseOrdersPage }) {
               {/* Footer Actions */}
               <div className="flex flex-wrap justify-between items-center p-4 border-t border-slate-100 bg-slate-50/50 gap-3">
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => handlePrint(activeOrder.id)}
-                    className="bg-slate-100 text-[#003366] border border-slate-300 px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-slate-200 flex items-center gap-1.5 cursor-pointer"
-                  >
+                  <Button type="button" variant="documento" size="sm"
+                    onClick={() => handlePrint(activeOrder.id)}>
                     <Printer className="h-4 w-4" /> Imprimir PDF
-                  </button>
+                  </Button>
                   {activeOrder.supplierEmail && (
-                    <button
-                      onClick={() => handleSendEmail(activeOrder.id)}
-                      className="bg-slate-100 text-[#003366] border border-slate-300 px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-slate-200 flex items-center gap-1.5 cursor-pointer"
-                    >
+                    <Button type="button" variant="secondary" size="sm"
+                      onClick={() => handleSendEmail(activeOrder.id)}>
                       <Mail className="h-4 w-4" /> Enviar por Correo
-                    </button>
+                    </Button>
                   )}
-                  <button
-                    onClick={() => handleDuplicate(activeOrder.id)}
-                    className="bg-slate-100 text-[#003366] border border-slate-300 px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-slate-200 flex items-center gap-1.5 cursor-pointer"
-                  >
+                  <Button type="button" variant="secondary" size="sm"
+                    onClick={() => handleDuplicate(activeOrder.id)}>
                     <Copy className="h-4 w-4" /> Duplicar
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="flex gap-2">
+                  {/* Lote 273: el pie estaba al reves -- "Cancelar Pedido" iba DESPUES de la accion principal.
+                      Lo que deshace va primero y la principal la ultima (docs/estandar_ui.md, sec. 4). */}
+                  {activeOrder.status !== 'Received' && activeOrder.status !== 'Cancelled' && (
+                    <Button type="button" variant="destructive" size="sm"
+                      onClick={() => handleCancelOrder(activeOrder.id, activeOrder.orderNumber)}>
+                      Cancelar Pedido
+                    </Button>
+                  )}
                   {activeOrder.status === 'Draft' && (
-                    <button
-                      onClick={() => handleSendOrder(activeOrder.id)}
-                      className="bg-[#005E63] text-white px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-[#004d51] flex items-center gap-1.5 cursor-pointer"
-                    >
+                    <Button type="button" size="sm"
+                      onClick={() => handleSendOrder(activeOrder.id)}>
                       <CheckCircle2 className="h-4 w-4" /> Enviar al Suplidor
-                    </button>
+                    </Button>
                   )}
                   {(activeOrder.status === 'Sent' || activeOrder.status === 'Partial') && (
-                    <button
-                      onClick={() => openReceiveModal(activeOrder)}
-                      className="bg-emerald-600 text-white px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-emerald-700 flex items-center gap-1.5 cursor-pointer"
-                    >
+                    <Button type="button" size="sm"
+                      onClick={() => openReceiveModal(activeOrder)}>
                       <Plus className="h-4 w-4" /> Registrar Recepción
-                    </button>
-                  )}
-                  {activeOrder.status !== 'Received' && activeOrder.status !== 'Cancelled' && (
-                    <button
-                      onClick={() => handleCancelOrder(activeOrder.id, activeOrder.orderNumber)}
-                      className="bg-rose-50 text-rose-700 border border-rose-200 px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-rose-100 cursor-pointer"
-                    >
-                      Cancelar Pedido
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -1251,9 +1229,9 @@ function VentanasDePedido({ h }: { h: EstadoPurchaseOrdersPage }) {
                   <Plus className="h-5 w-5 text-emerald-600" />
                   Registrar Recepción - {activeOrder.orderNumber}
                 </h2>
-                <button type="button" onClick={() => setShowReceiveModal(false)} aria-label="Cerrar" className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
+                <IconButton type="button" onClick={() => setShowReceiveModal(false)} aria-label="Cerrar la ventana de recepción">
                   <X className="h-5 w-5" />
-                </button>
+                </IconButton>
               </div>
 
               {/* Form */}
@@ -1302,20 +1280,16 @@ function VentanasDePedido({ h }: { h: EstadoPurchaseOrdersPage }) {
 
                 {/* Actions */}
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setShowReceiveModal(false)}
-                    className="px-3 py-1.5 h-8 text-xs rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold transition-colors cursor-pointer flex items-center justify-center"
-                  >
+                  <Button
+                    type="button" variant="secondary" size="sm"
+                    onClick={() => setShowReceiveModal(false)}>
                     Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="bg-emerald-600 text-white px-3 py-1.5 h-8 text-xs rounded-lg font-bold hover:bg-emerald-700 transition-colors flex items-center justify-center cursor-pointer disabled:opacity-50"
-                  >
+                  </Button>
+                  <Button
+                    type="submit" size="sm"
+                    disabled={submitting}>
                     {submitting ? 'Registrando...' : 'Confirmar Recepción'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </m.div>

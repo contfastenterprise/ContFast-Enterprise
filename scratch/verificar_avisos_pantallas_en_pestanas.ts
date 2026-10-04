@@ -70,7 +70,10 @@ function main() {
     ['Marca', 'Modelo', 'Cantidad', 'Observaciones'].every((q) => bp.includes(`aria-label={\`${q} de \${line.productName}\`}`))
     && bp.includes('aria-label={`Cantidad a recibir de ${rec.productName}`}'));
   ok('pedidos y empresas: los botones de icono dicen lo que hacen',
-    ['Ver pedido', 'Imprimir pedido', 'Editar pedido'].every((e) => bp.includes(`aria-label="${e}"`)) && /aria-label="Cerrar"[\s\S]*aria-label="Cerrar"/.test(bp)
+    ['Ver pedido', 'Imprimir pedido', 'Editar pedido'].every((e) => bp.includes(`aria-label="${e}"`))
+    //  Lote 273: las dos ventanas (detalle y recepcion) dicen QUE cierran ("Cerrar el detalle del
+    //  pedido"); se mira que cada cierre lleve su nombre, no la palabra exacta "Cerrar".
+    && /setShowDetailModal\(false\)\} aria-label="Cerrar[^"]*"/.test(bp) && /setShowReceiveModal\(false\)\} aria-label="Cerrar[^"]*"/.test(bp)
     && /aria-label="Cerrar"/.test(s.empresas) && /aria-label="Buscar empresa por nombre o RNC"/.test(s.empresas));
   ok('bancos: la tarjeta de cada cuenta se elige con el teclado, y "Rango de Fechas" no es una etiqueta suelta',
     /role="button"\s+tabIndex=\{0\}[\s\S]{0,300}onKeyDown=\{\(e\) => \{ if \(e\.key === 'Enter' \|\| e\.key === ' '\)/.test(s.bancos)

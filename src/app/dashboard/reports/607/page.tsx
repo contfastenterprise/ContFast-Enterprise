@@ -17,7 +17,8 @@ interface InvoiceSale {
 }
 
 import { FileText, Download, Calendar, CheckCircle2 } from 'lucide-react';
-import clsx from 'clsx';
+import { Button } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 import { toast } from 'sonner';
 import { periodoCompacto } from '@/services/dgii/declaracionesPendientes';
 import { motivoDeCarga } from '@/components/ui/estado-carga';
@@ -146,15 +147,11 @@ export default function Report607() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
       
       {/* Header section with title and CTA */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-primary font-display flex items-center gap-2">
-            <FileText className="h-8 w-8 text-[#c5a059]" />
-            Reporte ITBIS 607 - Ventas
-          </h1>
-          <p className="text-on-surface-variant text-sm mt-1">Libro de ventas e ingresos para la DGII.</p>
-        </div>
-      </div>
+      <CabeceraDePagina
+        titulo="Reporte ITBIS 607 - Ventas"
+        descripcion="Libro de ventas e ingresos para la DGII."
+        icono={<FileText />}
+      />
 
       {/* Global Filter */}
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-end gap-4">
@@ -167,26 +164,25 @@ export default function Report607() {
             className="w-full md:w-48 border border-slate-300 rounded-lg px-3 py-2 outline-none focus:border-[#003366] text-sm"
           />
         </div>
-        <button
+        <Button
+          type="button"
+          variant="documento"
           onClick={exportTxt}
-          className="flex items-center justify-center gap-2 bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2 rounded-lg font-bold text-sm transition shadow-md"
         >
           <Download className="h-4 w-4" /> Exportar TXT 607
-        </button>
+        </Button>
         {/* Lote 159: la constancia de que este período ya se presentó. Es lo
             que apaga el aviso del panel; no sube nada a la DGII. */}
-        <button
+        <Button
+          type="button"
+          variant={presentadaEn ? 'secondary' : 'primary'}
           onClick={alternarPresentada}
           disabled={marcando}
-          className={clsx(
-            'flex items-center justify-center gap-2 px-5 py-2 rounded-lg font-bold text-sm transition shadow-md disabled:opacity-50',
-            presentadaEn ? 'bg-slate-100 text-slate-700 hover:bg-slate-200' : 'bg-[#003366] hover:bg-[#002347] text-white'
-          )}
           title={presentadaEn ? 'Quitar la marca de presentado' : 'Marcar este período como presentado a la DGII'}
         >
           <CheckCircle2 className="h-4 w-4" />
           {presentadaEn ? `Presentado el ${formatDateDisplay(presentadaEn)}` : 'Marcar como presentado'}
-        </button>
+        </Button>
       </div>
 
       {/* Metrics Cards */}

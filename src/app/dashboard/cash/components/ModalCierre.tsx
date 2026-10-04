@@ -8,6 +8,7 @@ import { CheckCircle2, Printer } from 'lucide-react';
 //  Lote 230: `m` y no `motion`; el `LazyMotion` lo pone la pagina.
 import { m, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
+import { Button } from '@/components/ui/button';
 import { fmt } from '../caja';
 import type { Caja } from '../hooks/useCaja';
 
@@ -77,18 +78,23 @@ export function ModalCierre({ c }: { c: Caja }) {
                 </div>
               )}
               <div className="flex gap-2 mt-6">
-                <button
+                <Button
+                  type="button"
+                  variant="documento"
+                  size="sm"
                   onClick={() => window.open(`/api/v1/cash/sessions/${c.closedSessionId}/print`, '_blank')}
-                  className="flex-1 bg-white border border-slate-300 text-slate-700 h-8 rounded-lg font-bold text-xs hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+                  className="flex-1"
                 >
                   <Printer className="w-3 h-3" /> Imprimir Arqueo
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
                   onClick={c.handleSuccessClose}
-                  className="flex-1 bg-[#001e40] text-white h-8 rounded-lg font-bold text-xs hover:bg-[#003366] transition-colors"
+                  className="flex-1"
                 >
                   Volver al Inicio
-                </button>
+                </Button>
               </div>
             </m.div>
           </m.div>

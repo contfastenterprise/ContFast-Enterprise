@@ -2249,6 +2249,23 @@ Además, fuera de la tabla:
   que no corta tras `bg-[#003366]` (el `]` no es carácter de palabra). Re-anclados:
   `verificar_baja_rechazado` (el único botón que da de baja cuelga de `status === 'rejected'`) y
   `verificar_estandar_cotizaciones` (seis acciones de fila, todas `IconButton` de 32 px).
+  **Lote 273 (Compras y Finanzas: compras, pedidos, suplidores, pagos, retenciones, bancos, caja,
+  contabilidad, estados de cuenta, reportes).** `Button` de 8 a 114 usos e `IconButton` de 0 a 48, 19
+  cabeceras (se va el título dorado de Compras), 53 `aria-label`, ~150 `type`. Por función: imprimir y
+  exportar (verde turquesa, pizarra, contorno, esmeralda) → `documento`; Cancelar en rosa →
+  `secondary`; "Registrar Pago" en ámbar y Guardar/Procesar en turquesa → `primary`. **Los tres pies al
+  revés de la auditoría, corregidos**: la tasa del dólar en línea (lote 261), el detalle del pedido y
+  la compra. Pestañas activas de Compras y Cuentas por Pagar en azul marino (eran dorado y ámbar).
+  **Excepciones a propósito** (23, anotadas por nombre en el banco): pestañas, interruptores, el
+  selector Entrada/Salida de caja, filas de desplegable, el contador de cantidad, los enlaces de texto
+  y Cerrar/Reabrir período, que llevan el color de su estado. **Un defecto visto y NO tocado**: el
+  botón "Exportar" de los movimientos de caja (`VistaGestion`) no tiene `onClick` y no hace nada, desde
+  antes de la auditoría; va aparte. Banco `verificar_ui_compras_finanzas.ts`: 15 comprobaciones y un
+  invariante, contraprueba 15 FALLA, catorce mutantes y catorce muertos. Re-anclados:
+  `verificar_partir_bancos_y_pedidos` y `verificar_partir_retenciones_y_horas_extra` (la huella del
+  corte entre los dos commits de su lote, como en los lotes 227, 230 y 237) y
+  `verificar_avisos_pantallas_en_pestanas` (los dos cierres de pedidos llevan un `aria-label` que
+  empieza por "Cerrar").
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3438,5 +3455,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 272 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 273 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
