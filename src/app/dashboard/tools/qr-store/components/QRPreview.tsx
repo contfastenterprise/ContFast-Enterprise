@@ -5,6 +5,7 @@ import QRCode from 'qrcode';
 import { Download, Copy, ExternalLink, Check, ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { QRConfig, CompanyInfo } from '../QRStoreClient';
+import { Button } from '@/components/ui/button';
 
 interface QRPreviewProps {
   company: CompanyInfo;
@@ -194,31 +195,39 @@ export default function QRPreview({ company, config, qrUrl }: QRPreviewProps) {
 
         {/* Action Buttons */}
         <div className="grid grid-cols-2 gap-3 w-full">
-          <button
+          <Button
+            type="button"
+            variant="documento"
+            size="lg"
             onClick={downloadPNG}
-            className="flex items-center justify-center gap-2 h-11 bg-[#001e40] hover:bg-[#002c59] text-white rounded-xl font-bold text-sm transition shadow-sm"
           >
             <Download className="h-4 w-4" /> Descargar PNG
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
+            variant="documento"
+            size="lg"
             onClick={downloadSVG}
-            className="flex items-center justify-center gap-2 h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-sm transition"
           >
             <ImageIcon className="h-4 w-4" /> Descargar SVG
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
             onClick={copyImage}
-            className="flex items-center justify-center gap-2 h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-sm transition"
           >
             {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
             Copiar Imagen
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
             onClick={copyLink}
-            className="flex items-center justify-center gap-2 h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-sm transition"
           >
             <Copy className="h-4 w-4" /> Copiar Enlace
-          </button>
+          </Button>
         </div>
 
         {/* Info panel */}

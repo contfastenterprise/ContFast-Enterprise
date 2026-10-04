@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Award, DollarSign, Calendar, Trash2, Plus, RefreshCw, X, AlertCircle, FileText, Info, Sparkles } from 'lucide-react';
+import { Award, DollarSign, Calendar, Trash2, Plus, RefreshCw, X, AlertCircle, FileText, Info, Sparkles, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { mesesEnAnio, trabajoEnElAnio } from '@/services/hr/antiguedad';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 // Format currency helper
 const formatCurrency = (val: number | string) => {
@@ -203,43 +205,40 @@ export default function SettlementsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#003366] dark:text-[#799dd6]">
-            Prestaciones y Salario de Navidad
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400">
-            Calcule las liquidaciones de empleados según el Código de Trabajo de RD y proyecte el Doble Sueldo anual.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
+      <CabeceraDePagina
+        titulo="Prestaciones y Salario de Navidad"
+        descripcion="Calcule las liquidaciones de empleados según el Código de Trabajo de RD y proyecte el Doble Sueldo anual."
+        icono={<Award />}
+        acciones={<IconButton
+            type="button"
+            variant="secondary"
+            aria-label="Actualizar"
             onClick={fetchData}
-            className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white h-8 w-8 text-slate-700 shadow-sm hover:bg-slate-50 transition"
           >
             <RefreshCw className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+          </IconButton>}
+      />
 
       {/* Tab Buttons */}
       <div className="border-b border-slate-200/30">
         <nav className="-mb-px flex space-x-4" aria-label="Tabs">
           <button
-            onClick={() => setActiveTab('settlements')}
+            type="button"
             className={`border-b-2 px-4 py-2 text-xs font-medium whitespace-nowrap ${activeTab === 'settlements'
                 ? 'border-[#003366] text-[#003366] dark:border-[#799dd6] dark:text-[#799dd6]'
                 : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
               }`}
+            onClick={() => setActiveTab('settlements')}
           >
             Liquidaciones (Prestaciones Laborales)
           </button>
           <button
-            onClick={() => setActiveTab('doblesueldo')}
+            type="button"
             className={`border-b-2 px-4 py-2 text-xs font-medium whitespace-nowrap ${activeTab === 'doblesueldo'
                 ? 'border-[#003366] text-[#003366] dark:border-[#799dd6] dark:text-[#799dd6]'
                 : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
               }`}
+            onClick={() => setActiveTab('doblesueldo')}
           >
             Salario de Navidad (Doble Sueldo)
           </button>
@@ -364,13 +363,14 @@ export default function SettlementsPage() {
                   </div>
                 </div>
 
-                <button
+                <Button
+                  size="sm"
+                  className="w-full"
                   type="submit"
                   disabled={calculating}
-                  className="w-full inline-flex items-center justify-center rounded-lg bg-[#003366] h-8 px-3 py-1.5 text-xs font-semibold text-white shadow hover:bg-[#001e40] disabled:opacity-50"
                 >
                   {calculating ? 'Calculando...' : 'Calcular Previsualización'}
-                </button>
+                </Button>
               </form>
             </div>
           </div>
@@ -460,20 +460,23 @@ export default function SettlementsPage() {
                 </div>
 
                 {/* Action buttons */}
-                <div className="flex justify-end gap-3">
-                  <button
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
                     onClick={() => setCalculation(null)}
-                    className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-1.5 h-8 text-xs font-medium text-slate-700 hover:bg-slate-50 transition"
                   >
                     Descartar
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
                     onClick={handleSaveSettlement}
                     disabled={saving}
-                    className="inline-flex items-center justify-center rounded-lg bg-[#003366] px-3 py-1.5 h-8 text-xs font-semibold text-white shadow hover:bg-[#001e40] disabled:opacity-50"
                   >
                     {saving ? 'Guardando...' : 'Registrar y Pagar Liquidación'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : (
@@ -518,20 +521,24 @@ export default function SettlementsPage() {
                             </td>
                             <td className="px-4 py-2.5 align-middle text-right text-xs">
                               <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
+                                <IconButton
+                                  type="button"
+                                  aria-label="Imprimir liquidación"
+                                  className="hover:text-[#003366] hover:bg-[#003366]/5"
                                   onClick={() => window.open(`/api/v1/hr/settlements/${set.id}/print`)}
-                                  className="p-1.5 text-slate-500 hover:text-[#003366] hover:bg-[#003366]/5 rounded-lg transition-colors"
                                   title="Imprimir Liquidación"
                                 >
-                                  <FileText className="h-3.5 w-3.5" />
-                                </button>
-                                <button
+                                  <Printer className="h-3.5 w-3.5" />
+                                </IconButton>
+                                <IconButton
+                                  type="button"
+                                  aria-label="Eliminar liquidación"
+                                  className="hover:text-rose-600 hover:bg-rose-50"
                                   onClick={() => handleDeleteSettlement(set.id)}
-                                  className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                                   title="Eliminar"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
-                                </button>
+                                </IconButton>
                               </div>
                             </td>
                           </tr>

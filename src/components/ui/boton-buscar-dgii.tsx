@@ -1,6 +1,7 @@
 'use client';
 
 import { RefreshCw, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 /**
  * El botón que consulta un RNC o cédula en el padrón de la DGII.
@@ -15,6 +16,9 @@ import { RefreshCw, Search } from 'lucide-react';
  *   tendría dos acciones principales.
  * - `h-8`, la altura de los campos de esos formularios, para que el botón no
  *   sobresalga de la línea del campo al que acompaña.
+ *
+ * Lote 274 (estándar de UI): por dentro es el `Button` de la casa, variante `documento`
+ * (ese mismo dorado con texto oscuro) y tamaño `sm` (h-8). La API no cambia.
  */
 export function BotonBuscarDgii({
   onClick,
@@ -28,14 +32,16 @@ export function BotonBuscarDgii({
   texto?: string;
 }) {
   return (
-    <button
+    <Button
       type="button"
+      variant="documento"
+      size="sm"
       onClick={onClick}
       disabled={buscando || disabled}
-      className="h-8 px-3 shrink-0 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 text-xs font-bold shadow-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      className="shrink-0 gap-1.5"
     >
       {buscando ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
       {texto}
-    </button>
+    </Button>
   );
 }

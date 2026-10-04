@@ -229,7 +229,7 @@ async function main() {
   const modal = dibujar(await pieza('ModalTipoDeGasto'), { g });
   const em = etiquetas(modal);
   ok('el modal de tipos de gasto: sus tres etiquetas con su campo, y el boton de cerrar dice que cierra y no envia el formulario',
-    em.conFor === 3 && em.sueltas === 0 && em.huerfanas.length === 0 && /<button type="button" aria-label="Cerrar"/.test(modal), `${em.conFor} con campo, ${em.sueltas} sueltas`);
+    em.conFor === 3 && em.sueltas === 0 && em.huerfanas.length === 0 && /<button(?=[^>]*\stype="button")(?=[^>]*\saria-label="Cerrar")[^>]*>/.test(modal), `${em.conFor} con campo, ${em.sueltas} sueltas`);
 
   console.log('\n5) Las pestanas\n');
   const Pest = await pieza('PestanasDeAjustes');
@@ -280,7 +280,13 @@ async function main() {
   };
   const deAntes = execSync(`git ls-tree -r --name-only ${ANTES} -- ${DIR}`, { cwd: raiz, encoding: 'utf8' }).split(/\r?\n/).filter((f) => /\.tsx$/.test(f))
     .map((f) => execSync(`git show ${ANTES}:${f}`, { cwd: raiz, encoding: 'utf8', maxBuffer: 1 << 26 })).join('\n');
-  const deAhora = ficherosDePantallaDeAjustes(raiz).map(leer).join('\n') + leer(`${DIR}/ajustes.ts`);
+  //  LOTE 274: compara los DOS commits (el corte del 238 y este lote, `bdad219`) y no la carpeta: el
+  //  estandar de UI cambia clases a proposito (botones al componente `Button`), y asi la prueba de
+  //  que el 239 no cambio lo que se ve sigue valiendo para siempre. Lo mismo que se hizo en 227, 230 y 237.
+  const DESPUES = 'bdad219';
+  const enDespues = (f: string) => { try { return execSync(`git show ${DESPUES}:${f}`, { cwd: raiz, encoding: 'utf8', maxBuffer: 1 << 26 }); } catch { return ''; } };
+  const deAhora = execSync(`git ls-tree -r --name-only ${DESPUES} -- ${DIR}`, { cwd: raiz, encoding: 'utf8' }).split(/\r?\n/)
+    .filter((f) => f === `${DIR}/page.tsx` || new RegExp(`^${DIR}/(hooks|components)/[^/]+\\.tsx?$`).test(f)).map(enDespues).join('\n') + enDespues(`${DIR}/ajustes.ts`);
   //  CON REPETIDOS, uno por uno: la misma clase vive en varias tarjetas, y con un conjunto bastaba
   //  que quedara UNA para dar por buenas todas (un mutante que cambiaba una de dos sobrevivio asi).
   const antes = visibles(deAntes);

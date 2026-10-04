@@ -8,6 +8,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 
+import { Button } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 export default function SupportPage() {
   const [submitting, setSubmitting] = useState(false);
   const [subject, setSubject] = useState('');
@@ -46,16 +48,12 @@ export default function SupportPage() {
       <Toaster position="top-right" richColors />
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 pb-5">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-800 flex items-center gap-2">
-            <LifeBuoy className="h-7 w-7 text-[#c5a059]" />
-            Soporte y Centro de Ayuda
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Consulte la base de conocimientos o envíe una solicitud de ayuda técnica a nuestro equipo.
-          </p>
-        </div>
+      <div className="border-b border-slate-200 pb-5">
+        <CabeceraDePagina
+          titulo="Soporte y Centro de Ayuda"
+          descripcion="Consulte la base de conocimientos o envíe una solicitud de ayuda técnica a nuestro equipo."
+          icono={<LifeBuoy />}
+        />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -108,14 +106,14 @@ export default function SupportPage() {
             </div>
 
             <div className="flex justify-end pt-2">
-              <button
+              <Button
+                variant="primary"
                 type="submit"
                 disabled={submitting}
-                className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 Enviar Mensaje
-              </button>
+              </Button>
             </div>
           </form>
         </div>

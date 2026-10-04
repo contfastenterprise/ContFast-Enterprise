@@ -268,6 +268,7 @@ export default function RegisterPage() {
             <p className="text-sm text-on-surface-variant">
               ¿Ya tienes una cuenta?
               <button
+                type="button"
                 onClick={() => router.push('/auth/login')}
                 className="text-amber-500 font-bold ml-1 hover:underline outline-none"
               >

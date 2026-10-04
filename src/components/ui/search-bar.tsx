@@ -131,6 +131,7 @@ const SearchBar = ({
             onClick={handleClear}
             className="absolute right-3 top-2 hover:text-neutral-700 outline-none"
             title="Limpiar"
+            aria-label="Limpiar búsqueda"
           >
             <X className="w-4 h-4 text-neutral-400 hover:text-rose-500 transition-colors" />
           </button>

@@ -7,6 +7,8 @@ import { parseFraction, formatFraction } from '@/utils/calculos';
 import { optimizeGlassCutting, type GlassPiece } from '@/utils/cuttingOptimizer';
 import { useConfirm } from '@/providers/confirm-provider';
 
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 export default function GlassCuttingPage() {
   const confirm = useConfirm();
   const [mounted, setMounted] = useState(false);
@@ -165,32 +167,30 @@ export default function GlassCuttingPage() {
       </div>
 
       <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
-              Optimizador de Corte de Vidrio
-            </h1>
-            <p className="text-slate-500 text-sm mt-1">
-              Planifica y distribuye cortes de vidrio de forma eficiente en pulgadas (in)
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
+        <div className="border-b border-slate-200 pb-6">
+          <CabeceraDePagina
+            titulo="Optimizador de Corte de Vidrio"
+            descripcion="Planifica y distribuye cortes de vidrio de forma eficiente en pulgadas (in)"
+            icono={<Calculator />}
+            acciones={<>
+            <Button
+              type="button"
+              variant="secondary"
               onClick={clearAll}
-              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               Limpiar Todo
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
+              variant="documento"
               onClick={handlePrint}
               disabled={isPrinting}
-              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               <Printer className="h-4 w-4" />
               {isPrinting ? 'Generando...' : 'Imprimir Patrón'}
-            </button>
-          </div>
+            </Button>
+          </>}
+          />
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
@@ -276,12 +276,13 @@ export default function GlassCuttingPage() {
                     />
                   </div>
                   <div className="flex-1 flex items-end">
-                    <button
+                    <Button
+                      type="button"
+                      className="w-full"
                       onClick={addPiece}
-                      className="w-full flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                     >
                       <Plus className="w-4 h-4" /> Agregar
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -310,12 +311,14 @@ export default function GlassCuttingPage() {
                           </div>
                         </div>
                       </div>
-                      <button
+                      <IconButton
+                        type="button"
+                        aria-label="Eliminar pieza"
+                        className="hover:text-rose-600 hover:bg-rose-50"
                         onClick={() => removePiece(p.id)}
-                        className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"
                       >
                         <Trash2 className="w-4 h-4" />
-                      </button>
+                      </IconButton>
                     </div>
                   ))
                 )}

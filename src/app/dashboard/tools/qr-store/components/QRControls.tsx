@@ -91,6 +91,7 @@ export default function QRControls({ company, config, onChange }: QRControlsProp
                 type="button"
                 onClick={() => update({ fgColor: c.value })}
                 title={c.label}
+                aria-label={`Color ${c.label}`}
                 className={[
                   'h-9 rounded-xl border-2 transition',
                   config.fgColor === c.value ? 'border-[#C5A059] scale-95' : 'border-transparent hover:scale-95',

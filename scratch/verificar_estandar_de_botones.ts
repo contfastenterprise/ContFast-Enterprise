@@ -114,7 +114,7 @@ async function main() {
 
   console.log('\n5) Trinquete: lo escrito a mano no crece\n');
   //  Techos medidos al abrir el lote. Cada lote que pase pantallas al componente los BAJA.
-  const TECHO = { primario: 30, secundario: 11, documento: 5, iconoSinNombre: 44 };
+  const TECHO = { primario: 5, secundario: 0, documento: 1, iconoSinNombre: 19 };
   const hoy = contarAMano();
   for (const k of Object.keys(TECHO) as (keyof typeof TECHO)[]) invariante(`${k}: ${hoy[k]} (techo ${TECHO[k]})`, hoy[k] <= TECHO[k]);
 

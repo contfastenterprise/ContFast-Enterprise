@@ -44,7 +44,7 @@ export default function BIProducts({ data, onNavigateToProduct }: BIProductsProp
       
       {/* Tab Navigation */}
       <div className="flex border-b border-outline-variant/30">
-        <button
+        <button type="button"
           onClick={() => setSubTab('sales')}
           className={`px-4 py-2.5 text-sm font-bold border-b-2 transition cursor-pointer ${
             subTab === 'sales' 
@@ -54,7 +54,7 @@ export default function BIProducts({ data, onNavigateToProduct }: BIProductsProp
         >
           Top Ventas (Volumen)
         </button>
-        <button
+        <button type="button"
           onClick={() => setSubTab('profit')}
           className={`px-4 py-2.5 text-sm font-bold border-b-2 transition cursor-pointer ${
             subTab === 'profit' 
@@ -64,7 +64,7 @@ export default function BIProducts({ data, onNavigateToProduct }: BIProductsProp
         >
           Rentabilidad y Margen
         </button>
-        <button
+        <button type="button"
           onClick={() => setSubTab('slow')}
           className={`px-4 py-2.5 text-sm font-bold border-b-2 transition cursor-pointer ${
             subTab === 'slow' 
@@ -74,7 +74,7 @@ export default function BIProducts({ data, onNavigateToProduct }: BIProductsProp
         >
           Sin Movimiento / Lento
         </button>
-        <button
+        <button type="button"
           onClick={() => setSubTab('returns')}
           className={`px-4 py-2.5 text-sm font-bold border-b-2 transition cursor-pointer ${
             subTab === 'returns' 

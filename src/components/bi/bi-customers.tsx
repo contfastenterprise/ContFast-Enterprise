@@ -28,7 +28,7 @@ export default function BICustomers({ data, onNavigateToCustomer }: BICustomersP
       
       {/* View Selector */}
       <div className="flex border-b border-outline-variant/30">
-        <button
+        <button type="button"
           onClick={() => setSubView('ranking')}
           className={`px-4 py-2.5 text-sm font-bold border-b-2 transition cursor-pointer ${
             subView === 'ranking' 
@@ -38,7 +38,7 @@ export default function BICustomers({ data, onNavigateToCustomer }: BICustomersP
         >
           Ranking de Clientes (Compradores)
         </button>
-        <button
+        <button type="button"
           onClick={() => setSubView('inactive')}
           className={`px-4 py-2.5 text-sm font-bold border-b-2 transition cursor-pointer ${
             subView === 'inactive' 

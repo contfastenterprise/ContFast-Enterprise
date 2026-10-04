@@ -5,6 +5,7 @@ import QRCode from 'qrcode';
 import { Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { QRConfig, CompanyInfo } from '../QRStoreClient';
+import { Button } from '@/components/ui/button';
 
 interface QRPrintStandProps {
   company: CompanyInfo;
@@ -92,12 +93,13 @@ export default function QRPrintStand({ company, config, qrUrl, mode }: QRPrintSt
               : 'Cuadrícula de 9 códigos QR para imprimir en papel adhesivo o recortar.'}
           </p>
         </div>
-        <button
+        <Button
+          type="button"
+          variant="documento"
           onClick={handlePrint}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#001e40] hover:bg-[#002c59] text-white rounded-xl font-bold text-sm transition shadow-sm"
         >
           <Printer className="h-4 w-4" /> Imprimir
-        </button>
+        </Button>
       </div>
 
       {/* STAND template */}

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, BrainCircuit, CheckCircle2, XCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 interface Proposal {
   id: string;
@@ -105,22 +106,18 @@ export default function VistaAgenteEmpresarial({ enPestana = false }: { enPestan
       <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
         {/*  El título se calla dentro de la pestaña; el botón de generar, no.  */}
         {enPestana ? <div /> : (
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2 text-slate-800">
-            <BrainCircuit className="w-8 h-8 text-indigo-600" />
-            Agente Empresarial (IA)
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Recomendaciones automatizadas basadas en el análisis de su flujo de efectivo.
-          </p>
-        </div>
+        <CabeceraDePagina
+          titulo="Agente Empresarial (IA)"
+          descripcion="Recomendaciones automatizadas basadas en el análisis de su flujo de efectivo."
+          icono={<BrainCircuit />}
+        />
         )}
-        <Button 
-          onClick={handleGenerate} 
+        <Button
+          type="button"
+          onClick={handleGenerate}
           disabled={generating}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 shadow-md transition active:scale-95"
         >
-          {generating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <BrainCircuit className="w-4 h-4 mr-2" />}
+          {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <BrainCircuit className="w-4 h-4" />}
           Generar Análisis de Flujo
         </Button>
       </div>
@@ -166,19 +163,21 @@ export default function VistaAgenteEmpresarial({ enPestana = false }: { enPestan
               <CardFooter className="pt-4 border-t border-slate-100 bg-white rounded-b-xl flex gap-2">
                 {proposal.status === 'pending' ? (
                   <>
-                    <Button 
-                      variant="outline" 
-                      className="flex-1 text-green-700 border-green-200 hover:bg-green-50"
+                    <Button
+                      type="button"
+                      variant="success"
+                      className="flex-1"
                       onClick={() => handleAction(proposal.id, 'approved')}
                     >
-                      <CheckCircle2 className="w-4 h-4 mr-2" /> Aprobar
+                      <CheckCircle2 className="w-4 h-4" /> Aprobar
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      className="flex-1 text-red-700 border-red-200 hover:bg-red-50"
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="flex-1 text-red-700 hover:bg-red-50 hover:text-red-800"
                       onClick={() => handleAction(proposal.id, 'rejected')}
                     >
-                      <XCircle className="w-4 h-4 mr-2" /> Rechazar
+                      <XCircle className="w-4 h-4" /> Rechazar
                     </Button>
                   </>
                 ) : (

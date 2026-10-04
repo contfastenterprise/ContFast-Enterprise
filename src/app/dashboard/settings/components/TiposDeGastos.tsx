@@ -2,10 +2,11 @@
  * Configuracion > Tipos de Gastos: la lista (movil y escritorio).
  * Sale de `settings/page.tsx` en el lote 238, movido tal cual: solo pinta.
  */
-import { RefreshCw, Layers, Plus, Trash2, Edit } from 'lucide-react';
+import { RefreshCw, Layers, Plus, Trash2, Pencil } from 'lucide-react';
 import type { TiposDeGasto } from '../hooks/useTiposDeGasto';
 import { esTipoEstandar } from '../ajustes';
 
+import { Button, IconButton } from '@/components/ui/button';
 export function TiposDeGastos({ g }: { g: TiposDeGasto }) {
   return (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -14,13 +15,12 @@ export function TiposDeGastos({ g }: { g: TiposDeGasto }) {
                 <Layers className="w-5 h-5 text-[#C5A059]" />
                 <h3 className="font-bold text-[#003366]">Administración de Tipos de Gastos</h3>
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={() => g.handleOpenTypeModal()}
-                className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-              >
+                className="flex">
                 <Plus className="w-4 h-4" /> Crear Tipo de Gasto
-              </button>
+              </Button>
             </div>
             <div className="p-4">
               {g.loadingExpenseTypes ? (
@@ -54,18 +54,23 @@ export function TiposDeGastos({ g }: { g: TiposDeGasto }) {
                           </div>
                           
                           <div className="flex justify-end gap-2 border-t border-slate-50 pt-2 mt-1">
-                            <button
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
                               onClick={() => g.handleOpenTypeModal(type)}
-                              className="text-[10px] font-bold py-1.5 px-3 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-1"
                             >
-                              <Edit className="w-3 h-3" /> Editar
-                            </button>
-                            <button
+                              <Pencil className="w-3 h-3" /> Editar
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              className="border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
                               onClick={() => g.handleDeleteType(type)}
-                              className="text-[10px] font-bold py-1.5 px-3 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors flex items-center gap-1"
                             >
                               <Trash2 className="w-3 h-3" /> {isStandard ? 'Desactivar' : 'Eliminar'}
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       );
@@ -101,20 +106,23 @@ export function TiposDeGastos({ g }: { g: TiposDeGasto }) {
                                 </span>
                               </td>
                               <td className="px-4 py-2.5 text-right space-x-2">
-                                <button
+                                <IconButton
+                                  type="button"
+                                  aria-label="Editar tipo de gasto"
+                                  className="hover:text-[#003366] hover:bg-[#003366]/10"
                                   onClick={() => g.handleOpenTypeModal(type)}
-                                  className="p-1.5 rounded-lg transition-colors inline-flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
                                   title="Editar"
                                 >
-                                  <Edit className="w-3.5 h-3.5" />
-                                </button>
-                                <button
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </IconButton>
+                                <IconButton
+                                  type="button"
+                                  aria-label={isStandard ? 'Desactivar' : 'Eliminar'}
+                                  className="hover:text-rose-600 hover:bg-rose-50"
                                   onClick={() => g.handleDeleteType(type)}
-                                  className="p-1.5 rounded-lg transition-colors inline-flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"
-                                  title={isStandard ? 'Desactivar' : 'Eliminar'}
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
-                                </button>
+                                </IconButton>
                               </td>
                             </tr>
                           );

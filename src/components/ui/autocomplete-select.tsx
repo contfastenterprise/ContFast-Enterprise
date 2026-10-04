@@ -118,6 +118,7 @@ export const AutocompleteSelect = ({
             onClick={handleClear}
             className="absolute right-3 top-1/2 -translate-y-1/2 hover:text-neutral-700 outline-none"
             title="Limpiar"
+            aria-label="Limpiar selección"
           >
             <X className="w-4 h-4 text-neutral-400 hover:text-rose-500 transition-colors" />
           </button>
