@@ -14,6 +14,7 @@ import { formatDateDisplay } from '@/utils/fechasLocales';
 
 import { Button, IconButton } from '@/components/ui/button';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { Modal } from '@/components/ui/dialog';
 // -- Types --
 type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 
@@ -1436,16 +1437,17 @@ export default function AccountingPage() {
         </AnimatePresence>
       </div>
 
-      {/* MODAL: NEW ACCOUNT */}
-      <AnimatePresence>
-        {showAccountModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAccountModal(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b border-[#003366] bg-[#001733]">
-                <h3 className="text-lg font-display font-bold text-white flex items-center gap-2"><BookOpen className="w-4 h-4 text-[#c5a059]" /> Nueva Cuenta Contable</h3>
-                <IconButton type="button" onClick={() => setShowAccountModal(false)} aria-label="Cerrar la ventana de nueva cuenta" className="text-slate-400 hover:text-white hover:bg-white/10"><X className="w-4 h-4" /></IconButton>
-              </div>
+      {/* MODAL: NEW ACCOUNT -- lote 279: la ventana comun (`Modal`). El fondo ya cerraba (por
+          defecto); mientras se guarda (`submitting`) no se cierra. */}
+      <Modal
+        isOpen={showAccountModal}
+        onClose={() => setShowAccountModal(false)}
+        bloqueada={submitting}
+        maxWidth="md"
+        sinRelleno
+        icono={<BookOpen />}
+        title="Nueva Cuenta Contable"
+      >
               <form onSubmit={handleCreateAccount} className="p-4 space-y-4">
                 <div>
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Código</label>
@@ -1474,21 +1476,19 @@ export default function AccountingPage() {
                   </Button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
-      {/* MODAL: OPEN PERIOD */}
-      <AnimatePresence>
-        {showPeriodModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPeriodModal(false)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b border-[#003366] bg-[#001733]">
-                <h3 className="text-lg font-display font-bold text-white flex items-center gap-2"><BookOpen className="w-4 h-4 text-[#c5a059]" /> Abrir Período Contable</h3>
-                <IconButton type="button" onClick={() => setShowPeriodModal(false)} aria-label="Cerrar la ventana de abrir período" className="text-slate-400 hover:text-white hover:bg-white/10"><X className="w-4 h-4" /></IconButton>
-              </div>
+      {/* MODAL: OPEN PERIOD -- lote 279: la ventana comun. El fondo ya cerraba; mientras se abre
+          el periodo (`periodSubmitting`) no se cierra. */}
+      <Modal
+        isOpen={showPeriodModal}
+        onClose={() => setShowPeriodModal(false)}
+        bloqueada={periodSubmitting}
+        maxWidth="md"
+        sinRelleno
+        icono={<BookOpen />}
+        title="Abrir Período Contable"
+      >
               <form onSubmit={handleCreatePeriod} className="p-4 space-y-4">
                 <div>
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Nombre del Período</label>
@@ -1511,23 +1511,22 @@ export default function AccountingPage() {
                   </Button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
-      {/* MODAL: NEW JOURNAL ENTRY */}
-      <AnimatePresence>
-        {showJournalModal && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowJournalModal(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.98, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98, y: 10 }} className="relative z-10 flex flex-col w-full max-w-4xl max-h-[90vh] bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b border-[#003366] bg-[#001733] shrink-0">
-                <h3 className="text-lg font-display font-bold text-white flex items-center gap-2"><ArrowRightLeft className="w-4 h-4 text-[#c5a059]" /> Nuevo Asiento Contable</h3>
-                <IconButton type="button" onClick={() => setShowJournalModal(false)} aria-label="Cerrar la ventana del asiento" className="text-slate-400 hover:text-white hover:bg-white/10"><X className="w-4 h-4" /></IconButton>
-              </div>
-
-              <div className="overflow-y-auto p-4 bg-white flex-1">
+      {/* MODAL: NEW JOURNAL ENTRY -- lote 279: la ventana comun. El fondo ya cerraba; mientras se
+          contabiliza (`submitting`) no se cierra. Iba en z-[60] sin abrirse encima de otra: capa 60
+          para no cambiar su apilado. Los totales y los botones quedan pegados abajo (`sticky`). */}
+      <Modal
+        isOpen={showJournalModal}
+        onClose={() => setShowJournalModal(false)}
+        bloqueada={submitting}
+        capa={60}
+        maxWidth="4xl"
+        sinRelleno
+        icono={<ArrowRightLeft />}
+        title="Nuevo Asiento Contable"
+      >
+              <div className="p-4 bg-white">
                 {/*
                   ORDEN. Antes era una rejilla de TRES columnas con Fecha,
                   Referencia y un hueco vacio, y debajo el Concepto ocupando las
@@ -1654,7 +1653,7 @@ export default function AccountingPage() {
                 Con flex-wrap, si no caben, bajan enteros en vez de romperse.
                 `whitespace-nowrap` protege cada cifra.
               */}
-              <div className="bg-slate-50 border-t border-slate-200 p-6 shrink-0 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
+              <div className="sticky bottom-0 bg-slate-50 border-t border-slate-200 p-6 shrink-0 flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
                 <div className="flex flex-wrap gap-x-8 gap-y-3">
                   <div className="whitespace-nowrap">
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Total Débitos</p>
@@ -1703,10 +1702,7 @@ export default function AccountingPage() {
                   </Button>
                 </div>
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
     </div>
   );

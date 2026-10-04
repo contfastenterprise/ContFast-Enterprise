@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { Pencil, Trash2, ToggleLeft, ToggleRight, ShieldAlert, Percent, Globe, Building2 } from 'lucide-react';
-//  Lote 252: `m` dentro de `LazyMotion` y no `motion` (aviso de React Doctor): carga solo lo que usa.
-import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { toast } from 'sonner';
 import clsx from 'clsx';
@@ -13,6 +11,7 @@ import { leerRespuesta } from '@/utils/leerRespuesta';
 
 import { Button, IconButton } from '@/components/ui/button';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { Modal } from '@/components/ui/dialog';
 interface Retention {
   id: string;
   name: string;
@@ -248,27 +247,17 @@ export default function RetentionsPage() {
       )}
 
       {/* Delete Confirm Modal */}
-      <LazyMotion features={domAnimation}>
-      <AnimatePresence>
+      {/* Lote 279: la ventana comun (`Modal`). El fondo ya cerraba (por defecto). */}
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        maxWidth="sm"
+        icono={<Trash2 />}
+        title="Eliminar retención"
+        description="Esta acción no se puede deshacer."
+      >
         {deleteTarget && (
-          <m.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={(e) => e.target === e.currentTarget && setDeleteTarget(null)}
-          >
-            <m.div
-              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-4 space-y-4"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                  <Trash2 className="w-5 h-5 text-red-500" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-[#003366]">Eliminar retención</h3>
-                  <p className="text-sm text-slate-500">Esta acción no se puede deshacer.</p>
-                </div>
-              </div>
+            <div className="space-y-4">
               <p className="text-sm text-slate-600 bg-slate-50 rounded-xl px-4 py-3">
                 ¿Eliminar <strong>{deleteTarget.name}</strong> ({parseFloat(deleteTarget.percentage).toFixed(2)}%)?
               </p>
@@ -288,11 +277,9 @@ export default function RetentionsPage() {
                   Sí, eliminar
                 </Button>
               </div>
-            </m.div>
-          </m.div>
+            </div>
         )}
-      </AnimatePresence>
-      </LazyMotion>
+      </Modal>
     </div>
   );
 }

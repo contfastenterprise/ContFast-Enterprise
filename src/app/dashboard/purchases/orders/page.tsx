@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Eye, FileText, Search, Plus, Pencil, Trash2, X, RefreshCw, Printer, AlertTriangle, Filter, Mail, Copy, CheckCircle2, History } from 'lucide-react';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
-//  Lote 252: `m` dentro de `LazyMotion` y no `motion` (aviso de React Doctor).
-import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
@@ -12,6 +10,7 @@ import { formatDateDisplay, formatDateTimeDisplay } from '@/utils/fechasLocales'
 import { leerRespuesta } from '@/utils/leerRespuesta';
 import { Button, IconButton } from '@/components/ui/button';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { Modal } from '@/components/ui/dialog';
 
 interface OrderLine {
   id?: string;
@@ -1047,34 +1046,24 @@ function VentanasDePedido({ h }: { h: EstadoPurchaseOrdersPage }) {
   const { showDetailModal, setShowDetailModal, showReceiveModal, setShowReceiveModal, submitting, activeOrder, form, receptions, setReceptions, handleSendOrder, handleDuplicate, handleCancelOrder, openReceiveModal, handleReceiveSubmit } = h;
   return (
     <>
-      {/* Detail / Action Modal */}
-      <LazyMotion features={domAnimation}>
-      <AnimatePresence>
-        {showDetailModal && activeOrder && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
-            <m.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl w-full max-w-5xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
-            >
-              {/* Header */}
-              <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-slate-50/50">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-extrabold text-[#003366]">
-                    Pedido: {activeOrder.orderNumber}
-                  </h2>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border ${statusBadges[activeOrder.status]}`}>
-                    {statusLabels[activeOrder.status]}
-                  </span>
-                </div>
-                <IconButton type="button" onClick={() => setShowDetailModal(false)} aria-label="Cerrar el detalle del pedido">
-                  <X className="h-5 w-5" />
-                </IconButton>
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-6 text-xs">
+      {/* Detail / Action Modal -- lote 279: la ventana comun (`Modal`). El fondo no cerraba. */}
+      <Modal
+        isOpen={showDetailModal && !!activeOrder}
+        onClose={() => setShowDetailModal(false)}
+        maxWidth="5xl"
+        sinRelleno
+        cerrarAlPulsarFuera={false}
+        title={activeOrder && (
+          <span className="flex items-center gap-3">
+            <span>Pedido: {activeOrder.orderNumber}</span>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border ${statusBadges[activeOrder.status]}`}>
+              {statusLabels[activeOrder.status]}
+            </span>
+          </span>
+        )}
+      >
+        {activeOrder && (<>
+              <div className="p-4 space-y-6 text-xs">
                 {/* Details grid */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
                   <div>
@@ -1208,33 +1197,23 @@ function VentanasDePedido({ h }: { h: EstadoPurchaseOrdersPage }) {
                   )}
                 </div>
               </div>
-            </m.div>
-          </div>
-        )}
-      </AnimatePresence>
+        </>)}
+      </Modal>
 
-      {/* Receive Goods Modal */}
-      <AnimatePresence>
-        {showReceiveModal && activeOrder && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-            <m.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col"
-            >
-              {/* Header */}
-              <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-slate-50/50">
-                <h2 className="text-lg font-extrabold text-[#003366] flex items-center gap-2">
-                  <Plus className="h-5 w-5 text-emerald-600" />
-                  Registrar Recepción - {activeOrder.orderNumber}
-                </h2>
-                <IconButton type="button" onClick={() => setShowReceiveModal(false)} aria-label="Cerrar la ventana de recepción">
-                  <X className="h-5 w-5" />
-                </IconButton>
-              </div>
-
-              {/* Form */}
+      {/* Receive Goods Modal -- lote 279: la ventana comun. Se abre ENCIMA del detalle (capa 60),
+          el fondo no cerraba, y mientras se registra (`submitting`) no se cierra. */}
+      <Modal
+        isOpen={showReceiveModal && !!activeOrder}
+        onClose={() => setShowReceiveModal(false)}
+        bloqueada={submitting}
+        capa={60}
+        maxWidth="3xl"
+        sinRelleno
+        cerrarAlPulsarFuera={false}
+        icono={<Plus />}
+        title={activeOrder && <>Registrar Recepción - {activeOrder.orderNumber}</>}
+      >
+        {activeOrder && (
               <form onSubmit={handleReceiveSubmit} className="p-4 space-y-6 text-xs">
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-amber-800 flex items-start gap-3">
                   <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5 text-amber-700" />
@@ -1292,11 +1271,8 @@ function VentanasDePedido({ h }: { h: EstadoPurchaseOrdersPage }) {
                   </Button>
                 </div>
               </form>
-            </m.div>
-          </div>
         )}
-      </AnimatePresence>
-      </LazyMotion>
+      </Modal>
     </>
   );
 }

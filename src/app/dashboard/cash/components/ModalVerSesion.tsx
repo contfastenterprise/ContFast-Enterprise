@@ -4,40 +4,30 @@
  * La ventana que ensena una sesion del historico.
  * Salio de `cash/page.tsx` al partirla (lote 229), con el mismo marcado.
  */
-import { Wallet, Printer, X } from 'lucide-react';
-//  Lote 230: `m` y no `motion`; el `LazyMotion` lo pone la pagina.
-import { m, AnimatePresence } from 'framer-motion';
+import { Wallet, Printer } from 'lucide-react';
+import { Modal } from '@/components/ui/dialog';
 import clsx from 'clsx';
 import { formatDateTimeDisplay } from '@/utils/fechasLocales';
 import { fmt } from '../caja';
 import type { HistorialCaja } from '../hooks/useHistorialCaja';
-import { Button, IconButton } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 
 export function ModalVerSesion({ h }: { h: HistorialCaja }) {
+  //  Lote 279: la ventana comun (`Modal`). El fondo no cerraba; la X y "Cerrar" hacen lo mismo.
   return (
     <>
-      <AnimatePresence>
-        {h.showViewModal && h.selectedSession && (
-          <m.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#001e40]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          >
-            <m.div
-              initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col"
-            >
-              <div className="bg-[#001e40] p-4 text-white flex justify-between items-center relative overflow-hidden">
-                <div className="absolute right-0 top-0 opacity-10">
-                  <Wallet className="w-24 h-24 transform translate-x-4 -translate-y-4" />
-                </div>
-                <div className="relative z-10">
-                  <h3 className="text-base font-bold font-display">Detalle de Turno</h3>
-                  <p className="text-xs opacity-80 mt-0.5">{h.selectedSession.registerName}</p>
-                </div>
-                <IconButton type="button" onClick={() => h.setShowViewModal(false)} aria-label="Cerrar el detalle del turno" className="relative z-10 text-white/70 hover:text-white hover:bg-white/10">
-                  <X className="w-5 h-5" />
-                </IconButton>
-              </div>
+      <Modal
+        isOpen={h.showViewModal && !!h.selectedSession}
+        onClose={() => h.setShowViewModal(false)}
+        cerrarAlPulsarFuera={false}
+        maxWidth="md"
+        sinRelleno
+        icono={<Wallet />}
+        title="Detalle de Turno"
+        description={h.selectedSession?.registerName}
+      >
+        {h.selectedSession && (
+          <>
               <div className="p-4 space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div>
@@ -107,10 +97,9 @@ export function ModalVerSesion({ h }: { h: HistorialCaja }) {
                   Cerrar
                 </Button>
               </div>
-            </m.div>
-          </m.div>
+          </>
         )}
-      </AnimatePresence>
+      </Modal>
     </>
   );
 }
