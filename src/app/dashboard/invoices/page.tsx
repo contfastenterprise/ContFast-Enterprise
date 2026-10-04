@@ -27,6 +27,8 @@ import { PASOS, campoDelPaso, primerPasoConFallo } from './pasos';
 import { useConfirm } from '@/providers/confirm-provider';
 import { esAdminOSistemas } from '@/utils/rolMatch';
 import { quedaPorDebajoDelCosto } from '@/services/invoice/precioMinimo';
+import { esNivelDePrecio, nivelDeducido, preciosViejos, conPreciosActuales, type PrecioViejo } from '@/services/invoice/preciosDelBorrador';
+import { AvisoPreciosDelBorrador } from './components/AvisoPreciosDelBorrador';
 import { useTasaDelDolar } from '@/hooks/useTasaDelDolar';
 import { lineasDeFacturaConPrecios } from '@/services/precios/cambioDeTasa';
 import { TasaDelDolarEnLinea } from '@/components/precios/TasaDelDolarEnLinea';
@@ -153,6 +155,8 @@ function InvoicesList() {
   const [saveDropdownOpen, setSaveDropdownOpen] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
+  //  Lote 266: las lineas del borrador reabierto cuyo precio ya no es el del catalogo.
+  const [preciosDelBorrador, setPreciosDelBorrador] = useState<PrecioViejo[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showPrintConfirmModal, setShowPrintConfirmModal] = useState(false);
   const [pendingPostAction, setPendingPostAction] = useState<'print' | 'none' | undefined>(undefined);
@@ -991,6 +995,7 @@ function InvoicesList() {
     setLines([{ productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18, unitOfMeasure: 'unidad', barcode: '', priceTier: 'base', imageUrl: '' }]);
     setQuoteId('');
     setEditingDraftId(null);
+    setPreciosDelBorrador([]);
     setPaso(1);
     setVistaCompleta(false);
   };
@@ -1019,6 +1024,9 @@ function InvoicesList() {
       taxRate: Number(l.taxRate ?? 0.18),
       taxCategory: Number(l.taxRate) === 0 ? (l.taxCategory ?? 'exento') : null,
       warehouseId: l.warehouseId || warehouseId,
+      //  Lote 266: el nivel de precio viaja con la linea; el borrador lo guarda para reabrirse con
+      //  el suyo. La emision lo ignora (su esquema no lo pide).
+      priceTier: esNivelDePrecio(l.priceTier) ? l.priceTier : undefined,
     })),
   });
 
@@ -1209,23 +1217,42 @@ function InvoicesList() {
       setTransactionNumber(draft.transactionNumber || '');
       setNotes(draft.notes || '');
 
-      const mappedLines = draft.lines.map((l: any) => ({
-        productId: l.productId,
-        productName: l.productName,
-        quantity: parseFloat(l.quantity) || 1,
-        unitPrice: parseFloat(l.unitPrice) || 0,
-        discount: parseFloat(l.discount) || 0,
-        // Antes: `taxRate: 0.18` fijo. El borrador SI guardaba la tasa y aqui
-        // se tiraba, asi que cualquier tasa elegida volvia como 18%. Es el
-        // camino por el que se colaba tambien el 16%.
-        taxRate: l.taxRate != null ? Number(l.taxRate) : 0.18,
-        taxCategory: l.taxCategory ?? null,
-        unitOfMeasure: l.unitOfMeasure || 'unidad',
-        barcode: l.barcode || '',
-        priceTier: 'consumidor',
-        warehouseId: l.warehouseId || draft.warehouseId
-      }));
+      //  Lote 266: el catalogo de AHORA, para saber si algun precio cambio desde que se guardo el
+      //  borrador. Si el formulario ya lo tiene cargado se usa ese; si no (primera vez que se abre),
+      //  se pide aqui, en la misma accion, en vez de esperar a que lo traiga el formulario.
+      let catalogo: any[] = dbProducts;
+      if (catalogo.length === 0) {
+        const leido = await leerRespuesta<{ data: any[] }>(await fetch('/api/v1/products?per_page=100'));
+        if (leido.bien) { catalogo = leido.cuerpo.data || []; setDbProducts(catalogo); }
+      }
+      const porId = new Map(catalogo.map((p) => [p.id, p]));
+
+      const mappedLines = draft.lines.map((l: any) => {
+        const unitPrice = parseFloat(l.unitPrice) || 0;
+        return {
+          productId: l.productId,
+          productName: l.productName,
+          quantity: parseFloat(l.quantity) || 1,
+          unitPrice,
+          discount: parseFloat(l.discount) || 0,
+          // Antes: `taxRate: 0.18` fijo. El borrador SI guardaba la tasa y aqui
+          // se tiraba, asi que cualquier tasa elegida volvia como 18%. Es el
+          // camino por el que se colaba tambien el 16%.
+          taxRate: l.taxRate != null ? Number(l.taxRate) : 0.18,
+          taxCategory: l.taxCategory ?? null,
+          unitOfMeasure: l.unitOfMeasure || 'unidad',
+          barcode: l.barcode || '',
+          //  Lote 266: el nivel GUARDADO (migracion 0019). Antes era 'consumidor' para todas, y una
+          //  linea a precio mayorista volvia diciendo consumidor. Un borrador de antes de la 0019 no
+          //  lo tiene: se deduce del precio (el nivel cuyo precio de hoy coincide).
+          priceTier: esNivelDePrecio(l.priceTier) ? l.priceTier : nivelDeducido(unitPrice, porId.get(l.productId)),
+          warehouseId: l.warehouseId || draft.warehouseId
+        };
+      });
       setLines(mappedLines);
+      //  Lote 266: los precios que cambiaron desde que se guardo. No se tocan solos (decision del
+      //  dueño): el aviso los ensena y "Actualizar precios" los pone.
+      setPreciosDelBorrador(preciosViejos(mappedLines, porId));
 
       setEditingDraftId(draftId);
       // La edicion NO va por pasos: quien reabre un borrador viene a corregir UN
@@ -2603,6 +2630,18 @@ function InvoicesList() {
               <TasaDelDolarEnLinea t={tasaDelDolar} />
             </div>
 
+            {/*  LOTE 266: el borrador reabierto con precios que ya no son los del catalogo.  */}
+            <AvisoPreciosDelBorrador
+              viejos={preciosDelBorrador}
+              alActualizar={() => {
+                const n = preciosDelBorrador.length;
+                setLines(conPreciosActuales(lines, preciosDelBorrador));
+                setPreciosDelBorrador([]);
+                toast.success(n === 1 ? 'Se actualizó el precio de 1 línea.' : `Se actualizó el precio de ${n} líneas.`);
+              }}
+              alDejar={() => setPreciosDelBorrador([])}
+            />
+
             {cargandoCotizacion ? (
               <EsqueletoCotizacion />
             ) : errorCotizacion ? (
@@ -2657,13 +2696,11 @@ function InvoicesList() {
             className="space-y-6"
           >
             {/* Stats Row */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-2">
-              <div className="flex flex-col gap-2">
-                <div className="mt-3 flex items-center gap-2 bg-[#003366]/5 border border-[#003366]/10 px-3 py-1.5 rounded-full w-fit">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                  <span className="text-xs font-bold text-[#003366] uppercase tracking-wider">Powered by MSeller API</span>
-                </div>
-              </div>
+            {/*  LOTE 268: fuera el letrero "Powered by MSeller API" (pedido del dueño, 2026-10-03). Era
+                 lo unico de la columna izquierda; sin el, la fila se alinea a la DERECHA para que los
+                 totales se queden donde estaban (con `justify-between` y un solo hijo se irian a la
+                 izquierda).  */}
+            <div className="flex flex-col md:flex-row md:justify-end items-start md:items-end gap-6 mb-2">
               <div className="flex gap-4 w-full md:w-auto">
                 <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none">
                   <span className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1">Total Mes</span>
