@@ -63,6 +63,10 @@
      texto negro sobre azul marino. Blanco sobre el primario, y el azul del hover de la casa. */
   --color-on-primary: #ffffff;
   --color-primary-variant: #002244;
+  /* LOTE 275: el dorado de la marca (#C5A059) da 2,4:1 sobre blanco. Para TEXTO sobre fondo claro
+     (titulos de seccion, contadores) va este, de la misma familia: 5,0:1 sobre blanco, 4,8:1 sobre
+     slate-50. El de siempre se queda para iconos, rellenos y texto sobre fondo oscuro. */
+  --color-oro-texto: #8a6a2c;
   --color-on-primary-container: #799dd6;
   --color-inverse-primary: #a7c8ff;
   --color-secondary-container: #fed488;

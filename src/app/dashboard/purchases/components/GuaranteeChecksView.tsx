@@ -124,7 +124,7 @@ function GuaranteeChecksView() {
   return (
     <div className="space-y-6">
       <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
-        <h3 className="font-bold text-[#c5a059] mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
+        <h3 className="font-bold text-oro-texto mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
           <Banknote className="h-5 w-5 text-amber-500" /> Control de Cheques en Garantía
         </h3>
         <p className="text-xs text-slate-500 mb-6">
@@ -181,7 +181,7 @@ function GuaranteeChecksView() {
           <div className="space-y-8">
             {/* Pendientes */}
             <div>
-              <h4 className="font-bold text-[#c5a059] mb-3 text-xs uppercase tracking-wide flex items-center gap-1.5">
+              <h4 className="font-bold text-oro-texto mb-3 text-xs uppercase tracking-wide flex items-center gap-1.5">
                 <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500"></span>
                 Cheques Pendientes por Cobrar ({pendingChecks.length})
               </h4>
@@ -250,7 +250,7 @@ function GuaranteeChecksView() {
 
             {/* Aplicados */}
             <div>
-              <h4 className="font-bold text-[#c5a059] mb-3 text-xs uppercase tracking-wide flex items-center gap-1.5">
+              <h4 className="font-bold text-oro-texto mb-3 text-xs uppercase tracking-wide flex items-center gap-1.5">
                 <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                 Historial de Cheques Aplicados ({appliedChecks.length})
               </h4>

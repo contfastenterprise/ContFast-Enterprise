@@ -1035,7 +1035,7 @@ export default function PurchasesPage() {
     <div className="space-y-6">
       <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
+          <h3 className="font-bold text-oro-texto uppercase tracking-wider text-sm flex items-center gap-2">
             <FileText className="h-4 w-4" /> Datos del Comprobante
           </h3>
           <Button
@@ -1143,7 +1143,7 @@ export default function PurchasesPage() {
       </div>
 
       <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
-        <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
+        <h3 className="font-bold text-oro-texto uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
           <Tag className="h-4 w-4" /> Forma del registro
         </h3>
         <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-lg border border-slate-200 select-none mb-2">
@@ -1175,7 +1175,7 @@ export default function PurchasesPage() {
     <div className="space-y-6">
       {isGeneralAmount ? (
         <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4 space-y-5">
-          <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
+          <h3 className="font-bold text-oro-texto uppercase tracking-wider text-sm flex items-center gap-2">
             <Tag className="h-4 w-4" /> Desglose de Montos Generales
           </h3>
 
@@ -1310,7 +1310,7 @@ export default function PurchasesPage() {
               {/*  LOTE 261: la tasa del dolar junto a las lineas, con "Cambiar tasa" para quien
                    administra. No sale si la empresa no usa precios en dolares.  */}
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
+                <h3 className="font-bold text-oro-texto uppercase tracking-wider text-sm flex items-center gap-2">
                   <Box className="h-4 w-4" /> Líneas de Compra / Gasto
                 </h3>
                 <TasaDelDolarEnLinea t={tasaDelDolar} />
@@ -1441,7 +1441,7 @@ export default function PurchasesPage() {
 
   const paso3 = () => (
     <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
-      <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
+      <h3 className="font-bold text-oro-texto uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
         <Banknote className="h-4 w-4" /> Como se paga
       </h3>
       <div className="space-y-4">
@@ -1756,7 +1756,7 @@ export default function PurchasesPage() {
     ];
     return (
       <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
-        <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
+        <h3 className="font-bold text-oro-texto uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
           <Eye className="h-4 w-4" /> Lo que vas a guardar
         </h3>
         <dl className="divide-y divide-slate-100">
@@ -1948,7 +1948,7 @@ export default function PurchasesPage() {
         <div className="space-y-8 w-full max-w-none">
           {/* Advanced Filter Panel */}
           <section className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm w-full">
-            <h3 className="font-bold text-[#c5a059] mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
+            <h3 className="font-bold text-oro-texto mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
               <Filter className="h-4 w-4" /> Filtros de Búsqueda
             </h3>
 
@@ -2055,7 +2055,7 @@ export default function PurchasesPage() {
           {!hasSearched ? (
             <div className="bg-slate-50 border border-dashed border-on-surface-variant/20 rounded-xl p-12 text-center">
               <Filter className="h-12 w-12 text-[#c5a059] mx-auto mb-4 opacity-55" />
-              <h4 className="text-lg font-extrabold text-[#c5a059] mb-2">Establece los filtros de búsqueda</h4>
+              <h4 className="text-lg font-extrabold text-oro-texto mb-2">Establece los filtros de búsqueda</h4>
               <p className="text-sm text-slate-600 max-w-md mx-auto mb-6">
                 No se muestran transacciones hasta que apliques los filtros de fecha/tipo y presiones el botón de **Buscar Registros**.
               </p>
@@ -2125,7 +2125,7 @@ export default function PurchasesPage() {
               <div className="flex flex-col gap-8 w-full max-w-none">
                 {/* Compras de Inventario (Comprobantes) */}
                 <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm w-full max-w-none">
-                  <h3 className="font-extrabold text-[#c5a059] mb-2 flex items-center justify-between text-base">
+                  <h3 className="font-extrabold text-oro-texto mb-2 flex items-center justify-between text-base">
                     <span className="flex items-center gap-2">
                       <ShoppingCart className="h-5 w-5 text-emerald-500" /> 1. Compras (Con Suplidor / Inventario)
                     </span>
@@ -2269,7 +2269,7 @@ export default function PurchasesPage() {
 
                 {/* Gastos Menores / Caja Chica */}
                 <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm w-full max-w-none">
-                  <h3 className="font-extrabold text-[#c5a059] mb-2 flex items-center justify-between text-base">
+                  <h3 className="font-extrabold text-oro-texto mb-2 flex items-center justify-between text-base">
                     <span className="flex items-center gap-2">
                       <Activity className="h-5 w-5 text-blue-500" /> 2. Gastos Menores / Caja Chica
                     </span>
@@ -2609,7 +2609,7 @@ export default function PurchasesPage() {
 
                 {/* Lines breakdown */}
                 <div>
-                  <h4 className="font-bold text-sm text-[#c5a059] mb-3 uppercase tracking-wider flex items-center gap-1.5">
+                  <h4 className="font-bold text-sm text-oro-texto mb-3 uppercase tracking-wider flex items-center gap-1.5">
                     <Box className="h-4 w-4" /> Desglose de Líneas de Artículos
                   </h4>
                   <div className="border border-surface-container-high rounded-lg overflow-hidden">

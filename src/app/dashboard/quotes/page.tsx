@@ -173,7 +173,7 @@ export default function QuotesList() {
             <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1 h-full bg-[#C5A059]" />
               <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Pendientes</span>
-              <span className="block font-mono-data text-xl md:text-2xl font-bold text-[#C5A059]">{stats.pending}</span>
+              <span className="block font-mono-data text-xl md:text-2xl font-bold text-oro-texto">{stats.pending}</span>
             </div>
           </div>
         </div>

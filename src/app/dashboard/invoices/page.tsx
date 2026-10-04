@@ -2430,7 +2430,7 @@ function InvoicesList() {
     ];
     return (
       <div className="bg-slate-50/40 p-6 rounded-xl border border-slate-200">
-        <h3 className="font-bold text-[#C5A059] uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
+        <h3 className="font-bold text-oro-texto uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
           <Eye className="h-4 w-4" /> Lo que vas a emitir
         </h3>
         <dl className="divide-y divide-slate-100">
@@ -2699,7 +2699,7 @@ function InvoicesList() {
                  totales se queden donde estaban (con `justify-between` y un solo hijo se irian a la
                  izquierda).  */}
             <div className="flex flex-col md:flex-row md:justify-end items-start md:items-end gap-6 mb-2">
-              <div className="flex gap-4 w-full md:w-auto">
+              <div className="flex flex-wrap gap-4 w-full md:w-auto">
                 <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none">
                   <span className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1">Total Mes</span>
                   <span className="block font-mono text-xl md:text-2xl font-bold text-[#003366]">
@@ -2716,7 +2716,7 @@ function InvoicesList() {
                 <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-1 h-full bg-[#C5A059]" />
                   <span className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1">Pendientes DGII</span>
-                  <span className="block font-mono text-xl md:text-2xl font-bold text-[#C5A059]">{stats?.pending ?? 0}</span>
+                  <span className="block font-mono text-xl md:text-2xl font-bold text-oro-texto">{stats?.pending ?? 0}</span>
                 </div>
               </div>
             </div>
