@@ -2135,6 +2135,39 @@ Además, fuera de la tabla:
   Banco `verificar_cobros_desplegables.ts`: 10 comprobaciones y 3 invariantes (Imprimir y Registrar
   Cobro siguen, la búsqueda y el error de carga, las fechas por `formatDateDisplay`), contraprueba
   **10 FALLA**, nueve mutantes y nueve muertos.
+- **Lote 269: los colores del tema existían solo de nombre.** Salió al abrir la auditoría de UI que
+  pidió el dueño (2026-10-03, *"que todas las páginas pertenezcan al mismo sistema"*), al medir por
+  qué el componente `Button` casi no se usaba (30 usos frente a 682 botones a mano).
+  `globals.css` tiene **dos** bloques `@theme`: el primero envuelve cada color en `hsl()`, y el
+  segundo (`@theme inline`, que dejó la instalación de shadcn del **2026-07-01**, `75ccbe7`) va
+  después, gana, y los usaba **sin envolver**. Las variables de `:root` son tripletes sueltos
+  (`221 83% 53%`), así que Tailwind escribía `background-color: var(--primary)`, eso no es un color,
+  y el navegador lo descarta. **Medido en el navegador**: `<Button>` transparente con texto negro;
+  el destructivo, la barra de acciones de e-CF, "Agregar" en Departamentos o subir la imagen de una
+  factura, **texto blanco sobre transparente, o sea invisibles**; y todo `border` sin color, negro
+  (la "línea oscura" que el lote 216 encontró en las confirmaciones era esto). Eran 408 usos de
+  `primary`, 40 de `background`, 31 de `muted`… durante tres meses.
+  Ahora los 31 colores van en `hsl()`, y la paleta es la de la casa: **primario `#003366`** (el azul
+  marino que las pantallas nuevas ya escribían a mano), destructivo rose-600 (con texto blanco pasa
+  AA; el rojo de la plantilla no), y `accent` gris claro — en la plantilla era **violeta**, y es el
+  fondo del hover de los botones `outline` y `ghost`. Y dos colores que 26 clases nombraban y nadie
+  había definido: `text-on-primary` (blanco) y `bg-primary-variant` (`#002244`). Mientras el primario
+  era transparente daba igual; con él de vuelta, `bg-primary text-on-primary` habría sido texto negro
+  sobre azul marino.
+  **Se midió el contraste en el navegador**, texto a texto contra su fondo real, en dieciséis
+  pantallas montadas con la red sustituida (`src/app/prueba-ui/arnes`, no se commitea): ningún texto
+  nuevo por debajo de 3:1. Lo único que sale es **anterior al lote**: los títulos dorados
+  (`text-[#c5a059]`, Compras, Cotizaciones, Facturación…) dan 2,4:1 sobre blanco; van en el lote que
+  pase esas cabeceras al estándar.
+  Banco `verificar_colores_del_tema.ts`: **resuelve el tema como el navegador** (junta los dos
+  bloques, gana el último, sigue cada `var()` hasta `:root`) y barre las clases de color de todo
+  `src` contra la paleta de Tailwind y los `--color-*` definidos. 12 comprobaciones y dos
+  invariantes, contraprueba **13 FALLA**, siete mutantes y siete muertos — **dos parecieron
+  sobrevivir y eran equivalentes**: cambiaban el PRIMER `@theme`, que el segundo pisa; repetidos sobre
+  el bloque `inline` (el que manda), mueren.
+  **Trampa del entorno**: en un worktree, `npx tsx` tarda ~10 s más por banco que
+  `node node_modules/tsx/dist/cli.mjs` (busca si tiene que instalar); el barrido pasó de dos horas a
+  media hora llamándolo directo.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3324,5 +3357,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 267 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 269 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

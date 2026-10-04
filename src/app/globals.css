@@ -58,6 +58,11 @@
   --color-surface-tint: #3a5f94;
   /* Removed conflicting --color-primary, --color-background, etc. */
   --color-primary-container: #003366;
+  /* LOTE 269: dos colores que 26 clases nombraban y nadie habia definido. Mientras bg-primary
+     salia transparente daba igual; con el primario de vuelta, "bg-primary text-on-primary" seria
+     texto negro sobre azul marino. Blanco sobre el primario, y el azul del hover de la casa. */
+  --color-on-primary: #ffffff;
+  --color-primary-variant: #002244;
   --color-on-primary-container: #799dd6;
   --color-inverse-primary: #a7c8ff;
   --color-secondary-container: #fed488;
@@ -185,39 +190,44 @@ html {
 }
 
 @theme inline {
+  /* LOTE 269: los colores van envueltos en hsl(). Las variables de :root son tripletes HSL sueltos
+     ("210 100% 20%"), y desde el 2026-07-01 (75ccbe7, la instalacion de shadcn) este bloque las
+     usaba tal cual: "background-color: 210 100% 20%" no es un color, el navegador lo descarta y
+     bg-primary, text-primary, border-border, ring... salian TRANSPARENTES. El primer @theme ya los
+     envolvia, pero este va despues y gana. */
   --font-heading: var(--font-sans);
   --font-sans: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
-  --color-background: var(--background);
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar: hsl(var(--sidebar));
+  --color-chart-5: hsl(var(--chart-5));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-1: hsl(var(--chart-1));
+  --color-ring: hsl(var(--ring));
+  --color-input: hsl(var(--input));
+  --color-border: hsl(var(--border));
+  --color-destructive: hsl(var(--destructive));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-card: hsl(var(--card));
+  --color-foreground: hsl(var(--foreground));
+  --color-background: hsl(var(--background));
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -235,16 +245,16 @@ html {
   --card-foreground: 222 47% 11%;
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
-  --primary: 221 83% 53%; /* #2563EB */
-  --primary-foreground: 210 40% 98%; /* White text on primary */
+  --primary: 210 100% 20%; /* #003366, el azul marino de la marca (lote 269) */
+  --primary-foreground: 0 0% 100%; /* blanco */
   --secondary: 210 40% 96.1%;
   --secondary-foreground: 222 47% 11.2%;
   --muted: 210 40% 96.1%;
   --muted-foreground: 215.4 16.3% 46.9%; /* #64748B */
-  --accent: 262 83% 58%; /* #7C3AED */
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 84.2% 60.2%; /* #EF4444 Danger */
-  --destructive-foreground: 210 40% 98%;
+  --accent: 210 40% 96.1%; /* #F1F5F9: el fondo suave del hover (lote 269; era violeta) */
+  --accent-foreground: 222 47% 11.2%;
+  --destructive: 347 77% 50%; /* #E11D48 rose-600: con texto blanco pasa AA (lote 269) */
+  --destructive-foreground: 0 0% 100%;
   --success: 160 84% 39%; /* #10B981 */
   --success-foreground: 210 40% 98%;
   --warning: 38 92% 50%; /* #F59E0B */
@@ -253,7 +263,7 @@ html {
   --info-foreground: 210 40% 98%;
   --border: 214.3 31.8% 91.4%; /* #E2E8F0 */
   --input: 214.3 31.8% 91.4%;
-  --ring: 221 83% 53%; /* Primary */
+  --ring: 210 100% 20%; /* el primario */
   --chart-1: 221 83% 53%;
   --chart-2: 262 83% 58%;
   --chart-3: 160 84% 39%;
