@@ -2061,6 +2061,53 @@ Además, fuera de la tabla:
   porque fijaban los márgenes viejos a propósito: `verificar_precios_en_dolares` (costo 100 → 125 /
   120 / 115 / 110) y `verificar_precios_en_dolares_db` (75 → 93,75 / 90 / 86,25 / 82,5); los dos
   pasan a la fórmula nueva. De paso, React Doctor: las cuatro etiquetas de precio enlazadas a su campo.
+- **Lote 266: al reabrir un borrador, el aviso de los precios que cambiaron, y cada línea con SU
+  nivel.** Pedido del dueño (2026-10-03): *"si hay una factura en borrador y los precios de los
+  productos se actualizaron, al reabrir el borrador ... debe tener la opción de actualizar los
+  precios"*. **Sus dos decisiones**: un **aviso con botón** (no cambiarlos solo: en un borrador no se
+  distingue un precio que quedó viejo de uno acordado a mano), y **guardar el nivel** de cada línea.
+  **El defecto que destapó**: el nivel (base, consumidor, mayorista, proveedor) **no se guardaba**, y
+  al reabrir un borrador todas las líneas volvían como "consumidor" aunque se hubieran puesto a
+  precio mayorista o de proveedor (`priceTier: 'consumidor'` fijo en `handleLoadDraft`).
+  **MIGRACIÓN `drizzle/0019_nivel_de_precio_en_lineas.sql`**: una columna nula `price_tier` en
+  `invoice_lines`, con su CHECK. **No hace falta aplicarla antes de desplegar**: la columna **no** se
+  declara en el esquema de Drizzle (cuatro consultas leen la fila entera de `invoice_lines` y la
+  romperían, la lección de las 0013 y 0015) y `nivelDeLineaRepositorio.ts` mira si existe antes de
+  nombrarla (el método de `hayPrecioUsd`, lote 258). Sin ella, el borrador se guarda y se abre como
+  hoy y el nivel se **deduce**. Es UNA sentencia con `IF NOT EXISTS` y la restricción dentro: un
+  `DROP CONSTRAINT IF EXISTS` previo emitía un NOTICE que el lanzador de la base desechable toma por
+  error.
+  · **Guardar**: el borrador manda `priceTier` por línea; la ruta lo valida y, tras insertar las
+    líneas (`.returning({ id })`), lo apunta con un `UPDATE … FROM (VALUES …)`.
+  · **Reabrir**: `GET /api/v1/invoices/[id]` añade el nivel a cada línea **solo en borradores**.
+    La pantalla usa el guardado o, en un borrador de antes de la 0019, lo **deduce** (el nivel cuyo
+    precio de hoy coincide; si ninguno, consumidor, lo de antes). Lee el catálogo de ahora en la
+    misma acción si el formulario aún no lo tenía.
+  · **El aviso** (`invoices/components/AvisoPreciosDelBorrador.tsx`): cuántos productos cambiaron,
+    cada uno con su nivel, lo guardado tachado y lo actual; "Actualizar precios" (solo cambia las
+    líneas que siguen con el precio guardado: lo tocado después manda) y "Dejar los del borrador".
+    Una factura nueva no arrastra el aviso del borrador anterior. Reglas puras en
+    `services/invoice/preciosDelBorrador.ts`.
+  **El banco de integración cazó un defecto que el de código no veía**: Drizzle no pasa un array de
+  JavaScript como UN parámetro, lo expande en una lista separada por comas, así que
+  `unnest(${ids}::uuid[], …)` quedaba mal formado y guardar el borrador con la columna puesta daba
+  **500**. Ahora es una lista `VALUES` con `sql.join`.
+  Dos bancos. `verificar_precios_del_borrador.ts` (reglas, aviso dibujado y cableado): 14
+  comprobaciones y un invariante (la columna NO está en el esquema de Drizzle), contraprueba **14
+  FALLA**. `verificar_precios_del_borrador_db.ts` (**integración**: las dos rutas de verdad, primero
+  borrando la columna como una base sin la 0019 y después con ella): 2 comprobaciones y tres
+  invariantes, contraprueba **2 FALLA**. Diez mutantes y diez muertos. **Una negación de balde
+  cazada a tiempo**: "sin la columna, las líneas vuelven sin nivel" también la cumplía un mapa vacío;
+  ahora exige que vuelvan las dos líneas.
+  **Se miró en el navegador** con la pantalla real de facturas y la red sustituida: reabrir un
+  borrador con la puerta a mayorista 110 (hoy 117,65) enseña el aviso solo con ella, y "Actualizar
+  precios" la deja a 117,65 (total de la línea 277,65) sin tocar el dintel.
+  **Lo que no hace, anotado**: la cotización que se convierte en factura tampoco trae el nivel de
+  cada línea (`priceTier` queda vacío y cae en consumidor); el borrador tampoco guarda la categoría
+  del 0 % (`taxCategory`, que su esquema descarta). Los dos, aparte.
+  **Para el dueño**: aplicar la 0019 cuando quiera que los borradores guarden su nivel
+  (`npx tsx --env-file=.env scratch/_to_delete/aplicar_migracion.ts drizzle/0019_nivel_de_precio_en_lineas.sql --aplicar`).
+  Y `verificar_precios_del_borrador_db.ts` a `deuda_bancos.txt` en su carpeta.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3250,5 +3297,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 265 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 266 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
