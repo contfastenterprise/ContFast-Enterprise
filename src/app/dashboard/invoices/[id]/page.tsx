@@ -24,6 +24,7 @@ import {
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { formatDateTimeDisplay } from '@/utils/fechasLocales';
+import { Button } from '@/components/ui/button';
 
 interface InvoiceDetail {
   id: string;
@@ -225,12 +226,15 @@ export default function InvoiceDetailPage() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 font-sans">
 
       {/* Navigation & Header */}
-      <button
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
         onClick={() => router.push('/dashboard/ecf')}
-        className="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors text-sm font-semibold mb-2"
+        className="mb-2 -ml-3"
       >
-        <ArrowLeft className="h-4 w-4" /> Volver a Facturación e-CF
-      </button>
+        <ArrowLeft /> Volver a Facturación e-CF
+      </Button>
 
       {/* Deep Navy Premium Header */}
       <div className="bg-[#001e40] rounded-2xl p-6 md:p-8 border border-[#003366] shadow-2xl relative overflow-hidden">
@@ -257,23 +261,27 @@ export default function InvoiceDetailPage() {
           </div>
 
           <div className="flex flex-wrap gap-3 w-full md:w-auto">
-            <button
+            <Button
+              type="button"
+              variant="documento"
               onClick={handlePrint}
               disabled={printing}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#c5a059] hover:bg-[#b08e4f] text-white px-4 py-2.5 rounded-lg border border-[#c5a059]/20 transition text-sm font-medium disabled:opacity-50 shadow-lg"
+              className="flex-1 md:flex-none"
             >
-              {printing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4 text-white" />}
+              {printing ? <RefreshCw className="animate-spin" /> : <Printer />}
               Imprimir / Ver PDF
-            </button>
+            </Button>
 
             {(invoice.msellerXmlPath || invoice.signedXmlPath || invoice.xmlPath) && (
-              <button
+              <Button
+                type="button"
+                variant="documento"
                 onClick={handleDownloadXml}
-                className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-slate-600 hover:bg-slate-700 text-white px-4 py-2.5 rounded-lg transition text-sm font-medium shadow-lg"
+                className="flex-1 md:flex-none"
               >
-                <FileCode className="h-4 w-4" />
+                <FileCode />
                 Descargar XML
-              </button>
+              </Button>
             )}
           </div>
         </div>

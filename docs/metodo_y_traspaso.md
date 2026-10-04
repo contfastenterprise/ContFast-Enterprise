@@ -2233,6 +2233,22 @@ Además, fuera de la tabla:
   `migrar_botones.mjs` dejaba `\r\r\n` al insertar el `import` en ficheros CRLF (el `$` multilínea deja
   el `\r` dentro de la coincidencia) y el diff salía con el fichero entero; corregido en la herramienta
   y normalizados los ficheros.
+  **Lote 272 (Ventas: facturación, cotizaciones, clientes, cuentas por cobrar, antigüedad de saldos,
+  e-CF, cartera).** 106 botones al componente (52 `IconButton`), 8 cabeceras (se van los títulos
+  dorados de Facturación y Cotizaciones), 59 `aria-label`, ~100 `type`. Por función: guardar borrador
+  (gris) → `secondary`; imprimir, XML y estados de cuenta (índigo, gris, negro, dorado con texto
+  blanco) → `documento`; agregar fila → `outline`. **Dos pies al revés corregidos**: el estado de
+  cuenta de cartera (`[Imprimir][Cerrar]`) y el aviso de precios del borrador (lote 266). Y un
+  contraste que nadie veía: en la ficha del cliente el título era azul marino **sobre** su tarjeta azul
+  marino. **En `invoices` y `ecf` solo cambió la presentación**: emitir, imprimir y consultar el
+  veredicto no se tocaron. **Excepciones a propósito**: los botones partidos de emitir factura y de
+  guardar cotización (alta y edición), los de `BorderRotate` del detalle de factura (componente
+  decorativo propio), y las cabeceras de la edición de cotización y de las fichas oscuras de cliente y
+  factura. Banco `verificar_ui_ventas.ts`: 15 comprobaciones y 2 invariantes, contraprueba 15 FALLA,
+  veintidós mutantes y veintidós muertos — **dos sobrevivieron primero**: la expresión acababa en `\b`,
+  que no corta tras `bg-[#003366]` (el `]` no es carácter de palabra). Re-anclados:
+  `verificar_baja_rechazado` (el único botón que da de baja cuelga de `status === 'rejected'`) y
+  `verificar_estandar_cotizaciones` (seis acciones de fila, todas `IconButton` de 32 px).
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3422,5 +3438,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 271 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 272 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

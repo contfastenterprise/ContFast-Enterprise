@@ -6,6 +6,7 @@ import { ArrowLeft, Building2, Mail, Phone, ShieldCheck, FileText, CreditCard, D
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { Button } from '@/components/ui/button';
 
 interface CustomerHistory {
   customer: {
@@ -85,12 +86,15 @@ export default function CustomerHistoryPage() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
 
       {/* Navigation & Header */}
-      <button
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
         onClick={() => router.push('/dashboard/customers')}
-        className="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors text-sm font-semibold mb-2"
+        className="mb-2 -ml-3"
       >
-        <ArrowLeft className="h-4 w-4" /> Volver al Directorio
-      </button>
+        <ArrowLeft /> Volver al Directorio
+      </Button>
 
       {/* Deep Navy Corporate Profile Header */}
       <div className="bg-[#001e40] rounded-2xl p-6 md:p-8 border border-[#003366] shadow-2xl relative overflow-hidden">
@@ -102,7 +106,7 @@ export default function CustomerHistoryPage() {
             <Building2 className="h-10 w-10" />
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl md:text-3xl font-bold text-primary font-display mb-2">{data.customer.name}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-white font-display mb-2">{data.customer.name}</h1>
             <div className="flex flex-wrap gap-4 text-sm text-[#a7c8ff]">
               <div className="flex items-center gap-1.5 bg-[#001122] px-3 py-1.5 rounded-lg border border-[#003366]">
                 <ShieldCheck className="h-4 w-4 text-[#c5a059]" />
@@ -156,14 +160,14 @@ export default function CustomerHistoryPage() {
       {/* Content Tabs */}
       <div className="bg-surface-container-low border border-outline-variant/30 rounded-2xl overflow-hidden shadow-xl mt-6">
         <div className="flex border-b border-outline-variant/30">
-          <button
+          <button type="button"
             onClick={() => setActiveTab('facturas')}
             className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 font-semibold text-sm transition-colors relative ${activeTab === 'facturas' ? 'text-amber-500 bg-surface-container-high/50' : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-high/30'}`}
           >
             <FileText className="h-4 w-4" /> Facturas e-CF
             {activeTab === 'facturas' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-amber-500"></div>}
           </button>
-          <button
+          <button type="button"
             onClick={() => setActiveTab('pagos')}
             className={`flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-4 font-semibold text-sm transition-colors relative ${activeTab === 'pagos' ? 'text-amber-500 bg-surface-container-high/50' : 'text-on-surface-variant hover:text-primary hover:bg-surface-container-high/30'}`}
           >

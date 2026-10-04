@@ -12,6 +12,8 @@ import { ProductAutocomplete } from '@/components/ui/product-autocomplete';
 import { CustomerAutocomplete } from '@/components/ui/customer-autocomplete';
 import { EditablePriceSelect } from '@/components/ui/editable-price-select';
 
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 export default function NewQuote() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -307,33 +309,31 @@ export default function NewQuote() {
   return (
     <div className="space-y-8 animate-fade-in-up pb-12 w-full max-w-none">
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 w-full">
-        <div>
-          <h1 className="font-display-lg text-3xl md:text-4xl text-[#c5a059] tracking-tight font-extrabold flex items-center gap-3">
-            <FileText className="h-8 w-8 text-[#c5a059]" /> Cotizaciones
-          </h1>
-          <p className="font-body-lg text-slate-500 mt-1">
-            Administre sus cotizaciones, ofertas a clientes y conviértalas directamente en facturas.
-          </p>
-        </div>
-
-        {/* Tab Switcher & Action button */}
-        <div className="flex items-center gap-3 self-end md:self-auto">
+      <CabeceraDePagina
+        titulo="Cotizaciones"
+        descripcion="Administre sus cotizaciones, ofertas a clientes y conviértalas directamente en facturas."
+        icono={<FileText />}
+        acciones={
+          /* Las pestanas (Historial / Registrar), solas: no son botones de accion. */
           <div className="bg-slate-50 p-1 rounded-lg flex gap-1 border border-white/20">
             <button
+              type="button"
+              aria-pressed="false"
               onClick={() => router.push('/dashboard/quotes')}
               className="h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-500 hover:text-slate-800"
             >
               <ListFilter className="h-4 w-4 inline mr-1.5" /> Historial
             </button>
             <button
-              className="h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-[#c5a059] shadow-sm"
+              type="button"
+              aria-pressed="true"
+              className="h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-[#003366] shadow-sm"
             >
               <Plus className="h-4 w-4 inline mr-1.5" /> Registrar
             </button>
           </div>
-        </div>
-      </header>
+        }
+      />
 
       <motion.div
         key="form"
@@ -530,14 +530,15 @@ export default function NewQuote() {
 
                     {/* Action */}
                     <div className="space-y-1.5 md:space-y-0 text-center">
-                      <button
+                      <IconButton
                         type="button"
                         onClick={() => { const n = [...lines]; n.splice(idx, 1); setLines(n); }}
-                        className="p-1 text-rose-500 hover:bg-rose-50 rounded transition-colors inline-flex items-center justify-center"
+                        className="text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+                        aria-label="Eliminar línea"
                         title="Eliminar línea"
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                        <Trash2 />
+                      </IconButton>
                     </div>
                   </div>
                 );
@@ -545,14 +546,15 @@ export default function NewQuote() {
             </div>
 
             <div className="flex justify-start mt-2">
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={handleAddLine}
-                className="text-xs text-[#C5A059] font-bold hover:text-[#b08c4a] flex items-center gap-1.5 bg-[#C5A059]/10 px-3 py-1.5 rounded-lg transition-colors"
               >
-                <Plus className="h-4 w-4" />
+                <Plus />
                 Agregar Fila
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -590,13 +592,11 @@ export default function NewQuote() {
             </div>
 
             <div className="flex flex-col-reverse sm:flex-row gap-3 w-full md:w-auto">
-              <button
+              <Button variant="secondary" size="sm"
                 type="button"
-                onClick={() => router.push('/dashboard/quotes')}
-                className="flex items-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 h-8 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center"
-              >
+                onClick={() => router.push('/dashboard/quotes')}>
                 Cancelar
-              </button>
+              </Button>
               
               <div className="relative flex items-center h-8 shadow-md rounded-lg">
                 <button
@@ -617,6 +617,7 @@ export default function NewQuote() {
                   onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
                   className="flex items-center justify-center rounded-r-lg bg-[#C5A059] px-2.5 h-full text-slate-950 hover:bg-[#b08c4a] border-l border-[#a88840] disabled:opacity-50 transition active:scale-[0.98] outline-none"
                   title="Más opciones"
+                  aria-label="Más opciones de guardado"
                 >
                   <ChevronDown className="h-3.5 w-3.5" />
                 </button>

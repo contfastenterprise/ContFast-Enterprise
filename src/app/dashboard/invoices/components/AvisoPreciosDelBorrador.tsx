@@ -10,6 +10,7 @@
 import { AlertTriangle } from 'lucide-react';
 import { enPesos } from '@/services/precios/preciosEnDolares';
 import type { PrecioViejo } from '@/services/invoice/preciosDelBorrador';
+import { Button } from '@/components/ui/button';
 
 const NOMBRE_DEL_NIVEL: Record<string, string> = {
   base: 'base', consumidor: 'consumidor', mayorista: 'mayorista', proveedor: 'proveedor',
@@ -42,20 +43,13 @@ export function AvisoPreciosDelBorrador({ viejos, alActualizar, alDejar }: {
             ))}
           </ul>
           <div className="flex flex-wrap gap-2 pt-1">
-            <button
-              type="button"
-              onClick={alActualizar}
-              className="rounded-lg bg-[#003366] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#002244]"
-            >
-              Actualizar precios
-            </button>
-            <button
-              type="button"
-              onClick={alDejar}
-              className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 hover:bg-amber-100"
-            >
+            {/* Lote 272: la principal la ultima (estandar de UI). */}
+            <Button type="button" variant="secondary" size="sm" onClick={alDejar}>
               Dejar los del borrador
-            </button>
+            </Button>
+            <Button type="button" size="sm" onClick={alActualizar}>
+              Actualizar precios
+            </Button>
           </div>
         </div>
       </div>

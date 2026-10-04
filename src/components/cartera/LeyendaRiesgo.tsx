@@ -25,6 +25,7 @@ export function LeyendaRiesgo({
           </span>
           {seleccionado && (
             <button
+              type="button"
               onClick={() => onSeleccionar(null)}
               className="text-[10px] text-neutral-500 hover:text-neutral-800 flex items-center gap-0.5 px-1.5 py-0.5 bg-neutral-100 rounded cursor-pointer"
               title="Quitar filtro"
@@ -40,7 +41,7 @@ export function LeyendaRiesgo({
             const activo = seleccionado === s.key;
             const apagado = seleccionado !== null && !activo;
             return (
-              <button
+              <button type="button"
                 key={s.key}
                 onClick={() => onSeleccionar(activo ? null : s.key)}
                 data-nivel={s.key}

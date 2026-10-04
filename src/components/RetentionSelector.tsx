@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
+import { IconButton } from '@/components/ui/button';
 
 export interface RetentionItem {
   id?: string;
@@ -260,13 +261,14 @@ export default function RetentionSelector({ subtotal, discount, itbis, onChange,
                         RD$ {item.retentionAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-4 py-2.5 text-center">
-                        <button
+                        <IconButton
                           type="button"
                           onClick={() => handleRemove(index)}
-                          className="text-red-500 hover:text-red-600 transition-colors p-1 cursor-pointer"
+                          aria-label="Quitar retención"
+                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
                         >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                          <Trash2 />
+                        </IconButton>
                       </td>
                     </tr>
                   ))}

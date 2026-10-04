@@ -11,6 +11,8 @@ import { Input } from '@/components/ui/input';
 import { CustomerAutocomplete } from '@/components/ui/customer-autocomplete';
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 interface ReceivablesData {
   id: string;
@@ -142,16 +144,12 @@ export default function ReceivablesReportPage() {
 
       <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div>
-            <h1 className="text-3xl font-bold text-[#003366] tracking-tight flex items-center gap-2">
-              <FileText className="h-8 w-8 text-amber-500" />
-              Módulo de Cuentas por Cobrar
-            </h1>
-            <p className="text-slate-500 text-sm mt-1.5">
-              Gestione balances pendientes de clientes y consolide facturas pendientes de cobro.
-            </p>
-          </div>
+        {/* Lote 272: a la derecha no hay acciones sino los dos totales; van en el sitio de las acciones. */}
+        <CabeceraDePagina
+          titulo="Módulo de Cuentas por Cobrar"
+          descripcion="Gestione balances pendientes de clientes y consolide facturas pendientes de cobro."
+          icono={<FileText />}
+          acciones={
           <div className="flex gap-4">
             <div className="bg-white px-4 py-2.5 rounded-xl border border-slate-200/30 shadow-lg flex flex-col items-end min-w-[200px]">
               <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500/70">Cuentas por Cobrar Total</span>
@@ -162,7 +160,8 @@ export default function ReceivablesReportPage() {
               <span className="text-2xl font-mono font-bold text-rose-500 mt-1">{fmt(overdueBalance)}</span>
             </div>
           </div>
-        </div>
+          }
+        />
 
         {/* Toolbar */}
         <div className="bg-white p-4 rounded-xl border border-slate-200/30 shadow-lg flex flex-col sm:flex-row gap-4 items-center justify-between">
@@ -189,14 +188,16 @@ export default function ReceivablesReportPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
+              type="button"
+              variant="documento"
+              size="lg"
               onClick={handlePrint}
               disabled={printing}
-              className="bg-[#003366] hover:bg-[#002244] disabled:opacity-50 text-white font-bold py-2 px-4 h-10 rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 text-sm"
             >
-              <Printer className="h-4.5 w-4.5" /> 
+              <Printer /> 
               {printing ? 'Generando...' : 'Imprimir Reporte'}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -249,12 +250,14 @@ export default function ReceivablesReportPage() {
                           <td className="px-6 py-4 text-right font-medium text-slate-600">{group.invoices.length}</td>
                           <td className="px-6 py-4 text-right font-mono font-bold text-rose-600">{fmt(group.totalBalance)}</td>
                           <td className="px-6 py-4 text-center">
-                            <button
+                            <IconButton
+                              type="button"
                               onClick={(e) => { e.stopPropagation(); setExpandedCustomer(isExpanded ? null : group.customerId); }}
-                              className="text-slate-400 hover:text-slate-600 transition-colors p-2 rounded-full hover:bg-slate-200"
+                              aria-label={isExpanded ? 'Ocultar las facturas del cliente' : 'Ver las facturas del cliente'}
+                              aria-expanded={isExpanded}
                             >
                               {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                            </button>
+                            </IconButton>
                           </td>
                         </tr>
 
@@ -281,14 +284,16 @@ export default function ReceivablesReportPage() {
                                         <h3 className="font-bold text-[#003366] flex items-center gap-2">
                                           <Receipt className="w-5 h-5 text-amber-500" /> Detalle de Cuentas por Cobrar
                                         </h3>
-                                        <button
+                                        <Button
+                                          type="button"
+                                          variant="documento"
+                                          size="sm"
                                           onClick={() => handlePrintCustomer(group.customerId)}
                                           disabled={printingCustomer === group.customerId}
-                                          className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 disabled:opacity-50 font-bold py-1.5 px-4 rounded-lg shadow-sm transition flex items-center gap-2 text-xs"
                                         >
-                                          <Printer className="h-4 w-4" /> 
+                                          <Printer /> 
                                           {printingCustomer === group.customerId ? 'Generando...' : 'Imprimir'}
-                                        </button>
+                                        </Button>
                                       </div>
 
                                       <div className="overflow-x-auto">

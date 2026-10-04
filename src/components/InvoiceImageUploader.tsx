@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { OcrInvoiceData } from '@/utils/ocrParser';
 import { useInvoiceOcr } from '@/hooks/useInvoiceOcr';
+import { Button } from '@/components/ui/button';
 
 interface InvoiceImageUploaderProps {
   // Use any to allow easy integration with react-hook-form's UseFormSetValue
@@ -131,12 +132,15 @@ export default function InvoiceImageUploader({
               alt="Factura subida" 
               className="max-h-full max-w-full object-contain"
             />
-            <button
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
               onClick={handleReset}
-              className="absolute top-3 right-3 bg-red-600 hover:bg-red-700 text-white rounded-xl p-1.5 shadow-md transition text-[10px] flex items-center gap-1 font-bold animate-fade-in"
+              className="absolute top-3 right-3 animate-fade-in"
             >
-              <RefreshCw className="w-3 h-3" /> Cambiar
-            </button>
+              <RefreshCw /> Cambiar
+            </Button>
           </div>
 
           {/* Validation Form */}
@@ -286,13 +290,13 @@ export default function InvoiceImageUploader({
               </div>
 
               {/* Action Button */}
-              <button
+              <Button
                 type="button"
                 onClick={handleApplyData}
-                className="w-full bg-primary text-on-primary font-bold py-2.5 px-4 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2 text-xs mt-3 active:scale-95 cursor-pointer"
+                className="w-full mt-3"
               >
-                <Check className="w-3.5 h-3.5" /> Importar al Formulario
-              </button>
+                <Check /> Importar al Formulario
+              </Button>
 
             </div>
           )}
