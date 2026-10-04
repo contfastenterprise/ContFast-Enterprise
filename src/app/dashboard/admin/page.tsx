@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, Fragment } from 'react';
-import { Shield, ShieldCheck, Plus, RefreshCw, X, CheckCircle2, Users as UsersIcon, KeyRound, Lock, UserCheck, UserX, UserSquare, CreditCard, Award, Zap, FileText, Layers, Calendar, Pencil, Ban, ChevronDown, ChevronRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Shield, ShieldCheck, Plus, RefreshCw, CheckCircle2, Users as UsersIcon, KeyRound, Lock, UserCheck, UserX, UserSquare, CreditCard, Award, Zap, FileText, Layers, Calendar, Pencil, Ban, ChevronDown, ChevronRight } from 'lucide-react';
+import { Modal } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 import Avatar from '@/components/ui/Avatar';
@@ -11,6 +11,8 @@ import { useConfirm } from '@/providers/confirm-provider';
 import { esAdminOSistemas, esSistemas } from '@/utils/rolMatch';
 import { formatDateDisplay, formatTimeDisplay } from '@/utils/fechasLocales';
 
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 interface User {
   id: string;
   name: string;
@@ -392,35 +394,33 @@ export default function AdminPage() {
       <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
-              Gestión de Acceso y Planes
-            </h1>
-            <p className="text-on-surface-variant/70 text-sm mt-1">
-              Controla los usuarios, roles y planes de suscripción de la plataforma.
-            </p>
-          </div>
-          {activeTab === 'users' && (
-            <button onClick={handleOpenNewUser} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
-              <Plus className="h-4 w-4" /> Nuevo Usuario
-            </button>
-          )}
-          {activeTab === 'roles' && currentUserRole === 'sistemas' && (
-            <button onClick={() => setShowNewRoleModal(true)} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
-              <Plus className="h-4 w-4" /> Nuevo Rol
-            </button>
-          )}
-          {activeTab === 'plans' && currentUserRole === 'sistemas' && (
-            <button onClick={() => handleOpenPlanModal(null)} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
-              <Plus className="h-4 w-4" /> Nuevo Plan SaaS
-            </button>
-          )}
-        </div>
+        <CabeceraDePagina
+          titulo="Gestión de Acceso y Planes"
+          descripcion="Controla los usuarios, roles y planes de suscripción de la plataforma."
+          icono={<Shield />}
+          acciones={<>
+            {activeTab === 'users' && (
+              <Button type="button" onClick={handleOpenNewUser}>
+                <Plus className="h-4 w-4" /> Nuevo Usuario
+              </Button>
+            )}
+            {activeTab === 'roles' && currentUserRole === 'sistemas' && (
+              <Button type="button" onClick={() => setShowNewRoleModal(true)}>
+                <Plus className="h-4 w-4" /> Nuevo Rol
+              </Button>
+            )}
+            {activeTab === 'plans' && currentUserRole === 'sistemas' && (
+              <Button type="button" onClick={() => handleOpenPlanModal(null)}>
+                <Plus className="h-4 w-4" /> Nuevo Plan SaaS
+              </Button>
+            )}
+          </>}
+        />
 
         {/* Tabs */}
         <div className="flex border-b border-slate-200">
           <button
+            type="button"
             onClick={() => setActiveTab('users')}
             className={clsx("px-6 py-3 font-bold text-sm transition-colors border-b-2", activeTab === 'users' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-on-surface-variant/70 hover:text-slate-800')}
           >
@@ -428,6 +428,7 @@ export default function AdminPage() {
           </button>
           {currentUserRole === 'sistemas' && (
             <button
+              type="button"
               onClick={() => setActiveTab('sessions')}
               className={clsx("px-6 py-3 font-bold text-sm transition-colors border-b-2", activeTab === 'sessions' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-on-surface-variant/70 hover:text-slate-800')}
             >
@@ -435,6 +436,7 @@ export default function AdminPage() {
             </button>
           )}
           <button
+            type="button"
             onClick={() => setActiveTab('roles')}
             className={clsx("px-6 py-3 font-bold text-sm transition-colors border-b-2", activeTab === 'roles' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-on-surface-variant/70 hover:text-slate-800')}
           >
@@ -442,6 +444,7 @@ export default function AdminPage() {
           </button>
           {esAdminOSistemas(currentUserRole) && (
             <button
+              type="button"
               onClick={() => setActiveTab('plans')}
               className={clsx("px-6 py-3 font-bold text-sm transition-colors border-b-2", activeTab === 'plans' ? 'border-[#003366] text-[#003366]' : 'border-transparent text-on-surface-variant/70 hover:text-slate-800')}
             >
@@ -503,28 +506,29 @@ export default function AdminPage() {
                           </td>
                           <td className="px-6 py-4 text-center">
                             <div className="flex items-center justify-center gap-2">
-                              <button
+                              <IconButton
+                                type="button"
                                 onClick={() => handleOpenEditUser(user)}
-                                className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
-                                title="Modificar usuario"
+                                className="hover:text-[#003366] hover:bg-[#003366]/10"
+                                aria-label="Modificar usuario"
                               >
                                 <Pencil className="w-4 h-4" />
-                              </button>
+                              </IconButton>
                               {esSistemas(user.roleName) ? (
                                 <span className="text-xs text-slate-400 italic font-semibold px-2">No suspendible</span>
                               ) : (
-                                <button
+                                <IconButton
+                                    type="button"
                                     onClick={() => handleToggleStatus(user.id)}
                                     className={clsx(
-                                      "p-1.5 rounded-lg transition-colors flex items-center justify-center",
-                                      user.status === 'active' 
-                                        ? "text-slate-500 hover:text-rose-600 hover:bg-rose-50" 
-                                        : "text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
+                                      user.status === 'active'
+                                        ? "hover:text-rose-600 hover:bg-rose-50"
+                                        : "hover:text-emerald-600 hover:bg-emerald-50"
                                     )}
-                                    title={user.status === 'active' ? "Suspender usuario" : "Activar usuario"}
+                                    aria-label={user.status === 'active' ? "Suspender usuario" : "Activar usuario"}
                                   >
                                   {user.status === 'active' ? <Ban className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-                                </button>
+                                </IconButton>
                               )}
                             </div>
                           </td>
@@ -608,13 +612,14 @@ export default function AdminPage() {
                                   </td>
                                   <td className="px-6 py-4 text-center">
                                     {!isClosed && (
-                                      <button
+                                      <IconButton
+                                        type="button"
                                         onClick={() => handleTerminateSession(session.id)}
-                                        className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"
-                                        title="Cerrar sesión de forma remota"
+                                        className="hover:text-rose-600 hover:bg-rose-50"
+                                        aria-label="Cerrar sesión de forma remota"
                                       >
                                         <UserX className="w-4 h-4" />
-                                      </button>
+                                      </IconButton>
                                     )}
                                   </td>
                                 </tr>
@@ -692,12 +697,12 @@ export default function AdminPage() {
                       </div>
 
                       {currentUserRole === 'sistemas' && (
-                        <button
+                        <Button
+                          type="button"
                           onClick={() => handleOpenPlanModal(plan)}
-                          className="w-full mt-4 flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                        >
+                          className="w-full mt-4 flex">
                           <Zap className="h-3 w-3 text-[#C5A059]" /> Modificar Plan
-                        </button>
+                        </Button>
                       )}
                     </div>
                   ))
@@ -791,16 +796,16 @@ export default function AdminPage() {
       </div>
 
       {/* MODAL: NEW USER */}
-      <AnimatePresence>
-        {showNewUserModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-3xl bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
-                <h3 className="text-xl font-display font-bold text-white flex items-center gap-2"><UserSquare className="w-5 h-5 text-[#c5a059]" /> Nuevo Usuario</h3>
-                <button onClick={() => setShowNewUserModal(false)} className="text-on-surface-variant hover:text-primary transition-colors"><X className="w-5 h-5" /></button>
-              </div>
-              <form onSubmit={handleCreateUser} className="p-6 space-y-6">
+      <Modal
+        isOpen={showNewUserModal}
+        onClose={() => setShowNewUserModal(false)}
+        title="Nuevo Usuario"
+        icono={<UserSquare />}
+        maxWidth="3xl"
+        cerrarAlPulsarFuera={false}
+        bloqueada={submitting}
+      >
+              <form onSubmit={handleCreateUser} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Left Column: Form Fields */}
                   <div className="space-y-4">
@@ -849,30 +854,27 @@ export default function AdminPage() {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
-                  <button type="button" onClick={() => setShowNewUserModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  <Button variant="secondary" type="button" onClick={() => setShowNewUserModal(false)} className="flex">
                     Cancelar
-                  </button>
-                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  </Button>
+                  <Button type="submit" disabled={submitting} className="flex">
                     {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Crear Usuario
-                  </button>
+                  </Button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
       {/* MODAL: EDIT USER */}
-      <AnimatePresence>
-        {showEditUserModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-3xl bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
-                <h3 className="text-xl font-display font-bold text-white flex items-center gap-2"><UserSquare className="w-5 h-5 text-[#c5a059]" /> Modificar Usuario</h3>
-                <button onClick={() => setShowEditUserModal(false)} className="text-on-surface-variant hover:text-primary transition-colors"><X className="w-5 h-5" /></button>
-              </div>
-              <form onSubmit={handleEditUser} className="p-6 space-y-6">
+      <Modal
+        isOpen={showEditUserModal}
+        onClose={() => setShowEditUserModal(false)}
+        title="Modificar Usuario"
+        icono={<UserSquare />}
+        maxWidth="3xl"
+        cerrarAlPulsarFuera={false}
+        bloqueada={submitting}
+      >
+              <form onSubmit={handleEditUser} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Left Column: Form Fields */}
                   <div className="space-y-4">
@@ -921,30 +923,27 @@ export default function AdminPage() {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
-                  <button type="button" onClick={() => setShowEditUserModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  <Button variant="secondary" type="button" onClick={() => setShowEditUserModal(false)} className="flex">
                     Cancelar
-                  </button>
-                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  </Button>
+                  <Button type="submit" disabled={submitting} className="flex">
                     {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Guardar Cambios
-                  </button>
+                  </Button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
       {/* MODAL: NEW ROLE */}
-      <AnimatePresence>
-        {showNewRoleModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-surface-container-highest border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
-                <h3 className="text-xl font-display font-bold text-white flex items-center gap-2"><KeyRound className="w-5 h-5 text-[#c5a059]" /> Nuevo Rol</h3>
-                <button onClick={() => setShowNewRoleModal(false)} className="text-on-surface-variant hover:text-primary transition-colors"><X className="w-5 h-5" /></button>
-              </div>
-              <form onSubmit={handleCreateRole} className="p-6 space-y-5">
+      <Modal
+        isOpen={showNewRoleModal}
+        onClose={() => setShowNewRoleModal(false)}
+        title="Nuevo Rol"
+        icono={<KeyRound />}
+        maxWidth="md"
+        cerrarAlPulsarFuera={false}
+        bloqueada={submitting}
+      >
+              <form onSubmit={handleCreateRole} className="space-y-5">
                 <div>
                   <label className="text-sm font-semibold text-primary block mb-1">Nombre del Rol</label>
                   <input type="text" required value={roleForm.name} onChange={e => setRoleForm({ ...roleForm, name: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Ej. ventas, soporte, etc." />
@@ -954,33 +953,27 @@ export default function AdminPage() {
                   <textarea value={roleForm.description} onChange={e => setRoleForm({ ...roleForm, description: e.target.value })} className="w-full bg-surface-container-highest border border-outline rounded-lg px-4 py-2 text-primary focus:border-[#c5a059] outline-none transition-colors" placeholder="Describa las responsabilidades del rol" rows={3} />
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
-                  <button type="button" onClick={() => setShowNewRoleModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  <Button variant="secondary" type="button" onClick={() => setShowNewRoleModal(false)} className="flex">
                     Cancelar
-                  </button>
-                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  </Button>
+                  <Button type="submit" disabled={submitting} className="flex">
                     {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Crear Rol
-                  </button>
+                  </Button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
       {/* MODAL: NEW / EDIT PLAN */}
-      <AnimatePresence>
-        {showPlanModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
-                <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-[#c5a059]" /> 
-                  {selectedPlan ? 'Editar Plan SaaS' : 'Nuevo Plan SaaS'}
-                </h3>
-                <button onClick={() => setShowPlanModal(false)} className="text-white hover:text-[#c5a059] transition-colors"><X className="w-5 h-5" /></button>
-              </div>
-              <form onSubmit={handleSavePlan} className="p-6 space-y-4">
+      <Modal
+        isOpen={showPlanModal}
+        onClose={() => setShowPlanModal(false)}
+        title={selectedPlan ? 'Editar Plan SaaS' : 'Nuevo Plan SaaS'}
+        icono={<CreditCard />}
+        maxWidth="md"
+        cerrarAlPulsarFuera={false}
+        bloqueada={submitting}
+      >
+              <form onSubmit={handleSavePlan} className="space-y-4">
                 <div>
                   <label className="text-xs font-bold text-slate-700 block mb-1">Nombre del Plan <span className="text-red-500">*</span></label>
                   <input type="text" required value={planForm.name} onChange={e => setPlanForm({ ...planForm, name: e.target.value })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-[#c5a059] outline-none transition-colors" placeholder="Ej. Básico, Profesional, Ilimitado" />
@@ -1014,18 +1007,15 @@ export default function AdminPage() {
                   <label htmlFor="planActive" className="text-xs font-bold text-slate-700 cursor-pointer">Plan Habilitado para Contratación</label>
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                  <button type="button" onClick={() => setShowPlanModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  <Button variant="secondary" type="button" onClick={() => setShowPlanModal(false)} className="flex">
                     Cancelar
-                  </button>
-                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  </Button>
+                  <Button type="submit" disabled={submitting} className="flex">
                     {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />} Guardar Plan
-                  </button>
+                  </Button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
     </div>
   );

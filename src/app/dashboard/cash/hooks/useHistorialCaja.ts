@@ -11,7 +11,9 @@ import { toast } from 'sonner';
 import { motivoDeCarga } from '@/components/ui/estado-carga';
 //  Lote 230: el estado antes que el cuerpo (el lector del lote 227).
 import { leerRespuesta } from '@/utils/leerRespuesta';
-import { formatDateTimeDisplay } from '@/utils/fechasLocales';
+import { formatDateTimeDisplay, diaRD } from '@/utils/fechasLocales';
+import { celdaCsv, importeCsv, contenidoCsv, nombreDelCsv } from '../exportarCaja';
+import { descargarCsv } from '@/utils/descargarCsv';
 import type { HistorySession } from '../caja';
 
 export function useHistorialCaja({ recargarCaja }: { recargarCaja: () => Promise<void> }) {
@@ -67,33 +69,24 @@ export function useHistorialCaja({ recargarCaja }: { recargarCaja: () => Promise
       toast.error('No hay datos para exportar');
       return;
     }
+    //  Lote 281: las mismas columnas, por las funciones comunes de la pantalla (`exportarCaja.ts`): las
+    //  comillas de un texto ya no rompen la fila, un texto que empieza por "=" no es una formula, Excel
+    //  lee las tildes, y el dia del nombre es el de RD (antes, el de UTC: a partir de las 20:00, mañana).
     const headers = ['Terminal', 'Usuario', 'Apertura', 'Cierre', 'Fondo Inicial', 'Saldo Esperado', 'Saldo Real', 'Diferencia', 'Estado'];
-    const csvContent = [
-      headers.join(','),
+    descargarCsv(nombreDelCsv('historico caja', diaRD()), contenidoCsv([
+      headers.map(celdaCsv),
       ...history.map(h => [
-        h.registerName,
-        h.userId,
-        formatDateTimeDisplay(h.createdAt),
-        h.closedAt ? formatDateTimeDisplay(h.closedAt) : 'Abierto',
-        h.initialBalance || 0,
-        h.expectedBalance || 0,
-        h.actualBalance || 0,
-        h.difference || 0,
-        h.status === 'open' ? 'Abierto' : 'Cerrado'
-      ].map(v => `"${v}"`).join(','))
-    ].join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `historico_caja_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    //  Lote 230: soltar el fichero de la memoria una vez descargado (React Doctor).
-    URL.revokeObjectURL(url);
+        celdaCsv(h.registerName),
+        celdaCsv(h.userId),
+        celdaCsv(formatDateTimeDisplay(h.createdAt)),
+        celdaCsv(h.closedAt ? formatDateTimeDisplay(h.closedAt) : 'Abierto'),
+        importeCsv(h.initialBalance),
+        importeCsv(h.expectedBalance),
+        importeCsv(h.actualBalance),
+        importeCsv(h.difference),
+        celdaCsv(h.status === 'open' ? 'Abierto' : 'Cerrado'),
+      ]),
+    ]));
     toast.success('Archivo exportado exitosamente');
   };
 

@@ -268,43 +268,113 @@ export const PreciosEnDolaresRepositorio = {
         throw new ConflictoDePrecios('Alguno de los productos ya no está atado al dólar. Vuelve a cargar la lista.');
       }
 
-      let aplicados = 0;
-      const ahora = new Date();
-      //  Uno a uno y en orden, a proposito: es UNA transaccion, o sea una sola conexion;
-      //  lanzarlos a la vez no los haria ir en paralelo.
-      for (const f of filas) {
-        const r = renglon(f, tasa.tasa);
-        const c = r.calculo as Calculo;
-        if (c.cambia) {
-          const d: Importes = c.despues;
-          await tx
-            .update(products)
-            .set({
-              cost: d.cost.toFixed(2),
-              price: d.price.toFixed(2),
-              priceConsumidor: d.priceConsumidor.toFixed(2),
-              priceMayorista: d.priceMayorista.toFixed(2),
-              priceProveedor: d.priceProveedor.toFixed(2),
-              updatedAt: ahora,
-            })
-            .where(and(eq(products.id, f.productId), eq(products.companyId, companyId)));
-          await tx.insert(cambiosDePrecio).values({
-            companyId,
-            productId: f.productId,
-            tasa: tasa.tasa.toFixed(4),
-            costoUsd: r.costoUsd.toFixed(4),
-            antes: c.antes,
-            despues: c.despues,
-            aplicadoPor: userId,
-          });
-          aplicados += 1;
-        }
-        //  Aunque no cambie nada, queda dicho con que tasa esta calculado.
-        await tx
-          .update(productosEnDolares)
-          .set({ tasaAplicada: tasa.tasa.toFixed(4), aplicadaEn: ahora, updatedAt: ahora })
-          .where(and(eq(productosEnDolares.productId, f.productId), eq(productosEnDolares.companyId, companyId)));
-      }
-      return { tasa, aplicados };
+      return { tasa, aplicados: await aplicarFilas(tx, companyId, userId, tasa, filas) };
+    })),
+
+  /**
+   * Lote 261: escribe la tasa de hoy Y la aplica a TODOS los productos atados, en
+   * una sola transaccion. Es lo que usan Compras y Facturacion.
+   *
+   * Decision del dueño (2026-10-03): al cambiar la tasa desde esas pantallas los
+   * precios se aplican sin otra confirmacion -- "para facilitar el cambio de
+   * precio". En Productos sigue el camino de dos pasos (escribir, revisar, aplicar
+   * los marcados): alli se va a REVISAR precios, aqui a cambiar la tasa y seguir.
+   *
+   * Por que en UNA transaccion y no `guardarTasa` + `aplicar` desde la ruta: si la
+   * segunda fallara quedaria la tasa nueva escrita y los precios con la vieja, que
+   * es justo lo que el dueño quiere evitar al pedirlo en un solo gesto. Y no hace
+   * falta la comprobacion de "la tasa que se vio": la tasa la escribe esta misma
+   * llamada, no hay nada visto que pueda haberse quedado viejo.
+   *
+   * Mismo calculo y mismo registro en `cambios_de_precio` que la confirmacion de
+   * Productos: los dos pasan por `aplicarFilas`.
+   */
+  guardarTasaYAplicar: (companyId: string, fecha: string, valor: number, userId: string): Promise<{ tasa: Tasa; aplicados: number; atados: number }> => conMigracion(() =>
+    db.transaction(async (tx) => {
+      await tx
+        .insert(tasasDeCambio)
+        .values({ companyId, fecha, tasa: valor.toFixed(4), registradaPor: userId })
+        .onConflictDoUpdate({
+          target: [tasasDeCambio.companyId, tasasDeCambio.fecha],
+          set: { tasa: valor.toFixed(4), registradaPor: userId, updatedAt: new Date() },
+        });
+      const tasa: Tasa = { fecha, tasa: valor };
+
+      //  Los productos atados se BLOQUEAN antes de leerlos, como en `aplicar`: dos
+      //  cambios de tasa a la vez no pueden partir los dos del mismo "antes".
+      const atados = tx
+        .select({ id: productosEnDolares.productId })
+        .from(productosEnDolares)
+        .where(eq(productosEnDolares.companyId, companyId));
+      await tx
+        .select({ id: products.id })
+        .from(products)
+        .where(and(eq(products.companyId, companyId), inArray(products.id, atados)))
+        .for('update');
+
+      const conPrecio = await hayPrecioUsd(tx);
+      const filas = await tx
+        .select(columnasDe(conPrecio))
+        .from(productosEnDolares)
+        .innerJoin(products, and(eq(products.id, productosEnDolares.productId), eq(products.companyId, productosEnDolares.companyId)))
+        .where(and(eq(productosEnDolares.companyId, companyId), isNull(products.deletedAt)));
+
+      return { tasa, aplicados: await aplicarFilas(tx, companyId, userId, tasa, filas), atados: filas.length };
     })),
 };
+
+/**
+ * Aplica a cada fila los importes de `tasa` y apunta el cambio. Devuelve cuantos
+ * productos cambiaron de precio. Las filas tienen que venir ya bloqueadas.
+ *
+ * Lote 261: sale de `aplicar`, para que la confirmacion de Productos y el cambio de
+ * tasa de Compras y Facturacion calculen y registren lo mismo.
+ */
+async function aplicarFilas(tx: DbOTx, companyId: string, userId: string, tasa: Tasa, filas: Fila[]): Promise<number> {
+  if (filas.length === 0) return 0;
+  const ahora = new Date();
+  const cambios = filas.flatMap((f) => {
+    const r = renglon(f, tasa.tasa);
+    return (r.calculo as Calculo).cambia ? [{ f, r }] : [];
+  });
+
+  //  Lote 261: ya no uno a uno en un bucle (React Doctor, `async-await-in-loop`).
+  //  · Los precios: una actualizacion por producto (cada uno lleva sus importes), lanzadas a la
+  //    vez. Es una transaccion, o sea UNA conexion, y postgres.js las encadena en ella sin esperar
+  //    a cada respuesta: no van en paralelo, pero se ahorra una ida y vuelta por producto.
+  //  · El registro en `cambios_de_precio`: una sola insercion.
+  //  · "Con que tasa esta calculado": una sola actualizacion, para TODAS las filas, cambien o no.
+  await Promise.all(cambios.map(({ f, r }) => {
+    const d: Importes = (r.calculo as Calculo).despues;
+    return tx
+      .update(products)
+      .set({
+        cost: d.cost.toFixed(2),
+        price: d.price.toFixed(2),
+        priceConsumidor: d.priceConsumidor.toFixed(2),
+        priceMayorista: d.priceMayorista.toFixed(2),
+        priceProveedor: d.priceProveedor.toFixed(2),
+        updatedAt: ahora,
+      })
+      .where(and(eq(products.id, f.productId), eq(products.companyId, companyId)));
+  }));
+  if (cambios.length > 0) {
+    await tx.insert(cambiosDePrecio).values(cambios.map(({ f, r }) => ({
+      companyId,
+      productId: f.productId,
+      tasa: tasa.tasa.toFixed(4),
+      costoUsd: r.costoUsd.toFixed(4),
+      antes: (r.calculo as Calculo).antes,
+      despues: (r.calculo as Calculo).despues,
+      aplicadoPor: userId,
+    })));
+  }
+  await tx
+    .update(productosEnDolares)
+    .set({ tasaAplicada: tasa.tasa.toFixed(4), aplicadaEn: ahora, updatedAt: ahora })
+    .where(and(
+      eq(productosEnDolares.companyId, companyId),
+      inArray(productosEnDolares.productId, filas.map((f) => f.productId)),
+    ));
+  return cambios.length;
+}

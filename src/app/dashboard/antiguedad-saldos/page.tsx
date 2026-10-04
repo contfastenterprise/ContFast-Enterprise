@@ -12,6 +12,8 @@ import { TarjetasResumen } from '@/components/cartera/TarjetasResumen';
 import { TablaCartera } from '@/components/cartera/TablaCartera';
 import { ModalEstadoCuenta } from '@/components/cartera/ModalEstadoCuenta';
 import { AVISO_CREDITO, PALABRAS, dineroCorto, type EstadisticaNivel, type FilaCartera, type TipoCartera } from '@/components/cartera/tipos';
+import { Button } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 /** El esqueleto tiene la forma de lo que viene: tarjetas, dona y tabla. */
 function EsqueletoCartera() {
@@ -195,41 +197,38 @@ export default function CarteraPage() {
 
   return (
     <div className="pb-12">
-      <header className="mb-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-neutral-900 text-white flex items-center justify-center shadow-xs">
-            <Building2 className="w-5 h-5 text-emerald-400" />
-          </div>
-          <div>
-            <h1 className="text-base font-bold text-neutral-900 tracking-tight">
-              Antigüedad de Saldos — {tipo === 'clientes' ? 'Clientes' : 'Suplidores'}
-            </h1>
-            <p className="text-xs text-neutral-500">
-              Saldos pendientes clasificados por días transcurridos desde el vencimiento
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={exportarCsv}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-neutral-700 bg-white hover:bg-neutral-50 border border-neutral-300 rounded-lg shadow-2xs transition-colors"
-            title="Exportar la cartera a CSV"
-          >
-            <Download className="w-3.5 h-3.5 text-neutral-500" />
-            <span className="hidden sm:inline">Exportar CSV</span>
-          </button>
-          <button
-            onClick={() => cargar(tipo)}
-            disabled={cargando}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-colors disabled:opacity-50"
-            title="Volver a cargar"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${cargando ? 'animate-spin' : ''}`} />
-            <span className="hidden md:inline">Actualizar</span>
-          </button>
-        </div>
-      </header>
+      <div className="mb-5">
+        <CabeceraDePagina
+          titulo={<>Antigüedad de Saldos — {tipo === 'clientes' ? 'Clientes' : 'Suplidores'}</>}
+          descripcion="Saldos pendientes clasificados por días transcurridos desde el vencimiento"
+          icono={<Building2 />}
+          acciones={
+            <>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => cargar(tipo)}
+                disabled={cargando}
+                title="Volver a cargar"
+                aria-label="Actualizar"
+              >
+                <RefreshCw className={cargando ? 'animate-spin' : ''} />
+                <span className="hidden md:inline">Actualizar</span>
+              </Button>
+              <Button
+                type="button"
+                variant="documento"
+                onClick={exportarCsv}
+                title="Exportar la cartera a CSV"
+                aria-label="Exportar CSV"
+              >
+                <Download />
+                <span className="hidden sm:inline">Exportar CSV</span>
+              </Button>
+            </>
+          }
+        />
+      </div>
 
       {/* Pestañas: la misma tabla con el dinero al reves. Solo las que este
           usuario puede abrir de verdad, y solo cuando ya se sabe cuales son
@@ -239,7 +238,7 @@ export default function CarteraPage() {
         {(['clientes', 'suplidores'] as TipoCartera[])
           .filter((t) => (t === 'clientes' ? puedeClientes : puedeSuplidores))
           .map((t) => (
-          <button
+          <button type="button"
             key={t}
             role="tab"
             aria-selected={tipo === t}

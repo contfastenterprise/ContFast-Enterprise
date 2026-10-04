@@ -3,14 +3,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { Pencil, Trash2, ToggleLeft, ToggleRight, ShieldAlert, Percent, Globe, Building2 } from 'lucide-react';
-//  Lote 252: `m` dentro de `LazyMotion` y no `motion` (aviso de React Doctor): carga solo lo que usa.
-import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 import { useRbac } from '@/components/providers/rbacContext';
 import { leerRespuesta } from '@/utils/leerRespuesta';
 
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { Modal } from '@/components/ui/dialog';
 interface Retention {
   id: string;
   name: string;
@@ -58,22 +59,21 @@ export default function RetentionsPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#003366]">Retenciones Fiscales</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Gestiona los tipos de retenciones ISR e ITBIS aplicables en facturas.
-          </p>
-        </div>
-        {/* Lote 248: en la cabecera, SOLO las pestanas (como en Compras). */}
-        <PestanasDeRegistro
-          enFormulario={showModal}
-          lista="Retenciones"
-          editando={!!editing}
-          alVerLista={() => setShowModal(false)}
-          alRegistrar={openCreate}
-        />
-      </div>
+      <CabeceraDePagina
+        titulo="Retenciones Fiscales"
+        descripcion="Gestiona los tipos de retenciones ISR e ITBIS aplicables en facturas."
+        icono={<Percent />}
+        acciones={
+          /* Lote 248: en la cabecera, SOLO las pestanas (como en Compras). */
+          <PestanasDeRegistro
+            enFormulario={showModal}
+            lista="Retenciones"
+            editando={!!editing}
+            alVerLista={() => setShowModal(false)}
+            alRegistrar={openCreate}
+          />
+        }
+      />
 
       {!showModal && (<>
 
@@ -127,8 +127,10 @@ export default function RetentionsPage() {
                     <div className="flex items-center gap-1 shrink-0">
                       {/* Toggle active */}
                       <button
+                        type="button"
                         onClick={() => toggleActive(r)}
                         title={r.active ? 'Desactivar' : 'Activar'}
+                        aria-label={`${r.active ? 'Desactivar' : 'Activar'} la retención ${r.name}`}
                         className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500"
                       >
                         {r.active
@@ -138,23 +140,27 @@ export default function RetentionsPage() {
                       </button>
                       {/* Edit — only company */}
                       {r.companyId && (
-                        <button
+                        <IconButton
+                          type="button"
                           onClick={() => openEdit(r)}
                           title="Editar"
-                          className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
+                          aria-label={`Editar la retención ${r.name}`}
+                          className="hover:text-[#003366] hover:bg-[#003366]/10"
                         >
                           <Pencil className="w-4 h-4" />
-                        </button>
+                        </IconButton>
                       )}
                       {/* Delete — only company */}
                       {r.companyId && (
-                        <button
+                        <IconButton
+                          type="button"
                           onClick={() => setDeleteTarget(r)}
                           title="Eliminar"
-                          className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"
+                          aria-label={`Eliminar la retención ${r.name}`}
+                          className="hover:text-rose-600 hover:bg-rose-50"
                         >
                           <Trash2 className="w-4 h-4" />
-                        </button>
+                        </IconButton>
                       )}
                     </div>
                   </div>
@@ -223,71 +229,57 @@ export default function RetentionsPage() {
             </div>
           </div>
 
-          <div className="flex gap-3 pt-2">
-            <button
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary"
               type="button"
-              onClick={() => setShowModal(false)}
-              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-            >
+              onClick={() => setShowModal(false)}>
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={handleSubmit}
-              disabled={submitting}
-              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-            >
+              disabled={submitting}>
               {submitting ? 'Guardando…' : editing ? 'Guardar Cambios' : 'Crear Retención'}
-            </button>
+            </Button>
           </div>
           </div>
         </PanelDeRegistro>
       )}
 
       {/* Delete Confirm Modal */}
-      <LazyMotion features={domAnimation}>
-      <AnimatePresence>
+      {/* Lote 279: la ventana comun (`Modal`). El fondo ya cerraba (por defecto). */}
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        maxWidth="sm"
+        icono={<Trash2 />}
+        title="Eliminar retención"
+        description="Esta acción no se puede deshacer."
+      >
         {deleteTarget && (
-          <m.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={(e) => e.target === e.currentTarget && setDeleteTarget(null)}
-          >
-            <m.div
-              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-4 space-y-4"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                  <Trash2 className="w-5 h-5 text-red-500" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-[#003366]">Eliminar retención</h3>
-                  <p className="text-sm text-slate-500">Esta acción no se puede deshacer.</p>
-                </div>
-              </div>
+            <div className="space-y-4">
               <p className="text-sm text-slate-600 bg-slate-50 rounded-xl px-4 py-3">
                 ¿Eliminar <strong>{deleteTarget.name}</strong> ({parseFloat(deleteTarget.percentage).toFixed(2)}%)?
               </p>
               <div className="flex gap-3">
-                <button
+                <Button variant="secondary"
+                  type="button"
                   onClick={() => setDeleteTarget(null)}
-                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
-                >
+                  className="flex-1">
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
                   onClick={confirmDelete}
-                  className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
+                  className="flex-1"
                 >
                   Sí, eliminar
-                </button>
+                </Button>
               </div>
-            </m.div>
-          </m.div>
+            </div>
         )}
-      </AnimatePresence>
-      </LazyMotion>
+      </Modal>
     </div>
   );
 }

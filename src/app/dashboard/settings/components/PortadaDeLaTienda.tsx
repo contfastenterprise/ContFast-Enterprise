@@ -20,17 +20,18 @@ import type { PortadaDeAjustes } from '../hooks/usePortadaDeLaTienda';
 import { CamposDeLaPortada } from './CamposDeLaPortada';
 import { ImagenDeLaPortada } from './ImagenDeLaPortada';
 
+import { Button } from '@/components/ui/button';
 function Formulario({ portada: p, datos }: { portada: PortadaDeAjustes; datos: NonNullable<PortadaDeAjustes['datos']> }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-5">
       <CamposDeLaPortada f={p.f} porDefecto={datos.porDefecto} cambiar={p.cambiar} />
       <ImagenDeLaPortada imagenUrl={p.f.imagenUrl} subiendo={p.subiendo} subir={p.subir} quitar={() => p.cambiar('imagenUrl', '')} />
       <div className="md:col-span-2 flex justify-end border-t border-slate-200 pt-3">
-        <button type="button" onClick={p.guardar} disabled={p.guardando || p.subiendo || p.pasaDelTope}
-          className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+        <Button type="button" onClick={p.guardar} disabled={p.guardando || p.subiendo || p.pasaDelTope}
+          className="flex">
           {p.guardando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           Guardar portada
-        </button>
+        </Button>
       </div>
     </div>
   );

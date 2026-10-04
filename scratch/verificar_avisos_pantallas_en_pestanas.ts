@@ -70,8 +70,16 @@ function main() {
     ['Marca', 'Modelo', 'Cantidad', 'Observaciones'].every((q) => bp.includes(`aria-label={\`${q} de \${line.productName}\`}`))
     && bp.includes('aria-label={`Cantidad a recibir de ${rec.productName}`}'));
   ok('pedidos y empresas: los botones de icono dicen lo que hacen',
-    ['Ver pedido', 'Imprimir pedido', 'Editar pedido'].every((e) => bp.includes(`aria-label="${e}"`)) && /aria-label="Cerrar"[\s\S]*aria-label="Cerrar"/.test(bp)
-    && /aria-label="Cerrar"/.test(s.empresas) && /aria-label="Buscar empresa por nombre o RNC"/.test(s.empresas));
+    ['Ver pedido', 'Imprimir pedido', 'Editar pedido'].every((e) => bp.includes(`aria-label="${e}"`))
+    //  Lote 273: las dos ventanas (detalle y recepcion) dicen QUE cierran ("Cerrar el detalle del
+    //  pedido"); se mira que cada cierre lleve su nombre, no la palabra exacta "Cerrar".
+    //  Lote 279: las dos son ya la ventana comun, cuya X dice "Cerrar" (`dialog.tsx`); se mira que
+    //  cada una cierre con SU manejador, en su `<Modal` (o, escrita a mano, con su aria-label).
+    && ['setShowDetailModal', 'setShowReceiveModal'].every((n) => bp.includes(`${n}(false)} aria-label="Cerrar`)
+      || bp.split(/<Modal\b/).slice(1).map((t) => t.slice(0, t.search(/\n\s*>\r?\n/))).some((a) => a.includes(`onClose={() => ${n}(false)}`)))
+    //  Lote 280: la suscripcion es el Modal comun, cuya X lleva aria-label="Cerrar" (dialog.tsx).
+    && (/aria-label="Cerrar"/.test(s.empresas) || (/<Modal\b/.test(s.empresas) && /aria-label="Cerrar"/.test(leer('src/components/ui/dialog.tsx'))))
+    && /aria-label="Buscar empresa por nombre o RNC"/.test(s.empresas));
   ok('bancos: la tarjeta de cada cuenta se elige con el teclado, y "Rango de Fechas" no es una etiqueta suelta',
     /role="button"\s+tabIndex=\{0\}[\s\S]{0,300}onKeyDown=\{\(e\) => \{ if \(e\.key === 'Enter' \|\| e\.key === ' '\)/.test(s.bancos)
     && /<p className="[^"]*">Rango de Fechas<\/p>/.test(s.bancos));
@@ -91,8 +99,11 @@ function main() {
   }
 
   console.log('\n4) Lo demas\n');
+  //  Lote 279: lo unico que animaban eran sus ventanas, que pasaron a la comun (que ya anima con `m`
+  //  dentro de LazyMotion). La propiedad: ni `motion` suelto, y si animan, `m` dentro de LazyMotion.
   ok('retenciones, bancos y pedidos animan con `m` dentro de LazyMotion',
-    (['retenciones', 'bancos', 'pedidos'] as const).every((k) => !/\bmotion\./.test(s[k]) && /<LazyMotion features=\{domAnimation\}>/.test(s[k]) && /<m\.div/.test(s[k])));
+    (['retenciones', 'bancos', 'pedidos'] as const).every((k) => !/\bmotion\./.test(s[k]) && !/import \{[^}]*\bmotion\b[^}]*\} from 'framer-motion'/.test(s[k])
+      && (!/<m\./.test(s[k]) || /<LazyMotion features=\{domAnimation\}>/.test(s[k]))));
   ok('retenciones: dos clics en "Si, eliminar" no mandan dos peticiones',
     /if \(!deleteTarget \|\| borrando\.current\) return;\s*borrando\.current = true;/.test(s.retenciones));
   ok('pedidos: las lineas se cambian sin mutar el objeto de antes',

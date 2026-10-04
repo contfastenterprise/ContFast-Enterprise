@@ -6,10 +6,12 @@
  * Solo pinta: el estado y las acciones viven en `useCaja`.
  */
 import { useRouter } from 'next/navigation';
-import { Wallet, Lock, RefreshCw, CheckCircle2, X, Loader2 } from 'lucide-react';
+import { Wallet, Lock, RefreshCw, CheckCircle2, Loader2 } from 'lucide-react';
 //  Lote 230: `m` y no `motion`; el `LazyMotion` lo pone la pagina.
-import { m, AnimatePresence } from 'framer-motion';
+import { m } from 'framer-motion';
+import { Modal } from '@/components/ui/dialog';
 import type { Caja } from '../hooks/useCaja';
+import { Button } from '@/components/ui/button';
 
 export function VistaApertura({ c }: { c: Caja }) {
   const router = useRouter();
@@ -134,19 +136,15 @@ export function VistaApertura({ c }: { c: Caja }) {
           </div>
 
           {/* Buttons */}
-          <div className="flex items-center gap-4 pt-4 border-t border-slate-200">
-            <button
+          <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200">
+            <Button variant="secondary"
               type="button"
-              onClick={() => router.push('/dashboard')}
-              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-            >
+              onClick={() => router.push('/dashboard')}>
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={c.submitting || c.registers.length === 0}
-              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-            >
+              disabled={c.submitting || c.registers.length === 0}>
               {c.submitting ? (
                 <m.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
                   <RefreshCw className="w-4 h-4" />
@@ -155,7 +153,7 @@ export function VistaApertura({ c }: { c: Caja }) {
                 <Lock className="w-4 h-4" />
               )}
               {c.submitting ? 'Procesando...' : 'Abrir Caja'}
-            </button>
+            </Button>
           </div>
         </form>
 
@@ -169,29 +167,18 @@ export function VistaApertura({ c }: { c: Caja }) {
       </div>
 
       {/* ── New POS Terminal Modal ────────────────────────────────────── */}
-      <AnimatePresence>
-        {c.showNewRegisterModal && (
-          <m.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          >
-            <m.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-sm rounded-xl shadow-xl overflow-hidden bg-white text-slate-800"
-            >
-              <div className="px-4 py-3 border-b border-slate-200 flex justify-between items-center bg-white">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800">Nueva Terminal de Caja</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Configure una nueva terminal para su empresa.</p>
-                </div>
-                <button type="button" onClick={() => c.setShowNewRegisterModal(false)} aria-label="Cerrar la ventana de nueva terminal" className="text-slate-400 hover:text-slate-600 transition-colors">
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
+      {/* Lote 279: la ventana comun (`Modal`). El fondo no cerraba (formulario), y mientras se
+          crea la terminal (`creatingRegister`) no se cierra. */}
+      <Modal
+        isOpen={c.showNewRegisterModal}
+        onClose={() => c.setShowNewRegisterModal(false)}
+        bloqueada={c.creatingRegister}
+        cerrarAlPulsarFuera={false}
+        maxWidth="sm"
+        sinRelleno
+        title="Nueva Terminal de Caja"
+        description="Configure una nueva terminal para su empresa."
+      >
               <form onSubmit={c.handleCreateRegister} className="p-4 space-y-4">
                 <div className="space-y-1">
                   <label htmlFor="caja-terminal-nombre" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Nombre de la Terminal <span className="text-red-500">*</span></label>
@@ -219,26 +206,19 @@ export function VistaApertura({ c }: { c: Caja }) {
                   <p className="text-[10px] text-slate-500">Identificador único interno para esta terminal.</p>
                 </div>
                 <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
-                  <button
+                  <Button variant="secondary"
                     type="button"
-                    onClick={() => c.setShowNewRegisterModal(false)}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
+                    onClick={() => c.setShowNewRegisterModal(false)}>
                     Cancelar
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
-                    disabled={c.creatingRegister}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
+                    disabled={c.creatingRegister}>
                     {c.creatingRegister ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />} Crear Terminal
-                  </button>
+                  </Button>
                 </div>
               </form>
-            </m.div>
-          </m.div>
-        )}
-      </AnimatePresence>
+      </Modal>
     </>
   );
 }

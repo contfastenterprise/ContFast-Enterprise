@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Plus, X } from 'lucide-react';
 import clsx from 'clsx';
+import { IconButton } from '@/components/ui/button';
 
 interface SupplierAutocompleteProps {
   dbSuppliers: any[];
@@ -84,6 +85,7 @@ export const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
               }}
               className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-slate-100 transition outline-none"
               title="Borrar proveedor seleccionado"
+              aria-label="Borrar proveedor seleccionado"
             >
               <X className="h-4 w-4 text-slate-400 hover:text-rose-500" />
             </button>
@@ -121,14 +123,16 @@ export const SupplierAutocomplete: React.FC<SupplierAutocompleteProps> = ({
           })()}
         </div>
         {onCreateNew && (
-          <button
+          <IconButton
             type="button"
+            variant="warning"
+            size="icon"
             onClick={onCreateNew}
-            className="flex items-center justify-center p-2 bg-amber-500 hover:bg-amber-600 border border-amber-600 rounded-lg text-slate-900 transition shadow-sm shrink-0 h-9 w-9"
             title="Nuevo Proveedor"
+            aria-label="Crear un proveedor nuevo"
           >
             <Plus className="h-4 w-4" />
-          </button>
+          </IconButton>
         )}
       </div>
     </div>

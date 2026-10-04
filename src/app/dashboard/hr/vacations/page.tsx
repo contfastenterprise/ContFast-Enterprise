@@ -2,10 +2,13 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import {
-  Palmtree, CalendarCheck, CalendarClock, Plus, X, RefreshCw, AlertCircle, Scale, Search,
+  Palmtree, CalendarCheck, CalendarClock, Plus, RefreshCw, AlertCircle, Scale, Search,
 } from 'lucide-react';
+import { Modal } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 type Saldo = {
   employeeId: string;
@@ -135,23 +138,20 @@ export default function VacationsPage() {
   return (
     <div className="space-y-6">
       {/* Cabecera */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Palmtree className="h-7 w-7 text-emerald-600" /> Vacaciones
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400">
-            Saldo de días por empleado. Los días sugeridos siguen la escala del Art. 177 del Código de Trabajo.
-          </p>
-        </div>
-        <button
+      <CabeceraDePagina
+        titulo="Vacaciones"
+        descripcion="Saldo de días por empleado. Los días sugeridos siguen la escala del Art. 177 del Código de Trabajo."
+        icono={<Palmtree />}
+        acciones={<IconButton
+          type="button"
+          variant="secondary"
+          size="icon"
+          aria-label="Actualizar"
           onClick={cargar}
-          className="inline-flex items-center justify-center rounded-md border border-outline bg-surface p-2 text-sm font-medium text-on-surface shadow-sm hover:bg-surface-variant transition"
-          title="Actualizar"
         >
           <RefreshCw className="h-4 w-4" />
-        </button>
-      </div>
+        </IconButton>}
+      />
 
       {/* Indicadores */}
       <div className="grid gap-4 sm:grid-cols-3">
@@ -284,19 +284,23 @@ export default function VacationsPage() {
                       <td className="p-4 text-right">
                         <div className="flex justify-end gap-2">
                           {s.diasPorRegistrar > 0 && !inactivo && (
-                            <button
+                            <Button
+                              type="button"
+                              variant="warning"
+                              size="sm"
                               onClick={() => abrirModal(s, true)}
-                              className="inline-flex items-center rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition"
                             >
                               Acreditar {s.diasPorRegistrar}
-                            </button>
+                            </Button>
                           )}
-                          <button
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
                             onClick={() => abrirModal(s)}
-                            className="inline-flex items-center rounded-md border border-outline bg-surface px-2.5 py-1.5 text-xs font-medium text-on-surface hover:bg-surface-variant transition"
                           >
-                            <Plus className="mr-1 h-3.5 w-3.5" /> Movimiento
-                          </button>
+                            <Plus className="h-3.5 w-3.5" /> Movimiento
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -309,26 +313,20 @@ export default function VacationsPage() {
       )}
 
       {/* Modal */}
-      {showModal && seleccionado && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl border border-outline bg-surface p-6 shadow-xl text-on-surface">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-lg font-bold">Movimiento de vacaciones</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {seleccionado.firstName} {seleccionado.lastName} ({seleccionado.employeeCode})
-                </p>
-              </div>
-              <button
-                onClick={() => setShowModal(false)}
-                className="rounded-md p-1 text-on-surface-variant hover:bg-surface-variant transition"
-                aria-label="Cerrar"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mt-4 grid grid-cols-3 gap-3 rounded-lg border border-outline bg-surface-variant/20 p-3 text-center text-xs">
+      {/* `seleccionado` fuera: los hijos se evaluan aunque la ventana este cerrada. Se abre con
+          `showModal && seleccionado`, como antes. */}
+      {seleccionado && (
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title="Movimiento de vacaciones"
+        description={<>{seleccionado.firstName} {seleccionado.lastName} ({seleccionado.employeeCode})</>}
+        icono={<Palmtree />}
+        maxWidth="md"
+        cerrarAlPulsarFuera={false}
+        bloqueada={submitting}
+      >
+            <div className="grid grid-cols-3 gap-3 rounded-lg border border-outline bg-surface-variant/20 p-3 text-center text-xs">
               <div>
                 <div className="text-on-surface-variant/70">Disponibles hoy</div>
                 <div className="mt-1 text-lg font-bold tabular-nums">{seleccionado.availableDays}</div>
@@ -389,25 +387,23 @@ export default function VacationsPage() {
                 {disponibleTrasMovimiento < 0 && ' — no puede quedar negativo'}
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                <button
+              <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                <Button
+                  variant="secondary"
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="inline-flex items-center justify-center rounded-md border border-outline bg-surface px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-variant transition"
                 >
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={submitting || disponibleTrasMovimiento < 0 || (gen <= 0 && tom <= 0)}
-                  className="inline-flex items-center justify-center rounded-md bg-[#003366] px-4 py-2 text-sm font-medium text-white shadow hover:bg-[#001e40] disabled:opacity-50"
                 >
                   {submitting ? 'Guardando...' : 'Guardar movimiento'}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
-        </div>
+      </Modal>
       )}
     </div>
   );

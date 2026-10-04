@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Shield, RefreshCw, X, Building2, Trash2, CreditCard, Calendar, Search } from 'lucide-react';
+import { Shield, RefreshCw, Building2, Trash2, CreditCard, Calendar, Search } from 'lucide-react';
+import { Modal } from '@/components/ui/dialog';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
@@ -10,6 +11,8 @@ import { useRouter } from 'next/navigation';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 import { leerRespuesta } from '@/utils/leerRespuesta';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 interface Company {
   id: string;
@@ -48,23 +51,18 @@ export default function AdminCompaniesPage() {
       <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
-              Gestión de Empresas (Multi-Tenant)
-            </h1>
-            <p className="text-on-surface-variant/70 text-sm mt-1">
-              Controla las empresas instaladas en el servidor y sus suscripciones SaaS.
-            </p>
-          </div>
-          {/* Lote 250: en la cabecera, SOLO las pestanas (como en Compras). */}
-          <PestanasDeRegistro
+        {/* Lote 250: en la cabecera, SOLO las pestanas (como en Compras). */}
+        <CabeceraDePagina
+          titulo="Gestión de Empresas (Multi-Tenant)"
+          descripcion="Controla las empresas instaladas en el servidor y sus suscripciones SaaS."
+          icono={<Building2 />}
+          acciones={<PestanasDeRegistro
             enFormulario={showNewCompanyModal}
             lista="Empresas"
             alVerLista={() => setShowNewCompanyModal(false)}
             alRegistrar={() => setShowNewCompanyModal(true)}
-          />
-        </div>
+          />}
+        />
 
         {!showNewCompanyModal && (<>
         <ListadoDeEmpresas h={h} />
@@ -327,9 +325,9 @@ function ListadoDeEmpresas({ h }: { h: EstadoAdminCompaniesPage }) {
                 className="w-full pl-9 pr-3 py-1.5 text-sm bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#003366]/20 focus:border-[#003366] outline-none transition"
               />
             </div>
-            <button onClick={fetchData} className="p-2 hover:bg-slate-200 rounded-lg transition-colors shrink-0" title="Actualizar">
+            <IconButton type="button" onClick={fetchData} aria-label="Actualizar">
               <RefreshCw className={clsx("h-4 w-4 text-slate-500", loading && "animate-spin")} />
-            </button>
+            </IconButton>
           </div>
         </div>
 
@@ -402,33 +400,36 @@ function ListadoDeEmpresas({ h }: { h: EstadoAdminCompaniesPage }) {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end items-center gap-2">
-                        <button
+                        <IconButton
+                          type="button"
                           onClick={() => handleOpenSubscriptionModal(company)}
-                          className="p-1.5 hover:bg-[#003366]/10 text-[#003366] rounded transition-colors"
-                          title="Gestionar Suscripción SaaS"
+                          className="hover:bg-[#003366]/10 text-[#003366]"
+                          aria-label="Gestionar Suscripción SaaS"
                         >
                           <CreditCard className="h-4 w-4" />
-                        </button>
+                        </IconButton>
                         {company.status === 'active' && (
                           <>
-                            <button
+                            <IconButton
+                              type="button"
                               disabled={clearingSandbox !== null}
                               onClick={() => handleClearSandboxData(company)}
                               className={clsx(
-                                "p-1.5 hover:bg-amber-100 text-amber-600 rounded transition-colors",
+                                "hover:bg-amber-100 text-amber-600",
                                 clearingSandbox === company.id && "animate-pulse"
                               )}
-                              title="Limpiar Datos de Prueba (Sandbox)"
+                              aria-label="Limpiar Datos de Prueba (Sandbox)"
                             >
                               <RefreshCw className={clsx("h-4 w-4", clearingSandbox === company.id && "animate-spin")} />
-                            </button>
-                            <button
+                            </IconButton>
+                            <IconButton
+                              type="button"
                               onClick={() => handleDeleteCompany(company.id)}
-                              className="p-1.5 hover:bg-red-100 text-red-600 rounded transition-colors"
-                              title="Desactivar Empresa"
+                              className="hover:bg-red-100 text-red-600"
+                              aria-label="Desactivar Empresa"
                             >
                               <Trash2 className="h-4 w-4" />
-                            </button>
+                            </IconButton>
                           </>
                         )}
                       </div>
@@ -516,25 +517,24 @@ function AltaDeEmpresa({ h }: { h: EstadoAdminCompaniesPage }) {
             />
           </div>
 
-          <div className="pt-4 flex gap-3">
-            <button
+          <div className="pt-4 flex justify-end gap-2">
+            <Button
               type="button"
+              variant="secondary"
               onClick={() => setShowNewCompanyModal(false)}
-              className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-50 transition-colors"
             >
               Cancelar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 bg-[#003366] hover:bg-[#002244] text-white rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
             >
               {submitting ? (
                 <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
               ) : (
                 'Guardar Empresa'
               )}
-            </button>
+            </Button>
           </div>
         </form>
         </PanelDeRegistro>
@@ -548,19 +548,20 @@ function VentanaDeSuscripcion({ h }: { h: EstadoAdminCompaniesPage }) {
   return (
     <>
       {/* Modal: Gestionar Suscripción */}
-      {showSubscriptionModal && selectedCompany && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 [animation-duration:200ms]">
-            <div className="flex justify-between items-center p-5 border-b border-slate-100">
-              <h2 className="text-xl font-bold text-[#003366] flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-[#C5A059]" /> Suscripción SaaS
-              </h2>
-              <button type="button" onClick={() => setShowSubscriptionModal(false)} aria-label="Cerrar" className="p-1.5 hover:bg-slate-100 rounded-full text-slate-500 transition-colors">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            
-            <form onSubmit={handleSaveSubscription} className="p-5 space-y-4">
+      {/* `selectedCompany` fuera: los hijos se evaluan aunque la ventana este cerrada. Se abre con
+          `showSubscriptionModal && selectedCompany`, como antes; en la capa 100, como antes. */}
+      {selectedCompany && (
+      <Modal
+        isOpen={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+        title="Suscripción SaaS"
+        icono={<CreditCard />}
+        maxWidth="md"
+        capa={100}
+        cerrarAlPulsarFuera={false}
+        bloqueada={submitting}
+      >
+            <form onSubmit={handleSaveSubscription} className="space-y-4">
               <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-xs mb-2">
                 <p className="font-bold text-slate-700">Compañía:</p>
                 <p className="text-slate-900 font-medium text-sm mt-0.5">{selectedCompany.name}</p>
@@ -610,29 +611,27 @@ function VentanaDeSuscripcion({ h }: { h: EstadoAdminCompaniesPage }) {
                 />
               </div>
 
-              <div className="pt-4 flex gap-3">
-                <button
+              <div className="pt-4 flex justify-end gap-2">
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={() => setShowSubscriptionModal(false)}
-                  className="flex-1 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-bold text-sm hover:bg-slate-50 transition-colors"
                 >
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 px-4 py-2 bg-[#003366] hover:bg-[#002244] text-white rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
                 >
                   {submitting ? (
                     <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
                   ) : (
                     'Guardar Cambios'
                   )}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
-        </div>
+      </Modal>
       )}
     </>
   );

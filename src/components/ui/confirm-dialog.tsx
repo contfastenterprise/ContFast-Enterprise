@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Loader2, AlertTriangle } from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
 export interface ConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -49,21 +50,16 @@ export function ConfirmDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="mt-4 flex sm:justify-end gap-2">
-          <button
+          <Button variant="secondary"
             type="button"
-            className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+            className="flex"
             onClick={onCancel}
-            disabled={isConfirming}
-          >
+            disabled={isConfirming}>
             {cancelText}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={variant === 'destructive' ? 'destructive' : 'primary'}
             type="button"
-            className={`flex items-center gap-2 px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm text-white ${
-              variant === 'destructive'
-                ? 'bg-rose-600 hover:bg-rose-700'
-                : 'bg-[#003366] hover:bg-[#002244]'
-            }`}
             onClick={onConfirm}
             disabled={isConfirming}
           >
@@ -75,7 +71,7 @@ export function ConfirmDialog({
             ) : (
               confirmText
             )}
-          </button>
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

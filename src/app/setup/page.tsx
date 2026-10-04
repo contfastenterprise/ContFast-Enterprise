@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Shield, Building, Printer, Truck, UserCheck, ChevronRight, ChevronLeft, Loader2, Sparkles, CloudCog, Key, Globe, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 export default function SetupWizard() {
   const router = useRouter();
@@ -184,7 +185,7 @@ export default function SetupWizard() {
             <span className="text-lg font-bold text-primary font-display">ContFast <span className="text-amber-500">Enterprise</span></span>
           </div>
           <div className="text-center sm:text-right">
-            <h1 className="text-xl font-bold tracking-tight text-[#C5A059] font-display">Asistente de Configuracion</h1>
+            <h1 className="text-xl font-bold tracking-tight text-primary font-display">Asistente de Configuracion</h1>
             <p className="text-xs text-on-surface-variant">Proceso de autorización fiscal.</p>
           </div>
         </div>
@@ -343,9 +344,10 @@ export default function SetupWizard() {
                             placeholder="mSeller Token"
                           />
                           <button
+                            aria-label={showToken ? 'Ocultar el token' : 'Mostrar el token'}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70 hover:text-on-surface-variant transition-colors"
                             type="button"
                             onClick={() => setShowToken(!showToken)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70 hover:text-on-surface-variant transition-colors"
                           >
                             {showToken ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
                           </button>
@@ -394,6 +396,9 @@ export default function SetupWizard() {
                         <button
                           type="button"
                           onClick={() => setDelivery({ autoDeliveryNotes: !delivery.autoDeliveryNotes })}
+                          role="switch"
+                          aria-checked={delivery.autoDeliveryNotes}
+                          aria-label="Conduces automáticos"
                           className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out outline-none ${
                             delivery.autoDeliveryNotes ? 'bg-[#C5A059]' : 'bg-surface-container-high'
                           }`}
@@ -447,9 +452,10 @@ export default function SetupWizard() {
                         placeholder="Mínimo 8 caracteres"
                       />
                       <button
+                        aria-label={showPassword ? 'Ocultar la contraseña' : 'Mostrar la contraseña'}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#C5A059]"
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#C5A059]"
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -495,28 +501,30 @@ export default function SetupWizard() {
 
           {/* Stepper Buttons */}
           <div className="flex items-center justify-between border-t border-outline-variant/30 mt-8 pt-6">
-            <button
+            <Button
+              type="button"
+              variant="secondary"
               onClick={handleBack}
               disabled={currentStep === 0 || loading}
-              className="flex items-center gap-2 rounded border border-outline-variant/30 bg-background px-4 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface-container-low disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
               Atrás
-            </button>
+            </Button>
 
             {currentStep < 5 ? (
-              <button
+              <Button
+                type="button"
                 onClick={handleNext}
-                className="flex items-center gap-2 rounded bg-[#C5A059] px-5 py-2 text-sm font-semibold text-slate-950 hover:bg-[#fed488] transition-colors"
               >
                 Siguiente
                 <ChevronRight className="h-4 w-4" />
-              </button>
+              </Button>
             ) : (
-              <button
+              <Button
+                type="button"
+                variant="success"
                 onClick={handleConfirmSetup}
                 disabled={loading}
-                className="flex items-center gap-2 rounded bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-primary hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? (
                   <>
@@ -529,7 +537,7 @@ export default function SetupWizard() {
                     Confirmar e Inicializar
                   </>
                 )}
-              </button>
+              </Button>
             )}
           </div>
         </div>

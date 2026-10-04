@@ -6,7 +6,7 @@ import { disponible as loQueSePuedeSacar } from '@/services/inventario/existenci
 import { useSearchParams, useRouter } from 'next/navigation';
 
 import {
-  Plus, Search, FileText, Download, Check, RefreshCw, X, Trash2,
+  Plus, Search, FileText, Download, Check, RefreshCw, Trash2,
   ArrowLeft, Calendar, Filter, Eye, Printer, XCircle, ChevronLeft,
   ChevronRight, AlertCircle, Building2, Mail,
   Package, Users, FileMinus, FilePlus, ChevronDown, Save, FileCode, ListFilter,
@@ -26,6 +26,12 @@ import { erroresPorCampo } from '@/schemas/errores';
 import { PASOS, campoDelPaso, primerPasoConFallo } from './pasos';
 import { useConfirm } from '@/providers/confirm-provider';
 import { esAdminOSistemas } from '@/utils/rolMatch';
+import { quedaPorDebajoDelCosto } from '@/services/invoice/precioMinimo';
+import { esNivelDePrecio, nivelDeducido, preciosViejos, conPreciosActuales, type PrecioViejo } from '@/services/invoice/preciosDelBorrador';
+import { AvisoPreciosDelBorrador } from './components/AvisoPreciosDelBorrador';
+import { useTasaDelDolar } from '@/hooks/useTasaDelDolar';
+import { lineasDeFacturaConPrecios } from '@/services/precios/cambioDeTasa';
+import { TasaDelDolarEnLinea } from '@/components/precios/TasaDelDolarEnLinea';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
 import RetentionSelector from '@/components/RetentionSelector';
 import { BorderRotate } from '@/components/ui/animated-gradient-border';
@@ -36,7 +42,8 @@ import DateRangePicker from '@/components/ui/date-range-picker';
 import { ProductAutocomplete } from '@/components/ui/product-autocomplete';
 import { CustomerAutocomplete } from '@/components/ui/customer-autocomplete';
 import { EditablePriceSelect } from '@/components/ui/editable-price-select';
-import { Button } from '@/components/ui/button';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 import { Badge } from '@/components/ui/badge';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -149,6 +156,8 @@ function InvoicesList() {
   const [saveDropdownOpen, setSaveDropdownOpen] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
+  //  Lote 266: las lineas del borrador reabierto cuyo precio ya no es el del catalogo.
+  const [preciosDelBorrador, setPreciosDelBorrador] = useState<PrecioViejo[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showPrintConfirmModal, setShowPrintConfirmModal] = useState(false);
   const [pendingPostAction, setPendingPostAction] = useState<'print' | 'none' | undefined>(undefined);
@@ -235,6 +244,29 @@ function InvoicesList() {
       imageUrl: ''
     },
   ]);
+  //  LOTE 261: la tasa del dolar, con "Cambiar tasa" para quien administra. Guardarla aplica los
+  //  precios de los productos en dolares al momento (decision del dueño); la factura sigue
+  //  cobrando el precio del CATALOGO, que con esto queda al dia. Hay que releerlo: `dbProducts`
+  //  tiene los precios de cuando se abrio el formulario. Y las lineas ya escritas cuyo precio es
+  //  el de su nivel en el catalogo anterior pasan al nuevo; un precio cambiado a mano se deja.
+  const tasaDelDolar = useTasaDelDolar(async () => {
+    const leido = await leerRespuesta<{ data: any[] }>(await fetch('/api/v1/products?per_page=100'));
+    if (!leido.bien) {
+      toast.error('La tasa se guardó, pero no se pudieron recargar los precios: vuelve a abrir el formulario.');
+      return;
+    }
+    const nuevos = leido.cuerpo.data || [];
+    const r = lineasDeFacturaConPrecios(
+      lines,
+      new Map(dbProducts.map((p) => [p.id, p])),
+      new Map(nuevos.map((p) => [p.id, p])),
+    );
+    setDbProducts(nuevos);
+    if (r.cambiadas > 0) {
+      setLines(r.lineas);
+      toast.info(r.cambiadas === 1 ? 'Se actualizó el precio de 1 línea de esta factura.' : `Se actualizó el precio de ${r.cambiadas} líneas de esta factura.`);
+    }
+  });
   const [quoteId, setQuoteId] = useState('');
   // Al entrar desde una cotizacion, el formulario se abre VACIO y se rellena
   // solo cuando responde `/convert`. Durante ese hueco se veia el formulario en
@@ -964,6 +996,7 @@ function InvoicesList() {
     setLines([{ productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18, unitOfMeasure: 'unidad', barcode: '', priceTier: 'base', imageUrl: '' }]);
     setQuoteId('');
     setEditingDraftId(null);
+    setPreciosDelBorrador([]);
     setPaso(1);
     setVistaCompleta(false);
   };
@@ -992,6 +1025,9 @@ function InvoicesList() {
       taxRate: Number(l.taxRate ?? 0.18),
       taxCategory: Number(l.taxRate) === 0 ? (l.taxCategory ?? 'exento') : null,
       warehouseId: l.warehouseId || warehouseId,
+      //  Lote 266: el nivel de precio viaja con la linea; el borrador lo guarda para reabrirse con
+      //  el suyo. La emision lo ignora (su esquema no lo pide).
+      priceTier: esNivelDePrecio(l.priceTier) ? l.priceTier : undefined,
     })),
   });
 
@@ -1023,8 +1059,11 @@ function InvoicesList() {
       if (ecfType !== '34' && line.productId) {
         const prod = dbProducts.find(p => p.id === line.productId);
         const cost = prod ? (parseFloat(prod.cost) || 0) : 0;
-        if (cost > 0 && Number(line.unitPrice) < cost) {
-          out[`lines.${idx}.unitPrice`] = `Precio por debajo del costo (mínimo: RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`;
+        //  Lote 264: con el descuento por unidad descontado (la misma regla que el servidor).
+        if (quedaPorDebajoDelCosto(line, cost)) {
+          out[`lines.${idx}.unitPrice`] = (Number(line.discount) || 0) > 0
+            ? `Con el descuento queda por debajo del costo (mínimo: RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })} por unidad).`
+            : `Precio por debajo del costo (mínimo: RD$ ${cost.toLocaleString('es-DO', { minimumFractionDigits: 2 })}).`;
         }
       }
     });
@@ -1179,23 +1218,42 @@ function InvoicesList() {
       setTransactionNumber(draft.transactionNumber || '');
       setNotes(draft.notes || '');
 
-      const mappedLines = draft.lines.map((l: any) => ({
-        productId: l.productId,
-        productName: l.productName,
-        quantity: parseFloat(l.quantity) || 1,
-        unitPrice: parseFloat(l.unitPrice) || 0,
-        discount: parseFloat(l.discount) || 0,
-        // Antes: `taxRate: 0.18` fijo. El borrador SI guardaba la tasa y aqui
-        // se tiraba, asi que cualquier tasa elegida volvia como 18%. Es el
-        // camino por el que se colaba tambien el 16%.
-        taxRate: l.taxRate != null ? Number(l.taxRate) : 0.18,
-        taxCategory: l.taxCategory ?? null,
-        unitOfMeasure: l.unitOfMeasure || 'unidad',
-        barcode: l.barcode || '',
-        priceTier: 'consumidor',
-        warehouseId: l.warehouseId || draft.warehouseId
-      }));
+      //  Lote 266: el catalogo de AHORA, para saber si algun precio cambio desde que se guardo el
+      //  borrador. Si el formulario ya lo tiene cargado se usa ese; si no (primera vez que se abre),
+      //  se pide aqui, en la misma accion, en vez de esperar a que lo traiga el formulario.
+      let catalogo: any[] = dbProducts;
+      if (catalogo.length === 0) {
+        const leido = await leerRespuesta<{ data: any[] }>(await fetch('/api/v1/products?per_page=100'));
+        if (leido.bien) { catalogo = leido.cuerpo.data || []; setDbProducts(catalogo); }
+      }
+      const porId = new Map(catalogo.map((p) => [p.id, p]));
+
+      const mappedLines = draft.lines.map((l: any) => {
+        const unitPrice = parseFloat(l.unitPrice) || 0;
+        return {
+          productId: l.productId,
+          productName: l.productName,
+          quantity: parseFloat(l.quantity) || 1,
+          unitPrice,
+          discount: parseFloat(l.discount) || 0,
+          // Antes: `taxRate: 0.18` fijo. El borrador SI guardaba la tasa y aqui
+          // se tiraba, asi que cualquier tasa elegida volvia como 18%. Es el
+          // camino por el que se colaba tambien el 16%.
+          taxRate: l.taxRate != null ? Number(l.taxRate) : 0.18,
+          taxCategory: l.taxCategory ?? null,
+          unitOfMeasure: l.unitOfMeasure || 'unidad',
+          barcode: l.barcode || '',
+          //  Lote 266: el nivel GUARDADO (migracion 0019). Antes era 'consumidor' para todas, y una
+          //  linea a precio mayorista volvia diciendo consumidor. Un borrador de antes de la 0019 no
+          //  lo tiene: se deduce del precio (el nivel cuyo precio de hoy coincide).
+          priceTier: esNivelDePrecio(l.priceTier) ? l.priceTier : nivelDeducido(unitPrice, porId.get(l.productId)),
+          warehouseId: l.warehouseId || draft.warehouseId
+        };
+      });
       setLines(mappedLines);
+      //  Lote 266: los precios que cambiaron desde que se guardo. No se tocan solos (decision del
+      //  dueño): el aviso los ensena y "Actualizar precios" los pone.
+      setPreciosDelBorrador(preciosViejos(mappedLines, porId));
 
       setEditingDraftId(draftId);
       // La edicion NO va por pasos: quien reabre un borrador viene a corregir UN
@@ -1815,13 +1873,13 @@ function InvoicesList() {
                 <span className="block text-xs font-bold text-amber-800 uppercase tracking-wider">Documento Modificado (Referencia)</span>
                 <span className="text-sm font-mono font-bold text-amber-950">eNCF Original: {modifiedNcf}</span>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="destructive"
                 onClick={() => { setModifiedNcf(''); setModifiedInvoiceId(''); }}
-                className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
               >
                 Remover Referencia
-              </button>
+              </Button>
             </div>
 
             {(ecfType === '33' || ecfType === '34') && (
@@ -2013,7 +2071,9 @@ function InvoicesList() {
                   <label className="block md:hidden text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-wider">Precio Unit.</label>
                   {(() => {
                     const pCost = matchedProduct ? (parseFloat(matchedProduct.cost) || 0) : 0;
-                    const isBelowCost = pCost > 0 && line.unitPrice < pCost;
+                    //  Lote 264: el precio se marca en rojo tambien si es el DESCUENTO el que lo deja
+                    //  por debajo del costo (la misma regla que frena la emision).
+                    const isBelowCost = quedaPorDebajoDelCosto(line, pCost);
 
                     const priceBase = matchedProduct ? (parseFloat(matchedProduct.price) || 0) : 0;
                     const priceConsumidor = matchedProduct ? (parseFloat(matchedProduct.priceConsumidor || matchedProduct.price) || 0) : 0;
@@ -2116,9 +2176,9 @@ function InvoicesList() {
 
                 {/* Delete Button */}
                 <div className="flex justify-end md:justify-center items-center">
-                  <button type="button" onClick={() => handleRemoveLine(idx)} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <IconButton type="button" onClick={() => handleRemoveLine(idx)} aria-label="Eliminar línea" className="hover:text-rose-600 hover:bg-rose-50">
+                    <Trash2 />
+                  </IconButton>
                 </div>
               </div>
             );
@@ -2148,14 +2208,14 @@ function InvoicesList() {
           </div>
         )}
         <div className="flex justify-start mt-2">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={handleAddLine}
-            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-          >
+            className="flex">
             <Plus className="h-4 w-4" />
             Agregar Fila
-          </button>
+          </Button>
         </div>
       </div>
   );
@@ -2223,32 +2283,31 @@ function InvoicesList() {
           </div>
 
           <div className="flex flex-col-reverse sm:flex-row gap-4 w-full md:w-auto">
-            <button
+            <Button variant="secondary"
               type="button"
               onClick={() => {
                 setShowForm(false);
                 router.replace('/dashboard/invoices');
                 resetForm();
               }}
-              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-            >
+              className="flex">
               Cancelar
-            </button>
+            </Button>
 
             {/* Save Draft button */}
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={handleSaveDraft}
               disabled={savingDraft || submitting}
               title="Guardar como Borrador (sin emitir NCF)"
-              className="flex items-center gap-2 bg-slate-500 hover:bg-slate-600 text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
             >
               {savingDraft ? (
                 <><RefreshCw className="h-4 w-4 animate-spin" /> Guardando...</>
               ) : (
                 <><Save className="h-4 w-4" /> Guardar Borrador</>
               )}
-            </button>
+            </Button>
 
             {/* Split Emit Button */}
             <div className="relative flex items-center h-9 shadow-md rounded-lg">
@@ -2272,6 +2331,7 @@ function InvoicesList() {
                 onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
                 className="flex items-center justify-center bg-[#003366] hover:bg-[#002244] border-l border-[#001f3f] text-white px-2.5 h-full rounded-r-lg font-bold transition disabled:opacity-50 disabled:cursor-not-allowed outline-none"
                 title="Más opciones"
+                aria-label="Más opciones de emisión"
               >
                 <ChevronDown className="h-3.5 w-3.5" />
               </button>
@@ -2370,7 +2430,7 @@ function InvoicesList() {
     ];
     return (
       <div className="bg-slate-50/40 p-6 rounded-xl border border-slate-200">
-        <h3 className="font-bold text-[#C5A059] uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
+        <h3 className="font-bold text-oro-texto uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
           <Eye className="h-4 w-4" /> Lo que vas a emitir
         </h3>
         <dl className="divide-y divide-slate-100">
@@ -2453,27 +2513,29 @@ function InvoicesList() {
   );
 
   const botonVista = () => (
-    <button
+    <Button
       type="button"
+      variant="secondary"
+      size="sm"
       onClick={() => { setVistaCompleta(v => !v); setErrores({}); }}
-      className="inline-flex items-center gap-2 h-8 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition shrink-0"
+      className="shrink-0"
     >
-      <LayoutList className="w-3.5 h-3.5" />
+      <LayoutList />
       <span className="hidden sm:inline">{vistaCompleta ? 'Ver por pasos' : 'Ver todo en una pagina'}</span>
       <span className="sm:hidden">{vistaCompleta ? 'Pasos' : 'Todo'}</span>
-    </button>
+    </Button>
   );
 
   const navegacionPasos = () => (
     <div className="mt-6 flex items-center justify-between gap-3">
-      <button
+      <Button
         type="button"
+        variant="secondary"
         onClick={() => { setErrores({}); setPaso(p => Math.max(1, p - 1)); }}
         disabled={paso === 1}
-        className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition disabled:opacity-40 disabled:hover:bg-slate-100"
       >
-        <ChevronLeft className="w-4 h-4" /> Atras
-      </button>
+        <ChevronLeft /> Atras
+      </Button>
       {paso < PASOS.length ? (
         <div className="flex items-center gap-3">
           {/* Un borrador es, por definicion, una factura a medias: es lo que se
@@ -2482,23 +2544,20 @@ function InvoicesList() {
               que es justo lo contrario de para lo que sirve. No valida el paso:
               guarda lo que haya, y `handleSaveDraft` ya aplica por su cuenta el
               minimo de `erroresBasicos`. */}
-          <button
+          <Button variant="secondary"
             type="button"
             onClick={handleSaveDraft}
             disabled={savingDraft || submitting}
-            title="Guardar como Borrador (sin emitir NCF)"
-            className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 transition disabled:opacity-50"
-          >
+            title="Guardar como Borrador (sin emitir NCF)">
             {savingDraft ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             Guardar Borrador
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={avanzar}
-            className="inline-flex items-center gap-2 h-9 px-5 rounded-lg text-xs font-bold text-white bg-[#003366] hover:bg-[#002244] transition active:scale-95"
           >
-            Siguiente <ChevronRight className="w-4 h-4" />
-          </button>
+            Siguiente <ChevronRight />
+          </Button>
         </div>
       ) : (
         <span />
@@ -2510,40 +2569,38 @@ function InvoicesList() {
 
     <div className="space-y-8 animate-fade-in-up pb-12 w-full max-w-none">
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 w-full">
-        <div>
-          <h1 className="font-display-lg text-3xl md:text-4xl text-[#c5a059] tracking-tight font-extrabold flex items-center gap-3">
-            <FileText className="h-8 w-8 text-[#c5a059]" /> Facturación e-CF
-          </h1>
-          <p className="font-body-lg text-slate-500 mt-1">
-            Gestione y rastree sus documentos fiscales electrónicos autorizados.
-          </p>
-        </div>
-
-        {/* Tab Switcher & Action button */}
-        <div className="flex items-center gap-3 self-end md:self-auto">
+      <CabeceraDePagina
+        titulo="Facturación e-CF"
+        descripcion="Gestione y rastree sus documentos fiscales electrónicos autorizados."
+        icono={<FileText />}
+        acciones={
+          /* Las pestanas (Historial / Registrar), solas: no son botones de accion. */
           <div className="bg-slate-50 p-1 rounded-lg flex gap-1 border border-white/20">
             <button
+              type="button"
+              aria-pressed={!showForm}
               onClick={() => { setShowForm(false); router.replace('/dashboard/invoices'); }}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition ${!showForm
-                  ? 'bg-white text-[#c5a059] shadow-sm'
+                  ? 'bg-white text-[#003366] shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
                 }`}
             >
               <ListFilter className="h-4 w-4 inline mr-1.5" /> Historial
             </button>
             <button
+              type="button"
+              aria-pressed={showForm}
               onClick={() => { resetForm(); setShowForm(true); }}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition ${showForm
-                  ? 'bg-white text-[#c5a059] shadow-sm'
+                  ? 'bg-white text-[#003366] shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
                 }`}
             >
               <Plus className="h-4 w-4 inline mr-1.5" /> Registrar
             </button>
           </div>
-        </div>
-      </header>
+        }
+      />
 
       <AnimatePresence mode="wait">
         {showForm ? (
@@ -2566,7 +2623,22 @@ function InvoicesList() {
                     : 'Complete los datos para emitir y firmar electrónicamente.'}
                 </p>
               </div>
+              {/*  LOTE 261: aqui y no dentro del <form> de la factura: el control lleva su propio
+                   formulario, y uno dentro de otro es HTML invalido (Enter enviaria la factura).  */}
+              <TasaDelDolarEnLinea t={tasaDelDolar} />
             </div>
+
+            {/*  LOTE 266: el borrador reabierto con precios que ya no son los del catalogo.  */}
+            <AvisoPreciosDelBorrador
+              viejos={preciosDelBorrador}
+              alActualizar={() => {
+                const n = preciosDelBorrador.length;
+                setLines(conPreciosActuales(lines, preciosDelBorrador));
+                setPreciosDelBorrador([]);
+                toast.success(n === 1 ? 'Se actualizó el precio de 1 línea.' : `Se actualizó el precio de ${n} líneas.`);
+              }}
+              alDejar={() => setPreciosDelBorrador([])}
+            />
 
             {cargandoCotizacion ? (
               <EsqueletoCotizacion />
@@ -2622,14 +2694,12 @@ function InvoicesList() {
             className="space-y-6"
           >
             {/* Stats Row */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-2">
-              <div className="flex flex-col gap-2">
-                <div className="mt-3 flex items-center gap-2 bg-[#003366]/5 border border-[#003366]/10 px-3 py-1.5 rounded-full w-fit">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                  <span className="text-xs font-bold text-[#003366] uppercase tracking-wider">Powered by MSeller API</span>
-                </div>
-              </div>
-              <div className="flex gap-4 w-full md:w-auto">
+            {/*  LOTE 268: fuera el letrero "Powered by MSeller API" (pedido del dueño, 2026-10-03). Era
+                 lo unico de la columna izquierda; sin el, la fila se alinea a la DERECHA para que los
+                 totales se queden donde estaban (con `justify-between` y un solo hijo se irian a la
+                 izquierda).  */}
+            <div className="flex flex-col md:flex-row md:justify-end items-start md:items-end gap-6 mb-2">
+              <div className="flex flex-wrap gap-4 w-full md:w-auto">
                 <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none">
                   <span className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1">Total Mes</span>
                   <span className="block font-mono text-xl md:text-2xl font-bold text-[#003366]">
@@ -2646,7 +2716,7 @@ function InvoicesList() {
                 <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-1 h-full bg-[#C5A059]" />
                   <span className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1">Pendientes DGII</span>
-                  <span className="block font-mono text-xl md:text-2xl font-bold text-[#C5A059]">{stats?.pending ?? 0}</span>
+                  <span className="block font-mono text-xl md:text-2xl font-bold text-oro-texto">{stats?.pending ?? 0}</span>
                 </div>
               </div>
             </div>
@@ -2730,16 +2800,15 @@ function InvoicesList() {
                 />
               </div>
 
-              <button
+              <Button type="button"
                 onClick={loadInvoices}
-                className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-              >
+                className="flex">
                 <Filter className="h-4 w-4" />
                 FILTRAR
-              </button>
+              </Button>
 
               {invoices.length > 0 && (
-                <button
+                <Button variant="documento"
                   type="button"
                   onClick={() => {
                     const queryParams = new URLSearchParams();
@@ -2751,11 +2820,10 @@ function InvoicesList() {
                     queryParams.append('excludeTypes', '33,34,03,04');
                     window.open(`/api/v1/invoices/report?${queryParams.toString()}`, '_blank');
                   }}
-                  className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                >
+                  className="flex">
                   <Printer className="h-4 w-4" />
                   REPORTE PDF
-                </button>
+                </Button>
               )}
             </div>
 
@@ -2810,16 +2878,16 @@ function InvoicesList() {
                             RD$ {parseFloat(inv.total).toLocaleString('es-DO', { minimumFractionDigits: 2 })}
                           </span>
                           <div className="flex gap-1.5">
-                            <button onClick={() => viewInvoiceDetails(inv)} className="p-2 bg-slate-100 rounded text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10">
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <button onClick={() => handleDownloadPdf(inv)} className="p-2 bg-slate-100 rounded text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10">
-                              <Printer className="h-4 w-4" />
-                            </button>
+                            <IconButton type="button" onClick={() => viewInvoiceDetails(inv)} aria-label="Ver detalles de la factura">
+                              <Eye />
+                            </IconButton>
+                            <IconButton type="button" onClick={() => handleDownloadPdf(inv)} aria-label="Imprimir factura">
+                              <Printer />
+                            </IconButton>
                             {inv.status === 'draft' && (
-                              <button onClick={() => handleLoadDraft(inv.id)} className="p-2 bg-slate-100 rounded text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10">
-                                <FilePlus className="h-4 w-4" />
-                              </button>
+                              <IconButton type="button" onClick={() => handleLoadDraft(inv.id)} aria-label="Editar borrador">
+                                <FilePlus />
+                              </IconButton>
                             )}
                           </div>
                         </div>
@@ -2921,38 +2989,43 @@ function InvoicesList() {
 
                             <td className="px-4 py-2 align-middle text-right">
                               <div className="flex justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
+                                <IconButton
+                                  type="button"
                                   onClick={() => viewInvoiceDetails(inv)}
-                                  className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
+                                  aria-label="Ver detalles de la factura"
                                   title="Ver Detalles"
                                 >
-                                  <Eye className="h-3.5 w-3.5" />
-                                </button>
-                                <button
+                                  <Eye />
+                                </IconButton>
+                                <IconButton
+                                  type="button"
                                   onClick={() => handleDownloadPdf(inv)}
-                                  className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
+                                  aria-label="Descargar el PDF de la factura"
                                   title="Descargar PDF"
                                 >
-                                  <Printer className="h-3.5 w-3.5" />
-                                </button>
+                                  <Printer />
+                                </IconButton>
                                 {(inv.msellerXmlPath || inv.signedXmlPath || inv.xmlPath) && (
-                                  <button
+                                  <IconButton
+                                    type="button"
                                     onClick={() => handleDownloadXml(inv)}
-                                    className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
+                                    aria-label="Descargar el XML de la factura"
                                     title="Descargar XML"
                                   >
-                                    <FileCode className="h-3.5 w-3.5" />
-                                  </button>
+                                    <FileCode />
+                                  </IconButton>
                                 )}
                                 {inv.customerId && inv.status !== 'draft' && (
-                                  <button
+                                  <IconButton
+                                    type="button"
+                                    aria-label="Reenviar la factura por correo"
                                     onClick={() => handleResendEmail(inv.id)}
                                     disabled={resendingEmailId === inv.id}
                                     /* Lote 157: el color dice como acabo el ULTIMO correo de esta
                                        factura -- verde salio, rojo fallo, gris no consta -- y el
                                        texto emergente da la fecha o el motivo. */
                                     className={clsx(
-                                      'p-1.5 rounded-lg transition-colors flex items-center justify-center hover:bg-[#003366]/10 disabled:opacity-50',
+                                      'hover:bg-[#003366]/10',
                                       inv.correoEstado === 'sent' && 'text-emerald-600 hover:text-emerald-700',
                                       inv.correoEstado === 'failed' && 'text-red-600 hover:text-red-700',
                                       !inv.correoEstado && 'text-slate-500 hover:text-[#003366]'
@@ -2964,24 +3037,27 @@ function InvoicesList() {
                                     ) : (
                                       <Mail className="h-3.5 w-3.5" />
                                     )}
-                                  </button>
+                                  </IconButton>
                                 )}
                                 {inv.status === 'draft' && (
                                   <>
-                                    <button
+                                    <IconButton
+                                      type="button"
                                       onClick={() => handleLoadDraft(inv.id)}
-                                      className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
+                                      aria-label="Editar borrador"
                                       title="Editar Borrador"
                                     >
-                                      <FilePlus className="h-3.5 w-3.5" />
-                                    </button>
-                                    <button
+                                      <FilePlus />
+                                    </IconButton>
+                                    <IconButton
+                                      type="button"
                                       onClick={() => handleDeleteDraft(inv.id)}
-                                      className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"
+                                      aria-label="Eliminar borrador"
                                       title="Eliminar Borrador"
+                                      className="hover:text-rose-600 hover:bg-rose-50"
                                     >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </button>
+                                      <Trash2 />
+                                    </IconButton>
                                   </>
                                 )}
                               </div>
@@ -3001,7 +3077,7 @@ function InvoicesList() {
                           <div className="flex flex-col items-center gap-3">
                             <AlertCircle className="h-8 w-8 text-on-surface-variant/80" />
                             <span className="text-on-surface-variant/80 text-sm">No se encontraron facturas con los filtros actuales.</span>
-                            <button
+                            <Button type="button" variant="secondary"
                               onClick={() => {
                                 setSearchTerm('');
                                 setStatusFilter('');
@@ -3010,10 +3086,9 @@ function InvoicesList() {
                                 setStartDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
                                 setEndDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
                               }}
-                              className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                            >
+                              className="flex">
                               Limpiar Filtros
-                            </button>
+                            </Button>
                           </div>
                         </td>
                       </tr>
@@ -3040,32 +3115,17 @@ function InvoicesList() {
       {/* ==============================================================================
             INVOICE DETAILS MODAL
             ============================================================================== */}
-      <AnimatePresence>
-        {selectedInvoice && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.7 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedInvoice(null)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white border border-[#003366] rounded-2xl max-w-4xl w-full shadow-2xl z-10 max-h-[90vh] overflow-y-auto"
-            >
-              <div className="flex items-center justify-between border-b border-[#003366] bg-[#001733] px-6 py-5 md:px-8">
-                <div>
-                  <h3 className="text-xl font-display font-bold text-white tracking-tight">Detalles de Factura</h3>
-                  <p className="text-sm text-[#c5a059]/80 mt-1">{selectedInvoice.ncf || 'Borrador'}</p>
-                </div>
-                <button onClick={() => setSelectedInvoice(null)} className="p-2 text-on-surface-variant hover:text-primary transition-colors">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
+      {/* La ventana de la casa (lote 278). Se monta solo con una factura elegida: el cuerpo lee
+          `selectedInvoice` y no se puede construir sin ella. Pulsar fuera cierra, como antes. */}
+      {selectedInvoice && (
+          <Modal
+            isOpen
+            onClose={() => setSelectedInvoice(null)}
+            title="Detalles de Factura"
+            description={selectedInvoice.ncf || 'Borrador'}
+            maxWidth="4xl"
+            sinRelleno
+          >
               <div className="p-6 md:p-8">
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
@@ -3194,6 +3254,7 @@ function InvoicesList() {
                       className="flex-1 md:flex-none hover:bg-slate-50 transition-colors"
                     >
                       <button
+                        type="button"
                         onClick={() => setSelectedInvoice(null)}
                         className="w-full h-full bg-transparent border-0 text-sm font-bold text-[#003366] px-6 py-2.5 text-center focus:outline-none"
                       >
@@ -3237,6 +3298,7 @@ function InvoicesList() {
                           className="flex-1 md:flex-none hover:bg-pink-100/50 transition-colors"
                         >
                           <button
+                            type="button"
                             onClick={() => { handleCreateAdjustmentNote(selectedInvoice, '34'); setSelectedInvoice(null); }}
                             className="flex items-center justify-center gap-2 w-full h-full bg-transparent border-0 text-sm font-bold text-pink-700 px-6 py-2.5 text-center focus:outline-none"
                           >
@@ -3257,6 +3319,7 @@ function InvoicesList() {
                           className="flex-1 md:flex-none hover:bg-orange-100/50 transition-colors"
                         >
                           <button
+                            type="button"
                             onClick={() => { handleCreateAdjustmentNote(selectedInvoice, '33'); setSelectedInvoice(null); }}
                             className="flex items-center justify-center gap-2 w-full h-full bg-transparent border-0 text-sm font-bold text-orange-700 px-6 py-2.5 text-center focus:outline-none"
                           >
@@ -3280,6 +3343,7 @@ function InvoicesList() {
                         className={`flex-1 md:flex-none hover:bg-slate-50 transition-colors ${resendingEmailId === selectedInvoice.id ? 'opacity-50' : ''}`}
                       >
                         <button
+                          type="button"
                           onClick={() => handleResendEmail(selectedInvoice.id)}
                           disabled={resendingEmailId === selectedInvoice.id}
                           className="flex items-center justify-center gap-2 w-full h-full bg-transparent border-0 text-sm font-bold text-[#003366] px-6 py-2.5 text-center focus:outline-none disabled:cursor-not-allowed"
@@ -3296,48 +3360,25 @@ function InvoicesList() {
                   </div>
                 </div>
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          </Modal>
+      )}
 
 
 
 
 
-      {/* Create Customer Modal */}
-      <AnimatePresence>
-        {createCustomerModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.7 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setCreateCustomerModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] z-10 text-slate-800"
-            >
-              {/* Header */}
-              <div className="flex justify-between items-center p-5 border-b border-slate-200 bg-slate-50">
-                <h3 className="text-lg font-bold text-[#003366] flex items-center gap-2">
-                  <Users className="h-5 w-5 text-[#C5A059]" /> Registrar Nuevo Cliente
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setCreateCustomerModalOpen(false)}
-                  className="text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              {/* Form */}
-              <form onSubmit={handleCreateCustomerSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+      {/* Create Customer Modal. Pulsar fuera cierra, como antes; mientras se registra, no se cierra. */}
+          <Modal
+            isOpen={createCustomerModalOpen}
+            onClose={() => setCreateCustomerModalOpen(false)}
+            title="Registrar Nuevo Cliente"
+            icono={<Users />}
+            maxWidth="lg"
+            bloqueada={isSavingCustomer}
+            sinRelleno
+          >
+              {/* Form: el pie va dentro, para que Enter siga registrando */}
+              <form onSubmit={handleCreateCustomerSubmit} className="p-6 space-y-4 text-slate-800">
                 <div className="space-y-1">
                   <label className="block text-xs font-semibold text-[#001e40]">RNC o Cédula</label>
                   <div className="flex gap-2">
@@ -3411,19 +3452,14 @@ function InvoicesList() {
                 <div className="pt-4 border-t border-slate-200 flex justify-end gap-3">
                   <Button
                     type="button"
-                    variant="ghost"
-                    size="sm"
+                    variant="secondary"
                     onClick={() => setCreateCustomerModalOpen(false)}
-                    className="cursor-pointer text-xs font-bold"
                   >
                     Cancelar
                   </Button>
                   <Button
                     type="submit"
-                    variant="warning"
-                    size="sm"
                     disabled={isSavingCustomer}
-                    className="cursor-pointer text-xs font-bold"
                   >
                     {isSavingCustomer ? (
                       <RefreshCw className="h-3.5 w-3.5 animate-spin" />
@@ -3434,34 +3470,40 @@ function InvoicesList() {
                   </Button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
+          </Modal>
 
-        {showPrintConfirmModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.7 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowPrintConfirmModal(false)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white border border-[#003366] rounded-2xl max-w-md w-full shadow-2xl z-10 overflow-hidden"
-            >
-              <div className="flex items-center justify-between border-b border-[#003366] bg-[#001733] px-6 py-4">
-                <h3 className="text-lg font-display font-bold text-white tracking-tight flex items-center gap-2">
-                  <Printer className="h-5 w-5 text-[#c5a059]" /> Confirmar Impresión
-                </h3>
-                <button onClick={() => setShowPrintConfirmModal(false)} className="text-white/70 hover:text-white transition-colors">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
+        {/* Confirmar impresion (lote 278: solo cambia la ventana; Aceptar emite igual que antes).
+            Pulsar fuera cierra sin emitir, como antes. */}
+          <Modal
+            isOpen={showPrintConfirmModal}
+            onClose={() => setShowPrintConfirmModal(false)}
+            title="Confirmar Impresión"
+            icono={<Printer />}
+            maxWidth="md"
+            sinRelleno
+            footer={
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setShowPrintConfirmModal(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => {
+                    setShowPrintConfirmModal(false);
+                    const fakeEvent = { preventDefault: () => { } } as React.FormEvent;
+                    handleIssueInvoice(fakeEvent, pendingPostAction);
+                  }}
+                >
+                  Aceptar
+                </Button>
+              </>
+            }
+          >
               <div className="p-6 space-y-4">
                 <p className="text-sm text-slate-600">
                   Por favor, verifique los datos del comprobante antes de proceder con la emisión e impresión:
@@ -3500,35 +3542,7 @@ function InvoicesList() {
                   </div>
                 </div>
               </div>
-
-              <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowPrintConfirmModal(false)}
-                  className="cursor-pointer text-xs font-bold"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  onClick={() => {
-                    setShowPrintConfirmModal(false);
-                    const fakeEvent = { preventDefault: () => { } } as React.FormEvent;
-                    handleIssueInvoice(fakeEvent, pendingPostAction);
-                  }}
-                  className="cursor-pointer text-xs font-bold"
-                >
-                  Aceptar
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          </Modal>
     </div>
 
   );

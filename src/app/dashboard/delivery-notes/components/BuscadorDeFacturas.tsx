@@ -5,38 +5,25 @@
  * Salio de `page.tsx` al partirla (lote 226), con el mismo marcado: solo pinta,
  * el estado y la busqueda viven en `useFormularioConduce`.
  */
-import { Check, FileText, RefreshCw, X } from 'lucide-react';
-//  Lote 227: `m` y no `motion`; el `LazyMotion` lo pone la pagina.
-import { m, AnimatePresence } from 'framer-motion';
+import { Check, FileText, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+//  Lote 277: la ventana es la de la casa (`Modal`): foco, Escape y titulo anunciado.
+import { Modal } from '@/components/ui/dialog';
 import type { FormularioConduce } from '../hooks/useFormularioConduce';
 
 export function BuscadorDeFacturas({ formulario }: { formulario: FormularioConduce }) {
   const f = formulario;
   return (
-    <AnimatePresence>
-      {f.showInvoiceSearch && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
-          <m.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-xl shadow-xl border border-slate-200 max-w-xl w-full overflow-hidden"
-          >
-            <div className="bg-[#003366] text-white px-4 py-3 flex items-center justify-between">
-              <h3 className="font-bold flex items-center gap-2 text-base">
-                <FileText className="w-5 h-5 text-[#C5A059]" /> Buscar Facturas Pendientes de Despacho
-              </h3>
-              <button
-                type="button"
-                aria-label="Cerrar"
-                onClick={() => f.setShowInvoiceSearch(false)}
-                className="hover:bg-white/10 p-1.5 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
+    //  Su fondo no cerraba la ventana: `cerrarAlPulsarFuera={false}` conserva eso.
+    <Modal
+      isOpen={f.showInvoiceSearch}
+      onClose={() => f.setShowInvoiceSearch(false)}
+      title="Buscar Facturas Pendientes de Despacho"
+      icono={<FileText />}
+      maxWidth="xl"
+      cerrarAlPulsarFuera={false}
+      sinRelleno
+    >
             <div className="p-4 space-y-4">
               <div className="flex gap-2">
                   <input
@@ -48,10 +35,10 @@ export function BuscadorDeFacturas({ formulario }: { formulario: FormularioCondu
                     className="flex-1 h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors"
                   />
                 <Button
+                  type="button"
                   onClick={f.handleSearchInvoices}
                   variant="primary"
                   size="sm"
-                  className="cursor-pointer"
                 >
                   Buscar
                 </Button>
@@ -89,9 +76,6 @@ export function BuscadorDeFacturas({ formulario }: { formulario: FormularioCondu
                 )}
               </div>
             </div>
-          </m.div>
-        </div>
-      )}
-    </AnimatePresence>
+    </Modal>
   );
 }

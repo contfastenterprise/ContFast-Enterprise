@@ -2,13 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
-import { Plus, Edit2, Trash2, Tag, RefreshCw, X, Save, Printer, ShieldCheck } from 'lucide-react';
+import { Plus, Pencil, Trash2, Tag, RefreshCw, Save, Printer, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { SearchBar } from '@/components/ui/search-bar';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 import { Pagination } from '@/components/ui/pagination';
 
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { AccionesDeFormulario } from '@/components/ui/acciones-de-formulario';
 interface Category {
   id: string;
   name: string;
@@ -214,15 +217,12 @@ export default function CategoriesPage() {
 
   return (
     <div className="space-y-8 animate-fade-in-up pb-10">
-      <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-        <div>
-          <h1 className="font-display-lg text-3xl md:text-4xl text-primary tracking-tight font-extrabold flex items-center gap-3">
-            <Tag className="h-8 w-8 text-primary" /> Categorías
-          </h1>
-          <p className="font-body-lg text-on-surface-variant/80 mt-1">Clasifica y organiza tu catálogo de productos.</p>
-        </div>
-        <div className="flex gap-2 w-full md:w-auto">
-          {/* Lote 243: en la cabecera, SOLO las pestanas (como en Compras). Los botones de la lista viven en la barra de la lista. */}
+      {/* Lote 243: en la cabecera, SOLO las pestanas (como en Compras). Los botones de la lista viven en la barra de la lista. */}
+      <CabeceraDePagina
+        titulo="Categorías"
+        descripcion="Clasifica y organiza tu catálogo de productos."
+        icono={<Tag />}
+        acciones={
           <PestanasDeRegistro
             enFormulario={showModal}
             lista="Categorías"
@@ -230,8 +230,8 @@ export default function CategoriesPage() {
             alVerLista={() => setShowModal(false)}
             alRegistrar={openNewModal}
           />
-        </div>
-      </header>
+        }
+      />
 
       {!showModal && (<>
       {/* SEARCH BAR */}
@@ -247,12 +247,11 @@ export default function CategoriesPage() {
             <RefreshCw className="h-5 w-5 animate-spin" />
           </div>
         )}
-        <button
-          onClick={handlePrintList}
-          className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-        >
-          <Printer className="h-4 w-4 text-amber-500" /> Imprimir
-        </button>
+        <Button variant="documento"
+          type="button"
+          onClick={handlePrintList}>
+          <Printer /> Imprimir
+        </Button>
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden">
@@ -284,12 +283,12 @@ export default function CategoriesPage() {
                     </td>
                     <td className="px-4 py-2 align-middle text-right">
                       <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openEditModal(cat)} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10">
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </button>
-                        <button onClick={() => handleDelete(cat.id)} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <IconButton type="button" onClick={() => openEditModal(cat)} aria-label={`Editar categoría ${cat.name}`}>
+                          <Pencil />
+                        </IconButton>
+                        <IconButton type="button" onClick={() => handleDelete(cat.id)} aria-label={`Eliminar categoría ${cat.name}`} className="hover:bg-rose-50 hover:text-rose-600">
+                          <Trash2 />
+                        </IconButton>
                       </div>
                     </td>
                   </tr>
@@ -352,16 +351,12 @@ export default function CategoriesPage() {
                 </select>
               </div>
 
-              <div className="pt-4 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
-                  <X className="w-4 h-4" />
-                  Cancelar
-                </button>
-                <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
-                  {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                  {editId ? 'Guardar Cambios' : 'Registrar Categoría'}
-                </button>
-              </div>
+              <AccionesDeFormulario
+                textoPrincipal={editId ? 'Guardar Cambios' : 'Registrar Categoría'}
+                iconoPrincipal={<ShieldCheck />}
+                guardando={submitting}
+                alCancelar={() => setShowModal(false)}
+              />
             </form>
         </PanelDeRegistro>
       )}

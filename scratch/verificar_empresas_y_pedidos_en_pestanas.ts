@@ -56,8 +56,10 @@ function main() {
     /companies\.map|filteredCompanies\.map|<table/.test(listaE) && !/handleCreateCompany/.test(listaE) && /<form onSubmit=\{handleCreateCompany\}/.test(formE));
   ok('  el alta ya no es un modal: va en la caja de la pestana, y sus botones a su tamano',
     /<PanelDeRegistro titulo="Registrar Empresa">/.test(formE) && !/fixed inset-0/.test(formE) && !/className="flex-1 px-4 py-2/.test(formE)
-    && (emp.match(/fixed inset-0/g) ?? []).length === 1);
-  invariante('  la suscripcion sigue en su ventana (accion sobre una empresa)', /showSubscriptionModal && selectedCompany && \(/.test(emp));
+    //  Lote 280: la unica ventana que queda (la suscripcion) puede ser a mano o el Modal comun.
+    && (emp.match(/fixed inset-0|<Modal\b/g) ?? []).length === 1);
+  invariante('  la suscripcion sigue en su ventana (accion sobre una empresa)',
+    /showSubscriptionModal && selectedCompany && \(/.test(emp) || /\{selectedCompany && \(\s*<Modal\s+isOpen=\{showSubscriptionModal\}/.test(emp));
 
   console.log('\nPedidos a suplidor\n');
   const pp = pestanas(ped);
@@ -74,9 +76,12 @@ function main() {
     //  El FORMULARIO y su caja: dentro, el desplegable de la busqueda de productos si lleva su
     //  propio desplazamiento (max-h-[180px]), y es lo que debe.
     && /<form onSubmit=\{handleFormSubmit\} className="space-y-6 text-xs">/.test(formP)
-    && !/fixed inset-0|max-h-\[90vh\]/.test(formP) && (ped.match(/fixed inset-0/g) ?? []).length === 2);
+    && !/fixed inset-0|max-h-\[90vh\]|<Modal\b/.test(formP)
+    //  Lote 279: las dos ventanas que quedan (detalle y recepcion) pasaron a la ventana comun: se
+    //  cuentan ventanas, escritas a mano o `<Modal`, no la forma de escribirlas.
+    && (ped.match(/fixed inset-0|<Modal\b/g) ?? []).length === 2);
   invariante('  ver el detalle y recibir siguen en su ventana (acciones sobre un pedido)',
-    /showDetailModal && activeOrder && \(/.test(ped) && /<form onSubmit=\{handleReceiveSubmit\}/.test(ped));
+    /showDetailModal && (?:!!)?activeOrder/.test(ped) && /<form onSubmit=\{handleReceiveSubmit\}/.test(ped));
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
   process.exit(fallos === 0 ? 0 : 1);

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Save, PackageMinus, Settings2, RefreshCw, Scale, Search } from 'lucide-react';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 import { Pagination } from '@/components/ui/pagination';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
@@ -271,14 +273,11 @@ export default function InventoryAdjustmentsPage() {
 
   return (
     <div className="space-y-8 animate-fade-in-up pb-10 max-w-4xl mx-auto">
-      <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
-        <div>
-          <h1 className="font-display-lg text-3xl md:text-4xl text-primary tracking-tight font-extrabold flex items-center gap-3">
-            <Scale className="h-8 w-8 text-primary" /> Ajustes de Inventario
-          </h1>
-          <p className="font-body-lg text-on-surface-variant/80 mt-1">Sincroniza el sistema con el inventario físico real.</p>
-        </div>
-      </header>
+      <CabeceraDePagina
+        titulo="Ajustes de Inventario"
+        descripcion="Sincroniza el sistema con el inventario físico real."
+        icono={<Scale />}
+      />
 
       <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-3xl p-6 md:p-10">
         
@@ -309,7 +308,8 @@ export default function InventoryAdjustmentsPage() {
               {products.length > 0 && !selectedProduct && (
                 <div className="mt-2 bg-white border border-outline/20 rounded-xl shadow-xl max-h-60 overflow-y-auto absolute z-[50] w-full left-0">
                   {products.map(p => (
-                    <button 
+                    <button
+                      type="button"
                       key={p.id}
                       onClick={() => setSelectedProduct(p)}
                       className="w-full text-left px-4 py-3 border-b border-outline/10 hover:bg-surface-container text-sm flex justify-between items-center transition-colors"
@@ -331,12 +331,15 @@ export default function InventoryAdjustmentsPage() {
                 <h3 className="font-bold text-xl text-primary">{selectedProduct.name}</h3>
                 <p className="text-sm font-mono text-on-surface-variant">SKU: {selectedProduct.sku}</p>
               </div>
-              <button 
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setSelectedProduct(null)}
-                className="text-xs font-bold text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
+                className="text-red-500 hover:bg-red-50 hover:text-red-600"
               >
                 Cambiar Producto
-              </button>
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4 border-t border-outline-variant/20">
@@ -375,14 +378,15 @@ export default function InventoryAdjustmentsPage() {
             </div>
 
             <div className="pt-4 flex justify-end">
-              <button
+              <Button
+                type="button"
+                size="lg"
                 onClick={handleAdjust}
                 disabled={loading || diff === 0 || diff === null || !reason}
-                className="bg-primary text-on-primary px-8 py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:shadow-xl hover:shadow-primary/30 transition active:scale-95 disabled:opacity-50"
               >
-                {loading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
-                <span className="font-label-md text-sm font-bold">Aplicar Ajuste</span>
-              </button>
+                {loading ? <RefreshCw className="animate-spin" /> : <Save />}
+                <span>Aplicar Ajuste</span>
+              </Button>
             </div>
           </div>
         )}
@@ -467,18 +471,16 @@ export default function InventoryAdjustmentsPage() {
                         {diffVal !== null ? (diffVal > 0 ? `+${diffVal.toFixed(2)}` : diffVal.toFixed(2)) : '0.00'}
                       </td>
                       <td className="py-2 pr-4 text-right">
-                        <button
+                        <IconButton
+                          type="button"
+                          variant="primary"
                           onClick={() => handleTableAdjust(p.id)}
                           disabled={isRowLoading || inputVal === '' || isNaN(newQty) || newQty === currentStock}
-                          className="bg-[#001e40] text-white hover:bg-[#003366] p-1.5 rounded-lg inline-flex items-center justify-center transition disabled:opacity-40"
                           title="Establecer cantidad"
+                          aria-label={`Establecer la cantidad de ${p.name}`}
                         >
-                          {isRowLoading ? (
-                            <RefreshCw className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Save className="h-3 w-3" />
-                          )}
-                        </button>
+                          {isRowLoading ? <RefreshCw className="animate-spin" /> : <Save />}
+                        </IconButton>
                       </td>
                     </tr>
                   );

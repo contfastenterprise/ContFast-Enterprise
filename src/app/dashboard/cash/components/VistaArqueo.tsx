@@ -13,6 +13,8 @@ import clsx from 'clsx';
 import { formatDateTimeDisplay } from '@/utils/fechasLocales';
 import { fmt, DENOMINATIONS } from '../caja';
 import type { Caja } from '../hooks/useCaja';
+import { Button } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 export function VistaArqueo({ c }: { c: Caja }) {
   //  Lote 230: la hora del arqueo es la de cuando se abrio la pestana, tomada una
@@ -22,18 +24,18 @@ export function VistaArqueo({ c }: { c: Caja }) {
   return (
     <>
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#001e40] tracking-tight">Arqueo y Cierre de Caja</h1>
-          <p className="text-xs text-slate-500 mt-1">Realice el conteo físico para finalizar el turno de trabajo.</p>
-        </div>
-        <div className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-lg">
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Fecha y Hora</p>
-          <p className="font-mono text-sm font-bold text-[#001e40]">
-            {formatDateTimeDisplay(ahora)}
-          </p>
-        </div>
-      </div>
+      <CabeceraDePagina
+        titulo="Arqueo y Cierre de Caja"
+        descripcion="Realice el conteo físico para finalizar el turno de trabajo."
+        acciones={
+          <div className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-lg">
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Fecha y Hora</p>
+            <p className="font-mono text-sm font-bold text-[#001e40]">
+              {formatDateTimeDisplay(ahora)}
+            </p>
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left: Denomination form */}
@@ -45,6 +47,7 @@ export function VistaArqueo({ c }: { c: Caja }) {
                 Desglose de Efectivo (DOP)
               </h2>
               <button
+                type="button"
                 onClick={() => { c.setDenomQty({}); }}
                 className="text-[10px] font-bold text-amber-700 hover:underline underline-offset-4"
               >
@@ -159,11 +162,11 @@ export function VistaArqueo({ c }: { c: Caja }) {
 
           {/* Close button */}
           <div className="space-y-3">
-            <button
+            <Button
+              type="button"
               onClick={c.handleCloseSession}
               disabled={c.closing}
-              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm w-full"
-            >
+              className="flex w-full">
               {c.closing ? (
                 <m.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}>
                   <RefreshCw className="w-4 h-4" />
@@ -172,7 +175,7 @@ export function VistaArqueo({ c }: { c: Caja }) {
                 <Printer className="w-4 h-4" />
               )}
               {c.closing ? 'Cerrando turno...' : 'Finalizar Turno e Imprimir Arqueo'}
-            </button>
+            </Button>
             <p className="text-center text-[10px] text-slate-500 italic">
               * Al confirmar, se cerrará la sesión de la terminal y se generará el reporte de cierre.
             </p>

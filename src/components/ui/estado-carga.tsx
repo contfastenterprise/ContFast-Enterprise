@@ -1,6 +1,7 @@
 'use client';
 
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 /**
  * "No pude cargarlo" no es lo mismo que "no hay nada".
@@ -52,14 +53,15 @@ export function ErrorDeCarga({
         </p>
       </div>
       {onReintentar && (
-        <button
+        <Button
+          size="sm"
+          className="mt-1"
           type="button"
           onClick={onReintentar}
-          className="mt-1 inline-flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-xs font-bold text-white transition hover:bg-slate-900 active:scale-95"
         >
           <RefreshCw className="h-3.5 w-3.5" />
           Reintentar
-        </button>
+        </Button>
       )}
     </div>
   );

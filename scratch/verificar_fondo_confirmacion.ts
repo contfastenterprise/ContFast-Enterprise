@@ -83,18 +83,14 @@ function main() {
   const compartido = /\{\/\* Backdrop \*\/\}[^]*?className="([^"]*)"/.exec(leer(DIALOGO))?.[1] ?? '';
   if (!oscuridad(compartido)) throw new Error('Precondicion: el modal compartido (dialog.tsx) ya no declara su fondo');
   ok('oscurece como el modal compartido', oscuridad(fondo) === oscuridad(compartido), `bg-black/${oscuridad(fondo)} frente a bg-black/${oscuridad(compartido)}`);
-  // EL DESENFOQUE si se sigue derivando por recuento, FUERA de los dos componentes
-  // compartidos: el que mas se repite entre los fondos de la aplicacion.
-  const cuenta = new Map<string, number>();
-  for (const f of [...ficheros('src/app'), ...ficheros('src/components')]) {
-    if (f === ALERTA || f === DIALOGO) continue;
-    for (const m of leer(f).matchAll(/\bbg-black\/\d+\s+(?:[\w:-]+\s+)*?backdrop-blur-(\w+)\b/g)) {
-      cuenta.set(m[1], (cuenta.get(m[1]) ?? 0) + 1);
-    }
-  }
-  const [desCasa, veces] = [...cuenta.entries()].sort((x, y) => y[1] - x[1])[0] ?? ['', 0];
-  if (veces < 5) throw new Error(`Precondicion: no hay convencion clara de desenfoque en los fondos (${desCasa} x${veces})`);
-  ok('  y desenfoca como los demas fondos', desenfoque(fondo) === desCasa, `blur-${desenfoque(fondo)} frente a blur-${desCasa} (usado ${veces} veces)`);
+  // EL DESENFOQUE, tambien el del modal compartido (LOTE 276). Hasta entonces se derivaba
+  // CONTANDO los fondos escritos a mano, y los lotes 277-280 pasan esas ventanas al `Modal`:
+  // la cuenta se quedaria sin convencion y el banco se negaria a correr sin que nadie tocara
+  // la confirmacion — lo mismo que paso con la oscuridad en el 244. El 276 le dio al modal
+  // compartido el desenfoque que mas se repetia entre ellos (`blur-sm`).
+  const desCasa = desenfoque(compartido);
+  if (!desCasa) throw new Error('Precondicion: el modal compartido (dialog.tsx) ya no declara su desenfoque');
+  ok('  y desenfoca como el modal compartido', desenfoque(fondo) === desCasa, `blur-${desenfoque(fondo)} frente a blur-${desCasa}`);
 
   // ───────────────────────────────────────────────────────────────────────────
   console.log('\n2) La ventana y el pie\n');

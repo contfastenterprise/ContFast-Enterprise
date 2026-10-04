@@ -10,6 +10,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 
+import { Button, IconButton } from '@/components/ui/button';
+import { Modal } from '@/components/ui/dialog';
 export default function EditQuote({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -234,9 +236,9 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-2">
           <div className="flex items-start gap-4">
-            <button onClick={() => router.push('/dashboard/quotes')} className="p-2 mt-1 hover:bg-slate-200 rounded-lg text-slate-600 transition-colors">
+            <IconButton type="button" size="icon" onClick={() => router.push('/dashboard/quotes')} aria-label="Volver al listado de cotizaciones" className="mt-1">
               <ArrowLeft className="w-5 h-5" />
-            </button>
+            </IconButton>
             <div>
               <nav className="flex items-center gap-2 text-slate-600 font-medium text-xs mb-2">
                 <span>Facturación</span>
@@ -310,7 +312,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                       return (
                         <tr key={idx} className="border-b border-slate-100 align-middle">
                           <td className="px-3 py-2">
-                            <button
+                            <button type="button"
                               disabled={!isEditable}
                               onClick={() => { setActiveLineIndex(idx); setProductSearchOpen(true); searchProducts(''); }}
                               className={clsx(
@@ -387,13 +389,15 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                           </td>
                           <td className="px-3 py-2 text-center">
                             {isEditable && (
-                              <button
+                              <IconButton
+                                type="button"
                                 onClick={() => { const n = [...lines]; n.splice(idx, 1); setLines(n); }}
-                                className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                                className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                aria-label="Eliminar línea"
                                 title="Eliminar Línea"
                               >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                                <Trash2 />
+                              </IconButton>
                             )}
                           </td>
                         </tr>
@@ -410,12 +414,15 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                 </table>
               </div>
               {isEditable && (
-                <button 
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setLines([...lines, { productId: '', productName: '', quantity: 1, unitPrice: 0, discount: 0, taxRate: 0.18 }])}
-                  className="mt-4 flex items-center gap-2 text-[#C5A059] text-xs font-bold hover:text-[#b08c4a] transition-colors bg-[#C5A059]/10 h-8 px-3 py-1.5 rounded-lg"
+                  className="mt-4"
                 >
-                  <Plus className="w-4 h-4" strokeWidth={2.5} /> Agregar Producto
-                </button>
+                  <Plus strokeWidth={2.5} /> Agregar Producto
+                </Button>
               )}
             </div>
 
@@ -449,7 +456,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                 <div>
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Cliente</label>
                   <div className="flex gap-2">
-                    <button 
+                    <button type="button"
                       disabled={!isEditable}
                       onClick={() => { setCustomerSearchOpen(true); searchCustomers(''); }}
                       className={clsx(
@@ -460,9 +467,9 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                       {customerName || 'Consumidor Final (Opcional)'}
                     </button>
                     {customerId && isEditable && (
-                      <button onClick={() => { setCustomerId(''); setCustomerName(''); }} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100">
-                        <X className="w-4 h-4" />
-                      </button>
+                      <IconButton type="button" onClick={() => { setCustomerId(''); setCustomerName(''); }} aria-label="Quitar el cliente" className="hover:text-red-500 hover:bg-red-50">
+                        <X />
+                      </IconButton>
                     )}
                   </div>
                 </div>
@@ -529,14 +536,12 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
 
                 Va deshabilitado mientras se guarda: irse a mitad de un guardado
                 deja al usuario sin saber si se guardo o no. */}
-            <button
+            <Button variant="secondary" size="sm"
               type="button"
               onClick={() => router.push('/dashboard/quotes')}
-              disabled={submitting}
-              className="flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 h-8 px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+              disabled={submitting}>
               Cancelar
-            </button>
+            </Button>
 
             <div className="relative flex">
               <button
@@ -557,6 +562,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                 onClick={(e) => { e.stopPropagation(); setSaveDropdownOpen(v => !v); }}
                 className="flex items-center justify-center rounded-r-lg bg-[#003366] h-8 px-2.5 py-1.5 text-white hover:bg-[#002244] disabled:opacity-50 transition shadow-lg active:scale-[0.98]"
                 title="Más opciones"
+                aria-label="Más opciones de guardado"
               >
                 <ChevronDown className="h-4 w-4" />
               </button>
@@ -615,13 +621,18 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
         )}
       </motion.div>
 
-      {/* Product Search Modal */}
-      <AnimatePresence>
-        {productSearchOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]"
-            >
+      {/* Product Search Modal. La ventana de la casa (lote 278): su X es la de antes (cerraba
+          sin mas), y pulsar fuera sigue sin cerrar, como antes (el fondo no tenia onClick). */}
+          <Modal
+            isOpen={productSearchOpen}
+            onClose={() => setProductSearchOpen(false)}
+            title="Buscar Producto"
+            icono={<Package />}
+            maxWidth="lg"
+            cerrarAlPulsarFuera={false}
+            sinRelleno
+            className="max-h-[80vh]"
+          >
               <div className="p-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
                 <Search className="w-5 h-5 text-slate-400" />
                 <input 
@@ -631,11 +642,10 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                   onChange={(e) => searchProducts(e.target.value)}
                   className="flex-1 bg-transparent text-[#003366] text-xs font-semibold outline-none placeholder:text-slate-500 placeholder:font-normal"
                 />
-                <button onClick={() => setProductSearchOpen(false)} className="text-slate-400 hover:text-slate-700 bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm"><X className="w-4 h-4" /></button>
               </div>
               <div className="overflow-auto flex-1 p-2">
                 {modalProducts.map(p => (
-                  <button 
+                  <button type="button"
                     key={p.id}
                     onClick={() => selectProduct(p)}
                     className="w-full text-left p-3 hover:bg-slate-50 rounded-xl flex justify-between items-center group transition-colors border border-transparent hover:border-slate-200"
@@ -656,18 +666,19 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                   </div>
                 )}
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          </Modal>
 
-      {/* Customer Search Modal */}
-      <AnimatePresence>
-        {customerSearchOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]"
-            >
+      {/* Customer Search Modal. Igual que la de productos: pulsar fuera no cierra, como antes. */}
+          <Modal
+            isOpen={customerSearchOpen}
+            onClose={() => setCustomerSearchOpen(false)}
+            title="Buscar Cliente"
+            icono={<Building2 />}
+            maxWidth="lg"
+            cerrarAlPulsarFuera={false}
+            sinRelleno
+            className="max-h-[80vh]"
+          >
               <div className="p-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
                 <Search className="w-5 h-5 text-slate-400" />
                 <input 
@@ -677,11 +688,10 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                   onChange={(e) => searchCustomers(e.target.value)}
                   className="flex-1 bg-transparent text-[#003366] text-xs font-semibold outline-none placeholder:text-slate-500 placeholder:font-normal"
                 />
-                <button onClick={() => setCustomerSearchOpen(false)} className="text-slate-400 hover:text-slate-700 bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm"><X className="w-4 h-4" /></button>
               </div>
               <div className="overflow-auto flex-1 p-2">
                 {modalCustomers.map(c => (
-                  <button 
+                  <button type="button"
                     key={c.id}
                     onClick={() => { setCustomerId(c.id); setCustomerName(c.name); setCustomerSearchOpen(false); }}
                     className="w-full text-left p-3 hover:bg-slate-50 rounded-xl flex justify-between items-center group transition-colors border border-transparent hover:border-slate-200"
@@ -699,10 +709,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                   </div>
                 )}
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          </Modal>
     </div>
   );
 }

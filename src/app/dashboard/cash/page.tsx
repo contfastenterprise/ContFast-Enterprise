@@ -64,12 +64,13 @@ export default function CashPage() {
       <div className="flex items-center gap-1 border-b border-slate-200 bg-white px-4 pt-2">
         {TABS.map((tab) => (
           <button
+            type="button"
             key={tab.id}
             onClick={() => caja.handleTabChange(tab.id)}
             className={clsx(
               'flex items-center gap-2 px-4 py-2 text-xs font-semibold uppercase tracking-wider border-b-2 transition rounded-t-lg',
               (caja.view === tab.id || (tab.id === 'gestion' && caja.view === 'apertura'))
-                ? 'border-[#c5a059] text-[#c5a059] bg-amber-50'
+                ? 'border-[#c5a059] text-oro-texto bg-amber-50'
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
             )}
           >

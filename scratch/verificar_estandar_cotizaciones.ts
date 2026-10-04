@@ -135,9 +135,13 @@ const veces = (s: string, t: string): number => s.split(t).length - 1;
 
 // ─── listado ────────────────────────────────────────────────────────────
 {
+  //  Lote 272: las acciones de fila pasan a `IconButton` (estandar de UI), cuyo tamaño por defecto
+  //  (`icon-sm`) es el control de 32 px que antes se escribia a mano (`h-8 w-8`). La propiedad: las seis
+  //  (tres en el movil, tres en escritorio) son IconButton y ninguna se agranda a `size="icon"` (36 px).
   ok('lista: pestañas y botones de accion con alto de control',
     veces(LISTA, 'h-8 px-3 py-1.5 rounded-lg text-xs font-bold') === 2
-    && veces(LISTA, 'h-8 w-8 inline-flex items-center justify-center') === 3);
+    && veces(LISTA, '<IconButton') === 6
+    && !/<IconButton\b[^>]*\bsize="icon"/.test(LISTA));
 
   ok('lista: no queda ningun boton de accion con el radio viejo',
     !LISTA.includes('p-2 bg-slate-100 rounded text-'));

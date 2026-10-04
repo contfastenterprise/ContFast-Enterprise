@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Building2, MapPin, Mail, Phone, ShieldCheck, Eye, Printer } from 'lucide-react';
+import { Users, Search, Plus, Pencil, Trash2, X, RefreshCw, AlertTriangle, Building2, MapPin, Mail, Phone, ShieldCheck, Eye, Printer } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 import { SearchBar } from '@/components/ui/search-bar';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { BotonBuscarDgii } from '@/components/ui/boton-buscar-dgii';
@@ -313,18 +314,12 @@ export default function CustomersPage() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
 
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold text-primary flex items-center gap-2">
-            <Users className="h-7 w-7 text-amber-500" />
-            Gestión de Clientes
-          </h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Gestiona los datos de facturación y contacto de todos tus clientes.
-          </p>
-        </div>
-        <div className="flex gap-2 w-full md:w-auto shrink-0">
-          {/* En la cabecera, SOLO las pestanas (como en Compras): los botones de la lista viven en su barra. */}
+      {/* En la cabecera, SOLO las pestanas (como en Compras): los botones de la lista viven en su barra. */}
+      <CabeceraDePagina
+        titulo="Gestión de Clientes"
+        descripcion="Gestiona los datos de facturación y contacto de todos tus clientes."
+        icono={<Users />}
+        acciones={
           <PestanasDeRegistro
             enFormulario={showModal}
             lista="Clientes"
@@ -332,8 +327,8 @@ export default function CustomersPage() {
             alVerLista={() => setShowModal(false)}
             alRegistrar={openNewModal}
           />
-        </div>
-      </div>
+        }
+      />
 
       {!showModal && (<>
       {/* SEARCH BAR */}
@@ -349,12 +344,11 @@ export default function CustomersPage() {
             <RefreshCw className="h-5 w-5 animate-spin" />
           </div>
         )}
-        <button
+        <Button variant="documento" type="button"
           onClick={handlePrintList}
-          className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-        >
+          className="flex">
           <Printer className="h-4 w-4 text-slate-950" /> Imprimir
-        </button>
+        </Button>
       </div>
 
       {/* CUSTOMERS TABLE */}
@@ -415,17 +409,15 @@ export default function CustomersPage() {
                 </div>
                 
                 <div className="flex justify-end items-center mt-2 pt-3 border-t border-slate-100 gap-2">
-                  <Link href={`/dashboard/customers/${c.id}`}>
-                    <button className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10" title="Ver Historial">
-                      <Eye className="h-4 w-4" />
-                    </button>
-                  </Link>
-                  <button onClick={() => openEditModal(c)} className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10" title="Editar">
-                    <Edit2 className="h-4 w-4" />
-                  </button>
-                  <button onClick={() => handleDelete(c.id, c.name)} className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-rose-600 hover:bg-rose-50" title="Eliminar">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <IconButton asChild aria-label="Ver historial del cliente" title="Ver Historial">
+                    <Link href={`/dashboard/customers/${c.id}`}><Eye /></Link>
+                  </IconButton>
+                  <IconButton type="button" onClick={() => openEditModal(c)} aria-label="Editar cliente" title="Editar">
+                    <Pencil />
+                  </IconButton>
+                  <IconButton type="button" onClick={() => handleDelete(c.id, c.name)} aria-label="Eliminar cliente" title="Eliminar" className="hover:text-rose-600 hover:bg-rose-50">
+                    <Trash2 />
+                  </IconButton>
                 </div>
               </div>
             ))
@@ -519,17 +511,15 @@ export default function CustomersPage() {
                     </td>
                     <td className="px-4 py-2 align-middle text-right">
                       <div className="flex justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Link href={`/dashboard/customers/${c.id}`}>
-                          <button className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10" title="Ver Historial">
-                            <Eye className="h-3.5 w-3.5" />
-                          </button>
-                        </Link>
-                        <button onClick={() => openEditModal(c)} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10" title="Editar">
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </button>
-                        <button onClick={() => handleDelete(c.id, c.name)} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50" title="Eliminar">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <IconButton asChild aria-label="Ver historial del cliente" title="Ver Historial">
+                          <Link href={`/dashboard/customers/${c.id}`}><Eye /></Link>
+                        </IconButton>
+                        <IconButton type="button" onClick={() => openEditModal(c)} aria-label="Editar cliente" title="Editar">
+                          <Pencil />
+                        </IconButton>
+                        <IconButton type="button" onClick={() => handleDelete(c.id, c.name)} aria-label="Eliminar cliente" title="Eliminar" className="hover:text-rose-600 hover:bg-rose-50">
+                          <Trash2 />
+                        </IconButton>
                       </div>
                     </td>
                   </motion.tr>
@@ -683,22 +673,20 @@ export default function CustomersPage() {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-3 border-t border-slate-200">
-                  <button
+                  <Button variant="secondary"
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
+                    className="flex">
                     <X className="w-4 h-4" />
                     Cancelar
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
                     disabled={submitting}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
+                    className="flex">
                     {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                     {editId ? 'Guardar Cambios' : 'Registrar Cliente'}
-                  </button>
+                  </Button>
                 </div>
               </form>
         </PanelDeRegistro>

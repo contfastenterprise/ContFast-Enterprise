@@ -20,6 +20,7 @@ import type { PestanaDeAjustes } from './ajustes';
 import { PestanasDeAjustes } from './components/PestanasDeAjustes';
 import { ContenidoDeLaPestana } from './components/ContenidoDeLaPestana';
 import { ModalTipoDeGasto } from './components/ModalTipoDeGasto';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<PestanaDeAjustes>('perfil');
@@ -46,14 +47,11 @@ export default function SettingsPage() {
 
       <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
         <div className="space-y-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
-              Ajustes del Sistema
-            </h1>
-            <p className="text-slate-500/70 text-sm mt-1">
-              Configura tu cuenta personal y los parámetros operativos de la empresa.
-            </p>
-          </div>
+          <CabeceraDePagina
+            titulo="Ajustes del Sistema"
+            descripcion="Configura tu cuenta personal y los parámetros operativos de la empresa."
+            icono={<SettingsIcon />}
+          />
 
           <PestanasDeAjustes activa={activeTab} puedeConfigurar={puedeConfigurar} alElegir={elegir} />
         </div>

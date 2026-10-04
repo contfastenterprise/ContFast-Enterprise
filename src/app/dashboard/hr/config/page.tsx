@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { Settings, ShieldCheck, HelpCircle, Save, RefreshCw, Scale, AlertCircle, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useConfirm } from '@/providers/confirm-provider';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 // Format currency helper
 const formatCurrency = (val: number | string) => {
@@ -155,24 +157,20 @@ export default function ConfigPage() {
 
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100 font-sans">
-            Configuraciones de Ley TSS e ISR
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400">
-            Configure las tasas de seguridad social (TSS), horas extras, y visualice los tramos anuales de la DGII.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
+      <CabeceraDePagina
+        titulo="Configuraciones de Ley TSS e ISR"
+        descripcion="Configure las tasas de seguridad social (TSS), horas extras, y visualice los tramos anuales de la DGII."
+        icono={<Settings />}
+        acciones={<IconButton
+            type="button"
+            variant="secondary"
+            size="icon"
+            aria-label="Actualizar"
             onClick={fetchConfig}
-            className="inline-flex items-center justify-center rounded-md border border-outline bg-surface p-2 text-sm font-medium text-on-surface shadow-sm hover:bg-surface-variant transition"
           >
             <RefreshCw className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+          </IconButton>}
+      />
 
       {loading ? (
         <div className="flex h-64 items-center justify-center">
@@ -353,25 +351,24 @@ export default function ConfigPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-outline/30">
-                <button
+              <div className="flex justify-end gap-2 pt-4 border-t border-outline/30">
+                <Button
+                  variant="secondary"
                   type="button"
                   onClick={handleResetToDefault}
                   disabled={saving || loading}
-                  className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition disabled:opacity-50"
                   title="Restablecer a Valores de Fábrica"
                 >
-                  {saving ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
+                  {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
                   Restablecer
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center justify-center rounded-md bg-[#003366] hover:bg-[#001e40] px-4 py-2.5 text-sm font-semibold text-white shadow disabled:opacity-50 transition"
                 >
-                  <Save className="mr-2 h-4 w-4" />
+                  <Save className="h-4 w-4" />
                   {saving ? 'Guardando...' : 'Guardar Cambios'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

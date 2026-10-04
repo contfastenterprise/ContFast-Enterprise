@@ -11,44 +11,47 @@ import { TEXTO_SALDO_OCULTO } from '@/services/caja/arqueoCiego';
 import { formatTimeDisplay } from '@/utils/fechasLocales';
 import { fmt, movType } from '../caja';
 import type { Caja } from '../hooks/useCaja';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 export function VistaGestion({ c }: { c: Caja }) {
   return (
     <>
       {/* Header */}
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-2xl font-bold text-[#001e40] tracking-tight">Gestión de Caja</h1>
-          <p className="text-xs text-slate-500 flex items-center gap-2 mt-1">
+      <CabeceraDePagina
+        titulo="Gestión de Caja"
+        descripcion={
+          <span className="flex items-center gap-2">
             <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
             Turno en curso — iniciado{' '}
             {c.session ? formatTimeDisplay(c.session.createdAt) : ''}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => { c.setMoveType('cash_in'); c.setShowMoveModal(true); }}
-            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Entrada de Efectivo
-          </button>
-          <button
-            onClick={() => { c.setMoveType('cash_out'); c.setShowMoveModal(true); }}
-            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-          >
-            <Minus className="w-4 h-4" />
-            Salida de Efectivo
-          </button>
-          <button
-            onClick={() => c.handleTabChange('arqueo')}
-            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-          >
-            <Scale className="w-4 h-4" />
-            Arqueo y Cierre
-          </button>
-        </div>
-      </div>
+          </span>
+        }
+        acciones={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => { c.setMoveType('cash_in'); c.setShowMoveModal(true); }}>
+              <Plus className="w-4 h-4" />
+              Entrada de Efectivo
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => { c.setMoveType('cash_out'); c.setShowMoveModal(true); }}>
+              <Minus className="w-4 h-4" />
+              Salida de Efectivo
+            </Button>
+            <Button
+              type="button"
+              onClick={() => c.handleTabChange('arqueo')}>
+              <Scale className="w-4 h-4" />
+              Arqueo y Cierre
+            </Button>
+          </>
+        }
+      />
 
       {/* Bento grid: Balance + Métodos de pago */}
       <div className="grid grid-cols-12 gap-4">
@@ -127,16 +130,17 @@ export function VistaGestion({ c }: { c: Caja }) {
         <div className="px-4 py-3 border-b border-slate-200 flex justify-between items-center bg-slate-50">
           <h3 className="text-sm font-bold text-slate-800">Movimientos de Caja</h3>
           <div className="flex gap-2">
-            <button
+            <IconButton
+              type="button"
               onClick={c.refreshMovements}
-              className="p-1.5 hover:bg-slate-200 rounded transition-colors"
               title="Actualizar"
+              aria-label="Actualizar los movimientos de caja"
             >
               <RefreshCw className="w-4 h-4 text-slate-500" />
-            </button>
-            <button className="p-1.5 hover:bg-slate-200 rounded transition-colors" title="Exportar">
+            </IconButton>
+            <IconButton type="button" title="Exportar" aria-label="Exportar los movimientos de caja" onClick={c.exportarMovimientos}>
               <Download className="w-4 h-4 text-slate-500" />
-            </button>
+            </IconButton>
           </div>
         </div>
         <div className="overflow-x-auto">

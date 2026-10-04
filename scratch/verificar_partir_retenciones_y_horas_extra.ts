@@ -26,6 +26,10 @@ const invariante = (t: string, c: boolean, d = '') => {
 };
 
 const ANTES = 'a72acdc';
+//  Lote 273: la equivalencia compara los DOS commits del lote 253 (antes y el del corte) y no la
+//  carpeta: el lote 273 (estandar de UI) cambia clases y aria-label a proposito, y asi la prueba
+//  del corte sigue valiendo para siempre (lo mismo que se hizo en los lotes 227, 230 y 237).
+const CORTE = 'd57ca0f';
 const PANTALLAS = [
   { nombre: 'Retenciones', ruta: 'src/app/dashboard/retentions/page.tsx', pagina: 'RetentionsPage', hook: 'useRetenciones', partes: [] as string[] },
   { nombre: 'Horas extra', ruta: 'src/app/dashboard/hr/overtime/page.tsx', pagina: 'OvertimeAndEntriesPage', hook: 'useNovedades',
@@ -36,7 +40,7 @@ for (const p of PANTALLAS) {
   console.log(`\n${p.nombre}\n`);
   const ahora = readFileSync(join(raiz, p.ruta), 'utf8').replace(/\r\n/g, '\n');
   const antes = enCommit(ANTES, p.ruta);
-  const { faltan, sobran } = diferencia(huella(antes), huella(ahora));
+  const { faltan, sobran } = diferencia(huella(antes), huella(enCommit(CORTE, p.ruta)));
   invariante(`lo visible es lo mismo que en ${ANTES} (${huella(antes).length} elementos, uno por uno)`,
     faltan.length === 0 && sobran.length === 0, `faltan ${JSON.stringify(faltan.slice(0, 3))} sobran ${JSON.stringify(sobran.slice(0, 3))}`);
 

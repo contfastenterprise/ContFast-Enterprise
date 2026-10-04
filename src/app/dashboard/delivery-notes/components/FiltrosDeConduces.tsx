@@ -5,6 +5,7 @@
  * `services/inventario/filtrosDeConduces.ts`, los mismos que lee la ruta.
  */
 import { FilterX } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import DateRangePicker from '@/components/ui/date-range-picker';
 import { ESTADOS_DE_CONDUCE, hayFiltros, type FiltrosEscritos } from '@/services/inventario/filtrosDeConduces';
 
@@ -30,13 +31,9 @@ export function FiltrosDeConduces({ filtros, alCambiar, alLimpiar }: {
         <DateRangePicker from={filtros.desde} to={filtros.hasta} onChange={({ from, to }) => alCambiar({ desde: from, hasta: to })} />
       </div>
       {hayFiltros(filtros) && (
-        <button
-          type="button"
-          onClick={alLimpiar}
-          className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg text-xs font-bold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 transition"
-        >
-          <FilterX className="h-3.5 w-3.5" aria-hidden="true" /> Quitar filtros
-        </button>
+        <Button type="button" variant="secondary" size="sm" onClick={alLimpiar}>
+          <FilterX aria-hidden="true" /> Quitar filtros
+        </Button>
       )}
     </div>
   );

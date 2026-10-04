@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Download, X, Laptop } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Button, IconButton } from '@/components/ui/button';
 
 export default function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -94,29 +95,32 @@ export default function PwaInstallPrompt() {
               </p>
             </div>
           </div>
-          <button
+          <IconButton
+            type="button"
+            className="text-slate-400 hover:text-white hover:bg-slate-800/50"
             onClick={handleDismiss}
-            className="text-slate-400 hover:text-white hover:bg-slate-800/50 p-1.5 rounded-lg transition-colors cursor-pointer"
             aria-label="Cerrar"
           >
             <X className="w-4 h-4" />
-          </button>
+          </IconButton>
         </div>
 
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleDismiss}
+          >
+            Quizás luego
+          </Button>
+          <Button
+            type="button"
+            className="flex-1"
             onClick={handleInstallClick}
-            className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold py-2.5 px-4 rounded-xl shadow-md shadow-indigo-600/10 active:scale-[0.98] transition cursor-pointer"
           >
             <Download className="w-4 h-4" />
             Instalar ahora
-          </button>
-          <button
-            onClick={handleDismiss}
-            className="text-xs font-semibold py-2.5 px-4 rounded-xl border border-slate-700/80 hover:bg-slate-800/40 text-slate-200 transition-colors cursor-pointer"
-          >
-            Quizás luego
-          </button>
+          </Button>
         </div>
       </motion.div>
     </AnimatePresence>

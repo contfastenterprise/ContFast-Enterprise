@@ -36,6 +36,9 @@ export class ArRepository {
       id: accountsReceivable.id,
       customerId: accountsReceivable.customerId,
       customerName: customers.name,
+      //  Lote 267: el RNC o cedula del cliente, para la columna de la lista desplegable (como el
+      //  reporte de cuentas por cobrar, que ya lo lee de aqui mismo).
+      customerRnc: customers.rncCedula,
       invoiceId: accountsReceivable.invoiceId,
       invoiceNumber: invoices.ncf,
       codigoFactura: invoices.codigoFactura,
@@ -63,6 +66,7 @@ export class ArRepository {
         grouped[ar.customerId] = {
           customerId: ar.customerId,
           customerName: ar.customerName,
+          customerRnc: ar.customerRnc ?? null,
           totalBalance: 0,
           invoices: []
         };

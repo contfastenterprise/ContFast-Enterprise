@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { X, FileText, AlertTriangle, Printer, Info } from 'lucide-react';
+import { FileText, AlertTriangle, Printer, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { CONFIG_RIESGO } from '@/services/cartera/riesgo';
@@ -9,6 +9,8 @@ import type { FilaCartera, TipoCartera } from './tipos';
 import { AVISO_CREDITO, PALABRAS, dinero } from './tipos';
 import { abrirEstadoImpreso } from './estadoImpreso';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { Button } from '@/components/ui/button';
+import { Modal } from '@/components/ui/dialog';
 
 interface DocumentoPendiente {
   id: string;
@@ -69,61 +71,58 @@ export function ModalEstadoCuenta({
     cargar();
   }, [cargar]);
 
-  // Escape cierra. Un modal que solo se cierra con el raton es un modal que
-  // atrapa a quien navega con teclado.
-  useEffect(() => {
-    const alPulsar = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCerrar();
-    };
-    window.addEventListener('keydown', alPulsar);
-    return () => window.removeEventListener('keydown', alPulsar);
-  }, [onCerrar]);
+  // Escape cierra: lo hace la ventana de la casa (lote 278), y solo si es la de arriba. El oyente
+  // propio que habia aqui cerraba tambien con otra ventana encima.
 
   const disponible = fila.cupoCredito !== null ? fila.cupoCredito - fila.saldo : null;
 
   /** La mecanica -- y el aviso si bloquean la ventana -- vive en un solo sitio. */
   const imprimir = () => abrirEstadoImpreso(tipo, fila.id);
 
+  //  La ventana de la casa (lote 278): pulsar fuera cierra, como antes (el fondo cerraba si el clic
+  //  caia en el, no en la caja). Solo consulta: no hay nada que guardar, asi que no se bloquea.
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 backdrop-blur-xs p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Estado de cuenta de ${fila.nombre}`}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onCerrar();
-      }}
-    >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
-        <div className="flex items-start justify-between p-5 border-b border-neutral-200">
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shrink-0"
-              style={{ backgroundColor: r.color }}
-              aria-hidden="true"
-            >
-              {fila.nombre.split(' ').filter(Boolean).map((n) => n[0]).slice(0, 2).join('').toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-base font-bold text-neutral-900 truncate">{fila.nombre}</h2>
-              <p className="text-xs text-neutral-600">
-                {fila.rncCedula ? `RNC/Cédula: ${fila.rncCedula}` : 'Sin RNC/Cédula registrado'}
-                {' · '}
-                <span className={`font-semibold`} style={{ color: r.color }}>{r.etiquetaCorta}</span>
-                {fila.diasAtraso > 0 && ` · ${fila.diasAtraso} días de atraso`}
-              </p>
-            </div>
+    <Modal
+      isOpen
+      onClose={onCerrar}
+      title={<span className="truncate block">{fila.nombre}</span>}
+      description={
+        <>
+          {fila.rncCedula ? `RNC/Cédula: ${fila.rncCedula}` : 'Sin RNC/Cédula registrado'}
+          {' · '}
+          <span className={`font-semibold`} style={{ color: r.color }}>{r.etiquetaCorta}</span>
+          {fila.diasAtraso > 0 && ` · ${fila.diasAtraso} días de atraso`}
+        </>
+      }
+      icono={
+        <span
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs"
+          style={{ backgroundColor: r.color }}
+        >
+          {fila.nombre.split(' ').filter(Boolean).map((n) => n[0]).slice(0, 2).join('').toUpperCase()}
+        </span>
+      }
+      maxWidth="3xl"
+      sinRelleno
+      footer={
+        <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p className="text-[11px] text-neutral-500">
+            Este panel es para consultar. Para registrar {tipo === 'clientes' ? 'un cobro' : 'un pago'}, ve a {P.irA.replace('Ir a ', '')}.
+          </p>
+          <div className="flex items-center gap-2">
+            {/* Lote 272: Cerrar primero y la principal la ultima (estandar de UI); imprimir es "documento". */}
+            <Button type="button" variant="secondary" onClick={onCerrar}>
+              Cerrar
+            </Button>
+            <Button type="button" variant="documento" onClick={imprimir}>
+              <Printer />
+              <span>Imprimir estado</span>
+            </Button>
           </div>
-          <button
-            onClick={onCerrar}
-            className="p-1.5 rounded-lg text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition-colors shrink-0"
-            aria-label="Cerrar"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
-
-        <div className="p-5 overflow-y-auto space-y-5">
+      }
+    >
+        <div className="p-5 space-y-5">
           {/* El mismo aviso que en la pantalla, palabra por palabra: si aqui
               dijera otra cosa, habria dos reglas y ninguna seria de fiar. */}
           <div className="flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50/70 px-3 py-2">
@@ -228,28 +227,6 @@ export function ModalEstadoCuenta({
             )}
           </div>
         </div>
-
-        <div className="p-4 border-t border-neutral-200 bg-neutral-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <p className="text-[11px] text-neutral-500">
-            Este panel es para consultar. Para registrar {tipo === 'clientes' ? 'un cobro' : 'un pago'}, ve a {P.irA.replace('Ir a ', '')}.
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={imprimir}
-              className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-neutral-900 hover:bg-neutral-800 rounded-lg transition-colors"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              <span>Imprimir estado</span>
-            </button>
-            <button
-              onClick={onCerrar}
-              className="px-4 py-2 text-xs font-semibold text-neutral-700 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors"
-            >
-              Cerrar
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

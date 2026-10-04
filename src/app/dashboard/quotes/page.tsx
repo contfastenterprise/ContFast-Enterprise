@@ -14,6 +14,8 @@ import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 import { Pagination } from '@/components/ui/pagination';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 export default function QuotesList() {
   const router = useRouter();
@@ -120,33 +122,31 @@ export default function QuotesList() {
   return (
     <div className="space-y-8 animate-fade-in-up pb-12 w-full max-w-none">
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 w-full">
-        <div>
-          <h1 className="font-display-lg text-3xl md:text-4xl text-[#c5a059] tracking-tight font-extrabold flex items-center gap-3">
-            <FileText className="h-8 w-8 text-[#c5a059]" /> Cotizaciones
-          </h1>
-          <p className="font-body-lg text-slate-500 mt-1">
-            Administre sus cotizaciones, ofertas a clientes y conviértalas directamente en facturas.
-          </p>
-        </div>
-
-        {/* Tab Switcher & Action button */}
-        <div className="flex items-center gap-3 self-end md:self-auto">
+      <CabeceraDePagina
+        titulo="Cotizaciones"
+        descripcion="Administre sus cotizaciones, ofertas a clientes y conviértalas directamente en facturas."
+        icono={<FileText />}
+        acciones={
+          /* Las pestanas (Historial / Registrar), solas: no son botones de accion. */
           <div className="bg-slate-50 p-1 rounded-lg flex gap-1 border border-white/20">
             <button
-              className="h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-[#c5a059] shadow-sm"
+              type="button"
+              aria-pressed="true"
+              className="h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-[#003366] shadow-sm"
             >
               <ListFilter className="h-4 w-4 inline mr-1.5" /> Historial
             </button>
             <button
+              type="button"
+              aria-pressed="false"
               onClick={() => router.push('/dashboard/quotes/new')}
               className="h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-500 hover:text-slate-800"
             >
               <Plus className="h-4 w-4 inline mr-1.5" /> Registrar
             </button>
           </div>
-        </div>
-      </header>
+        }
+      />
 
       <motion.div
         initial={{ opacity: 0 }}
@@ -173,7 +173,7 @@ export default function QuotesList() {
             <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none relative overflow-hidden">
               <div className="absolute top-0 left-0 w-1 h-full bg-[#C5A059]" />
               <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Pendientes</span>
-              <span className="block font-mono-data text-xl md:text-2xl font-bold text-[#C5A059]">{stats.pending}</span>
+              <span className="block font-mono-data text-xl md:text-2xl font-bold text-oro-texto">{stats.pending}</span>
             </div>
           </div>
         </div>
@@ -221,13 +221,16 @@ export default function QuotesList() {
             </div>
           </div>
 
-          <button
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
             onClick={fetchQuotes}
-            className="w-full md:w-auto bg-slate-200 text-[#003366] px-3 py-1.5 h-8 rounded-lg text-xs font-bold hover:bg-slate-300 transition-colors flex items-center justify-center gap-2 border border-slate-300"
+            className="w-full md:w-auto"
           >
-            <Filter className="h-4 w-4" />
+            <Filter />
             FILTRAR
-          </button>
+          </Button>
         </div>
 
         {/* Data Table */}
@@ -268,16 +271,16 @@ export default function QuotesList() {
                       </span>
                       <div className="flex gap-1.5">
                         {quote.status === 'pending' && (
-                          <button onClick={() => convertToInvoice(quote.id)} className="h-8 w-8 inline-flex items-center justify-center bg-slate-100 rounded-lg text-emerald-600 hover:bg-emerald-50">
-                            <Check className="h-4 w-4" />
-                          </button>
+                          <IconButton type="button" onClick={() => convertToInvoice(quote.id)} aria-label="Convertir la cotización a factura" className="text-emerald-600 hover:bg-emerald-50">
+                            <Check />
+                          </IconButton>
                         )}
-                        <button onClick={() => window.open(`/api/v1/quotes/${quote.id}/print`, '_blank')} className="h-8 w-8 inline-flex items-center justify-center bg-slate-100 rounded-lg text-[#C5A059] hover:bg-[#C5A059]/10">
-                          <Printer className="h-4 w-4" />
-                        </button>
-                        <button onClick={() => router.push(`/dashboard/quotes/${quote.id}/edit`)} className="h-8 w-8 inline-flex items-center justify-center bg-slate-100 rounded-lg text-[#003366] hover:bg-[#003366]/5">
-                          <Eye className="h-4 w-4" />
-                        </button>
+                        <IconButton type="button" onClick={() => window.open(`/api/v1/quotes/${quote.id}/print`, '_blank')} aria-label="Imprimir cotización">
+                          <Printer />
+                        </IconButton>
+                        <IconButton type="button" onClick={() => router.push(`/dashboard/quotes/${quote.id}/edit`)} aria-label="Ver o editar cotización">
+                          <Eye />
+                        </IconButton>
                       </div>
                     </div>
                   </div>
@@ -343,28 +346,32 @@ export default function QuotesList() {
                         <td className="px-4 py-2.5 align-middle text-right">
                           <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             {quote.status === 'pending' && (
-                              <button
+                              <IconButton
+                                type="button"
                                 onClick={() => convertToInvoice(quote.id)}
-                                className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                className="text-emerald-600 hover:bg-emerald-50"
+                                aria-label="Convertir la cotización a factura"
                                 title="Convertir a Factura"
                               >
-                                <Check className="w-3.5 h-3.5" />
-                              </button>
+                                <Check />
+                              </IconButton>
                             )}
-                            <button
+                            <IconButton
+                              type="button"
                               onClick={() => window.open(`/api/v1/quotes/${quote.id}/print`, '_blank')}
-                              className="p-1.5 text-[#C5A059] hover:bg-[#C5A059]/10 rounded-lg transition-colors"
+                              aria-label="Imprimir cotización"
                               title="Imprimir Cotización"
                             >
-                              <Printer className="w-3.5 h-3.5" />
-                            </button>
-                            <button
+                              <Printer />
+                            </IconButton>
+                            <IconButton
+                              type="button"
                               onClick={() => router.push(`/dashboard/quotes/${quote.id}/edit`)}
-                              className="p-1.5 text-[#003366] hover:bg-[#003366]/5 rounded-lg transition-colors"
+                              aria-label="Ver o editar cotización"
                               title="Ver / Editar"
                             >
-                              <Eye className="w-3.5 h-3.5" />
-                            </button>
+                              <Eye />
+                            </IconButton>
                           </div>
                         </td>
                       </tr>

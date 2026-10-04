@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRightLeft, Search, Plus, Trash2, Building2, Package, Save } from 'lucide-react';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import useBarcodeScanner from '@/hooks/useBarcodeScanner';
@@ -234,17 +236,11 @@ export default function TransferPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-4">
       {/* Header */}
-      <div className="bg-surface-bright p-4 rounded-2xl border border-outline-variant/30 shadow-sm flex items-center gap-4">
-        <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500 shadow-inner">
-          <ArrowRightLeft className="w-5 h-5" />
-        </div>
-        <div>
-          <h1 className="font-display-sm text-xl font-bold text-on-surface">Traslados de Mercancía</h1>
-          <p className="text-xs text-on-surface-variant">
-            Mueve inventario entre tus diferentes almacenes.
-          </p>
-        </div>
-      </div>
+      <CabeceraDePagina
+        titulo="Traslados de Mercancía"
+        descripcion="Mueve inventario entre tus diferentes almacenes."
+        icono={<ArrowRightLeft />}
+      />
 
       {loading ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" /></div>
@@ -311,6 +307,7 @@ export default function TransferPage() {
                     {searchQuery && (
                       <button
                         type="button"
+                        aria-label="Limpiar la búsqueda de producto"
                         onClick={() => {
                           setSearchQuery('');
                           setSelectedProduct('');
@@ -376,12 +373,9 @@ export default function TransferPage() {
                     placeholder="0.00"
                   />
                 </div>
-                <button
-                  onClick={addItem}
-                  className="w-full bg-[#003366] text-white hover:bg-[#002244] font-bold py-2 rounded-xl text-xs transition-colors flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Agregar a Lista
-                </button>
+                <Button type="button" size="sm" onClick={addItem} className="w-full">
+                  <Plus /> Agregar a Lista
+                </Button>
               </div>
             </div>
           </div>
@@ -420,9 +414,9 @@ export default function TransferPage() {
                             {item.quantity} <span className="text-[10px] font-normal text-on-surface-variant">{item.product.unitOfMeasure}</span>
                           </td>
                           <td className="p-3 text-right">
-                            <button onClick={() => removeItem(item.product.id)} className="p-1.5 text-error hover:bg-error/10 rounded-lg transition-colors">
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <IconButton type="button" onClick={() => removeItem(item.product.id)} aria-label={`Quitar ${item.product.name} del traslado`} className="text-error hover:bg-error/10 hover:text-error">
+                              <Trash2 />
+                            </IconButton>
                           </td>
                         </tr>
                       ))
@@ -442,14 +436,16 @@ export default function TransferPage() {
                 />
               </div>
 
-              <button
+              <Button
+                type="button"
+                size="lg"
                 onClick={handleTransfer}
                 disabled={submitting || items.length === 0}
-                className="mt-4 w-full bg-[#003366] text-white font-bold py-2.5 rounded-xl shadow hover:bg-[#002244] transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-xs"
+                className="mt-4 w-full"
               >
-                {submitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+                {submitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save />}
                 {submitting ? 'Procesando...' : 'Confirmar Traslado'}
-              </button>
+              </Button>
             </div>
           </div>
 

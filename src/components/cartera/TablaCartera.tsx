@@ -11,6 +11,7 @@ import { IconoRiesgo } from './iconosRiesgo';
 import type { FilaCartera, TipoCartera } from './tipos';
 import { PALABRAS, dinero, dineroCorto } from './tipos';
 import { urlEstadoImpreso } from './estadoImpreso';
+import { Button, IconButton } from '@/components/ui/button';
 
 type Campo = 'nombre' | 'saldo' | 'riesgo' | 'atraso';
 
@@ -94,6 +95,7 @@ export function TablaCartera({
           />
           {busqueda && (
             <button
+              type="button"
               onClick={() => setBusqueda('')}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-neutral-400 hover:text-neutral-600"
               aria-label="Limpiar búsqueda"
@@ -117,9 +119,11 @@ export function TablaCartera({
                 {CONFIG_RIESGO[seleccionado].etiquetaCorta}
               </span>
               <button
+                type="button"
                 onClick={() => onSeleccionar(null)}
                 className="ml-1 text-neutral-400 hover:text-neutral-700 font-bold"
                 title="Limpiar filtro"
+                aria-label="Limpiar filtro de riesgo"
               >
                 ✕
               </button>
@@ -207,9 +211,11 @@ export function TablaCartera({
                         <div className="inline-flex items-center gap-1.5 font-mono text-xs text-neutral-700 bg-neutral-100/80 px-2 py-1 rounded">
                           <span>{f.rncCedula}</span>
                           <button
+                            type="button"
                             onClick={() => copiar(f.rncCedula!, `rnc-${f.id}`)}
                             className="text-neutral-400 hover:text-neutral-700 transition-colors cursor-pointer"
                             title="Copiar identificación"
+                            aria-label={`Copiar la identificación de ${f.nombre}`}
                           >
                             {copiado === `rnc-${f.id}` ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                           </button>
@@ -249,6 +255,7 @@ export function TablaCartera({
                       {f.correo ? (
                         <div className="relative inline-flex items-center justify-center group/mail">
                           <button
+                            type="button"
                             onClick={() => copiar(f.correo!, `mail-${f.id}`)}
                             className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-blue-50 text-neutral-600 hover:text-blue-600 border border-neutral-200/80 flex items-center justify-center cursor-pointer transition-colors"
                             aria-label={`Correo de ${f.nombre}: ${f.correo}`}
@@ -291,27 +298,29 @@ export function TablaCartera({
 
                     <td className="py-3 px-4 text-center">
                       <div className="inline-flex items-center gap-1">
-                        <button
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => onVerEstado(f)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 hover:text-neutral-900 rounded-md transition-colors cursor-pointer"
                           title="Ver estado de cuenta"
+                          aria-label={`Ver el estado de cuenta de ${f.nombre}`}
                         >
-                          <Eye className="w-3.5 h-3.5 text-neutral-500" />
+                          <Eye />
                           <span className="hidden sm:inline">Ver</span>
-                        </button>
+                        </Button>
                         {/* Un ENLACE: la ruta devuelve el PDF directamente, asi
                             que lo abre el navegador -- sin `window.open` que
                             puedan bloquear, y se puede abrir en otra pestaña. */}
-                        <a
-                          href={urlEstadoImpreso(tipo, f.id)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-2 py-1 text-xs font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-200 hover:text-neutral-900 rounded-md transition-colors"
-                          title="Imprimir estado de cuenta"
-                          aria-label={`Imprimir el estado de cuenta de ${f.nombre}`}
-                        >
-                          <Printer className="w-3.5 h-3.5 text-neutral-500" />
-                        </a>
+                        <IconButton asChild aria-label={`Imprimir el estado de cuenta de ${f.nombre}`} title="Imprimir estado de cuenta">
+                          <a
+                            href={urlEstadoImpreso(tipo, f.id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Printer />
+                          </a>
+                        </IconButton>
                       </div>
                     </td>
                   </tr>

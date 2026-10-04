@@ -18,6 +18,9 @@ import GarantiasDeLaFactura, { type EstadoGarantias } from './components/Garanti
 import { pagariaDeMas } from '@/services/cxp/garantiasDeFactura';
 import { saleDelBanco, motivoParaNoRegistrarPago } from '@/services/cxp/cuentaDelPago';
 
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { Modal } from '@/components/ui/dialog';
 // -- Types --
 interface BillAP {
   apId: string;
@@ -555,16 +558,11 @@ export default function AccountsPayablePage() {
       <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div>
-            <h1 className="text-3xl font-bold text-[#003366] dark:text-white tracking-tight flex items-center gap-2">
-              <Receipt className="h-8 w-8 text-amber-500" />
-              Módulo de Cuentas por Pagar
-            </h1>
-            <p className="text-slate-500 dark:text-white/70 text-sm mt-1.5">
-              Gestione balances pendientes de proveedores, configure asientos contables y aplique cheques en garantía diferidos.
-            </p>
-          </div>
+        <CabeceraDePagina
+          titulo="Módulo de Cuentas por Pagar"
+          descripcion="Gestione balances pendientes de proveedores, configure asientos contables y aplique cheques en garantía diferidos."
+          icono={<Receipt />}
+          acciones={
           <div className="flex gap-4">
             <div className="bg-white px-4 py-2.5 rounded-xl border border-slate-200/30 shadow-lg flex flex-col items-end min-w-[200px]">
               <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500/70">Deuda Total Acumulada</span>
@@ -575,24 +573,27 @@ export default function AccountsPayablePage() {
               <span className="text-2xl font-mono font-bold text-amber-500 mt-1">{pendingGuarantees.length}</span>
             </div>
           </div>
-        </div>
+          }
+        />
 
         {/* Navigation Tabs */}
         <div className="flex border-b border-slate-200 gap-4 shrink-0">
           <button
+            type="button"
             onClick={() => setActiveTab('bills')}
             className={clsx(
               "px-4 py-2 text-xs font-bold transition rounded-lg",
-              activeTab === 'bills' ? 'bg-amber-500/10 text-amber-500' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+              activeTab === 'bills' ? 'bg-[#003366]/10 text-[#003366]' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
             )}
           >
             Cuentas por Pagar (Facturas)
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('guarantees')}
             className={clsx(
               "px-4 py-2 text-xs font-bold transition rounded-lg flex items-center gap-2",
-              activeTab === 'guarantees' ? 'bg-amber-500/10 text-amber-500' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+              activeTab === 'guarantees' ? 'bg-[#003366]/10 text-[#003366]' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
             )}
           >
             Cheques en Garantía
@@ -603,10 +604,11 @@ export default function AccountsPayablePage() {
             )}
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('history')}
             className={clsx(
               "px-4 py-2 text-xs font-bold transition rounded-lg",
-              activeTab === 'history' ? 'bg-amber-500/10 text-amber-500' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+              activeTab === 'history' ? 'bg-[#003366]/10 text-[#003366]' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
             )}
           >
             Historial de Pagos
@@ -657,15 +659,17 @@ export default function AccountsPayablePage() {
                           </div>
                         </div>
                          <div className="flex items-center gap-6">
-                          <button
+                          <Button
+                            type="button"
+                            variant="documento"
+                            size="sm"
                             onClick={() => handlePrintSupplierAP(supplier.supplierId)}
                             disabled={printingSupplierId === supplier.supplierId}
-                            className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 h-8 rounded-lg border border-slate-700 transition flex items-center gap-1.5 text-xs font-bold disabled:opacity-50"
                             title="Imprimir Cuentas por Pagar"
                           >
-                            <Printer className="w-4 h-4 text-amber-500" />
+                            <Printer className="w-4 h-4" />
                             <span>Imprimir</span>
-                          </button>
+                          </Button>
                           <div className="text-right">
                             <p className="text-[10px] font-bold text-slate-500/70 uppercase tracking-widest">Balance Total</p>
                             <p className="font-mono text-lg font-bold text-rose-500">{fmt(supplier.totalBalance)}</p>
@@ -718,12 +722,13 @@ export default function AccountsPayablePage() {
                                   <td className="px-4 py-2.5 text-right text-slate-500 font-mono">{fmt(bill.amount)}</td>
                                   <td className="px-4 py-2.5 text-right font-mono font-bold text-slate-800">{fmt(bill.balance)}</td>
                                   <td className="px-4 py-2.5 text-right">
-                                    <button
+                                    <Button
+                                      type="button"
+                                      size="sm"
                                       onClick={() => handleOpenPayment(supplier, bill)}
-                                      className="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-1.5 h-8 rounded-lg text-xs font-bold shadow-md transition active:scale-[0.98]"
                                     >
                                       Registrar Pago
-                                    </button>
+                                    </Button>
                                   </td>
                                 </tr>
                               );
@@ -765,18 +770,17 @@ export default function AccountsPayablePage() {
                       className="border border-slate-300 rounded-lg px-2 h-8 text-xs font-mono"
                     />
                   </div>
-                  <button
+                  <Button size="sm"
+                    type="button"
                     onClick={handleConfirmarCobros}
                     disabled={applyingGuarantees || chequesConfirmados.length === 0 || !fechaCobro}
-                    title={chequesConfirmados.length === 0 ? 'Seleccione los cheques que el banco pagó' : undefined}
-                    className="bg-[#003366] hover:bg-[#002244] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-1.5 px-3 h-8 rounded-lg shadow-md hover:shadow-lg transition flex items-center gap-2 text-xs justify-center"
-                  >
+                    title={chequesConfirmados.length === 0 ? 'Seleccione los cheques que el banco pagó' : undefined}>
                     {applyingGuarantees ? (
                       <><RefreshCw className="h-4.5 w-4.5 animate-spin" /> Procesando...</>
                     ) : (
                       <><CheckCircle2 className="h-4.5 w-4.5" /> Confirmar cobro ({chequesConfirmados.length})</>
                     )}
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -897,12 +901,15 @@ export default function AccountsPayablePage() {
                       className="bg-slate-50 border border-slate-200 rounded-lg h-8 px-3 py-1.5 text-xs focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
                     />
                   </div>
-                  <button 
+                  <IconButton
+                    type="button"
+                    variant="secondary"
                     onClick={() => { setPaymentsStartDate(''); setPaymentsEndDate(''); setPaymentsSearch(''); setPaymentsPage(1); }}
-                    className="mt-5 px-3 py-1.5 h-8 border border-slate-200 hover:bg-slate-200/20 rounded-lg transition-colors"
+                    aria-label="Limpiar los filtros del historial de pagos"
+                    className="mt-5"
                   >
                     <RefreshCw className="w-4 h-4" />
-                  </button>
+                  </IconButton>
                 </div>
               </div>
 
@@ -992,25 +999,21 @@ export default function AccountsPayablePage() {
       </div>
 
       {/* MODAL: REGISTRAR PAGO (With Ledger configuration) */}
-      <AnimatePresence>
-        {showPaymentModal && selectedSupplier && selectedBill && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPaymentModal(false)} className="absolute inset-0 bg-slate-50/80 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="relative z-10 flex flex-col w-full max-w-2xl max-h-[95vh] bg-white border border-[#003366] rounded-2xl shadow-2xl overflow-hidden">
-
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 border-b border-[#003366] bg-[#001733] shrink-0">
-                <div>
-                  <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
-                    <FileSignature className="w-5 h-5 text-[#c5a059]" /> Registrar Pago Contable
-                  </h3>
-                  <p className="text-[#c5a059]/80 text-xs mt-1 font-mono">{selectedSupplier.supplierName} • Factura ID: {selectedBill.apId.slice(0, 8).toUpperCase()}</p>
-                </div>
-                <button onClick={() => setShowPaymentModal(false)} className="text-slate-500 hover:text-slate-800 transition-colors"><X className="w-5 h-5" /></button>
-              </div>
-
-              {/* Form body */}
-              <form onSubmit={handleSubmitPayment} className="p-4 space-y-5 overflow-y-auto flex-1">
+      {/* Lote 279: la ventana comun (`Modal`). El fondo ya cerraba (por defecto); mientras se
+          procesa el pago (`submitting`) no se cierra por ningun camino. Lo que pasa al confirmar
+          (los cheques en garantia, el envio del formulario) no cambia. */}
+      <Modal
+        isOpen={showPaymentModal && !!selectedSupplier && !!selectedBill}
+        onClose={() => setShowPaymentModal(false)}
+        bloqueada={submitting}
+        maxWidth="2xl"
+        sinRelleno
+        icono={<FileSignature />}
+        title="Registrar Pago Contable"
+        description={selectedSupplier && selectedBill && <>{selectedSupplier.supplierName} • Factura ID: {selectedBill.apId.slice(0, 8).toUpperCase()}</>}
+      >
+        {selectedSupplier && selectedBill && (
+              <form onSubmit={handleSubmitPayment} className="p-4 space-y-5">
 
                 {/* Lote 161: lo primero que se ve al ir a pagar, si la factura
                     ya tiene cheques en garantia pendientes de cobro. */}
@@ -1253,29 +1256,28 @@ export default function AccountsPayablePage() {
 
                 {/* Footer buttons */}
                 <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
-                  <button
+                  <Button
                     type="button"
+                    variant="secondary"
+                    size="sm"
                     onClick={() => setShowPaymentModal(false)}
-                    className="flex items-center gap-2 px-3 py-1.5 h-8 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 text-xs font-bold border border-rose-200 transition-colors"
                   >
                     <X className="w-4 h-4" />
                     Cancelar
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
+                    size="sm"
                     disabled={submitting}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-3 py-1.5 h-8 rounded-lg text-xs font-bold shadow-md hover:-translate-y-0.5 transition disabled:opacity-50"
                   >
                     {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     {paymentForm.isGuarantee ? 'Registrar Garantía' : 'Procesar'}
-                  </button>
+                  </Button>
                 </div>
 
               </form>
-            </motion.div>
-          </div>
         )}
-      </AnimatePresence>
+      </Modal>
 
     </div>
   );

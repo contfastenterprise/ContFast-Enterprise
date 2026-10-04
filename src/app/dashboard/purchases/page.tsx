@@ -5,9 +5,9 @@ import {
   RefreshCw, Search, Plus, Minus, Save, Trash2, Box, Banknote, Calendar,
   Tag, FileText, CheckSquare, Square, Filter, ChevronRight, Eye, Info, ListFilter,
   DollarSign, ArrowUpRight, ShoppingCart, Activity, Printer, Clock, AlertTriangle,
-  Camera, Scan, Edit, X, ChevronLeft, Check, LayoutList
+  Camera, Scan, Pencil, ChevronLeft, Check, LayoutList
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { roundMoney } from '@/utils/calculos';
 import InvoiceImageUploader from '@/components/InvoiceImageUploader';
@@ -24,7 +24,11 @@ import GuaranteeChecksView from './components/GuaranteeChecksView';
 import { PASOS, campoDelPaso } from './pasos';
 import { Pagination } from '@/components/ui/pagination';
 import { useCostoEnDolares } from './hooks/useCostoEnDolares';
-import { escribirTasa } from '@/services/precios/preciosEnDolares';
+import { lineasDeCompraConTasa } from '@/services/precios/cambioDeTasa';
+import { TasaDelDolarEnLinea } from '@/components/precios/TasaDelDolarEnLinea';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { Modal } from '@/components/ui/dialog';
 
 interface Product { id: string; name: string; sku: string; cost: string; }
 interface Supplier { id: string; name: string; rnc: string; }
@@ -234,7 +238,16 @@ export default function PurchasesPage() {
   // Lines for creation
   const [lines, setLines] = useState<{ id: string; productId: string; desc: string; quantity: number; unitCost: number; subtotal: number; itbis: number; total: number; }[]>([]);
   //  Lote 257: los productos que siguen al dolar entran con su costo en dolares por la tasa vigente.
-  const { costoDe, origenDe } = useCostoEnDolares();
+  //  Lote 261: y la tasa se puede cambiar desde aqui. Al cambiarla, las lineas ya escritas de un
+  //  producto en dolares cuyo costo sigue siendo el de la tasa anterior pasan a la nueva; las que
+  //  se cambiaron a mano (manda la factura del suplidor) se dejan.
+  //  Con las `lines` de este render: el hook llama siempre a la ultima version de esta funcion.
+  const { costoDe, tasaDelDolar } = useCostoEnDolares((c) => {
+    const r = lineasDeCompraConTasa(lines, c.costosUsd, c.anterior, c.nueva, noItbis);
+    if (r.cambiadas === 0) return;
+    setLines(r.lineas);
+    toast.info(r.cambiadas === 1 ? 'Se actualizó el costo de 1 línea de esta compra.' : `Se actualizó el costo de ${r.cambiadas} líneas de esta compra.`);
+  });
 
   // Lookup data
   const [products, setProducts] = useState<Product[]>([]);
@@ -1023,16 +1036,14 @@ export default function PurchasesPage() {
     <div className="space-y-6">
       <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
+          <h3 className="font-bold text-oro-texto uppercase tracking-wider text-sm flex items-center gap-2">
             <FileText className="h-4 w-4" /> Datos del Comprobante
           </h3>
-          <button
-            type="button"
-            onClick={() => setShowOcrModal(true)}
-            className="bg-[#005E63] text-white hover:bg-[#004d52] transition px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm active:scale-95"
-          >
+          <Button
+            type="button" size="sm"
+            onClick={() => setShowOcrModal(true)}>
             <Camera className="w-3.5 h-3.5" /> Lector OCR (Subir Factura)
-          </button>
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -1065,14 +1076,12 @@ export default function PurchasesPage() {
                   />
                   {err('supplierId')}
                 </div>
-                <button
-                  type="button"
+                <IconButton
+                  type="button" variant="outline" size="icon" aria-label="Agregar un proveedor nuevo"
                   onClick={() => setShowAddSupplierModal(true)}
-                  className="bg-primary/10 hover:bg-primary/20 text-[#c5a059] transition p-2 rounded-xl text-xs font-bold flex items-center justify-center active:scale-95 border border-primary/20"
-                  title="Agregar Nuevo Proveedor"
-                >
+                  title="Agregar Nuevo Proveedor">
                   <Plus className="w-4 h-4" />
-                </button>
+                </IconButton>
               </div>
             </div>
           )}
@@ -1135,7 +1144,7 @@ export default function PurchasesPage() {
       </div>
 
       <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
-        <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
+        <h3 className="font-bold text-oro-texto uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
           <Tag className="h-4 w-4" /> Forma del registro
         </h3>
         <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-lg border border-slate-200 select-none mb-2">
@@ -1151,6 +1160,9 @@ export default function PurchasesPage() {
               }
             }}
             type="button"
+            role="switch"
+            aria-checked={isGeneralAmount}
+            aria-label="Compra por Monto General"
             className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${isGeneralAmount ? 'bg-primary' : 'bg-on-surface-variant/20'}`}
           >
             <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${isGeneralAmount ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -1164,7 +1176,7 @@ export default function PurchasesPage() {
     <div className="space-y-6">
       {isGeneralAmount ? (
         <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4 space-y-5">
-          <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
+          <h3 className="font-bold text-oro-texto uppercase tracking-wider text-sm flex items-center gap-2">
             <Tag className="h-4 w-4" /> Desglose de Montos Generales
           </h3>
 
@@ -1296,9 +1308,14 @@ export default function PurchasesPage() {
         <>
           <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
             <div className="mb-4">
-              <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2">
-                <Box className="h-4 w-4" /> Líneas de Compra / Gasto
-              </h3>
+              {/*  LOTE 261: la tasa del dolar junto a las lineas, con "Cambiar tasa" para quien
+                   administra. No sale si la empresa no usa precios en dolares.  */}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="font-bold text-oro-texto uppercase tracking-wider text-sm flex items-center gap-2">
+                  <Box className="h-4 w-4" /> Líneas de Compra / Gasto
+                </h3>
+                <TasaDelDolarEnLinea t={tasaDelDolar} />
+              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -1336,10 +1353,8 @@ export default function PurchasesPage() {
                       <td className="py-2 px-2 text-center">
                         <div className="inline-flex items-center bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm w-28 mx-auto">
                           <button
-                            type="button"
-                            onClick={() => updateLine(l.id, 'quantity', Math.max(1, (l.quantity || 1) - 1))}
-                            className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition text-slate-600 outline-none"
-                          >
+                            type="button" className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition text-slate-600 outline-none" aria-label="Restar uno a la cantidad"
+                            onClick={() => updateLine(l.id, 'quantity', Math.max(1, (l.quantity || 1) - 1))}>
                             <Minus className="h-3.5 w-3.5" />
                           </button>
                           <input 
@@ -1350,10 +1365,8 @@ export default function PurchasesPage() {
                             className="w-full bg-transparent border-none text-center text-xs font-bold focus:ring-0 outline-none p-0 text-[#c5a059] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                           <button
-                            type="button"
-                            onClick={() => updateLine(l.id, 'quantity', (l.quantity || 1) + 1)}
-                            className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition text-slate-600 outline-none"
-                          >
+                            type="button" className="p-1.5 hover:bg-on-surface/5 active:scale-95 transition text-slate-600 outline-none" aria-label="Sumar uno a la cantidad"
+                            onClick={() => updateLine(l.id, 'quantity', (l.quantity || 1) + 1)}>
                             <Plus className="h-3.5 w-3.5" />
                           </button>
                         </div>
@@ -1363,13 +1376,6 @@ export default function PurchasesPage() {
                           type="number" step="0.01" value={l.unitCost || ''} onChange={e => updateLine(l.id, 'unitCost', parseFloat(e.target.value) || 0)}
                           className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-right font-semibold focus:ring-1 focus:ring-[#c5a059] focus:border-primary outline-none font-mono-data"
                         />
-                        {/* Lote 257: el costo de un producto en dolares sale de la tasa; se dice de donde. */}
-                        {(() => {
-                          const o = l.productId ? origenDe(l.productId) : null;
-                          return o ? (
-                            <p className="mt-0.5 text-[10px] text-right text-slate-500 font-mono-data">US$ {escribirTasa(o.costoUsd)} × {escribirTasa(o.tasa)}</p>
-                          ) : null;
-                        })()}
                       </td>
                       <td className="py-2 px-2 min-w-[120px]">
                         <input 
@@ -1382,9 +1388,9 @@ export default function PurchasesPage() {
                         <span className="font-mono-data font-bold text-sm text-[#c5a059]">RD${l.total.toFixed(2)}</span>
                       </td>
                       <td className="py-2 px-2 text-center">
-                        <button onClick={() => removeLine(l.id)} className="p-1 text-red-500 hover:bg-red-50 rounded-lg">
+                        <IconButton type="button" className="text-red-500 hover:bg-red-50 hover:text-red-600" aria-label="Eliminar la línea" onClick={() => removeLine(l.id)}>
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                        </IconButton>
                       </td>
                     </tr>
                   ))}
@@ -1406,12 +1412,10 @@ export default function PurchasesPage() {
                 se iria con el desplazamiento horizontal de la tabla y
                 desapareceria de la vista en pantallas estrechas. */}
             <div className="mt-4 flex justify-start">
-              <button
-                onClick={addLine}
-                className="bg-primary/10 text-[#c5a059] px-4 py-2 rounded-xl text-xs font-bold hover:bg-primary/20 flex items-center gap-2 animate-fade-in"
-              >
+              <Button type="button" variant="outline" size="sm" className="animate-fade-in"
+                onClick={addLine}>
                 <Plus className="h-4 w-4" /> Añadir Línea
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -1438,7 +1442,7 @@ export default function PurchasesPage() {
 
   const paso3 = () => (
     <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
-      <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
+      <h3 className="font-bold text-oro-texto uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
         <Banknote className="h-4 w-4" /> Como se paga
       </h3>
       <div className="space-y-4">
@@ -1682,24 +1686,31 @@ export default function PurchasesPage() {
           <span className="font-display-lg text-2xl font-extrabold text-[#c5a059]">RD$ {grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
         </div>
 
-        <button
-          onClick={saveExpense}
-          disabled={loading}
-          className="w-full bg-[#005E63] hover:bg-[#004d51] text-white py-3.5 rounded-lg flex items-center justify-center gap-3 font-bold text-sm hover:shadow-lg active:scale-98 transition disabled:opacity-50"
-        >
-          {loading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
-          <span>{editingExpenseId ? 'Actualizar Compra / Gasto' : 'Guardar Compra / Gasto'}</span>
-        </button>
-
-        {editingExpenseId && (
-          <button
+        {/* Lote 273: el pie estaba al reves ([Guardar] y debajo [Cancelar Edicion]). Cancelar primero y
+            la principal la ultima; en el movil se apilan con la principal ARRIBA, como AccionesDeFormulario. */}
+        <div className="flex flex-col-reverse sm:flex-row gap-2">
+          {editingExpenseId && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              onClick={cancelEdit}
+              className="w-full sm:w-auto"
+            >
+              Cancelar Edición
+            </Button>
+          )}
+          <Button
             type="button"
-            onClick={cancelEdit}
-            className="w-full mt-3 bg-slate-200/60 hover:bg-slate-200 text-slate-700 py-2 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition active:scale-98"
+            size="lg"
+            onClick={saveExpense}
+            disabled={loading}
+            className="w-full sm:flex-1"
           >
-            Cancelar Edición
-          </button>
-        )}
+            {loading ? <RefreshCw className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+            <span>{editingExpenseId ? 'Actualizar Compra / Gasto' : 'Guardar Compra / Gasto'}</span>
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -1746,7 +1757,7 @@ export default function PurchasesPage() {
     ];
     return (
       <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
-        <h3 className="font-bold text-[#c5a059] uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
+        <h3 className="font-bold text-oro-texto uppercase tracking-wider text-sm flex items-center gap-2 mb-4">
           <Eye className="h-4 w-4" /> Lo que vas a guardar
         </h3>
         <dl className="divide-y divide-slate-100">
@@ -1758,7 +1769,7 @@ export default function PurchasesPage() {
                 <button
                   type="button"
                   onClick={() => irAPaso(dePaso)}
-                  className="text-[10px] font-bold text-[#c5a059] hover:underline shrink-0"
+                  className="text-[10px] font-bold text-[#003366] hover:underline shrink-0"
                 >
                   editar
                 </button>
@@ -1816,35 +1827,29 @@ export default function PurchasesPage() {
   );
 
   const botonVista = () => (
-    <button
-      type="button"
-      onClick={() => { setVistaCompleta(v => !v); setErrores({}); }}
-      className="inline-flex items-center gap-2 h-8 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition shrink-0"
-    >
+    <Button
+      type="button" variant="secondary" size="sm" className="shrink-0"
+      onClick={() => { setVistaCompleta(v => !v); setErrores({}); }}>
       <LayoutList className="w-3.5 h-3.5" />
       <span className="hidden sm:inline">{vistaCompleta ? 'Ver por pasos' : 'Ver todo en una pagina'}</span>
       <span className="sm:hidden">{vistaCompleta ? 'Pasos' : 'Todo'}</span>
-    </button>
+    </Button>
   );
 
   const navegacionPasos = () => (
     <div className="mt-6 flex items-center justify-between gap-3">
-      <button
-        type="button"
+      <Button
+        type="button" variant="secondary"
         onClick={() => { setErrores({}); setPaso(p => Math.max(1, p - 1)); }}
-        disabled={paso === 1}
-        className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition disabled:opacity-40 disabled:hover:bg-slate-100"
-      >
+        disabled={paso === 1}>
         <ChevronLeft className="w-4 h-4" /> Atras
-      </button>
+      </Button>
       {paso < PASOS.length ? (
-        <button
+        <Button
           type="button"
-          onClick={avanzar}
-          className="inline-flex items-center gap-2 h-9 px-5 rounded-lg text-xs font-bold text-white bg-[#005E63] hover:bg-[#004d51] transition active:scale-95"
-        >
+          onClick={avanzar}>
           Siguiente <ChevronRight className="w-4 h-4" />
-        </button>
+        </Button>
       ) : (
         <span />
       )}
@@ -1894,44 +1899,42 @@ export default function PurchasesPage() {
   return (
     <div className="space-y-8 animate-fade-in-up pb-10 w-full max-w-none">
       {/* Header */}
-      <header className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 w-full">
-        <div>
-          <h1 className="font-display-lg text-3xl md:text-4xl text-[#c5a059] tracking-tight font-extrabold flex items-center gap-3">
-            <Banknote className="h-8 w-8 text-[#c5a059]" /> Compras y Gastos
-          </h1>
-          <p className="font-body-lg text-slate-500 mt-1">
-            Administra facturas de suplidores, compras de inventario y gastos de caja chica.
-          </p>
-        </div>
-
-        {/* Tab Switcher & Action button */}
+      <CabeceraDePagina
+        titulo="Compras y Gastos"
+        descripcion="Administra facturas de suplidores, compras de inventario y gastos de caja chica."
+        icono={<Banknote />}
+        acciones={
+        /* Tab Switcher */
         <div className="flex items-center gap-3 self-end md:self-auto">
           <div className="bg-slate-50 p-1 rounded-lg flex gap-1 border border-white/20">
             <button
+              type="button"
               onClick={() => setActiveTab('historial')}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition ${activeTab === 'historial'
-                  ? 'bg-white text-[#c5a059] shadow-sm'
+                  ? 'bg-white text-[#003366] shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
                 }`}
             >
               <ListFilter className="h-4 w-4 inline mr-1.5" /> Historial
             </button>
             <button
+              type="button"
               onClick={() => {
                 resetForm();
                 setActiveTab('nuevo');
               }}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition ${activeTab === 'nuevo'
-                  ? 'bg-white text-[#c5a059] shadow-sm'
+                  ? 'bg-white text-[#003366] shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
                 }`}
             >
               <Plus className="h-4 w-4 inline mr-1.5" /> Registrar
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab('cheques')}
               className={`px-4 py-2 rounded-lg text-xs font-bold transition ${activeTab === 'cheques'
-                  ? 'bg-white text-[#c5a059] shadow-sm'
+                  ? 'bg-white text-[#003366] shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
                 }`}
             >
@@ -1939,13 +1942,14 @@ export default function PurchasesPage() {
             </button>
           </div>
         </div>
-      </header>
+      }
+      />
 
       {activeTab === 'historial' ? (
         <div className="space-y-8 w-full max-w-none">
           {/* Advanced Filter Panel */}
           <section className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm w-full">
-            <h3 className="font-bold text-[#c5a059] mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
+            <h3 className="font-bold text-oro-texto mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
               <Filter className="h-4 w-4" /> Filtros de Búsqueda
             </h3>
 
@@ -2015,8 +2019,8 @@ export default function PurchasesPage() {
 
             <div className="mt-4 flex justify-end gap-2.5">
               {hasSearched && searchResults.length > 0 && (
-                <button
-                  type="button"
+                <Button
+                  type="button" variant="documento" size="sm" className="animate-fade-in"
                   onClick={() => {
                     let url = `/api/v1/expenses/report?startDate=${filterStartDate}&endDate=${filterEndDate}`;
                     if (filterType === 'purchases') {
@@ -2034,41 +2038,35 @@ export default function PurchasesPage() {
                       url += `&ncf=${encodeURIComponent(filterNcf)}`;
                     }
                     window.open(url, '_blank', 'noopener,noreferrer');
-                  }}
-                  className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg flex items-center justify-center gap-2 transition active:scale-95 shadow-md shadow-teal-500/10 font-bold text-xs animate-fade-in"
-                >
+                  }}>
                   <Printer className="h-4 w-4" />
                   <span>Imprimir Reporte</span>
-                </button>
+                </Button>
               )}
-              <button
+              <Button type="button" size="sm"
                 onClick={handleSearch}
-                disabled={searchLoading}
-                className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 text-xs rounded-lg flex items-center justify-center gap-2 hover:shadow-xl hover:shadow-teal-500/25 transition active:scale-95 disabled:opacity-50"
-              >
+                disabled={searchLoading}>
                 {searchLoading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 <span className="font-bold text-xs">Buscar Registros</span>
-              </button>
+              </Button>
             </div>
           </section>
 
           {/* Indicators & Data presentation */}
           {!hasSearched ? (
             <div className="bg-slate-50 border border-dashed border-on-surface-variant/20 rounded-xl p-12 text-center">
-              <ListFilter className="h-12 w-12 text-[#c5a059] mx-auto mb-4 opacity-55" />
-              <h4 className="text-lg font-extrabold text-[#c5a059] mb-2">Establece los filtros de búsqueda</h4>
+              <Filter className="h-12 w-12 text-[#c5a059] mx-auto mb-4 opacity-55" />
+              <h4 className="text-lg font-extrabold text-oro-texto mb-2">Establece los filtros de búsqueda</h4>
               <p className="text-sm text-slate-600 max-w-md mx-auto mb-6">
                 No se muestran transacciones hasta que apliques los filtros de fecha/tipo y presiones el botón de **Buscar Registros**.
               </p>
-              <button
+              <Button type="button" size="sm"
                 onClick={() => {
                   resetForm();
                   setActiveTab('nuevo');
-                }}
-                className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg font-bold text-xs inline-flex items-center gap-2 hover:shadow-lg transition active:scale-95"
-              >
+                }}>
                 <Plus className="h-4 w-4" /> Registrar Compra o Gasto
-              </button>
+              </Button>
             </div>
           ) : searchLoading ? (
             <div className="space-y-6">
@@ -2128,7 +2126,7 @@ export default function PurchasesPage() {
               <div className="flex flex-col gap-8 w-full max-w-none">
                 {/* Compras de Inventario (Comprobantes) */}
                 <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm w-full max-w-none">
-                  <h3 className="font-extrabold text-[#c5a059] mb-2 flex items-center justify-between text-base">
+                  <h3 className="font-extrabold text-oro-texto mb-2 flex items-center justify-between text-base">
                     <span className="flex items-center gap-2">
                       <ShoppingCart className="h-5 w-5 text-emerald-500" /> 1. Compras (Con Suplidor / Inventario)
                     </span>
@@ -2169,20 +2167,20 @@ export default function PurchasesPage() {
                                 RD${(parseFloat(e.amount) + parseFloat(e.itbis || '0') + parseFloat(e.isc || '0') + parseFloat(e.otherTaxes || '0')).toFixed(2)}
                               </span>
                               <div className="flex gap-1.5">
-                                <button onClick={() => viewDetails(e.id)} className="p-2 bg-slate-100 rounded text-[#c5a059] hover:bg-primary/10">
+                                <IconButton type="button" className="bg-slate-100 text-[#c5a059] hover:bg-primary/10" aria-label="Ver el detalle de la compra" onClick={() => viewDetails(e.id)}>
                                   <Eye className="h-4 w-4" />
-                                </button>
-                                <button onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank', 'noopener,noreferrer')} className="p-2 bg-slate-100 rounded text-[#005E63] hover:bg-[#005E63]/10">
+                                </IconButton>
+                                <IconButton type="button" className="bg-slate-100 text-[#005E63] hover:bg-[#005E63]/10" aria-label="Imprimir la compra" onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank', 'noopener,noreferrer')}>
                                   <Printer className="h-4 w-4" />
-                                </button>
+                                </IconButton>
                                 {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
                                   <>
-                                    <button onClick={() => handleEditFromList(e.id)} className="p-2 bg-slate-100 rounded text-amber-500 hover:bg-amber-500/10">
-                                      <Edit className="h-4 w-4" />
-                                    </button>
-                                    <button onClick={() => handleDeleteExpense(e.id)} className="p-2 bg-slate-100 rounded text-rose-500 hover:bg-rose-500/10">
+                                    <IconButton type="button" className="bg-slate-100 text-amber-500 hover:bg-amber-500/10" aria-label="Editar la compra" onClick={() => handleEditFromList(e.id)}>
+                                      <Pencil className="h-4 w-4" />
+                                    </IconButton>
+                                    <IconButton type="button" className="bg-slate-100 text-rose-500 hover:bg-rose-500/10" aria-label="Anular la compra" onClick={() => handleDeleteExpense(e.id)}>
                                       <Trash2 className="h-4 w-4" />
-                                    </button>
+                                    </IconButton>
                                   </>
                                 )}
                               </div>
@@ -2225,37 +2223,29 @@ export default function PurchasesPage() {
                                 </td>
                                 <td className="px-4 py-2.5 text-center">
                                   <div className="flex items-center justify-center gap-1.5">
-                                    <button
+                                    <IconButton type="button" className="text-[#c5a059] hover:bg-primary/10" aria-label="Ver el detalle de la compra"
                                       onClick={() => viewDetails(e.id)}
-                                      className="p-1.5 text-[#c5a059] hover:bg-primary/10 rounded-xl transition"
-                                      title="Ver Detalles"
-                                    >
+                                      title="Ver Detalles">
                                       <Eye className="h-4 w-4" />
-                                    </button>
-                                    <button
+                                    </IconButton>
+                                    <IconButton type="button" className="text-[#005E63] hover:bg-[#005E63]/10" aria-label="Imprimir la compra"
                                       onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank', 'noopener,noreferrer')}
-                                      className="p-1.5 text-[#005E63] hover:bg-[#005E63]/10 rounded-xl transition"
-                                      title="Imprimir"
-                                    >
+                                      title="Imprimir">
                                       <Printer className="h-4 w-4" />
-                                    </button>
+                                    </IconButton>
                                     {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
-                                      <button
+                                      <IconButton type="button" className="text-amber-500 hover:bg-amber-500/10" aria-label="Editar la compra"
                                         onClick={() => handleEditFromList(e.id)}
-                                        className="p-1.5 text-amber-500 hover:bg-amber-500/10 rounded-xl transition"
-                                        title="Editar"
-                                      >
-                                        <Edit className="h-4 w-4" />
-                                      </button>
+                                        title="Editar">
+                                        <Pencil className="h-4 w-4" />
+                                      </IconButton>
                                     )}
                                     {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
-                                      <button
+                                      <IconButton type="button" className="text-rose-500 hover:bg-rose-500/10" aria-label="Anular la compra"
                                         onClick={() => handleDeleteExpense(e.id)}
-                                        className="p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-xl transition"
-                                        title="Anular"
-                                      >
+                                        title="Anular">
                                         <Trash2 className="h-4 w-4" />
-                                      </button>
+                                      </IconButton>
                                     )}
                                   </div>
                                 </td>
@@ -2280,7 +2270,7 @@ export default function PurchasesPage() {
 
                 {/* Gastos Menores / Caja Chica */}
                 <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm w-full max-w-none">
-                  <h3 className="font-extrabold text-[#c5a059] mb-2 flex items-center justify-between text-base">
+                  <h3 className="font-extrabold text-oro-texto mb-2 flex items-center justify-between text-base">
                     <span className="flex items-center gap-2">
                       <Activity className="h-5 w-5 text-blue-500" /> 2. Gastos Menores / Caja Chica
                     </span>
@@ -2320,20 +2310,20 @@ export default function PurchasesPage() {
                                 </span>
                               </div>
                               <div className="flex gap-1.5">
-                                <button onClick={() => viewDetails(e.id)} className="p-2 bg-slate-100 rounded text-[#c5a059] hover:bg-primary/10">
+                                <IconButton type="button" className="bg-slate-100 text-[#c5a059] hover:bg-primary/10" aria-label="Ver el detalle de la compra" onClick={() => viewDetails(e.id)}>
                                   <Eye className="h-4 w-4" />
-                                </button>
-                                <button onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank', 'noopener,noreferrer')} className="p-2 bg-slate-100 rounded text-[#005E63] hover:bg-[#005E63]/10">
+                                </IconButton>
+                                <IconButton type="button" className="bg-slate-100 text-[#005E63] hover:bg-[#005E63]/10" aria-label="Imprimir la compra" onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank', 'noopener,noreferrer')}>
                                   <Printer className="h-4 w-4" />
-                                </button>
+                                </IconButton>
                                 {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
                                   <>
-                                    <button onClick={() => handleEditFromList(e.id)} className="p-2 bg-slate-100 rounded text-amber-500 hover:bg-amber-500/10">
-                                      <Edit className="h-4 w-4" />
-                                    </button>
-                                    <button onClick={() => handleDeleteExpense(e.id)} className="p-2 bg-slate-100 rounded text-rose-500 hover:bg-rose-500/10">
+                                    <IconButton type="button" className="bg-slate-100 text-amber-500 hover:bg-amber-500/10" aria-label="Editar la compra" onClick={() => handleEditFromList(e.id)}>
+                                      <Pencil className="h-4 w-4" />
+                                    </IconButton>
+                                    <IconButton type="button" className="bg-slate-100 text-rose-500 hover:bg-rose-500/10" aria-label="Anular la compra" onClick={() => handleDeleteExpense(e.id)}>
                                       <Trash2 className="h-4 w-4" />
-                                    </button>
+                                    </IconButton>
                                   </>
                                 )}
                               </div>
@@ -2380,37 +2370,29 @@ export default function PurchasesPage() {
                                 </td>
                                 <td className="px-4 py-2.5 text-center">
                                   <div className="flex items-center justify-center gap-1.5">
-                                    <button
+                                    <IconButton type="button" className="text-[#c5a059] hover:bg-primary/10" aria-label="Ver el detalle de la compra"
                                       onClick={() => viewDetails(e.id)}
-                                      className="p-1.5 text-[#c5a059] hover:bg-primary/10 rounded-xl transition"
-                                      title="Ver Detalles"
-                                    >
+                                      title="Ver Detalles">
                                       <Eye className="h-4 w-4" />
-                                    </button>
-                                    <button
+                                    </IconButton>
+                                    <IconButton type="button" className="text-[#005E63] hover:bg-[#005E63]/10" aria-label="Imprimir la compra"
                                       onClick={() => window.open(`/api/v1/expenses/${e.id}/print`, '_blank', 'noopener,noreferrer')}
-                                      className="p-1.5 text-[#005E63] hover:bg-[#005E63]/10 rounded-xl transition"
-                                      title="Imprimir"
-                                    >
+                                      title="Imprimir">
                                       <Printer className="h-4 w-4" />
-                                    </button>
+                                    </IconButton>
                                     {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
-                                      <button
+                                      <IconButton type="button" className="text-amber-500 hover:bg-amber-500/10" aria-label="Editar el gasto"
                                         onClick={() => handleEditFromList(e.id)}
-                                        className="p-1.5 text-amber-500 hover:bg-amber-500/10 rounded-xl transition"
-                                        title="Editar Gasto"
-                                      >
-                                        <Edit className="h-4 w-4" />
-                                      </button>
+                                        title="Editar Gasto">
+                                        <Pencil className="h-4 w-4" />
+                                      </IconButton>
                                     )}
                                     {userRole === 'sistemas' && (
-                                      <button
+                                      <IconButton type="button" className="text-red-500 hover:bg-red-500/10" aria-label="Eliminar el gasto"
                                         onClick={() => handleDeleteExpense(e.id)}
-                                        className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-xl transition"
-                                        title="Eliminar Gasto"
-                                      >
+                                        title="Eliminar Gasto">
                                         <Trash2 className="h-4 w-4" />
-                                      </button>
+                                      </IconButton>
                                     )}
                                   </div>
                                 </td>
@@ -2442,54 +2424,38 @@ export default function PurchasesPage() {
         <GuaranteeChecksView />
       )}
 
-      {/* OCR Lector Modal */}
-      {showOcrModal && (
-        <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl relative p-6 border border-slate-200">
-            <button
-              onClick={() => setShowOcrModal(false)}
-              className="absolute top-4 right-4 text-slate-500 hover:text-slate-750 text-xs font-bold bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-xl active:scale-95 z-50 transition-colors"
-            >
-              Cerrar
-            </button>
-            <div className="pt-4">
-              <InvoiceImageUploader onOcrComplete={handleOcrComplete} />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* OCR Lector Modal -- lote 279: la ventana comun (`Modal`). El fondo no cerraba; el boton
+          "Cerrar" de siempre queda en el pie. El titulo es el del boton que la abre. */}
+      <Modal
+        isOpen={showOcrModal}
+        onClose={() => setShowOcrModal(false)}
+        maxWidth="2xl"
+        cerrarAlPulsarFuera={false}
+        icono={<Camera />}
+        title="Lector OCR (Subir Factura)"
+        footer={
+          <Button type="button" variant="secondary"
+            onClick={() => setShowOcrModal(false)}>
+            Cerrar
+          </Button>
+        }
+      >
+        <InvoiceImageUploader onOcrComplete={handleOcrComplete} />
+      </Modal>
 
-      {/* Modal Agregar Proveedor */}
-      <AnimatePresence>
-        {showAddSupplierModal && (
-          <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-black/55 backdrop-blur-md">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-surface rounded-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-[#003366]"
-            >
-              {/* Modal Header */}
-              <div className="bg-[#001733] text-white p-6 flex justify-between items-center border-b border-[#003366]">
-                <div>
-                  <h3 className="text-xl font-bold flex items-center gap-2">
-                    <Plus className="h-5 w-5" /> Agregar Nuevo Proveedor
-                  </h3>
-                  <p className="text-xs text-on-primary/80 mt-1">
-                    Crea un nuevo suplidor para utilizarlo de inmediato en tus compras.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAddSupplierModal(false)}
-                  className="bg-white/10 hover:bg-white/20 text-on-primary p-2 rounded-xl text-sm transition"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              {/* Modal Content / Form */}
-              <form onSubmit={handleAddSupplier} className="p-6 overflow-y-auto space-y-4">
+      {/* Modal Agregar Proveedor -- lote 279: la ventana comun. El fondo no cerraba (formulario) y
+          mientras se guarda (`isSavingSupplier`) no se cierra. */}
+      <Modal
+        isOpen={showAddSupplierModal}
+        onClose={() => setShowAddSupplierModal(false)}
+        bloqueada={isSavingSupplier}
+        cerrarAlPulsarFuera={false}
+        sinRelleno
+        icono={<Plus />}
+        title="Agregar Nuevo Proveedor"
+        description="Crea un nuevo suplidor para utilizarlo de inmediato en tus compras."
+      >
+              <form onSubmit={handleAddSupplier} className="p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-800 mb-2 font-sans">Nombre del Proveedor *</label>
                   <input
@@ -2547,18 +2513,14 @@ export default function PurchasesPage() {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-surface-variant/35">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddSupplierModal(false)}
-                    className="px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition active:scale-95"
-                  >
+                  <Button
+                    type="button" variant="secondary"
+                    onClick={() => setShowAddSupplierModal(false)}>
                     Cancelar
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
-                    disabled={isSavingSupplier}
-                    className="px-4 py-2 bg-[#003366] hover:bg-[#002244] text-white rounded-xl text-sm font-bold transition flex items-center gap-2 shadow-md active:scale-95 disabled:opacity-50"
-                  >
+                    disabled={isSavingSupplier}>
                     {isSavingSupplier ? (
                       <>
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Guardando...
@@ -2566,44 +2528,27 @@ export default function PurchasesPage() {
                     ) : (
                       'Guardar Proveedor'
                     )}
-                  </button>
+                  </Button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </Modal>
 
-      {/* Premium Detail Modal for Expense/Purchase */}
-      <AnimatePresence>
+      {/* Premium Detail Modal for Expense/Purchase -- lote 279: la ventana comun. El fondo no
+          cerraba. "Cerrar Ventana" de la cabecera pasa a ser la X; "Cerrar Detalle" sigue en el pie. */}
+      <Modal
+        isOpen={!!selectedExpense}
+        onClose={() => setSelectedExpense(null)}
+        maxWidth="4xl"
+        sinRelleno
+        cerrarAlPulsarFuera={false}
+        icono={<Info />}
+        title="Detalle de la Transacción"
+        description={selectedExpense && <>ID Transacción: {selectedExpense.id}</>}
+      >
         {selectedExpense && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/55 backdrop-blur-md">
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
-            >
-              {/* Modal Header */}
-              <div className="bg-primary text-on-primary p-6 flex justify-between items-center">
-                <div>
-                  <h3 className="text-xl font-bold flex items-center gap-2">
-                    <Info className="h-5 w-5" /> Detalle de la Transacción
-                  </h3>
-                  <p className="text-xs text-on-primary/80 mt-1">
-                    ID Transacción: {selectedExpense.id}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setSelectedExpense(null)}
-                  className="bg-white/10 hover:bg-white/20 text-on-primary p-2 rounded-xl text-sm transition"
-                >
-                  Cerrar Ventana
-                </button>
-              </div>
-
+          <>
               {/* Modal Body */}
-              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              <div className="p-6 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div className="bg-slate-50 p-4 rounded-lg">
                     <p className="text-[10px] uppercase font-bold text-slate-600">Tipo y Comprobante</p>
@@ -2638,7 +2583,7 @@ export default function PurchasesPage() {
 
                 {/* Lines breakdown */}
                 <div>
-                  <h4 className="font-bold text-sm text-[#c5a059] mb-3 uppercase tracking-wider flex items-center gap-1.5">
+                  <h4 className="font-bold text-sm text-oro-texto mb-3 uppercase tracking-wider flex items-center gap-1.5">
                     <Box className="h-4 w-4" /> Desglose de Líneas de Artículos
                   </h4>
                   <div className="border border-surface-container-high rounded-lg overflow-hidden">
@@ -2718,12 +2663,10 @@ export default function PurchasesPage() {
               {/* Modal Footer */}
               <div className="bg-slate-50 p-4 flex justify-between items-center">
                 {userRole === 'sistemas' ? (
-                  <button
-                    onClick={() => handleDeleteExpense(selectedExpense.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition active:scale-95 shadow-md shadow-red-500/20"
-                  >
+                  <Button type="button" variant="destructive" size="sm"
+                    onClick={() => handleDeleteExpense(selectedExpense.id)}>
                     <Trash2 className="h-4 w-4" /> Eliminar Transacción
-                  </button>
+                  </Button>
                 ) : (
                   <div className="flex items-center gap-2 text-[11px] font-bold text-amber-600 bg-amber-500/10 px-3 py-2 rounded-xl border border-amber-500/20">
                     <Info className="h-3.5 w-3.5" />
@@ -2731,30 +2674,28 @@ export default function PurchasesPage() {
                   </div>
                 )}
                 {(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') && (
-                  <button
-                    onClick={() => startEditExpense(selectedExpense)}
-                    className="bg-amber-500 hover:bg-amber-600 text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition active:scale-95 shadow-md shadow-amber-500/20 ml-auto mr-2"
-                  >
-                    <Edit className="h-4 w-4" /> Editar Transacción
-                  </button>
+                  <Button type="button" variant="secondary" size="sm" className="ml-auto mr-2"
+                    onClick={() => startEditExpense(selectedExpense)}>
+                    <Pencil className="h-4 w-4" /> Editar Transacción
+                  </Button>
                 )}
-                <button
+                <Button
+                  type="button"
+                  variant="documento"
+                  size="sm"
                   onClick={() => window.open(`/api/v1/expenses/${selectedExpense.id}/print`, '_blank', 'noopener,noreferrer')}
-                  className={`bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-95 flex items-center gap-1.5 mr-2 ${!(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') ? 'ml-auto' : ''}`}
+                  className={`mr-2 ${!(userRole === 'sistemas' || userRole === 'administrador' || userRole === 'administracion') ? 'ml-auto' : ''}`}
                 >
                   <Printer className="h-4 w-4" /> Imprimir
-                </button>
-                <button
-                  onClick={() => setSelectedExpense(null)}
-                  className="bg-primary text-on-primary h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-95"
-                >
+                </Button>
+                <Button type="button" size="sm"
+                  onClick={() => setSelectedExpense(null)}>
                   Cerrar Detalle
-                </button>
+                </Button>
               </div>
-            </motion.div>
-          </div>
+          </>
         )}
-      </AnimatePresence>
+      </Modal>
     </div>
   );
 }

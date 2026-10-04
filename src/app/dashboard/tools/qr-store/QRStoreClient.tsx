@@ -5,6 +5,7 @@ import { QrCode, Store, Loader2 } from 'lucide-react';
 import QRControls from './components/QRControls';
 import QRPreview from './components/QRPreview';
 import QRPrintStand from './components/QRPrintStand';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 export interface CompanyInfo {
   name: string;
@@ -109,37 +110,34 @@ export default function QRStoreClient() {
 
       <div className="p-6 w-full max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="p-2 bg-[#001e40]/5 rounded-xl text-[#001e40]">
-                <QrCode className="h-6 w-6" />
-              </span>
-              <h1 className="text-2xl font-bold text-[#001e40] tracking-tight">QR Tienda Online</h1>
-            </div>
-            <p className="text-slate-500 text-sm pl-12">
+        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+          <CabeceraDePagina
+            titulo="QR Tienda Online"
+            icono={<QrCode />}
+            descripcion={<>
               Genera, personaliza e imprime el código QR de tu tienda digital.
               {company && (
                 <span className="ml-2 font-semibold text-[#001e40]">{company.name}</span>
               )}
-            </p>
-          </div>
-
-          {/* View Tabs */}
+            </>}
+            acciones={
+          /* View Tabs (pestanas de contenido, no de registro) */
           <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl">
             {(['editor', 'stand', 'stickers'] as const).map((v) => (
               <button
-                key={v}
-                onClick={() => setView(v)}
+                type="button"
                 className={[
                   'px-4 py-2 rounded-lg text-sm font-semibold transition',
                   view === v ? 'bg-white text-[#001e40] shadow-sm' : 'text-slate-500 hover:text-slate-700',
                 ].join(' ')}
+                key={v}
+                onClick={() => setView(v)}
               >
                 {v === 'editor' ? '✏️ Editor' : v === 'stand' ? '🖨️ Stand' : '🏷️ Stickers'}
               </button>
             ))}
-          </div>
+          </div>}
+          />
         </div>
 
         {/* Main Content */}

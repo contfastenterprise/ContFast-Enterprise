@@ -42,6 +42,9 @@ import { formatDateDisplay } from '@/utils/fechasLocales';
 import { leerRespuesta } from '@/utils/leerRespuesta';
 import { avisoDeSincronizacion } from '@/services/dgii/consultaDeEstado';
 
+import { Button, IconButton } from '@/components/ui/button';
+import { Modal } from '@/components/ui/dialog';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface Invoice {
@@ -315,31 +318,17 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
 
   if (!open) return null;
 
+  //  La ventana de la casa (lote 278). Pulsar fuera cierra, como antes; mientras guarda, no se cierra.
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-          onClick={onClose}
-        />
-        <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
-          className="relative z-10 w-full max-w-md bg-white border border-[#003366] rounded-xl shadow-2xl overflow-hidden"
-        >
-          <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
-            <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
-              <Plus className="h-5 w-5 text-[#C5A059]" /> Nueva Autorización SACF
-            </h3>
-            <button onClick={onClose} className="p-1 rounded-lg text-slate-500 hover:text-primary transition-colors">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
+    <Modal
+      isOpen={open}
+      onClose={onClose}
+      title="Nueva Autorización SACF"
+      icono={<Plus />}
+      maxWidth="md"
+      bloqueada={loading}
+      sinRelleno
+    >
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
             <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-200">
               <div>
@@ -442,26 +431,22 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
-              <button
+              <Button variant="secondary"
                 type="button"
                 onClick={onClose}
-                className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-              >
+                className="flex">
                 Cancelar
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
                 disabled={loading}
-                className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
-              >
+                className="flex flex-1">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                 Guardar
-              </button>
+              </Button>
             </div>
           </form>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+    </Modal>
   );
 }
 
@@ -520,31 +505,17 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
 
   const isElectronic = !sequence.ecfType.startsWith('0') && !sequence.ecfType.startsWith('1');
 
+  //  La ventana de la casa (lote 278). Pulsar fuera cierra, como antes; mientras guarda, no se cierra.
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-          onClick={onClose}
-        />
-        <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
-          className="relative z-10 w-full max-w-md bg-white border border-[#003366] rounded-xl shadow-2xl overflow-hidden"
-        >
-          <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
-            <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
-              <Pencil className="h-5 w-5 text-[#C5A059]" /> Editar Secuencia SACF
-            </h3>
-            <button onClick={onClose} className="p-1 rounded-lg text-slate-500 hover:text-primary transition-colors">
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-
+    <Modal
+      isOpen={open}
+      onClose={onClose}
+      title="Editar Secuencia SACF"
+      icono={<Pencil />}
+      maxWidth="md"
+      bloqueada={loading}
+      sinRelleno
+    >
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
             <div>
               <label className="text-sm font-semibold text-primary mb-1 block">Tipo Comprobante</label>
@@ -600,26 +571,22 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t border-[#003366]">
-              <button
+              <Button variant="secondary"
                 type="button"
                 onClick={onClose}
-                className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-              >
+                className="flex">
                 Cancelar
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
                 disabled={loading}
-                className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm flex-1"
-              >
+                className="flex flex-1">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
                 Guardar
-              </button>
+              </Button>
             </div>
           </form>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+    </Modal>
   );
 }
 
@@ -919,13 +886,14 @@ function ComprobantesTab() {
               </span>
             </div>
           </div>
-          <button
+          <Button
             type="button"
+            variant="warning"
+            size="sm"
             onClick={() => { setFilters((f) => ({ ...f, status: 'submitted' })); setPage(1); }}
-            className="shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg transition cursor-pointer"
           >
             Ver cuáles son
-          </button>
+          </Button>
         </div>
       )}
 
@@ -995,37 +963,41 @@ function ComprobantesTab() {
             }}
           />
           {(filters.q || filters.ecfType || filters.status || filters.from || filters.to) && (
-            <button
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
               onClick={() => { setFilters({ status: '', ecfType: '', from: '', to: '', q: '' }); setPage(1); }}
-              className="flex items-center justify-center gap-1 px-3 py-1.5 h-8 rounded-lg bg-white border border-slate-200 text-slate-500 text-xs hover:bg-slate-50 hover:text-slate-800 transition-colors cursor-pointer"
             >
-              <X className="h-4 w-4" /> Limpiar
-            </button>
+              <X /> Limpiar
+            </Button>
           )}
         </div>
 
         <div className="flex flex-col gap-2 min-w-[200px] justify-center">
-          <button
+          <Button
+            type="button"
             onClick={handleSyncFilteredStatus}
             disabled={syncingBatch || meta.total === 0}
             title="Pregunta a la DGII el estado de todos los comprobantes del filtro que aún esperan veredicto"
-            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-          >
+            className="flex">
             {syncingBatch ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <FileSearch className="h-4 w-4" />
             )}
             <span>CONSULTAR DGII</span>
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
             onClick={fetchInvoices}
             title="Vuelve a leer la lista guardada; no consulta a la DGII"
-            className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm group whitespace-nowrap"
+            className="flex group whitespace-nowrap"
           >
             <RefreshCw className={`h-4 w-4 ${loadingList ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-300'}`} />
             <span>RECARGAR LISTA</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -1085,11 +1057,11 @@ function ComprobantesTab() {
                     </td>
                     <td className="px-4 py-2.5 text-xs text-right">
                       <div className="flex justify-end gap-2 opacity-40 group-hover:opacity-100 transition-opacity">
-                        <button title="Ver detalle" onClick={() => window.open(`/dashboard/invoices/${inv.id}`, '_blank')} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"><Eye className="h-4 w-4" /></button>
+                        <IconButton type="button" title="Ver detalle" aria-label="Ver detalle del comprobante" onClick={() => window.open(`/dashboard/invoices/${inv.id}`, '_blank')}><Eye /></IconButton>
                         {(inv.msellerXmlPath || inv.signedXmlPath || inv.xmlPath) && (
-                          <button title="Descargar XML" onClick={() => window.open(`/api/v1/invoices/${inv.id}/xml`, '_blank')} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"><FileCode className="h-4 w-4" /></button>
+                          <IconButton type="button" title="Descargar XML" aria-label="Descargar el XML del comprobante" onClick={() => window.open(`/api/v1/invoices/${inv.id}/xml`, '_blank')}><FileCode /></IconButton>
                         )}
-                        <button title="Consultar estado DGII" onClick={() => handleRefreshStatus(inv)} disabled={refreshingId === inv.id} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10">{refreshingId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button>
+                        <IconButton type="button" title="Consultar estado DGII" aria-label="Consultar el estado en la DGII" onClick={() => handleRefreshStatus(inv)} disabled={refreshingId === inv.id}>{refreshingId === inv.id ? <Loader2 className="animate-spin" /> : <RefreshCw />}</IconButton>
                         {/* CUANDO SE PUEDE REENVIAR.
                             Decia `['rejected', 'failed']`. Dos problemas:
                             - 'failed' NO es un estado de factura. Los estados
@@ -1105,10 +1077,10 @@ function ComprobantesTab() {
                             esperando veredicto. Reenviarlo duplicaria un
                             comprobante fiscal, y eso no se retira. */}
                         {['rejected', 'signed', 'draft'].includes(inv.status) && (
-                          <button title="Reenviar a DGII" onClick={() => handleResubmit(inv)} disabled={resubmittingId === inv.id} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"><ArrowRight className="h-4 w-4" /></button>
+                          <IconButton type="button" title="Reenviar a DGII" aria-label="Reenviar el comprobante a la DGII" onClick={() => handleResubmit(inv)} disabled={resubmittingId === inv.id} className="hover:text-rose-600 hover:bg-rose-50"><ArrowRight /></IconButton>
                         )}
                         {inv.status === 'rejected' && (
-                          <button title="Dar de baja (asiento contrario y anular)" onClick={() => handleDarDeBaja(inv)} disabled={dandoDeBajaId === inv.id} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-700 hover:bg-rose-50">{dandoDeBajaId === inv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}</button>
+                          <IconButton type="button" title="Dar de baja (asiento contrario y anular)" aria-label="Dar de baja el comprobante" onClick={() => handleDarDeBaja(inv)} disabled={dandoDeBajaId === inv.id} className="hover:text-rose-700 hover:bg-rose-50">{dandoDeBajaId === inv.id ? <Loader2 className="animate-spin" /> : <Ban />}</IconButton>
                         )}
                       </div>
                     </td>
@@ -1146,24 +1118,28 @@ function ComprobantesTab() {
             <span className="text-sm font-bold text-secondary">
               {selectedIds.length} seleccionado(s)
             </span>
-            <button
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
               onClick={handleBatchSyncStatus}
               disabled={syncingBatch}
-              className="flex items-center gap-2 bg-secondary text-white px-4 py-2 rounded-lg font-bold text-xs hover:brightness-110 active:scale-95 transition"
             >
               {syncingBatch ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <FileSearch className="h-3.5 w-3.5" />
+                <FileSearch />
               )}
               Consultar DGII
-            </button>
-            <button
+            </Button>
+            <IconButton
+              type="button"
               onClick={() => setSelectedIds([])}
-              className="p-1 hover:bg-white/10 rounded-lg text-white/70 hover:text-white"
+              aria-label="Quitar la selección"
+              className="text-white/70 hover:text-white hover:bg-white/10"
             >
-              <X className="h-4 w-4" />
-            </button>
+              <X />
+            </IconButton>
           </motion.div>
         )}
       </AnimatePresence>
@@ -1226,21 +1202,22 @@ function ColaTab() {
           <span className="text-sm text-red-500">{failedSubmissions.length} fallidos</span>
         </div>
         <div className="flex gap-2">
-          <button
+          <Button
+            type="button"
+            variant="secondary"
             onClick={fetchSubmissions}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#003366] hover:bg-[#002244] text-white text-sm font-semibold shadow-sm transition hover:-translate-y-0.5"
           >
-            <RefreshCw className="h-3.5 w-3.5" /> Actualizar
-          </button>
+            <RefreshCw /> Actualizar
+          </Button>
           {failedSubmissions.length > 0 && (
-            <button
+            <Button
+              type="button"
               onClick={handleRetryAll}
               disabled={retryingAll}
-              className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-            >
+              className="flex">
               {retryingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
               Reintentar todos ({failedSubmissions.length})
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -1371,12 +1348,12 @@ function SecuenciasTab() {
         <p className="text-sm text-gray-600 dark:text-gray-400">
           {sequences.length} secuencia{sequences.length !== 1 ? 's' : ''} configurada{sequences.length !== 1 ? 's' : ''}
         </p>
-        <button
+        <Button
+          type="button"
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-        >
+          className="flex">
           <Plus className="h-4 w-4" /> Nueva Autorización
-        </button>
+        </Button>
       </div>
 
       {loading ? (
@@ -1389,9 +1366,9 @@ function SecuenciasTab() {
         <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray-400 bg-white rounded-xl border border-gray-200">
           <Database className="h-12 w-12 opacity-30" />
           <p className="text-sm font-medium">No hay secuencias SACF configuradas</p>
-          <button onClick={() => setShowModal(true)} className="text-primary text-sm font-semibold hover:underline">
+          <Button type="button" variant="link" onClick={() => setShowModal(true)}>
             Crear primera secuencia
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1427,18 +1404,20 @@ function SecuenciasTab() {
                   </div>
                   <div className="flex items-center gap-2">
                     {userRole === 'sistemas' && (
-                      <button
+                      <IconButton
+                        type="button"
                         onClick={() => {
                           setSelectedSequence(seq);
                           setShowEditModal(true);
                         }}
-                        className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
+                        aria-label="Editar secuencia"
                         title="Editar secuencia"
                       >
-                        <Pencil className="h-4 w-4" />
-                      </button>
+                        <Pencil />
+                      </IconButton>
                     )}
                     <button
+                      type="button"
                       onClick={() => handleToggleStatus(seq)}
                       disabled={togglingId === seq.id}
                       className={`text-xs font-bold px-3 py-1 rounded-full transition-colors border ${seq.status === 'active'
@@ -1704,18 +1683,14 @@ export default function ECFPage() {
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-4 border-b border-slate-200"
+        className="pb-4 border-b border-slate-200"
       >
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center border border-slate-200 shadow-sm relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 to-transparent" />
-            <ShieldCheck className="h-6 w-6 text-primary relative z-10" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-extrabold text-primary tracking-tight font-display-lg">Central e-CF</h1>
-            <p className="text-sm text-slate-500 mt-1">Gestión integral de facturación electrónica DGII</p>
-          </div>
-        </div>
+        {/* Lote 272: a la derecha va el entorno (no es una accion), en el sitio de las acciones. */}
+        <CabeceraDePagina
+          titulo="Central e-CF"
+          descripcion="Gestión integral de facturación electrónica DGII"
+          icono={<ShieldCheck />}
+          acciones={
         <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold border shadow-sm transition ${entorno === 'TEST'
           ? 'bg-error-container text-on-error-container border-error/30 animate-pulse'
           : 'bg-white text-primary border-slate-200'
@@ -1723,12 +1698,15 @@ export default function ECFPage() {
           <ShieldCheck className="h-4 w-4" />
           <span className="tracking-wider uppercase">{entornoConfig[entorno].label}</span>
         </div>
+          }
+        />
       </motion.div>
 
       {/* Tabs Premium Light */}
       <div className="flex gap-2 border-b border-slate-200 px-2">
         {TABS.map((tab) => (
           <button
+            type="button"
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`relative flex items-center justify-center gap-2 px-4 py-2 text-xs rounded-lg font-bold transition ${activeTab === tab.id

@@ -14,34 +14,37 @@ import { formatDateDisplay, formatTimeDisplay } from '@/utils/fechasLocales';
 import { diferenciaSinResolver } from '@/services/avisos/vencimientos';
 import { fmt } from '../caja';
 import type { HistorialCaja } from '../hooks/useHistorialCaja';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 export function VistaHistorico({ h }: { h: HistorialCaja }) {
   return (
     <>
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <nav className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-            <span>Caja</span>
-            <ChevronRight className="w-3 h-3" />
-            <span className="font-bold text-slate-700">Histórico de Cierres</span>
-          </nav>
-          <h1 className="text-2xl font-bold text-[#001e40] tracking-tight">Histórico de Cierres de Caja</h1>
-          <p className="text-xs text-slate-500 mt-1">Consulta y audita los turnos de facturación finalizados.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={h.handleExportHistory} className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
-            <Download className="w-4 h-4" />
-            EXPORTAR XLS
-          </button>
-          <button
-            onClick={h.loadHistory}
-            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-          >
-            <RefreshCw className="w-4 h-4" />
-            ACTUALIZAR
-          </button>
-        </div>
+      <div>
+        <nav className="flex items-center gap-2 text-xs text-slate-500 mb-2">
+          <span>Caja</span>
+          <ChevronRight className="w-3 h-3" />
+          <span className="font-bold text-slate-700">Histórico de Cierres</span>
+        </nav>
+        <CabeceraDePagina
+          titulo="Histórico de Cierres de Caja"
+          descripcion="Consulta y audita los turnos de facturación finalizados."
+          acciones={
+            <>
+              <Button type="button" variant="documento" onClick={h.handleExportHistory}>
+                <Download className="w-4 h-4" />
+                EXPORTAR XLS
+              </Button>
+              <Button
+                type="button"
+                onClick={h.loadHistory}>
+                <RefreshCw className="w-4 h-4" />
+                ACTUALIZAR
+              </Button>
+            </>
+          }
+        />
       </div>
 
       {/* Filters */}
@@ -71,19 +74,20 @@ export function VistaHistorico({ h }: { h: HistorialCaja }) {
             </select>
           </div>
           <div className="md:col-start-4 flex items-center gap-2">
-            <button
+            <Button variant="secondary"
+              type="button"
               onClick={() => { h.setHistDateFrom(''); h.setHistStatus(''); }}
-              className="flex-1 flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-            >
+              className="flex-1">
               LIMPIAR
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
               onClick={h.loadHistory}
-              className="flex-[2] flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
+              className="flex-[2]"
             >
               <Filter className="w-3 h-3" />
               APLICAR
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -169,18 +173,19 @@ export function VistaHistorico({ h }: { h: HistorialCaja }) {
                         </td>
                         <td className="px-4 py-2.5">
                           <div className="flex justify-center gap-1">
-                            <button onClick={() => { h.setSelectedSession(s); h.setShowViewModal(true); }} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10" title="Ver Detalle">
+                            <IconButton type="button" onClick={() => { h.setSelectedSession(s); h.setShowViewModal(true); }} title="Ver Detalle" aria-label={`Ver detalle del turno de ${s.registerName ?? 'caja'}`}>
                               <Eye className="w-4 h-4" />
-                            </button>
-                            <button
+                            </IconButton>
+                            <IconButton
+                              type="button"
                               onClick={() => {
                                 window.open(`/api/v1/cash/sessions/${s.id}/print`, '_blank');
                               }}
-                              className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
                               title="Reimprimir"
+                              aria-label={`Reimprimir el arqueo del turno de ${s.registerName ?? 'caja'}`}
                             >
                               <Printer className="w-4 h-4" />
-                            </button>
+                            </IconButton>
                             {/* Lote 176: dar por revisada la diferencia.
                                 La ruta `/approve` existia desde siempre y
                                 NADIE la llamaba, asi que `approved_by`
@@ -188,17 +193,18 @@ export function VistaHistorico({ h }: { h: HistorialCaja }) {
                                 esto, el aviso del panel no tendria como
                                 apagarse y acabaria siendo ruido. */}
                             {diferenciaSinResolver(s) && (
-                              <button
+                              <IconButton
+                                type="button"
                                 onClick={() => h.aprobarDiferencia(s.id)}
                                 disabled={h.aprobando === s.id}
-                                className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-amber-600 hover:text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+                                className="text-amber-600 hover:text-emerald-700 hover:bg-emerald-50"
                                 title="Dar por revisada la diferencia"
                                 aria-label="Dar por revisada la diferencia del arqueo"
                               >
                                 {h.aprobando === s.id
                                   ? <Loader2 className="w-4 h-4 animate-spin" />
                                   : <ShieldCheck className="w-4 h-4" />}
-                              </button>
+                              </IconButton>
                             )}
                             {s.approvedAt && (
                               <span className="p-1.5 flex items-center justify-center text-emerald-600" title="Diferencia revisada">

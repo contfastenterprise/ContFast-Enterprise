@@ -1,16 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Landmark, ArrowRightLeft, RefreshCw, X, CreditCard, Building2, CheckCircle2, ArrowDownRight, ArrowUpRight, DollarSign, Search, Printer, Info } from 'lucide-react';
+import { Landmark, ArrowRightLeft, RefreshCw, CreditCard, Building2, CheckCircle2, ArrowDownRight, ArrowUpRight, DollarSign, Search, Printer, Info } from 'lucide-react';
 import DateRangePicker from '@/components/ui/date-range-picker';
-//  Lote 252: `m` dentro de `LazyMotion` y no `motion` (aviso de React Doctor).
-import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { toast } from 'sonner';
 import clsx from 'clsx';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 import { leerRespuesta } from '@/utils/leerRespuesta';
 
+import { Button } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { Modal } from '@/components/ui/dialog';
 interface BankAccount {
   id: string;
   bankName: string;
@@ -82,24 +83,21 @@ export default function BankAccountsPage() {
       <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
-              Cuentas Bancarias
-            </h1>
-            <p className="text-slate-500/70 text-sm mt-1">
-              Consulta de saldos y registro de movimientos bancarios.
-            </p>
-          </div>
-          {/* Lote 248: en la cabecera, SOLO las pestanas (como en Compras). "Registrar Movimiento" es
-              una accion sobre la cuenta elegida: baja a la barra de su historial. */}
-          <PestanasDeRegistro
-            enFormulario={showNewAccountModal}
-            lista="Cuentas"
-            alVerLista={() => setShowNewAccountModal(false)}
-            alRegistrar={() => setShowNewAccountModal(true)}
-          />
-        </div>
+        <CabeceraDePagina
+          titulo="Cuentas Bancarias"
+          descripcion="Consulta de saldos y registro de movimientos bancarios."
+          icono={<Landmark />}
+          acciones={
+            /* Lote 248: en la cabecera, SOLO las pestanas (como en Compras). "Registrar Movimiento" es
+               una accion sobre la cuenta elegida: baja a la barra de su historial. */
+            <PestanasDeRegistro
+              enFormulario={showNewAccountModal}
+              lista="Cuentas"
+              alVerLista={() => setShowNewAccountModal(false)}
+              alRegistrar={() => setShowNewAccountModal(true)}
+            />
+          }
+        />
 
         {!showNewAccountModal && (<>
 
@@ -435,7 +433,7 @@ function CuentasYMovimientos({ h }: { h: EstadoBankAccountsPage }) {
           <Landmark className="h-16 w-16 text-slate-500 mx-auto mb-4" />
           <h3 className="text-xl font-bold text-[#003366]">Sin Cuentas Bancarias</h3>
           <p className="text-slate-500/70 mt-2">No hay cuentas bancarias registradas en la empresa.</p>
-          <button onClick={() => setShowNewAccountModal(true)} className="mt-6 text-[#C5A059] font-bold hover:underline">Crear mi primera cuenta</button>
+          <Button type="button" size="lg" onClick={() => setShowNewAccountModal(true)} className="mt-6">Crear mi primera cuenta</Button>
         </div>
       ) : (
         <>
@@ -507,22 +505,18 @@ function CuentasYMovimientos({ h }: { h: EstadoBankAccountsPage }) {
                 </div>
                 <div className="flex items-center gap-2">
                 {/* Un movimiento es de UNA cuenta: con "Todas las Cuentas" no hay a cual registrarlo. */}
-                <button
+                <Button
                   type="button"
                   disabled={selectedAccount.id === 'all'}
                   title={selectedAccount.id === 'all' ? 'Elija una cuenta para registrar un movimiento' : undefined}
-                  onClick={() => setShowTxModal(true)}
-                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                >
+                  onClick={() => setShowTxModal(true)}>
                   <ArrowRightLeft className="h-4 w-4" /> Registrar Movimiento
-                </button>
-                <button
-                  onClick={handlePrintTransactions}
-                  className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                >
+                </Button>
+                <Button type="button" variant="documento"
+                  onClick={handlePrintTransactions}>
                   <Printer className="h-4 w-4" />
                   Imprimir Reporte
-                </button>
+                </Button>
                 </div>
               </div>
 
@@ -737,10 +731,10 @@ function AltaDeCuenta({ h }: { h: EstadoBankAccountsPage }) {
                 </div>
               </div>
             <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-              <button type="button" onClick={() => setShowNewAccountModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">Cancelar</button>
-              <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+              <Button variant="secondary" type="button" onClick={() => setShowNewAccountModal(false)}>Cancelar</Button>
+              <Button type="submit" disabled={submitting}>
                 {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Guardar
-              </button>
+              </Button>
             </div>
           </form>
         </PanelDeRegistro>
@@ -753,17 +747,19 @@ function VentanaDeMovimiento({ h }: { h: EstadoBankAccountsPage }) {
   const { selectedAccount, chartOfAccounts, showTxModal, setShowTxModal, submitting, txForm, setTxForm, handleRegisterTx } = h;
   return (
     <>
-      {/* MODAL: REGISTER TX */}
-      <LazyMotion features={domAnimation}>
-      <AnimatePresence>
-        {showTxModal && selectedAccount && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
-            <m.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="relative z-10 w-full max-w-md bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50">
-                <h3 className="text-xl font-display font-bold text-slate-800 flex items-center gap-2"><ArrowRightLeft className="w-5 h-5 text-[#c5a059]" /> Registrar Movimiento</h3>
-                <button type="button" onClick={() => setShowTxModal(false)} aria-label="Cerrar" className="text-slate-500 hover:text-slate-800 transition-colors"><X className="w-5 h-5" /></button>
-              </div>
+      {/* MODAL: REGISTER TX -- lote 279: la ventana comun (`Modal`). El fondo no cerraba, y mientras
+          se procesa (`submitting`) no se cierra. */}
+      <Modal
+        isOpen={showTxModal && !!selectedAccount}
+        onClose={() => setShowTxModal(false)}
+        bloqueada={submitting}
+        cerrarAlPulsarFuera={false}
+        maxWidth="md"
+        sinRelleno
+        icono={<ArrowRightLeft />}
+        title="Registrar Movimiento"
+      >
+        {selectedAccount && (
               <form onSubmit={handleRegisterTx} className="p-4 space-y-4">
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
                   <div>
@@ -825,17 +821,14 @@ function VentanaDeMovimiento({ h }: { h: EstadoBankAccountsPage }) {
                   </div>
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                  <button type="button" onClick={() => setShowTxModal(false)} className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">Cancelar</button>
-                  <button type="submit" disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                  <Button variant="secondary" type="button" onClick={() => setShowTxModal(false)}>Cancelar</Button>
+                  <Button type="submit" disabled={submitting}>
                     {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />} Procesar Movimiento
-                  </button>
+                  </Button>
                 </div>
               </form>
-            </m.div>
-          </div>
         )}
-      </AnimatePresence>
-      </LazyMotion>
+      </Modal>
     </>
   );
 }

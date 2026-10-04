@@ -14,6 +14,8 @@ import { toast } from 'sonner';
 //  era el del analizador ("Unexpected token <"), no el del servidor.
 import { leerRespuesta } from '@/utils/leerRespuesta';
 import { DENOMINATIONS, type CashView, type Session, type Movement, type Register } from '../caja';
+import { archivoDeMovimientos } from '../exportarCaja';
+import { descargarCsv } from '@/utils/descargarCsv';
 
 type ResultadoArqueo = {
   expectedBalance: string; actualBalance: string; difference: string; totalTransferencias?: string;
@@ -280,7 +282,15 @@ export function useCaja({ alAbrirHistorico }: { alAbrirHistorico: () => void }) 
     }
   };
 
-  return { view, setView, session, setSession, movements, setMovements, registers, setRegisters, selectedRegisterId, setSelectedRegisterId, initialBalance, setInitialBalance, submitting, setSubmitting, showNewRegisterModal, setShowNewRegisterModal, newRegisterForm, setNewRegisterForm, creatingRegister, setCreatingRegister, showMoveModal, setShowMoveModal, moveType, setMoveType, moveAmount, setMoveAmount, moveDescription, setMoveDescription, denomQty, setDenomQty, resultadoArqueo, setResultadoArqueo, closeObservations, setCloseObservations, closing, setClosing, showSuccessModal, setShowSuccessModal, closedSessionId, setClosedSessionId, loadCashData, refreshMovements, handleCreateRegister, handleOpenSession, handleAddMovement, getCashTotal, getRealBalance, handleCloseSession, handleSuccessClose, handleTabChange };
+  //  Lote 281: "Exportar" de los movimientos del turno (no tenia onClick); las reglas, en `exportarCaja.ts`.
+  const exportarMovimientos = () => {
+    if (movements.length === 0) return void toast.error('No hay movimientos para exportar');
+    const { nombre, contenido } = archivoDeMovimientos(movements, session, registers);
+    descargarCsv(nombre, contenido);
+    toast.success('Archivo exportado exitosamente');
+  };
+
+  return { view, setView, session, setSession, movements, setMovements, registers, setRegisters, selectedRegisterId, setSelectedRegisterId, initialBalance, setInitialBalance, submitting, setSubmitting, showNewRegisterModal, setShowNewRegisterModal, newRegisterForm, setNewRegisterForm, creatingRegister, setCreatingRegister, showMoveModal, setShowMoveModal, moveType, setMoveType, moveAmount, setMoveAmount, moveDescription, setMoveDescription, denomQty, setDenomQty, resultadoArqueo, setResultadoArqueo, closeObservations, setCloseObservations, closing, setClosing, showSuccessModal, setShowSuccessModal, closedSessionId, setClosedSessionId, loadCashData, refreshMovements, handleCreateRegister, handleOpenSession, handleAddMovement, getCashTotal, getRealBalance, handleCloseSession, handleSuccessClose, handleTabChange, exportarMovimientos };
 }
 
 export type Caja = ReturnType<typeof useCaja>;

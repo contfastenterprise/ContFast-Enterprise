@@ -1871,6 +1871,543 @@ Además, fuera de la tabla:
   `git worktree`.
   **Para el dueño**: aplicar la 0018 cuando quiera fijar precios en dólares
   (`npx tsx --env-file=.env scratch/_to_delete/aplicar_migracion.ts drizzle/0018_precio_base_en_dolares.sql --aplicar`).
+- **Lote 259: la fila activa del menú, centrada, un poco más grande y con un fondo que viaja.**
+  Pedido del dueño (2026-10-03), después de compararlo en una maqueta frente a "arriba" y a como
+  estaba: **centrada y con escala**. Tres cosas a la vez:
+  · **el fondo azul viaja** de la fila anterior a la nueva (un *shared element*: `m.span` con
+    `layoutId`), en vez de apagarse en una y encenderse en otra. Cada **sección** lleva su
+    identificador —la pantalla anclada sale en Favoritos **y** en su grupo, y dos piezas con el
+    mismo `layoutId` se pelean—, cada **menú** su `LayoutGroup` (escritorio y cajón del móvil
+    pueden estar montados a la vez) y la lista lleva `layoutScroll` (sin él, el fondo saldría
+    desde donde estaba la fila antes de desplazarse);
+  · **la fila activa crece un 4,5 %** con `transform`, no con relleno: un relleno mayor empujaría
+    todas las filas de debajo. Desde la izquierda, porque la lista recorta lo que se sale (tope
+    1,05), y con su estrella;
+  · **la lista se centra en la fila activa** (`desplazamientoParaCentrar`, acotada arriba y
+    abajo), midiendo y desplazando solo el `<nav>` — `scrollIntoView` con `center` podría
+    arrastrar también la página.
+  **Se centra al NAVEGAR, no al abrir o cerrar un grupo** (`hayQueCentrar`): centrar en cada
+  cambio de grupos movería el menú bajo el ratón al cerrar uno, lo que el lote 194 dejó dicho que
+  no se hace. El efecto del 194 (el grupo que abres sube) sigue después y sigue ganando.
+  "Reducir movimiento" se respeta en los tres: `MotionConfig reducedMotion="user"`,
+  `useReducedMotion` para el desplazamiento y `motion-reduce:` para la escala.
+  **Un defecto que salió al medirlo en el navegador**: en `/dashboard/hr/employees` se
+  iluminaban **dos** filas, "Dashboard RRHH" y "Empleados", porque cada fila decidía sola con
+  `pathname.startsWith(item.href)`. Ahora decide el menú entero con `filaActiva` (gana la ruta
+  más específica, y coincidir exige la barra: `/dashboard/bank` no es `/dashboard/banks`), y la
+  usan también el grupo en negrita y el que se abre solo.
+  **Y otro que solo se vio midiendo**: al cargar, los grupos guardados se despliegan a la vez, y
+  uno que crece **por encima** de la fila la empuja después de centrarla (la fila acababa a
+  765 px con la lista arriba del todo). Si cualquier submenú está creciendo, se vuelve a centrar
+  a los 300 ms.
+  **Se miró en el navegador** con una página temporal que monta el menú real con un usuario de
+  sistemas y la ruta simulada (`PathnameContext`, y `NavigationPromisesContext` a `null`, que en
+  desarrollo tiene prioridad): de "Facturación e-CF" a "Empleados" la fila queda a 319 px con el
+  centro de la lista en 318,5, un solo indicador, escala 1,045 y el borde de la fila dentro de la
+  lista; a mitad de un salto el fondo lleva su `translate3d` y al llegar ninguno.
+  **Trampa del entorno**: con el panel del navegador oculto, el navegador frena
+  `requestAnimationFrame` y las animaciones se quedan a medias; las medidas salían falsas. Cada
+  captura de pantalla fuerza un fotograma: se mide tras unas cuantas.
+  **React Doctor, en el gancho**: el `import` de framer-motion pasa a `LazyMotion` + `m` (con
+  `domMax`, no `domAnimation`: el fondo que viaja es una animación de `layout`, y con
+  `domAnimation` no viajaría, sin un error). Y al renombrar `motion.div` a `m.div` salió una
+  advertencia real en el globo de los grupos con el menú plegado: `duration-100` sin propiedad de
+  transición es `transition: all`; pasa a `[--tw-animation-duration:100ms]`, que es lo que lee
+  `animate-in`. Medido en local: 0 avisos en los ficheros del lote.
+  Banco `verificar_menu_activo_centrado.ts` (reglas ejecutadas y el cableado del menú): 31
+  comprobaciones, contraprueba **31 FALLA** (contra `main`), dieciocho mutantes y dieciocho
+  muertos. **Un mutante mal escrito**: en PowerShell la coma va antes que el `+`, y el de
+  `layoutScroll` acabó quitando `ref={refLista}` — muerto, pero no el que se quería probar; se
+  repitió entre paréntesis. **Invertidas, no borradas**: `verificar_sidebar_fluido` (189) exigía
+  `nearest` y prohibía centrar — ahora exige lo pedido —, y `verificar_grupo_arriba` (194) ancla
+  el orden de los dos efectos a la lectura de la fila activa en vez de al `scrollIntoView`.
+  **No se miró**: el menú plegado (solo iconos) y el cajón del móvil, que el banco cubre por el
+  cableado. **La carpeta la compartía otra sesión** (lote 258, precio base en dólares), que la
+  cambió de rama a media obra: este lote se commiteó desde un `git worktree` aparte.
+- **Lote 261: la tasa del dólar se cambia desde Compras y Facturación, y la línea de compra va
+  solo en pesos.** Pedido del dueño (2026-10-03): *"cuando se digitan los productos no es
+  necesario que muestre ... la tasa de cambio del dólar, solo debe mostrar en peso dominicano"* y
+  *"debiera darme la opción de cambiar la tasa desde compra y facturación para facilitar el cambio
+  de precio"*. **Sus tres decisiones**: desde esas dos pantallas, guardar la tasa **aplica los
+  precios al momento**, sin la confirmación de Productos; **Productos sigue con revisión** (guardar,
+  ver lo tachado, "Aplicar precios"); y la factura cobra **el precio del catálogo**, no dólares ×
+  tasa en vivo, así que el precio de una factura es siempre uno aprobado.
+  · **Compras**: fuera la leyenda "US$ 45.00 × 63.50" bajo el costo (y `origenDe`, que solo servía
+    para ella). El costo sigue saliendo de dólares × tasa (lote 257).
+  · **El control**, `components/precios/TasaDelDolarEnLinea.tsx`: la tasa vigente (con su día si no
+    es de hoy) y "Cambiar tasa". Lo pinta junto a las líneas de la compra y en la cabecera de la
+    factura — **fuera del `<form>` de la factura**: lleva su propio formulario (Enter guarda la tasa) y
+    uno dentro de otro es HTML inválido. Quién puede cambiarla lo dice el **servidor**
+    (`puedeAplicar`: administración y sistemas); quien no, ve la tasa. Sin precios en dólares en la
+    empresa, no sale nada. El estado es de `hooks/useTasaDelDolar.ts`, que ahora usa también
+    `useCostoEnDolares`: la tasa se pide una vez.
+  · **El servidor**: `PUT /api/v1/products/dolar/tasa` con `aplicar: true` (solo el booleano: un
+    `"true"` escrito como texto no aplica) llama a `guardarTasaYAplicar`, que escribe la tasa, bloquea
+    los productos atados y los aplica **en una transacción**: si fallara a medias quedaría la tasa
+    nueva con los precios viejos, que es lo que el dueño quiere evitar al pedirlo en un gesto. El
+    cálculo y el registro en `cambios_de_precio` son **los de Productos**: el bucle sale de `aplicar`
+    a `aplicarFilas`, que comparten. Contesta cuántos cambiaron y cuántos hay atados.
+  · **Las líneas a medio hacer**: con la tasa nueva, una línea de compra cuyo costo sigue siendo el
+    de la tasa anterior pasa a la nueva (con su ITBIS, o sin él si la compra va sin ITBIS); en la
+    factura se relee el catálogo y una línea cuyo precio es el de su nivel en el catálogo anterior
+    pasa al nuevo. **Lo cambiado a mano se deja** (en una compra manda la factura del suplidor; en
+    una venta, el precio acordado). Reglas puras en `services/precios/cambioDeTasa.ts`.
+  **React Doctor** marcó el bucle movido (`async-await-in-loop`): el registro en
+  `cambios_de_precio` pasa a **una** inserción y la marca de tasa aplicada a **una** actualización;
+  los precios, distintos en cada producto, salen a la vez y postgres.js los encadena en la
+  conexión de la transacción. Lo que queda son los `prefer-useReducer` de las dos páginas, deuda vieja.
+  **Se miró en el navegador** con una página temporal que monta las pantallas reales con la red
+  sustituida: en Compras el control junto a las líneas, Enter guarda (un `PUT`, nada más) y sale
+  "Tasa guardada: RD$ 63.50 por dólar. 2 productos cambiaron de precio."; en Facturación el control
+  fuera del `<form>`, y tras el `PUT` se relee el catálogo. **No se pudo** elegir un producto en la
+  línea de compra de esa página (el buscador no ofrecía los productos falsos): lo de las líneas lo
+  ejecuta el banco. **Trampa del entorno**: un `next dev` en un worktree necesita `DATABASE_URL` al
+  arrancar (lo pide la instrumentación); se levantó con la base desechable y las variables de
+  juguete del CI, no con el `.env` del dueño.
+  Dos bancos. `verificar_tasa_desde_compras.ts` (reglas ejecutadas, el control dibujado y el
+  cableado): 22 comprobaciones y un invariante (la factura sigue cobrando el catálogo),
+  contraprueba **22 FALLA**. `verificar_tasa_desde_compras_db.ts` (**integración**, base
+  desechable: la ruta de verdad): 7 comprobaciones y cinco invariantes (sin `aplicar` no cambia
+  nada; un `"true"` no aplica; quien no administra, 403; tasa mala, 400; guardar ya funcionaba),
+  contraprueba **7 FALLA**. Quince mutantes y quince muertos — **dos mal escritos primero**: uno
+  cambiaba el `aplicar: true` del COMENTARIO de cabecera del hook (la primera aparición), y otro
+  volvió a caer en la coma antes que el `+` de PowerShell (lote 259).
+  **Re-anclados**: `verificar_compras_con_tasa_del_dolar` (257) exigía la leyenda — **invertida, no
+  borrada** — y leía la tasa en `useCostoEnDolares`, que ahora la toma del hook compartido; y
+  `verificar_precio_base_en_dolares` (258) contaba **exactamente dos** lecturas con
+  `columnasDe(conPrecio)` y ahora hay tres (al menos dos; la propiedad es que ninguna nombre las
+  columnas sin mirar, y un mutante lo comprueba).
+  **Para la carpeta del dueño**: añadir `verificar_tasa_desde_compras_db.ts` a
+  `scratch/_to_delete/deuda_bancos.txt` cuando el lote llegue a `main` (no está versionado).
+  **Hecho al fusionar** (PR 49, `d5c95d1`).
+- **Lote 262: en Productos, guardar la tasa también aplica los precios.** Salió de una pregunta del
+  dueño (2026-10-03): *"¿por qué el costo en peso no cambia al aplicar la tasa?"*. **Medido en
+  PRODUCCIÓN, solo lectura** (`scratch/_to_delete/medir_costo_en_dolares*.ts`): la aplicación de las
+  16:44 (hora de RD) **sí** cambió el costo de los 34 productos de Latin Doors (las puertas blancas,
+  de 2.657,02 a 2.696,81 = US$ 44,21 × 61), la lista los devuelve tal cual y no hay caché (sin Redis
+  desde el 22/09). No era un defecto: en Productos guardar la tasa no aplicaba nada hasta pulsar
+  "Aplicar precios" — la revisión que el dueño eligió en el 261 —, y eso se leía como "apliqué la
+  tasa y el costo no cambió". Decidió que Productos haga lo mismo que Compras y Facturación.
+  `usePreciosEnDolares.guardarTasa` manda `aplicar: true` (la ruta del lote 261, sin tocar el
+  servidor) y avisa con `mensajeDelCambio` cuántos precios cambiaron. El botón pasa a "Guardar y
+  aplicar precios", con una línea debajo que lo explica, y el texto de la pantalla deja de decir
+  "Nada cambia solo". **"Aplicar precios" se queda**: sirve para lo que cambia sin tocar la tasa (el
+  costo o el precio en dólares de un producto).
+  Banco `verificar_productos_aplica_al_guardar.ts` (ejecuta `guardarTasa` contra un `fetch`
+  sustituido y dibuja `TasaDelDia`): 5 comprobaciones y dos invariantes (la lista se recarga;
+  "Aplicar precios" sigue), contraprueba **5 FALLA**, seis mutantes y seis muertos.
+  **Una lección de la medición**: `updated_at` de `tasas_de_cambio` es `timestamp` **sin** zona y
+  guarda UTC; convertirlo con `AT TIME ZONE 'America/Santo_Domingo'` a secas lo interpreta como hora
+  de RD y lo corre cuatro horas **hacia adelante** (salía "00:44 del día siguiente"). Hace falta el
+  doble `AT TIME ZONE` del lote 174.
+- **Lote 263: el XML del e-CF descuenta `cantidad × descuento por unidad`.** Salió revisando, a
+  petición del dueño (2026-10-03), cómo calcula la factura. **El orden del cálculo es el correcto**
+  (costo sin ITBIS; precio de venta sin ITBIS; descuento sobre el precio; ITBIS sobre lo descontado;
+  total), y el servidor recalcula los totales sin fiarse de la pantalla. Pero el XML que firma mSeller
+  restaba el descuento **una vez por línea** aunque el campo es **por unidad** ("Desc. Unit."): con
+  cantidad > 1, `MontoItem`, `DescuentoMonto`, `MontoGravadoTotal` y los `MontoGravadoI*` salían con un
+  descuento menor que el que descuentan `TotalITBIS` y `MontoTotal` (que vienen de la calculadora, que
+  sí multiplica). El comprobante se contradecía por dentro.
+  **Medido en PRODUCCIÓN, solo lectura** (`scratch/_to_delete/medir_descuento_en_xml.ts`): de 449
+  líneas, 12 llevan descuento y **4 tienen además cantidad > 1**, en tres comprobantes **ACEPTADOS** de
+  Latin Doors: `E320000000043` (04/07; 200 de descuento real, 100 en el XML; y 3,90 / 1,30),
+  `E320000000046` (09/07; 266 / 133) y `E310000000012` (28/07; 40 × 440: **4.020 / 100,50**). **No se
+  tocan**: ya están emitidos; qué hacer con ellos es del contador. La factura impresa ya multiplicaba
+  bien (`documentTemplates`, `qty × discUnit`); el 607, la contabilidad y los totales, también.
+  La regla de la línea sube a `services/invoice/importesDeLinea.ts` (subtotal, descuento total y base,
+  con los mismos `roundMoney`) y la usan **la calculadora y el XML**: escrita dos veces fue como se
+  separaron. Con cantidad 1 o sin descuento, el XML sale igual que antes (invariantes del banco).
+  Banco `verificar_descuento_del_xml.ts` (ejecuta la calculadora y arma el XML como
+  `invoiceSubmissionService`, con el caso real de `E310000000012`): 10 comprobaciones y tres
+  invariantes, contraprueba **10 FALLA**, seis mutantes y seis muertos. **Una comprobación pasaba
+  antes del arreglo**: "el total es gravado + ITBIS" comparaba `MontoTotal` con números fijos, y ese
+  total siempre salió bien; ahora compara el total con el gravado y el ITBIS **del propio XML**.
+  `verificar_mseller` y `verificar_itbis_por_linea` (integración, arman XML de verdad) en verde.
+- **Lote 264: no se factura por debajo del costo contando el descuento.** De la misma revisión del
+  cálculo de la factura (2026-10-03). La regla —servidor y pantalla— comparaba el precio unitario
+  **antes** del descuento con el costo: precio 100, costo 90 y 20 de descuento por unidad pasaba,
+  aunque se vendía a 80. Medido en PRODUCCIÓN (solo lectura): 3 líneas facturadas quedaron así por
+  debajo del costo de catálogo de hoy. **Decisión del dueño: impedirlo**, no solo avisar.
+  `services/invoice/precioMinimo.ts` (pura): `precioNeto = precio − descuento por unidad`,
+  `quedaPorDebajoDelCosto` y el motivo (nombra el precio **con descuento** cuando es el descuento el
+  que lo deja abajo). La usan el servidor (`preFlightValidations`, que es el que impide de verdad) y
+  la pantalla (el error del campo antes de enviar y el precio en rojo). Justo en el costo no es "por
+  debajo"; sin costo no hay contra qué comparar; las notas de crédito siguen fuera.
+  Dos bancos. `verificar_costo_tras_descuento.ts` (la regla ejecutada y el cableado): 10
+  comprobaciones, contraprueba **10 FALLA**. `verificar_costo_tras_descuento_db.ts` (**integración**,
+  base desechable: llama a `preFlightValidations` con un producto de costo 90 y los totales de la
+  calculadora): 2 comprobaciones y cuatro invariantes (95 pasa, 90 pasa, 85 sin descuento se rechaza,
+  la nota de crédito no se frena), contraprueba **2 FALLA**. Ocho mutantes y ocho muertos.
+  **Re-anclado**: `verificar_p2_34_facturas` (lote 115) copiaba la línea literal del error del
+  precio; ahora vigila que la regla devuelva su campo, y un mutante que la quita sigue fallando.
+  **Para la carpeta del dueño**: `verificar_costo_tras_descuento_db.ts` a `deuda_bancos.txt`.
+- **Lote 265: el porcentaje de ganancia es un margen sobre el PRECIO DE VENTA.** Decisión del dueño
+  (2026-10-03), tras la revisión del cálculo de la factura: *"usa la fórmula costo ÷ 0,75 = 133,33.
+  aplícalo en todos los lugares (productos y facturación)"*. Hasta ahora los precios eran un
+  **recargo** sobre el costo (`costo × 1,25` = 125, que es un 20 % de lo vendido). Ahora
+  `costo ÷ (1 − margen)`, con los mismos porcentajes: base 25 %, consumidor 20 %, mayorista 15 %,
+  proveedor 10 % (costo 100 → 133,33 / 125 / 117,65 / 111,11). Los precios siguen **sin ITBIS**.
+  "Todos los lugares", medido: la factura **no** calcula precios desde el costo (cobra los del
+  catálogo), y el margen de Inteligencia de Negocio ya era ganancia ÷ ingreso. Los dos sitios que sí
+  los calculan pasan por `services/precios/margen.ts`: el **formulario de productos** (el autocálculo,
+  y las etiquetas pasan de "+25%" a "margen 25%") y **"Precios en dólares"** cuando un producto no
+  tenía costo (`MARGENES_POR_DEFECTO` pasa a ser `MARGENES_SOBRE_VENTA`). Con costo anterior, cada
+  precio conserva su proporción con el costo, que conserva también el margen sobre la venta.
+  **Lo que NO hace, a propósito**: no recalcula los precios ya guardados (cada producto conserva los
+  suyos hasta que se edite su costo con el autocálculo puesto, o se le aplique una tasa). Cambiarlos en bloque
+  es tocar datos y no se pidió.
+  Banco `verificar_margen_sobre_venta.ts`: 8 comprobaciones y un invariante (con costo anterior, la
+  proporción se conserva), contraprueba **8 FALLA**, seis mutantes y seis muertos. **Re-anclados**,
+  porque fijaban los márgenes viejos a propósito: `verificar_precios_en_dolares` (costo 100 → 125 /
+  120 / 115 / 110) y `verificar_precios_en_dolares_db` (75 → 93,75 / 90 / 86,25 / 82,5); los dos
+  pasan a la fórmula nueva. De paso, React Doctor: las cuatro etiquetas de precio enlazadas a su campo.
+- **Lote 266: al reabrir un borrador, el aviso de los precios que cambiaron, y cada línea con SU
+  nivel.** Pedido del dueño (2026-10-03): *"si hay una factura en borrador y los precios de los
+  productos se actualizaron, al reabrir el borrador ... debe tener la opción de actualizar los
+  precios"*. **Sus dos decisiones**: un **aviso con botón** (no cambiarlos solo: en un borrador no se
+  distingue un precio que quedó viejo de uno acordado a mano), y **guardar el nivel** de cada línea.
+  **El defecto que destapó**: el nivel (base, consumidor, mayorista, proveedor) **no se guardaba**, y
+  al reabrir un borrador todas las líneas volvían como "consumidor" aunque se hubieran puesto a
+  precio mayorista o de proveedor (`priceTier: 'consumidor'` fijo en `handleLoadDraft`).
+  **MIGRACIÓN `drizzle/0019_nivel_de_precio_en_lineas.sql`**: una columna nula `price_tier` en
+  `invoice_lines`, con su CHECK. **No hace falta aplicarla antes de desplegar**: la columna **no** se
+  declara en el esquema de Drizzle (cuatro consultas leen la fila entera de `invoice_lines` y la
+  romperían, la lección de las 0013 y 0015) y `nivelDeLineaRepositorio.ts` mira si existe antes de
+  nombrarla (el método de `hayPrecioUsd`, lote 258). Sin ella, el borrador se guarda y se abre como
+  hoy y el nivel se **deduce**. Es UNA sentencia con `IF NOT EXISTS` y la restricción dentro: un
+  `DROP CONSTRAINT IF EXISTS` previo emitía un NOTICE que el lanzador de la base desechable toma por
+  error.
+  · **Guardar**: el borrador manda `priceTier` por línea; la ruta lo valida y, tras insertar las
+    líneas (`.returning({ id })`), lo apunta con un `UPDATE … FROM (VALUES …)`.
+  · **Reabrir**: `GET /api/v1/invoices/[id]` añade el nivel a cada línea **solo en borradores**.
+    La pantalla usa el guardado o, en un borrador de antes de la 0019, lo **deduce** (el nivel cuyo
+    precio de hoy coincide; si ninguno, consumidor, lo de antes). Lee el catálogo de ahora en la
+    misma acción si el formulario aún no lo tenía.
+  · **El aviso** (`invoices/components/AvisoPreciosDelBorrador.tsx`): cuántos productos cambiaron,
+    cada uno con su nivel, lo guardado tachado y lo actual; "Actualizar precios" (solo cambia las
+    líneas que siguen con el precio guardado: lo tocado después manda) y "Dejar los del borrador".
+    Una factura nueva no arrastra el aviso del borrador anterior. Reglas puras en
+    `services/invoice/preciosDelBorrador.ts`.
+  **El banco de integración cazó un defecto que el de código no veía**: Drizzle no pasa un array de
+  JavaScript como UN parámetro, lo expande en una lista separada por comas, así que
+  `unnest(${ids}::uuid[], …)` quedaba mal formado y guardar el borrador con la columna puesta daba
+  **500**. Ahora es una lista `VALUES` con `sql.join`.
+  Dos bancos. `verificar_precios_del_borrador.ts` (reglas, aviso dibujado y cableado): 14
+  comprobaciones y un invariante (la columna NO está en el esquema de Drizzle), contraprueba **14
+  FALLA**. `verificar_precios_del_borrador_db.ts` (**integración**: las dos rutas de verdad, primero
+  borrando la columna como una base sin la 0019 y después con ella): 2 comprobaciones y tres
+  invariantes, contraprueba **2 FALLA**. Diez mutantes y diez muertos. **Una negación de balde
+  cazada a tiempo**: "sin la columna, las líneas vuelven sin nivel" también la cumplía un mapa vacío;
+  ahora exige que vuelvan las dos líneas.
+  **Se miró en el navegador** con la pantalla real de facturas y la red sustituida: reabrir un
+  borrador con la puerta a mayorista 110 (hoy 117,65) enseña el aviso solo con ella, y "Actualizar
+  precios" la deja a 117,65 (total de la línea 277,65) sin tocar el dintel.
+  **Lo que no hace, anotado**: la cotización que se convierte en factura tampoco trae el nivel de
+  cada línea (`priceTier` queda vacío y cae en consumidor); el borrador tampoco guarda la categoría
+  del 0 % (`taxCategory`, que su esquema descarta). Los dos, aparte.
+  **Para el dueño**: aplicar la 0019 cuando quiera que los borradores guarden su nivel
+  (`npx tsx --env-file=.env scratch/_to_delete/aplicar_migracion.ts drizzle/0019_nivel_de_precio_en_lineas.sql --aplicar`).
+  Y `verificar_precios_del_borrador_db.ts` a `deuda_bancos.txt` en su carpeta.
+- **Lote 268: fuera el letrero "Powered by MSeller API" de Facturación.** Pedido del dueño
+  (2026-10-03). Era una pastilla con un punto verde parpadeante, sola en la columna izquierda de la
+  fila de los totales del mes; sin ella, la fila se alinea a la derecha (`md:justify-end`) para que
+  los totales no se vayan a la izquierda. Banco `verificar_sin_powered_by.ts`: 2 comprobaciones y un
+  invariante (los totales siguen), contraprueba **2 FALLA**, dos mutantes y dos muertos.
+- **Lote 267: Cuentas por Cobrar, los clientes en una lista que se despliega.** Pedido del dueño
+  (2026-10-03): *"en la página dashboard/receivables los clientes deben verse en una lista que se
+  pueda expandir y contraer, parecida a la de /dashboard/receivables-report"*. Antes cada cliente era
+  una tarjeta con todas sus facturas **siempre** a la vista. Ahora la pestaña "Balances de Clientes"
+  es una tabla como la del reporte — Cliente, RNC/Cédula, Facturas Pendientes, Balance Pendiente y
+  Acciones — y las facturas salen solo al pulsar el nombre o la flecha (los dos son botones y dicen
+  con `aria-expanded` si están abiertos). **Uno a la vez**, como en el reporte: abrir otro cierra el
+  anterior. "Imprimir" y "Registrar Cobro" se quedan en la fila. La consulta (`getPendingAR`) trae
+  ahora el RNC del cliente, que la fila enseña.
+  Las reglas viven en `services/cartera/listaDeClientes.ts` (puras): `alternarCliente`,
+  `inicialesDelCliente` y **`estaVencida`**, que arregla de paso un defecto: "Vencida" se decidía con
+  `new Date(vencimiento) < new Date()`, y un vencimiento sin hora es medianoche **UTC** — en RD
+  (UTC−4) la factura que vence hoy salía vencida desde las 20:00 del día anterior (la trampa de los
+  lotes 158 y 174). Ahora se comparan **días de RD** (`diaRD`), y la que vence hoy aún no está vencida.
+  El detalle de cada cliente es `DetalleDelCliente`, en el mismo fichero (React Doctor: JSX demasiado
+  anidado; y así las fechas siguen donde las vigila `verificar_fechas_pantallas`). Se anima opacidad
+  y desplazamiento, **no la altura** (animar `height` recalcula el diseño en cada fotograma).
+  **Se miró en el navegador** con la página temporal: la lista plegada, un cliente desplegado y abrir
+  otro cerrando el primero.
+  Banco `verificar_cobros_desplegables.ts`: 10 comprobaciones y 3 invariantes (Imprimir y Registrar
+  Cobro siguen, la búsqueda y el error de carga, las fechas por `formatDateDisplay`), contraprueba
+  **10 FALLA**, nueve mutantes y nueve muertos.
+- **Lote 269: los colores del tema existían solo de nombre.** Salió al abrir la auditoría de UI que
+  pidió el dueño (2026-10-03, *"que todas las páginas pertenezcan al mismo sistema"*), al medir por
+  qué el componente `Button` casi no se usaba (30 usos frente a 682 botones a mano).
+  `globals.css` tiene **dos** bloques `@theme`: el primero envuelve cada color en `hsl()`, y el
+  segundo (`@theme inline`, que dejó la instalación de shadcn del **2026-07-01**, `75ccbe7`) va
+  después, gana, y los usaba **sin envolver**. Las variables de `:root` son tripletes sueltos
+  (`221 83% 53%`), así que Tailwind escribía `background-color: var(--primary)`, eso no es un color,
+  y el navegador lo descarta. **Medido en el navegador**: `<Button>` transparente con texto negro;
+  el destructivo, la barra de acciones de e-CF, "Agregar" en Departamentos o subir la imagen de una
+  factura, **texto blanco sobre transparente, o sea invisibles**; y todo `border` sin color, negro
+  (la "línea oscura" que el lote 216 encontró en las confirmaciones era esto). Eran 408 usos de
+  `primary`, 40 de `background`, 31 de `muted`… durante tres meses.
+  Ahora los 31 colores van en `hsl()`, y la paleta es la de la casa: **primario `#003366`** (el azul
+  marino que las pantallas nuevas ya escribían a mano), destructivo rose-600 (con texto blanco pasa
+  AA; el rojo de la plantilla no), y `accent` gris claro — en la plantilla era **violeta**, y es el
+  fondo del hover de los botones `outline` y `ghost`. Y dos colores que 26 clases nombraban y nadie
+  había definido: `text-on-primary` (blanco) y `bg-primary-variant` (`#002244`). Mientras el primario
+  era transparente daba igual; con él de vuelta, `bg-primary text-on-primary` habría sido texto negro
+  sobre azul marino.
+  **Se midió el contraste en el navegador**, texto a texto contra su fondo real, en dieciséis
+  pantallas montadas con la red sustituida (`src/app/prueba-ui/arnes`, no se commitea): ningún texto
+  nuevo por debajo de 3:1. Lo único que sale es **anterior al lote**: los títulos dorados
+  (`text-[#c5a059]`, Compras, Cotizaciones, Facturación…) dan 2,4:1 sobre blanco; van en el lote que
+  pase esas cabeceras al estándar.
+  Banco `verificar_colores_del_tema.ts`: **resuelve el tema como el navegador** (junta los dos
+  bloques, gana el último, sigue cada `var()` hasta `:root`) y barre las clases de color de todo
+  `src` contra la paleta de Tailwind y los `--color-*` definidos. 12 comprobaciones y dos
+  invariantes, contraprueba **13 FALLA**, siete mutantes y siete muertos — **dos parecieron
+  sobrevivir y eran equivalentes**: cambiaban el PRIMER `@theme`, que el segundo pisa; repetidos sobre
+  el bloque `inline` (el que manda), mueren.
+  **Trampa del entorno**: en un worktree, `npx tsx` tarda ~10 s más por banco que
+  `node node_modules/tsx/dist/cli.mjs` (busca si tiene que instalar); el barrido pasó de dos horas a
+  media hora llamándolo directo.
+- **Lote 270: el estándar de botones, cabeceras y pies, escrito y hecho componente.** Segundo de la
+  auditoría de UI (`docs/auditoria/auditoria_ui_2026-10-03.md`, con la matriz por fichero; el
+  estándar en `docs/estandar_ui.md`). **Medido** con `scratch/_to_delete/auditoria_ui.mjs`: 712
+  botones, **682 escritos a mano** en 135 ficheros; 12 formas de escribir el título de una página; 3
+  pies con `[Guardar] [Cancelar]` al revés; 405 botones sin `type`; 99 de solo icono sin ningún
+  nombre accesible; 64 ventanas hechas a mano; una sola biblioteca de iconos.
+  **El estándar no se inventó**: se tomó de lo que ya se repetía letra por letra — 45 copias del
+  primario azul marino, 34 del secundario blanco y 19 del dorado de imprimir, las tres
+  `h-9 px-4 rounded-lg font-bold text-sm` — y se hizo variante, para que pasar una pantalla al
+  componente no cambie lo que se ve.
+  · `Button`: `primary` (por defecto), `secondary`, `outline`, `ghost`, `documento` (el dorado, con
+    texto oscuro), `destructive`, `success`, `warning` (texto oscuro: blanco sobre ámbar no pasa);
+    tamaños `md` (h-9), `sm` (h-8), `lg` (h-10), `icon`, `icon-sm`. **Sin la animación de escala**
+    que traía (los de la casa no crecen) y **sin `whitespace-nowrap`** de la plantilla (los de la casa
+    parten la línea; uno que no puede saca el botón de la pantalla del móvil). Cargando: giro,
+    desactivado y `aria-busy`.
+  · `IconButton`: **`aria-label` obligatorio por tipo**, y lo repite como globo.
+  · `CabeceraDePagina`: título azul marino (nunca el dorado, 2,4:1) con icono dorado decorativo,
+    acciones a la derecha con la principal la última; en el móvil bajan, sin cortarse.
+  · `AccionesDeFormulario`: `[Cancelar] [Guardar]` a la derecha; en el móvil, la principal **arriba**
+    y a todo el ancho; lo de más, entre las dos.
+  **Se miró en el navegador** a 1.280 px y a 375 px: ningún botón sale de la pantalla en el móvil.
+  **Y un trinquete**: lo escrito a mano no puede crecer (primario 86, secundario 35, documento 23,
+  solo icono sin nombre 99). Va como **invariante** — es cierto antes y después por construcción —, y
+  cada lote que pase pantallas baja los techos.
+  Banco `verificar_estandar_de_botones.ts` (dibuja los componentes con `react-dom/server`): 17
+  comprobaciones y seis invariantes, contraprueba **16 FALLA** (la del foco ya era cierta: pasa a
+  invariante), trece mutantes y trece muertos — **uno sobrevivió primero**: quitar el hueco de las
+  acciones de más del pie, porque nada lo probaba. Y el banco se cazó a sí mismo con la trampa del
+  lote 210: `/disabled/` casaba con la CLASE `disabled:opacity-50` de los dos botones; se ancla al
+  atributo.
+- **Lotes 271 a 274: las pantallas, al estándar de UI — por cuatro agentes a la vez.** Pedido del
+  dueño (2026-10-03), que además dejó una regla para esta y toda sesión: *"siempre trabajar con
+  múltiples agentes dependiendo la necesidad"*. El panel se repartió en cuatro grupos de ficheros que
+  no se pisan — **271 Inventario**, **272 Ventas**, **273 Compras y Finanzas**, **274 RRHH,
+  administración y sistema** —, un agente por grupo, cada uno en su `git worktree` y su rama sacada del
+  270, con el mismo encargo: botones al componente (con `scratch/_to_delete/migrar_botones.mjs`, que
+  convierte los que tienen las clases EXACTAS de la casa, y a mano los que se desviaban), cabeceras a
+  `CabeceraDePagina`, pies en orden `[Cancelar] [Principal]`, `aria-label` en todo botón de solo icono,
+  `type` explícito, y los iconos del estándar. **Sin tocar la lógica.** El principal revisó, encadenó
+  las ramas (271 → 272 → 273 → 274) y bajó los techos del trinquete en cada eslabón.
+  **Cómo se comprobó que no cambió la lógica, además de los bancos de cada agente**: dos guiones del
+  principal comparan cada fichero contra la base. `comparar_logica_ui.mjs` cuenta, con repeticiones,
+  los valores de `onClick`, `onSubmit`, `onChange`, `disabled`, `href` y las llamadas `fetch`: **0
+  diferencias** salvo los pies pasados a `AccionesDeFormulario`, donde el mismo manejador va ahora en
+  `alCancelar`/`alPrincipal`/`guardando`/`principalInactiva` — comprobados uno a uno.
+  `type_en_formularios.mjs` busca botones que estaban dentro de un `<form>` sin `type` y ahora llevan
+  `type="button"` (dejarían de enviar): **ninguno** en los cuatro lotes.
+  **Lote 271 (Inventario: productos, códigos de barra, almacenes, inventario, conduces, ajustes).** 69
+  botones al componente (37 `IconButton`), 10 cabeceras, 6 pies a `AccionesDeFormulario`, 59 `type`,
+  `Edit2` → `Pencil`, y las acciones de fila de productos y códigos en el orden del estándar (Ver ·
+  Editar · Imprimir). Por función: "Aplicar Despacho" y "Aplicar precios" (dorados) pasan a
+  `primary`; "Generar Automático" a `outline`; "Volver al listado" (dorado sobre blanco, 2,4:1) a
+  `link`. **Excepción a propósito**: el Imprimir partido de productos (botón + desplegable) se queda;
+  su mitad gana `aria-label` y `aria-expanded`. Banco `verificar_ui_inventario.ts`: 10 comprobaciones
+  y 4 invariantes (textos, ejemplos, títulos, avisos y API iguales a la base), contraprueba 10 FALLA,
+  quince mutantes y quince muertos. Re-anclados a la propiedad: `verificar_filtros_de_conduces` (su
+  `.*` arrancaba en el botón del selector de fechas y no veía el de "Quitar filtros": un mutante que le
+  quitaba el `type` **sobrevivía**), `verificar_productos_por_pasos` y `verificar_ver_conduce`.
+  **Dos trampas del trabajo en paralelo, para la próxima vez**: (1) **`refs/stash` es COMPARTIDO entre
+  worktrees** — un agente hizo `git stash pop` y le salió el stash de otro; se recuperó todo, pero en
+  paralelo **no se usa `git stash`**: la base se mide con `git show <base>:<fichero>`. (2)
+  `migrar_botones.mjs` dejaba `\r\r\n` al insertar el `import` en ficheros CRLF (el `$` multilínea deja
+  el `\r` dentro de la coincidencia) y el diff salía con el fichero entero; corregido en la herramienta
+  y normalizados los ficheros.
+  **Lote 272 (Ventas: facturación, cotizaciones, clientes, cuentas por cobrar, antigüedad de saldos,
+  e-CF, cartera).** 106 botones al componente (52 `IconButton`), 8 cabeceras (se van los títulos
+  dorados de Facturación y Cotizaciones), 59 `aria-label`, ~100 `type`. Por función: guardar borrador
+  (gris) → `secondary`; imprimir, XML y estados de cuenta (índigo, gris, negro, dorado con texto
+  blanco) → `documento`; agregar fila → `outline`. **Dos pies al revés corregidos**: el estado de
+  cuenta de cartera (`[Imprimir][Cerrar]`) y el aviso de precios del borrador (lote 266). Y un
+  contraste que nadie veía: en la ficha del cliente el título era azul marino **sobre** su tarjeta azul
+  marino. **En `invoices` y `ecf` solo cambió la presentación**: emitir, imprimir y consultar el
+  veredicto no se tocaron. **Excepciones a propósito**: los botones partidos de emitir factura y de
+  guardar cotización (alta y edición), los de `BorderRotate` del detalle de factura (componente
+  decorativo propio), y las cabeceras de la edición de cotización y de las fichas oscuras de cliente y
+  factura. Banco `verificar_ui_ventas.ts`: 15 comprobaciones y 2 invariantes, contraprueba 15 FALLA,
+  veintidós mutantes y veintidós muertos — **dos sobrevivieron primero**: la expresión acababa en `\b`,
+  que no corta tras `bg-[#003366]` (el `]` no es carácter de palabra). Re-anclados:
+  `verificar_baja_rechazado` (el único botón que da de baja cuelga de `status === 'rejected'`) y
+  `verificar_estandar_cotizaciones` (seis acciones de fila, todas `IconButton` de 32 px).
+  **Lote 273 (Compras y Finanzas: compras, pedidos, suplidores, pagos, retenciones, bancos, caja,
+  contabilidad, estados de cuenta, reportes).** `Button` de 8 a 114 usos e `IconButton` de 0 a 48, 19
+  cabeceras (se va el título dorado de Compras), 53 `aria-label`, ~150 `type`. Por función: imprimir y
+  exportar (verde turquesa, pizarra, contorno, esmeralda) → `documento`; Cancelar en rosa →
+  `secondary`; "Registrar Pago" en ámbar y Guardar/Procesar en turquesa → `primary`. **Los tres pies al
+  revés de la auditoría, corregidos**: la tasa del dólar en línea (lote 261), el detalle del pedido y
+  la compra. Pestañas activas de Compras y Cuentas por Pagar en azul marino (eran dorado y ámbar).
+  **Excepciones a propósito** (23, anotadas por nombre en el banco): pestañas, interruptores, el
+  selector Entrada/Salida de caja, filas de desplegable, el contador de cantidad, los enlaces de texto
+  y Cerrar/Reabrir período, que llevan el color de su estado. **Un defecto visto y NO tocado**: el
+  botón "Exportar" de los movimientos de caja (`VistaGestion`) no tiene `onClick` y no hace nada, desde
+  antes de la auditoría; va aparte. Banco `verificar_ui_compras_finanzas.ts`: 15 comprobaciones y un
+  invariante, contraprueba 15 FALLA, catorce mutantes y catorce muertos. Re-anclados:
+  `verificar_partir_bancos_y_pedidos` y `verificar_partir_retenciones_y_horas_extra` (la huella del
+  corte entre los dos commits de su lote, como en los lotes 227, 230 y 237) y
+  `verificar_avisos_pantallas_en_pestanas` (los dos cierres de pedidos llevan un `aria-label` que
+  empieza por "Cerrar").
+  **Lote 274 (RRHH, administración y sistema: RRHH, empresas, configuración, herramientas, soporte,
+  inicio, el marco del panel, acceso, asistente de configuración, BI, agente y los componentes
+  comunes).** 136 botones al componente (50 `IconButton`), 19 cabeceras (el `<h1>` dorado del asistente
+  de configuración pasa a azul marino; BI y el Agente conservan su modo pestaña del lote 208, y en el
+  inicio las pestañas van en `acciones` sin tocar tarjetas ni gráficos), 56 `aria-label` (incluidos el
+  cierre del cajón móvil del menú, los grupos plegados y los ojos de contraseña), ~150 `type`, y
+  `FileText` → `Printer` en "Imprimir liquidación". `boton-buscar-dgii` usa por dentro
+  `<Button variant="documento" size="sm">` sin cambiar su API; `confirm-dialog` y `estado-carga`, el
+  `Button`. **Un pie al revés más**: el aviso de instalar la aplicación (`[Instalar ahora][Quizás
+  luego]`). **Excepciones a propósito**: el botón dorado de las pantallas de acceso (lote 173, lo vigila
+  `verificar_pantalla_acceso`), `global-error.tsx` (estilos en línea: se pinta sin hoja de estilos), la
+  paginación propia del inicio (lote 133) y el diagnóstico de permisos del menú. Banco
+  `verificar_ui_rrhh_admin.ts`: 11 comprobaciones y un invariante, contraprueba 11 FALLA, catorce
+  mutantes y catorce muertos — **uno sobrevivió primero**: cambiar `'Guardar Empleado'` dentro de un
+  ternario, porque la huella no ve las cadenas de las expresiones; ahora las lee del cuerpo de cada
+  botón. Re-anclados (todos con su mutante): `verificar_boton_buscar_dgii` (mira la clase que el botón
+  PINTA, no la de su fuente), `verificar_avisos_portada`, `verificar_avisos_configuracion`,
+  `verificar_partir_empleados_y_empresas`, `verificar_pestanas_solas` (cuenta también `IconButton`: un
+  mutante que ponía uno junto a las pestañas **sobrevivía**), `verificar_rrhh_en_pestanas` y
+  `verificar_pestanas_del_inicio`. Al encadenar, `verificar_partir_retenciones_y_horas_extra` lo habían
+  re-anclado el 273 y el 274 **de la misma forma** (comparar contra el commit fijo del corte); se quedó
+  la del 273.
+  **El trinquete tras los cuatro lotes**: botones a mano con las clases de la casa, de 86/35/23
+  (primario/secundario/dorado) a **5/0/1** — los partidos y las excepciones anotadas —; de solo icono
+  sin ningún nombre, de 99 a **19**, casi todos de la tienda pública (fuera a propósito, lote 231).
+- **Lote 275: lo que encontró la revisión VISUAL de los lotes 271-274.** Con la cadena montada, el
+  principal recorrió 31 pantallas en el navegador (arnés con la red sustituida) con dos medidores: el
+  contraste de cada texto contra su fondo real, y en el móvil (375 px) qué se sale de la pantalla.
+  Ningún banco de los cuatro agentes podía ver esto:
+  · **Títulos de sección y contadores en el dorado de la marca sobre blanco: 2,4:1** (Compras
+    —"Filtros de Búsqueda", "1. Compras…", "2. Gastos…"—, Facturación, Cotizaciones, Empleados, cheques
+    en garantía, la pestaña activa de Caja). No eran `<h1>`, y la cabecera estándar no los alcanzó. Va
+    un **dorado para texto**, `text-oro-texto` (`#8A6A2C`): de la misma familia y 5,0:1 sobre blanco,
+    4,8:1 sobre los grises claros. El de siempre se queda para iconos, rellenos y texto sobre azul
+    marino — la conciliación bancaria lo usa así y se lee bien (tolerado por nombre en el banco).
+  · **Dos filas que no partían en el móvil**: la barra de la lista de productos sacaba cuatro botones
+    de la pantalla (Precios en dólares, Imprimir y su desplegable, Recargar), y los totales del mes de
+    Facturación estiraban la página a 470 px en 375. Las dos con `flex-wrap`; **eran anteriores a la
+    auditoría** y nadie las había medido en un teléfono.
+  · **El estándar escrito daba los píxeles de Tailwind**, pero el panel tiene `html { font-size: 14px }`:
+    `h-9` son 31,5 px, no 36. Corregido, con la regla para leer cualquier medida.
+  Banco `verificar_ui_cierre.ts`: 9 comprobaciones y dos invariantes, contraprueba **9 FALLA**, siete
+  mutantes y siete muertos.
+  **El barrido de la cadena cazó dos bancos que los agentes no corrieron**, ninguno una regresión:
+  `verificar_producto_en_pestana` (lote 240) anclaba el `onClick` de Cancelar con su texto, y el 271
+  pasó ese pie a `AccionesDeFormulario` (`alCancelar`, y el texto lo pone el componente) — re-anclado a
+  la propiedad, que vale en los dos estados; y en él, **la trampa del `[^>]*`**: el
+  `iconoPrincipal={<ShieldCheck />}` del pie lleva un `>` y cortaba la expresión. Y
+  `verificar_sin_powered_by` (lote 268) anclaba la fila de totales letra por letra; el `flex-wrap` de
+  este lote la cambia — re-anclado a lo que vigila (que se alinee a la derecha), con su mutante.
+- **Lote 276: la ventana común (`Modal`), lista para que las ventanas escritas a mano pasen a ella.**
+  Pedido del dueño (2026-10-04): de lo que la auditoría dejó fuera, *"la número 1"* — las 64 ventanas
+  hechas a mano (`fixed inset-0`) en 28 pantallas. Antes de moverlas, el `Modal` compartido
+  (`dialog.tsx`, lote 214) tenía que hacer lo que **ninguna** de ellas hacía entero: anunciarse como
+  ventana (`role="dialog"`, `aria-modal`, título y descripción enlazados), llevar el foco dentro al
+  abrirse y **devolverlo** al botón que la abrió, no dejar que Tab se escape a la página de detrás, que
+  **Escape cierre solo la de arriba** (con una ventana encima de otra, cada una escuchaba Escape por su
+  cuenta y se cerraban todas), `bloqueada` (mientras se guarda no se cierra por ningún camino),
+  `cerrarAlPulsarFuera` (un formulario con datos escritos no se pierde por un clic fuera), un bloqueo
+  del desplazamiento que **cuenta ventanas** (cerrar la de arriba lo devolvía con la de abajo abierta),
+  `icono`, `sinRelleno` y `capa` para la que se abre encima de otra. La API de siempre sigue: la usan
+  cuatro pantallas. Lo que no depende del navegador (la pila de ventanas y adónde salta el foco) vive en
+  `components/ui/ventanasAbiertas.ts` y el banco lo **ejecuta**.
+  **Se probó en el navegador** con dos ventanas, una encima de otra: el foco entra en el primer campo,
+  Tab da la vuelta sin salir, Escape cierra solo la de arriba y el foco vuelve al botón que la abrió,
+  guardando no se cierra ni con Escape ni con la X (desactivada) ni pulsando fuera, y al cerrar la
+  última vuelven el desplazamiento y el foco.
+  **Y un banco que se iba a romper solo, arreglado antes**: `verificar_fondo_confirmacion` (lote 216)
+  derivaba el desenfoque del fondo **contando** las ventanas escritas a mano — las que los lotes 277-280
+  iban a quitar —, igual que le pasó con la oscuridad en el 244. Ahora toma el desenfoque del `Modal`
+  compartido, que gana el de la casa (`backdrop-blur-sm`, el más repetido).
+  Banco `verificar_ventana_comun.ts` (pila y foco ejecutados, la ventana dibujada): 16 comprobaciones y
+  dos invariantes, contraprueba **16 FALLA**, once mutantes y once muertos — **uno pareció sobrevivir y
+  era equivalente**: quitaba `role="dialog"` del COMENTARIO de cabecera (la primera aparición del
+  texto); repetido sobre el código, muere.
+- **Lotes 277 a 280: las ventanas escritas a mano, al `Modal` común — otra vez cuatro agentes a la
+  vez.** Mismo reparto que en los lotes 271-274 (Inventario, Ventas, Compras y Finanzas, RRHH y
+  administración), cada uno en su worktree y su rama sacada del 276, con un encargo común: la misma
+  variable abre la ventana, **el mismo manejador la cierra** (su X, y su fondo si lo cerraba), los
+  mismos botones hacen lo mismo. **Pulsar fuera hace lo que hacía**: si el fondo de la ventana vieja no
+  cerraba (lo normal en los formularios), `cerrarAlPulsarFuera={false}`. Y lo que ganan todas por ser el
+  `Modal`: se anuncian como ventana, el foco entra y vuelve, Tab no se escapa, Escape cierra solo la de
+  arriba y, con `bloqueada={<guardando>}`, no se cierran mientras se guarda.
+  **Cifras**: **43 ventanas** pasadas — 7 en Inventario (277), 10 en Ventas (278), 15 en Compras y
+  Finanzas (279), 11 en RRHH y administración (280) —, **ninguna excepción**. Cierran al pulsar fuera
+  18 (las que ya lo hacían); no, 25. `bloqueada` en 24. `capa` en las que se abren encima de otra (la
+  recepción del pedido sobre su detalle, el asiento, la suscripción). Los `fixed inset-0` que quedan en
+  esos grupos **no son ventanas**: capas transparentes que cierran un desplegable al pulsar fuera
+  (imprimir en productos, buscar producto en transferencias, guardar en facturas y cotizaciones).
+  **Cómo se comprobó que no cambió la lógica**: `comparar_logica_ui.mjs` da en los cuatro lotes **solo
+  `onClick` de cierre que desaparecen** (−1 la X; −2 la X y el fondo) — y el principal comprobó, uno a
+  uno, que la MISMA expresión es ahora el `onClose` de su `Modal`; ningún `onSubmit`, `onChange`,
+  `disabled`, `href` ni `fetch` cambió. `type_en_formularios.mjs`: 0. Los formularios conservan su
+  `onSubmit` y su botón de enviar dentro, así que Enter sigue enviando.
+  **Lo que se miró aparte**: la ventana del cierre de caja (arqueo ciego, lote 172) no tenía X: su
+  `onClose` es el mismo "Volver al Inicio", y sale **después** de cerrar la sesión, así que Escape no
+  tiene efecto contable. En facturas y e-CF, emitir, imprimir, notas, reenviar y dar de baja no se
+  tocaron (el banco del 278 cuenta las llamadas al confirmar, iguales a la base). Nómina y
+  liquidaciones: solo la ventana. Y dos ventanas que se abrían con `x && seleccionado`: los hijos de un
+  componente se evalúan aunque esté cerrado, y `seleccionado.firstName` con `null` revienta — el
+  `Modal` va dentro de `{seleccionado && …}` con la misma condición.
+  **Bancos**: `verificar_ventanas_inventario.ts` (39 y 3 invariantes), `verificar_ventanas_ventas.ts`
+  (39 y 2), `verificar_ventanas_compras_finanzas.ts` (32 y 2), `verificar_ventanas_rrhh_admin.ts` (54 y
+  2); contraprueba 100 % FALLA en los cuatro, y 57 mutantes, todos muertos. Re-anclados a la propiedad,
+  cada uno con su mutante: `verificar_ui_inventario`, `verificar_producto_en_pestana`,
+  `verificar_cartera_lote2`, `verificar_ui_ventas`, `verificar_avisos_caja`,
+  `verificar_avisos_pantallas_en_pestanas`, `verificar_empresas_y_pedidos_en_pestanas`,
+  `verificar_retenciones_y_bancos_en_pestanas`, `verificar_ui_compras_finanzas` y
+  `verificar_ui_rrhh_admin`. Dos de ellos los tocaron dos agentes (pedidos el 279, empresas el 280); al
+  encadenar se juntaron las dos mitades.
+  **Un hueco de un banco viejo, anotado y sin cerrar**: `scratch/huellaDePantalla.ts` no ve el texto
+  que va detrás de una expresión (`{stats.alertCount} avisos para…`). El banco del 280 lo recoge por su
+  cuenta; los del lote 253-255 y el 274 siguen con el hueco.
+  **Una trampa más del entorno, que costó dos bancos**: un heredoc de Bash (`<<'EOF'`) convierte `\\` en
+  `\`, y un guion de Python con `\\b` metió el carácter de retroceso (0x08) en dos bancos. Se vio y se
+  corrigió; la regla de la sección 4 (los guiones que tocan código, a fichero) sigue siendo la cura.
+- **Lote 281: el botón "Exportar" de los movimientos de caja no hacía nada.** Lo encontró el agente
+  del lote 273 en la auditoría de UI: un `IconButton` con su `aria-label` y **sin `onClick`**, desde
+  antes de la auditoría. Pedido del dueño (2026-10-04): arreglarlo. Ahora baja un CSV con lo mismo que
+  enseña la tabla del turno (fecha y hora, tipo, concepto, referencia y el monto **con signo**: salidas
+  y devoluciones restan), y **respeta el arqueo ciego** (lote 172): el "Total neto en caja" solo va si
+  la sesión deja ver el saldo — la misma regla que la tabla, decidida en el servidor —, y el fichero no
+  depende de que el servidor lo calle (un saldo que llegue a una sesión ciega tampoco se escribe).
+  Las reglas viven en `cash/exportarCaja.ts` (puro) y la descarga en `utils/descargarCsv.ts`; por ahí
+  pasa también **el CSV del histórico**, que ya funcionaba y tenía dos defectos: una comilla dentro de
+  un texto rompía la fila (no se doblaban), y un texto que empieza por `=`, `+`, `-` o `@` lo ejecuta
+  Excel como **fórmula** al abrir el fichero — y el concepto de un movimiento lo escribe cualquiera. Se
+  dobla la comilla y se antepone un apóstrofo. Los dos ficheros llevan la marca UTF-8 (sin ella Excel
+  enseña "DevoluciÃ³n"), y el día del nombre del histórico es el de RD (antes, el de UTC: desde las
+  20:00, mañana).
+  **El límite de 300 líneas se respetó en vez de aflojarse**: `useCaja.ts` llegó a 305 y
+  `verificar_partir_caja` (lote 229) lo cazó; el armado del fichero bajó al módulo puro
+  (`archivoDeMovimientos`) y el hook quedó en 296.
+  **No se miró en el navegador**: la página de prueba no tiene una caja abierta y la vista de los
+  movimientos no se pinta sin ella; la exportación se EJECUTA en el banco, con un documento de mentira.
+  Banco `verificar_exportar_caja.ts`: 12 comprobaciones y dos invariantes (el histórico conserva sus
+  nueve columnas; la tabla sigue enseñando el total solo con saldo visible), contraprueba **11 FALLA**
+  (antes de añadir la de `archivoDeMovimientos`), doce mutantes y doce muertos — **uno sobrevivió
+  primero**: quitar la condición del arqueo ciego, porque la prueba de la sesión ciega no pasaba ningún
+  saldo y el total no salía de todas formas. Re-anclado `verificar_avisos_caja` (lote 230): soltar la
+  memoria después del clic se mira ahora en `descargarCsv`, donde vive; pasa también con el hook de
+  antes, y un mutante que no la suelta lo hace fallar.
 - **Lote 260: "Consultar DGII" cubre todo el filtro, y una consulta ya no deshace un
   veredicto definitivo.** Pedido del dueño (2026-10-03), tras preguntar si "Actualizar
   datos" y "Sincronizar DGII" hacían lo mismo: no — el primero relee la base, el segundo
@@ -3114,5 +3651,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 260 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 281 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

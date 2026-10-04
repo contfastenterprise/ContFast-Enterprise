@@ -1,8 +1,9 @@
 import React, { useState, forwardRef, useImperativeHandle, useCallback, useEffect } from 'react';
-import { Trash2, Calculator, Edit2, Check, X, Tag, Ruler, KeySquare, Layers } from 'lucide-react';
+import { Trash2, Calculator, Check, X, Tag, Ruler, KeySquare, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { parseFraction, decimalToFraccion } from '@/utils/calculos';
 import { commercialDoorProfiles } from '@/utils/commercialDoorRegistry';
+import { IconButton } from '@/components/ui/button';
 
 export interface TablaPuertaHandle {
   agregarFila: () => void;
@@ -162,12 +163,14 @@ const TablaPuertaComercial = forwardRef<TablaPuertaHandle, Props>(
                 </div>
               </div>
               
-              <button 
+              <IconButton
+                type="button"
+                aria-label="Eliminar registro"
+                className="absolute top-10 right-4 bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 rounded-full opacity-0 group-hover:opacity-100"
                 onClick={() => eliminarFila(fila.id)}
-                className="absolute top-10 right-4 h-8 w-8 bg-red-50 text-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <Trash2 className="h-4 w-4" />
-              </button>
+              </IconButton>
             </div>
           ))}
         </div>
@@ -211,13 +214,14 @@ const TablaPuertaComercial = forwardRef<TablaPuertaHandle, Props>(
                     <td className="px-4 py-3 font-mono font-bold text-emerald-700 text-xs bg-emerald-50/30">{fila.vidrioW}</td>
                     <td className="px-4 py-3 font-mono font-bold text-emerald-700 text-xs bg-emerald-50/30 border-r border-slate-100">{fila.vidrioH}</td>
                     <td className="px-4 py-3 text-right">
-                      <button
+                      <IconButton
+                        type="button"
+                        aria-label="Eliminar registro"
+                        className="text-slate-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 focus:opacity-100"
                         onClick={() => eliminarFila(fila.id)}
-                        className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                        title="Eliminar registro"
                       >
                         <Trash2 className="h-4 w-4" />
-                      </button>
+                      </IconButton>
                     </td>
                   </tr>
                 ))}

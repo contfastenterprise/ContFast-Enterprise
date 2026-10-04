@@ -62,7 +62,9 @@ function main() {
     /grouped\[type\]\.map/.test(listaR) && /¿Cómo se usan estas retenciones\?/.test(listaR) && !/value=\{form\.name\}/.test(listaR) && /value=\{form\.name\}/.test(formR));
   ok('  el formulario ya no es un modal: va en la caja de la pestana, sin capa sobre la pagina',
     /<PanelDeRegistro titulo=\{editing \? 'Editar Retención' : 'Nueva Retención'\}>/.test(formR) && !/fixed inset-0/.test(formR)
-    && (ret.match(/fixed inset-0/g) ?? []).length === 1);
+    && !/<Modal\b/.test(formR)
+    //  Lote 279: la ventana que queda (eliminar) es la comun: se cuentan ventanas, a mano o `<Modal`.
+    && (ret.match(/fixed inset-0|<Modal\b/g) ?? []).length === 1);
   ok('  cada etiqueta con su campo, y los botones no envian nada por su cuenta',
     etiquetasBien(formR, ['ret-nombre', 'ret-tipo', 'ret-porcentaje']) && (formR.match(/type="button"/g) ?? []).length === 2);
   invariante('  eliminar sigue siendo una confirmacion pequena (la unica capa que queda)', /Eliminar retención/.test(ret) && /deleteTarget && \(/.test(ret));
@@ -81,7 +83,9 @@ function main() {
     /displayAccounts\.map/.test(listaB) && !/handleCreateAccount/.test(listaB) && /<form onSubmit=\{handleCreateAccount\}/.test(formB));
   ok('  la cuenta nueva ya no es un modal: va en la caja de la pestana',
     /<PanelDeRegistro titulo="Nueva Cuenta Bancaria">/.test(formB) && !/fixed inset-0/.test(formB)
-    && (ban.match(/fixed inset-0/g) ?? []).length === 1);
+    && !/<Modal\b/.test(formB)
+    //  Lote 279: la ventana que queda (el movimiento) es la comun: se cuentan ventanas.
+    && (ban.match(/fixed inset-0|<Modal\b/g) ?? []).length === 1);
   ok('  cada etiqueta con su campo, y la cuenta contable con el estilo de los demas campos',
     etiquetasBien(formB, ['banco-nombre', 'banco-numero', 'banco-moneda', 'banco-tipo', 'banco-color', 'banco-cuenta-contable', 'banco-balance'])
     && !/border-slate-300 bg-white py-2 px-3 text-sm/.test(formB));
@@ -92,7 +96,9 @@ function main() {
   ok('  y con "Todas las Cuentas" elegida no se puede pulsar (un movimiento es de UNA cuenta)',
     /disabled=\{selectedAccount\.id === 'all'\}[\s\S]{0,300}onClick=\{\(\) => setShowTxModal\(true\)\}/.test(barra));
   invariante('  el movimiento sigue en su ventana (es una accion sobre la cuenta elegida, no un registro de la pantalla)',
-    /showTxModal && selectedAccount && \(/.test(ban) && /<form onSubmit=\{handleRegisterTx\}/.test(ban));
+    //  Lote 279: la ventana es ya la comun (`isOpen={showTxModal && !!selectedAccount}`); lo que se
+    //  vigila es que la abra la misma condicion, no como se escribe.
+    /showTxModal && (?:!!)?selectedAccount\b/.test(ban) && /<form onSubmit=\{handleRegisterTx\}/.test(ban));
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
   process.exit(fallos === 0 ? 0 : 1);

@@ -119,15 +119,20 @@ async function main() {
     /flex-1 overflow-y-auto custom-scrollbar/.test(codigo));
 
   //  LA CAUSA 2.
+  //  LOTE 259: INVERTIDA, NO BORRADA. Este banco exigia `block: 'nearest'` y
+  //  prohibia centrar ("centrar da un salto en cada navegacion"). El 2026-10-03 el
+  //  dueño pidio la fila activa CENTRADA, despues de compararlo en una maqueta, y lo
+  //  que este banco defendia paso a ser lo contrario de lo pedido. Se queda la
+  //  propiedad del 189 -- la fila activa se trae a la vista -- y la forma se vigila
+  //  en `verificar_menu_activo_centrado.ts`, que ejecuta la regla.
   ok('el elemento activo se trae a la vista',
-    /refActivo\.current\?\.scrollIntoView\(\{ block: 'nearest' \}\)/.test(codigo));
-  ok('  al navegar y al abrir o cerrar un grupo',
-    /\}, \[pathname, expandedGroups\]\)/.test(codigo));
-  //  `nearest` y no `center`: centrar da un salto en cada navegacion. La negativa
-  //  va ATADA al positivo: sola es cierta de balde antes del lote, cuando no habia
-  //  ningun `scrollIntoView` que pudiera centrar nada.
-  ok('  moviendo lo justo, sin saltos',
-    /scrollIntoView\(\{ block: 'nearest' \}\)/.test(codigo) && !/block: 'center'/.test(codigo));
+    /const fila = refActivo\.current;/.test(codigo) && /lista\.scrollTo\(/.test(codigo));
+  ok('  al navegar y al abrir un grupo (la fila no existe hasta que su grupo se abre)',
+    /\}, \[pathname, expandedGroups[^\]]*\]\)/.test(codigo));
+  ok('  y ahora centrada, como pidio el dueño (lote 259)',
+    //  La negativa nombra el `scrollIntoView` DE LA FILA ACTIVA, no cualquier
+    //  `nearest`: el buscador de Ctrl+K usa el suyo para su seleccion, y ese se queda.
+    /desplazamientoParaCentrar\(/.test(codigo) && !/refActivo\.current\?\.scrollIntoView/.test(codigo));
   //  La referencia tiene que llegar a todos los enlaces DE LOS GRUPOS, que son los
   //  que pueden quedar debajo del pliegue; si a uno le falta, el activo de ese
   //  grupo se queda sin traer.
@@ -145,8 +150,10 @@ async function main() {
   const enLosGrupos = (() => {
     const i = codigo.indexOf('dynamicGroups.map(');
     if (i < 0) return '';
-    const j = codigo.indexOf('</nav>', i);
-    return j > -1 ? codigo.slice(i, j) : '';
+    //  LOTE 259: la lista pasa a `motion.nav` (el fondo que viaja necesita
+    //  `layoutScroll`); se acepta el cierre de las dos formas.
+    const k = codigo.slice(i).search(/<\/(?:motion\.|m\.)?nav>/);
+    return k > -1 ? codigo.slice(i, i + k) : '';
   })();
   if (enLosGrupos === '') throw new Error('Precondicion: no se acotan los grupos del menu');
   const navItems = (enLosGrupos.match(/<NavItem/g) || []).length;

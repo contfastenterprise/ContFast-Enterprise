@@ -83,8 +83,16 @@ function main() {
   //  Cierto antes y despues: como `ok()` regalaria un OK en la contraprueba.
   invariante('por pasos se sigue pintando UN paso cada vez', /\{paso === 1 && paso1\(\)\}\s*\{paso === 2 && paso2\(\)\}\s*\{paso === 3 && paso3\(\)\}/.test(form));
   invariante('guardar y cancelar siguen cerrando el formulario, y editar sigue abriendo todo de una vez',
-    /onClick=\{\(\) => \{ setErrores\(\{\}\); setShowModal\(false\); \}\}[\s\S]*?Cancelar/.test(form) && /setVistaCompleta\(true\);[\s\S]{0,200}setShowModal\(true\);/.test(p));
-  invariante('los modales pequeños (categoria nueva, codigos, impresion) siguen siendo modales', (p.match(/fixed inset-0 z-\[\d+\]/g) ?? []).length >= 4);
+    //  LOTE 275: desde el 271 el pie es `AccionesDeFormulario`, que pone el texto "Cancelar" el mismo y
+    //  recibe el manejador como `alCancelar`. Se ancla la PROPIEDAD (cancelar limpia los errores y cierra),
+    //  con `onClick` o `alCancelar`; antes del 271 era un boton con su texto.
+    (/onClick=\{\(\) => \{ setErrores\(\{\}\); setShowModal\(false\); \}\}[\s\S]*?Cancelar/.test(form)
+      || /<AccionesDeFormulario\b[\s\S]{0,400}?alCancelar=\{\(\) => \{ setErrores\(\{\}\); setShowModal\(false\); \}\}/.test(form))
+    && /setVistaCompleta\(true\);[\s\S]{0,200}setShowModal\(true\);/.test(p));
+  //  LOTE 277: las ventanas escritas a mano pasan al `<Modal>` de la casa. Se ancla la PROPIEDAD (siguen
+  //  siendo ventanas), con una u otra forma: el `fixed inset-0` a mano o el componente.
+  invariante('los modales pequeños (categoria nueva, codigos, impresion) siguen siendo modales',
+    (p.match(/fixed inset-0 z-\[\d+\]/g) ?? []).length + (p.match(/<Modal\b/g) ?? []).length >= 4);
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
   process.exit(fallos === 0 ? 0 : 1);

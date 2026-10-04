@@ -65,6 +65,7 @@ function Ordenable({ column, children, alDerecha = false }: any) {
   return (
     <div className={alDerecha ? 'flex justify-end' : ''}>
       <Button
+        type="button"
         variant="ghost"
         onClick={() => column.toggleSorting(dir === 'asc')}
         className={alDerecha ? '-mr-4' : '-ml-4'}
@@ -299,7 +300,7 @@ export default function TablaCuentas({
           {/* El contador dice cuantas hay escondidas: sin el, un total que no
               cuadra con lo que se ve parece un error de la pantalla. */}
           <Button
-            variant="outline" size="sm" className="flex items-center gap-2"
+            type="button" variant="outline" size="sm"
             onClick={() => setVerSaldadas(v => !v)}
             aria-pressed={verSaldadas}
             title={verSaldadas ? 'Ocultar las cuentas ya saldadas' : 'Mostrar también las cuentas ya saldadas'}
@@ -309,10 +310,10 @@ export default function TablaCuentas({
               {verSaldadas ? 'Ocultar saldadas' : `Ver saldadas${saldadas ? ` (${saldadas})` : ''}`}
             </span>
           </Button>
-          <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={handleExportCSV}>
+          <Button type="button" variant="documento" size="sm" onClick={handleExportCSV}>
             <Download className="w-4 h-4" /> Excel
           </Button>
-          <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={handlePrint}>
+          <Button type="button" variant="documento" size="sm" onClick={handlePrint}>
             <Printer className="w-4 h-4" /> Imprimir
           </Button>
         </div>
@@ -370,10 +371,10 @@ export default function TablaCuentas({
           </span>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
+          <Button type="button" variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
             Anterior
           </Button>
-          <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
+          <Button type="button" variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
             Siguiente
           </Button>
         </div>

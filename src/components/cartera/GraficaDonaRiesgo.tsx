@@ -76,6 +76,7 @@ export function GraficaDonaRiesgo({
         </div>
         {seleccionado && (
           <button
+            type="button"
             onClick={() => onSeleccionar(null)}
             className="text-[11px] text-neutral-600 hover:text-neutral-900 flex items-center gap-1 px-2 py-0.5 bg-neutral-100 hover:bg-neutral-200 rounded-md transition-colors cursor-pointer"
             title="Quitar filtro de riesgo"
@@ -139,7 +140,7 @@ export function GraficaDonaRiesgo({
               {stats.map((s) => {
                 const enfocado = seleccionado === s.key || encima === s.key;
                 return (
-                  <button
+                  <button type="button"
                     key={s.key}
                     onClick={() => onSeleccionar(seleccionado === s.key ? null : s.key)}
                     onMouseEnter={() => setEncima(s.key)}

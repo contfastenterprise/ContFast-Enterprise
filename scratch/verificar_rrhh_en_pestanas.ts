@@ -67,10 +67,13 @@ function main() {
     /lista="Novedades"/.test(po) && /enFormulario=\{showModal\}/.test(po)
     && /alVerLista=\{\(\) => setShowModal\(false\)\}/.test(po) && /alRegistrar=\{handleOpenModal\}/.test(po)
     && !/\n\s*Nuevo Registro\s*<\/button>/.test(ot), po.slice(0, 100));
-  const cabecera = tramo(ot, '<h1', '{!showModal && (<>');
+  //  Lote 274: la cabecera es `CabeceraDePagina` (sin `<h1>` en la pagina) y los botones son el
+  //  componente de la casa: la propiedad es la misma, ningun boton en la cabecera y recargar justo
+  //  detras de las pestanas de contenido, se escriba `<button>`, `<Button>` o `<IconButton>`.
+  const cabecera = tramo(ot, ot.includes('<CabeceraDePagina') ? '<CabeceraDePagina' : '<h1', '{!showModal && (<>');
   ok('  en la cabecera no queda ningun boton: recargar baja a la fila de las pestanas de contenido',
-    cabecera.length > 0 && !/<button/.test(cabecera)
-    && /aria-label="Tabs"[\s\S]*?<\/nav>\s*<button[\s\S]{0,120}onClick=\{fetchData\}/.test(ot));
+    cabecera.length > 0 && !/<(button|Button|IconButton)\b/.test(cabecera)
+    && /aria-label="Tabs"[\s\S]*?<\/nav>\s*<(button|Button|IconButton)\b[\s\S]{0,160}onClick=\{fetchData\}/.test(ot));
   const listaO = expandir(ot, tramo(ot, '{!showModal && (<>', '</>)}'));
   const formO = tramo(expandir(ot, ot), '{showModal && (', '</PanelDeRegistro>');
   ok('  las tarjetas, las pestanas de contenido y la tabla no se pintan con el formulario',

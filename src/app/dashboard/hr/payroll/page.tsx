@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Banknote, Plus, Calendar, ShieldCheck, RefreshCw, FileText, Trash2, Eye, Printer, X, Award } from 'lucide-react';
+import { Banknote, Plus, Calendar, ShieldCheck, RefreshCw, FileText, Trash2, Eye, Printer, Award } from 'lucide-react';
+import { Modal } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 import { Pagination } from '@/components/ui/pagination';
 
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 interface Payroll {
   id: string;
   periodStart: string;
@@ -173,33 +176,31 @@ export default function PayrollPage() {
 
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-800 flex items-center gap-2">
-            <Banknote className="h-6 w-6 text-[#003366]" /> Procesamiento de Nóminas
-          </h1>
-          <p className="text-sm text-slate-500">
-            Genera, calcula y aprueba las nóminas de tus colaboradores para la TSS y DGII.
-          </p>
-        </div>
-        {!selectedPayroll && (
-          <button
+      <CabeceraDePagina
+        titulo="Procesamiento de Nóminas"
+        descripcion="Genera, calcula y aprueba las nóminas de tus colaboradores para la TSS y DGII."
+        icono={<Banknote />}
+        acciones={!selectedPayroll && (
+          <Button
+            type="button"
+            className="shrink-0 self-start md:self-auto"
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm shrink-0 self-start md:self-auto"
           >
             <Plus className="h-4 w-4" /> Generar Nómina
-          </button>
+          </Button>
         )}
-      </div>
+      />
 
       {/* Back Button if in detail view */}
       {selectedPayroll && (
-        <button
+        <Button
+          type="button"
+          variant="link"
+          className="h-auto px-0 text-xs"
           onClick={() => setSelectedPayroll(null)}
-          className="text-xs font-semibold text-[#003366] hover:underline flex items-center gap-1"
         >
           ← Volver al Historial de Nóminas
-        </button>
+        </Button>
       )}
 
       {/* List View or Detail View */}
@@ -252,21 +253,26 @@ export default function PayrollPage() {
                     </div>
                     
                     <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                      <button
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="bg-slate-100 hover:text-[#003366] hover:bg-[#003366]/10"
                         onClick={() => handleSelectPayroll(pr)}
-                        className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-[#003366] hover:bg-[#003366]/10 flex items-center justify-center font-semibold text-xs"
                         title="Ver Volantes"
                       >
-                        <Eye className="h-4 w-4 mr-1" /> Ver
-                      </button>
+                        <Eye className="h-4 w-4" /> Ver
+                      </Button>
                       {(pr.status === 'draft' || pr.status === 'calculated') && (
-                        <button
+                        <IconButton
+                          type="button"
+                          aria-label="Eliminar nómina"
+                          className="bg-slate-100 hover:text-rose-600 hover:bg-rose-50"
                           onClick={() => handleDelete(pr.id)}
-                          className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center"
                           title="Eliminar"
                         >
                           <Trash2 className="h-4 w-4" />
-                        </button>
+                        </IconButton>
                       )}
                     </div>
                   </div>
@@ -305,21 +311,26 @@ export default function PayrollPage() {
                         <td className="px-4 py-2.5 align-middle text-xs text-slate-500">{formatDateDisplay(pr.createdAt)}</td>
                         <td className="px-4 py-2.5 align-middle text-right">
                           <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="hover:text-[#003366] hover:bg-[#003366]/10"
                               onClick={() => handleSelectPayroll(pr)}
-                              className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10 text-xs font-semibold"
                               title="Ver Volantes"
                             >
-                              <Eye className="h-3.5 w-3.5 mr-1" /> Ver
-                            </button>
+                              <Eye className="h-3.5 w-3.5" /> Ver
+                            </Button>
                             {(pr.status === 'draft' || pr.status === 'calculated') && (
-                              <button
+                              <IconButton
+                                type="button"
+                                aria-label="Eliminar nómina"
+                                className="hover:text-rose-600 hover:bg-rose-50"
                                 onClick={() => handleDelete(pr.id)}
-                                className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50"
                                 title="Eliminar"
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
-                              </button>
+                              </IconButton>
                             )}
                           </div>
                         </td>
@@ -356,28 +367,28 @@ export default function PayrollPage() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <a
+                <Button asChild variant="documento"><a
                   href={`/api/v1/hr/payroll/${selectedPayroll.id}/receipts`}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                 >
                   <Printer className="h-4 w-4" /> Imprimir Todos los Volantes
-                </a>
+                </a></Button>
                 {selectedPayroll.status !== 'approved' && (
                   <>
-                    <button
+                    <Button
+                      type="button"
+                      variant="secondary"
                       onClick={() => handleRecalculate(selectedPayroll.id)}
-                      className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                     >
                       <RefreshCw className="h-4 w-4" /> Recalcular Todo
-                    </button>
-                    <button
+                    </Button>
+                    <Button
+                      type="button"
                       onClick={() => handleApprove(selectedPayroll.id)}
-                      className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
                     >
                       <Award className="h-4 w-4" /> Aprobar Nómina
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>
@@ -489,18 +500,15 @@ export default function PayrollPage() {
       )}
 
       {/* Create Payroll Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white border border-slate-200 rounded-xl w-full max-w-md shadow-2xl p-4 relative">
-            <button
-              onClick={() => setShowCreateModal(false)}
-              className="absolute right-4 top-4 text-slate-500 hover:bg-slate-100 p-1 rounded-full transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
-            <h3 className="font-bold text-slate-800 text-base mb-4 flex items-center gap-1.5">
-              <Calendar className="h-5 w-5 text-[#003366]" /> Generar Nómina de Período
-            </h3>
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Generar Nómina de Período"
+        icono={<Calendar />}
+        maxWidth="md"
+        cerrarAlPulsarFuera={false}
+        bloqueada={submitting}
+      >
             <form onSubmit={handleCreatePayroll} className="space-y-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Frecuencia de la Nómina</label>
@@ -546,25 +554,21 @@ export default function PayrollPage() {
                 />
               </div>
               <div className="flex justify-end gap-3.5 pt-2 border-t border-slate-200/60 mt-4">
-                <button
+                <Button variant="secondary"
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                >
+                  className="flex">
                   Cancelar
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
                   disabled={submitting}
-                  className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                >
+                  className="flex">
                   {submitting ? 'Generando...' : 'Generar y Calcular'}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
 
   );

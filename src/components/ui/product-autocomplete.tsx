@@ -241,6 +241,7 @@ export const ProductAutocomplete: React.FC<ProductAutocompleteProps> = ({
               }}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-slate-100 transition outline-none"
               title="Borrar artículo seleccionado"
+              aria-label="Borrar artículo seleccionado"
             >
               <X className="h-3.5 w-3.5 text-slate-400 hover:text-rose-500" />
             </button>

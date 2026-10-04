@@ -9,42 +9,25 @@
  * "Aplicar precios" y puede ir atrasado. El costo se puede seguir cambiando a mano: es la factura
  * del suplidor la que manda.
  *
- * Se carga UNA vez al abrir la pantalla. Si no se puede (sin permiso de ver el catalogo, sin la
- * migracion, sin red), la compra funciona como siempre, con el costo de catalogo: no es motivo para
- * frenar una compra.
+ * Si no se puede leer la tasa (sin permiso de ver el catalogo, sin la migracion, sin red), la
+ * compra funciona como siempre, con el costo de catalogo: no es motivo para frenar una compra.
+ *
+ * LOTE 261: la tasa la lee `useTasaDelDolar`, el mismo que pinta el control para cambiarla, asi
+ * que se pide una vez y cambiarla pone al dia el costo de lo que se elija despues. Y se fue
+ * `origenDe`: la linea ya no dice "US$ 45.00 x 63.50" debajo del costo. Pedido del dueño
+ * (2026-10-03): *"solo debe mostrar en peso dominicano"*.
  */
-import { useCallback, useEffect, useState } from 'react';
-import { leerRespuesta } from '@/utils/leerRespuesta';
-import { costoParaCompra, type Renglon, type Tasa } from '@/services/precios/preciosEnDolares';
+import { useCallback } from 'react';
+import { costoParaCompra } from '@/services/precios/preciosEnDolares';
+import { useTasaDelDolar, type CambioDeTasa } from '@/hooks/useTasaDelDolar';
 
-export type OrigenEnDolares = { costoUsd: number; tasa: number };
-
-export function useCostoEnDolares() {
-  const [costosUsd, setCostosUsd] = useState<Map<string, number>>(() => new Map());
-  const [tasa, setTasa] = useState<number | null>(null);
-
-  const cargar = useCallback(async () => {
-    try {
-      const leido = await leerRespuesta<{ data: { tasa: Tasa | null; renglones: Renglon[] } }>(await fetch('/api/v1/products/dolar'));
-      if (!leido.bien) return;
-      setTasa(leido.cuerpo.data.tasa?.tasa ?? null);
-      setCostosUsd(new Map(leido.cuerpo.data.renglones.map((r) => [r.productId, r.costoUsd])));
-    } catch {
-      //  Sin red: la compra sigue con el costo de catalogo.
-    }
-  }, []);
-
-  useEffect(() => { cargar(); }, [cargar]);
+export function useCostoEnDolares(alCambiarLaTasa?: (c: CambioDeTasa) => void) {
+  const tasaDelDolar = useTasaDelDolar(alCambiarLaTasa);
+  const { costosUsd, tasa } = tasaDelDolar;
 
   /** El costo con que entra el producto: en dolares por la tasa si lo sigue, o el de catalogo. */
   const costoDe = useCallback((prod: { id: string; cost?: unknown }) =>
-    costoParaCompra(prod.cost, costosUsd.get(prod.id), tasa), [costosUsd, tasa]);
+    costoParaCompra(prod.cost, costosUsd.get(prod.id), tasa?.tasa ?? null), [costosUsd, tasa]);
 
-  /** De donde sale el costo de un producto que sigue al dolar (para ensenarlo en la linea). */
-  const origenDe = useCallback((productId: string): OrigenEnDolares | null => {
-    const costoUsd = costosUsd.get(productId);
-    return costoUsd && tasa ? { costoUsd, tasa } : null;
-  }, [costosUsd, tasa]);
-
-  return { costoDe, origenDe };
+  return { costoDe, tasaDelDolar };
 }

@@ -6,6 +6,7 @@ import { CheckCircle2, RefreshCw } from 'lucide-react';
 import { GRUPOS_DE_PUENTES } from '@/services/accounting/cuentasDelSistema';
 import type { Puentes } from '../hooks/useCuentasPuente';
 
+import { Button } from '@/components/ui/button';
 export function CuentasPuente({ p }: { p: Puentes }) {
   return (
           <form onSubmit={p.handleSaveMappings} className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-4">
@@ -72,14 +73,13 @@ export function CuentasPuente({ p }: { p: Puentes }) {
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-100">
-              <button
+              <Button
                 type="submit"
                 disabled={p.mappingSubmitting}
-                className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-              >
+                className="flex">
                 {p.mappingSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                 Guardar Cuentas Puente
-              </button>
+              </Button>
             </div>
           </form>
   );

@@ -147,7 +147,8 @@ async function main() {
   console.log('\n2) Aplicar, con la confirmacion\n');
   const ap = await aplicar(60, [P1, P3]);
   //  P1: costo 2 x 60 = 120; margenes 1,30 / 1,20 / (0) / 1,10. P3: sin costo, margenes de fabrica sobre 1,25 x 60 = 75.
-  ok(E[6], ap.estado === 200 && ap.cuerpo.data?.aplicados === 2 && igual(await precios(P1), 120, 156, 144, 0, 132) && igual(await precios(P3), 75, 93.75, 90, 86.25, 82.5),
+  //  LOTE 265: margenes de fabrica sobre la VENTA: 75 / 0,75 = 100; / 0,80 = 93,75; / 0,85 = 88,24; / 0,90 = 83,33.
+  ok(E[6], ap.estado === 200 && ap.cuerpo.data?.aplicados === 2 && igual(await precios(P1), 120, 156, 144, 0, 132) && igual(await precios(P3), 75, 100, 93.75, 88.24, 83.33),
     `${ap.estado} ${JSON.stringify(await precios(P1))} ${JSON.stringify(await precios(P3))}`);
   ok(E[7], igual(await precios(P2), 200, 300, 260, 240, 220), JSON.stringify(await precios(P2)));
   const registro = await todas(sql`SELECT product_id, tasa::float8 t, antes, despues, aplicado_por FROM cambios_de_precio WHERE company_id = ${A}::uuid ORDER BY product_id`);

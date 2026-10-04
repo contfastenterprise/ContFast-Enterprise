@@ -159,7 +159,9 @@ async function main() {
   } catch { mv = ''; }
   const botones = [...cerrar(htmls['apertura y nueva terminal'] ?? ''), ...cerrar(htmls['movimiento'] ?? ''), ...cerrar(mv)];
   ok('los tres botones de cerrar (una X) dicen que cierran',
-    botones.length === 3 && botones.every((b) => /aria-label="Cerrar[^"]+"/.test(b)), `${botones.length} botones`);
+    //  Lote 279: las tres ventanas son la comun, y su X dice "Cerrar" (sin mas: el titulo de la
+    //  ventana, enlazado con `aria-labelledby`, dice de que ventana es).
+    botones.length === 3 && botones.every((b) => /aria-label="Cerrar[^"]*"/.test(b)), `${botones.length} botones`);
   const arq = htmls['arqueo'] ?? '';
   const { DENOMINATIONS } = await import('../src/app/dashboard/cash/caja');
   const cantidades = [...arq.matchAll(/aria-label="Cantidad de ([^"]+)"/g)].map((m) => m[1]);
@@ -176,8 +178,12 @@ async function main() {
     /const \[ahora\] = useState\(\(\) => new Date\(\)\);/.test(arqCod) && /formatDateTimeDisplay\(ahora\)/.test(arqCod) && !/\{[^{}]*new Date\(\)[^{}]*\}/.test(arqCod.replace(/useState\(\(\) => new Date\(\)\)/, '')));
   const hh = hooks[1];
   const exp = (() => { const i = hh.indexOf('const handleExportHistory = '); return i < 0 ? '' : hh.slice(i, hh.indexOf('\n  };', i)); })();
+  //  LOTE 281: los dos CSV de la pantalla bajan por `utils/descargarCsv.ts`; la propiedad (soltar la
+  //  memoria DESPUES del clic) se mira donde vive. Antes del 281, en el propio hook.
+  const descarga = existsSync(join(raiz, 'src/utils/descargarCsv.ts')) ? sinComentarios(leer('src/utils/descargarCsv.ts')) : '';
   ok('el CSV exportado suelta su memoria DESPUES de descargarse',
-    /link\.click\(\);[\s\S]*URL\.revokeObjectURL\(url\);/.test(exp));
+    /link\.click\(\);[\s\S]*URL\.revokeObjectURL\(url\);/.test(exp)
+    || (/descargarCsv\(/.test(exp) && /enlace\.click\(\);[\s\S]*URL\.revokeObjectURL\(url\);/.test(descarga)));
   const cajaTs = sinComentarios(leer(`${DIR}/caja.ts`));
   ok('el formateador de moneda se crea una vez, fuera de `fmt`',
     /^const MONEDA = new Intl\.NumberFormat\(/m.test(cajaTs) && /export const fmt = [^;]*MONEDA\.format\(/.test(cajaTs));

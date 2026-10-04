@@ -44,6 +44,16 @@ function vecinos(src: string): string[] {
   const out: string[] = [];
   for (const m of src.matchAll(/<PestanasDeRegistro\b[\s\S]*?\/>/g)) {
     const i = m.index ?? 0;
+    //  Lote 274: con el estandar de UI la fila de la cabecera es `acciones` de `CabeceraDePagina`
+    //  (el componente pinta la caja). Lo que comparte fila con las pestanas es entonces lo demas que
+    //  va en esa prop: la expresion entera de `acciones={...}`, sin las pestanas.
+    const prop = src.lastIndexOf('acciones={', i);
+    let k = prop + 'acciones='.length, prof = 0;
+    if (prop >= 0) for (; k < src.length; k++) { if (src[k] === '{') prof++; else if (src[k] === '}') { prof--; if (prof === 0) break; } }
+    if (prop >= 0 && k > i) {
+      out.push(src.slice(prop, i) + src.slice(i + m[0].length, k + 1));
+      continue;
+    }
     const desde = src.lastIndexOf('<div', i);
     const hasta = src.indexOf('</div>', i + m[0].length);
     out.push(src.slice(desde, i) + src.slice(i + m[0].length, hasta < 0 ? undefined : hasta));
@@ -59,7 +69,8 @@ function main() {
   }
 
   console.log('\n1) Junto a las pestanas no hay botones\n');
-  const conBoton = conPestanas.filter((f) => vecinos(sinComentarios(leer(f))).some((v) => /<button\b|<Button\b/.test(v)));
+  //  Lote 274: tambien `IconButton`, el boton de solo icono del estandar (un mutante que lo ponia al lado sobrevivia).
+  const conBoton = conPestanas.filter((f) => vecinos(sinComentarios(leer(f))).some((v) => /<button\b|<Button\b|<IconButton\b/.test(v)));
   ok(`en las ${conPestanas.length} pantallas con pestanas de registro, la fila de las pestanas no lleva ningun boton`, conBoton.length === 0,
     conBoton.map((f) => f.replace(`${PANEL}/`, '')).join(', '));
 

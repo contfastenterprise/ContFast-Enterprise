@@ -1,14 +1,18 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, Receipt, Plus, RefreshCw, X, HandCoins, Building2, Calendar, CreditCard, Landmark, CheckCircle2, AlertCircle, Printer, Eye, History, FileText, Sparkles } from 'lucide-react';
+import { Search, Receipt, Plus, RefreshCw, X, HandCoins, Building2, Calendar, CreditCard, Landmark, CheckCircle2, AlertCircle, Printer, Eye, History, FileText, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
+import { alternarCliente, inicialesDelCliente, estaVencida } from '@/services/cartera/listaDeClientes';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
-import { formatDateDisplay, formatDateTimeDisplay } from '@/utils/fechasLocales';
+import { formatDateDisplay, formatDateTimeDisplay, diaRD } from '@/utils/fechasLocales';
 import { entraPorBanco, motivoParaNoRegistrarCobro } from '@/services/cartera/cuentaDelCobro';
 
+import { Button, IconButton } from '@/components/ui/button';
+import { Modal } from '@/components/ui/dialog';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 // -- Types --
 interface InvoiceAR {
   arId: string;
@@ -25,6 +29,8 @@ interface InvoiceAR {
 interface CustomerAR {
   customerId: string;
   customerName: string;
+  //  Lote 267: el RNC o cedula, para la columna de la lista desplegable.
+  customerRnc?: string | null;
   totalBalance: number;
   invoices: InvoiceAR[];
 }
@@ -38,6 +44,72 @@ const fmt = (val: number) => {
   }).format(val || 0);
 };
 
+/**
+ * Lote 267: las facturas de un cliente desplegado, como el detalle del reporte de cuentas por
+ * cobrar. Componente aparte por React Doctor (el JSX quedaba demasiado anidado), y en ESTE fichero
+ * para que las fechas sigan donde las vigila `verificar_fechas_pantallas`. Se anima la opacidad y un
+ * desplazamiento (`transform`), no la altura: animar `height` recalcula el diseno en cada fotograma.
+ */
+function DetalleDelCliente({ invoices }: { invoices: InvoiceAR[] }) {
+  //  El dia de RD, UNA vez al abrir el detalle (no `new Date()` en cada fila del render).
+  const [hoy] = useState(() => diaRD());
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+    >
+      <div className="p-6">
+        <div className="bg-white rounded-xl border border-slate-200/50 shadow-sm p-4">
+          <h3 className="font-bold text-[#003366] flex items-center gap-2 mb-4 pb-4 border-b border-slate-100">
+            <Receipt className="w-5 h-5 text-amber-500" /> Detalle de Cuentas por Cobrar
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-slate-50/80 text-[10px] text-slate-500 uppercase font-bold tracking-wider border-b border-slate-200">
+                <tr>
+                  <th className="px-4 py-2.5">Factura</th>
+                  <th className="px-4 py-2.5">NCF / Documento</th>
+                  <th className="px-4 py-2.5">Fecha Emisión</th>
+                  <th className="px-4 py-2.5">Vencimiento</th>
+                  <th className="px-4 py-2.5 text-right">Monto Original</th>
+                  <th className="px-4 py-2.5 text-right">Balance Restante</th>
+                  <th className="px-4 py-2.5 text-center">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {invoices.map(inv => {
+                  const isOverdue = estaVencida(inv.dueDate, inv.balance, hoy);
+                  return (
+                    <tr key={inv.arId} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-2.5 font-mono font-bold text-[#003366]">{inv.codigoFactura || 'N/A'}</td>
+                      <td className="px-4 py-2.5 font-mono text-slate-500">{inv.invoiceNumber}</td>
+                      <td className="px-4 py-2.5 text-slate-500">{formatDateDisplay(inv.invoiceDate)}</td>
+                      <td className="px-4 py-2.5">
+                        <span className={clsx("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold", isOverdue ? 'bg-rose-500/10 text-rose-600 border border-rose-500/10' : 'text-slate-600')}>
+                          {isOverdue && <AlertCircle className="w-3.5 h-3.5 text-rose-500" />}
+                          {formatDateDisplay(inv.dueDate)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-slate-500 font-mono">{fmt(inv.amount)}</td>
+                      <td className="px-4 py-2.5 text-right font-mono font-bold text-slate-800">{fmt(inv.balance)}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        <span className={clsx("px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider", isOverdue ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700')}>
+                          {isOverdue ? 'Vencida' : 'Pendiente'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function ReceivablesPage() {
   const [loading, setLoading] = useState(true);
   // P2-37: TRES errores, no uno. Los cuatro cargadores de esta pantalla
@@ -47,6 +119,8 @@ export default function ReceivablesPage() {
   const [errorRecibos, setErrorRecibos] = useState<string | null>(null);
   const [errorEstado, setErrorEstado] = useState<string | null>(null);
   const [customers, setCustomers] = useState<CustomerAR[]>([]);
+  //  Lote 267: el cliente desplegado en "Balances de Clientes" (uno a la vez, como el reporte).
+  const [clienteAbierto, setClienteAbierto] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Modal State
@@ -424,24 +498,22 @@ export default function ReceivablesPage() {
       <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
-              Cuentas por Cobrar
-            </h1>
-            <p className="text-slate-500 text-xs mt-1">
-              Gestión de balances pendientes de clientes y registro de cobros.
-            </p>
-          </div>
+        {/* Lote 272: a la derecha no hay acciones sino el total; va en el sitio de las acciones. */}
+        <CabeceraDePagina
+          titulo="Cuentas por Cobrar"
+          descripcion="Gestión de balances pendientes de clientes y registro de cobros."
+          icono={<HandCoins />}
+          acciones={
           <div className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 shadow-sm flex flex-col items-end">
             <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500">Total Pendiente Global</span>
             <span className="text-xl font-mono font-bold text-[#C5A059] leading-none mt-1">{fmt(globalTotalPending)}</span>
           </div>
-        </div>
+          }
+        />
 
         {/* Tabs */}
         <div className="flex border-b border-slate-200">
-          <button
+          <button type="button"
             onClick={() => setActiveTab('pending')}
             className={clsx(
               "px-4 py-2 text-xs font-semibold border-b-2 transition flex items-center gap-2",
@@ -452,7 +524,7 @@ export default function ReceivablesPage() {
           >
             <HandCoins className="w-4 h-4" /> Balances de Clientes
           </button>
-          <button
+          <button type="button"
             onClick={() => {
               setActiveTab('receipts');
             }}
@@ -465,7 +537,7 @@ export default function ReceivablesPage() {
           >
             <History className="w-4 h-4" /> Historial de Recibos
           </button>
-          <button
+          <button type="button"
             onClick={() => {
               setActiveTab('customer_statement');
             }}
@@ -513,79 +585,81 @@ export default function ReceivablesPage() {
                   <p className="text-on-surface-variant/70 mt-2">No hay facturas pendientes de cobro en este momento.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {filteredCustomers.map(customer => (
-                <div key={customer.customerId} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                  {/* Customer Header */}
-                  <div className="bg-slate-50 border-b border-slate-200 p-4 flex flex-wrap justify-between items-center gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 bg-[#003366]/10 text-[#003366] rounded-lg flex items-center justify-center">
-                        <Building2 className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-slate-800">{customer.customerName}</h3>
-                        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{customer.invoices.length} {customer.invoices.length === 1 ? 'Factura Pendiente' : 'Facturas Pendientes'}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Balance Total</p>
-                        <p className="font-mono text-sm font-bold text-rose-600">{fmt(customer.totalBalance)}</p>
-                      </div>
-                      <button
-                        onClick={() => handlePrintCustomerStatement(customer.customerId)}
-                        disabled={printingCustomerId === customer.customerId}
-                        className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                      >
-                        <Printer className="h-3.5 w-3.5" /> Imprimir
-                      </button>
-                      <button
-                        onClick={() => handleOpenPayment(customer)}
-                        className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                      >
-                        <Receipt className="h-3.5 w-3.5" /> Registrar Cobro
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Invoices List */}
+                //  LOTE 267: una tabla con una fila por cliente que se despliega y se contrae, como la de
+                //  /dashboard/receivables-report (pedido del dueño). Antes cada cliente era una tarjeta
+                //  con sus facturas SIEMPRE a la vista. Un cliente abierto a la vez (`alternarCliente`).
+                //  La fila no es pulsable entera: lo son el nombre y la flecha, que son botones (teclado
+                //  y lector de pantalla), y "Imprimir" y "Registrar Cobro" siguen en la fila.
+                <div className="bg-white rounded-2xl border border-slate-200/30 shadow-lg overflow-hidden">
                   <div className="overflow-x-auto">
-                    <table className="w-full text-xs text-left">
-                      <thead className="bg-slate-50 border-b border-slate-200">
+                    <table className="w-full text-sm text-left">
+                      <thead className="bg-[#003366] text-white">
                         <tr>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Factura</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">NCF / Documento</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Fecha Emisión</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Vencimiento</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Monto Original</th>
-                          <th className="px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Balance Restante</th>
+                          <th className="px-6 py-4 font-bold rounded-tl-xl">Cliente</th>
+                          <th className="px-6 py-4 font-bold">RNC/Cédula</th>
+                          <th className="px-6 py-4 text-right font-bold">Facturas Pendientes</th>
+                          <th className="px-6 py-4 text-right font-bold">Balance Pendiente</th>
+                          <th className="px-6 py-4 text-center font-bold rounded-tr-xl">Acciones</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {customer.invoices.map(inv => {
-                          const isOverdue = new Date(inv.dueDate) < new Date() && inv.balance > 0;
-                          return (
-                            <tr key={inv.arId} className="hover:bg-slate-50/60 transition-colors">
-                              <td className="px-4 py-2 font-mono font-bold text-[#003366]">{inv.codigoFactura || 'N/A'}</td>
-                              <td className="px-4 py-2 font-mono text-slate-500">{inv.invoiceNumber}</td>
-                              <td className="px-4 py-2 text-slate-500">{formatDateDisplay(inv.invoiceDate)}</td>
-                              <td className="px-4 py-2">
-                                <span className={clsx("inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium", isOverdue ? 'bg-rose-100 text-rose-700' : 'text-slate-500')}>
-                                  {isOverdue && <AlertCircle className="w-3 h-3" />}
-                                  {formatDateDisplay(inv.dueDate)}
-                                </span>
+                      {filteredCustomers.map(customer => {
+                        const abierto = clienteAbierto === customer.customerId;
+                        const alternar = () => setClienteAbierto(alternarCliente(clienteAbierto, customer.customerId));
+                        return (
+                          <tbody key={customer.customerId}>
+                            <tr className={clsx('hover:bg-slate-50 transition-colors border-b border-slate-100', abierto && 'bg-slate-50/80 border-transparent')}>
+                              <td className="px-6 py-4">
+                                <button type="button" onClick={alternar} aria-expanded={abierto}
+                                  className="flex items-center gap-3 font-bold text-slate-800 text-left hover:text-[#003366]">
+                                  <span className="h-8 w-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm shrink-0" aria-hidden="true">
+                                    {inicialesDelCliente(customer.customerName)}
+                                  </span>
+                                  {customer.customerName}
+                                </button>
                               </td>
-                              <td className="px-4 py-2 text-right text-slate-500 font-mono">{fmt(inv.amount)}</td>
-                              <td className="px-4 py-2 text-right font-mono font-bold text-slate-800">{fmt(inv.balance)}</td>
+                              <td className="px-6 py-4 font-mono text-slate-600">{customer.customerRnc || 'N/A'}</td>
+                              <td className="px-6 py-4 text-right font-medium text-slate-600">{customer.invoices.length}</td>
+                              <td className="px-6 py-4 text-right font-mono font-bold text-rose-600">{fmt(customer.totalBalance)}</td>
+                              <td className="px-6 py-4">
+                                <div className="flex items-center justify-center gap-2">
+                                  <Button variant="documento" size="sm"
+                                    type="button"
+                                    onClick={() => handlePrintCustomerStatement(customer.customerId)}
+                                    disabled={printingCustomerId === customer.customerId}
+                                    className="flex gap-1.5">
+                                    <Printer className="h-3.5 w-3.5" /> Imprimir
+                                  </Button>
+                                  <Button size="sm"
+                                    type="button"
+                                    onClick={() => handleOpenPayment(customer)}
+                                    className="flex gap-1.5">
+                                    <Receipt className="h-3.5 w-3.5" /> Registrar Cobro
+                                  </Button>
+                                  <IconButton
+                                    type="button"
+                                    onClick={alternar}
+                                    aria-expanded={abierto}
+                                    aria-label={abierto ? `Ocultar las facturas de ${customer.customerName}` : `Ver las facturas de ${customer.customerName}`}
+                                  >
+                                    {abierto ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                                  </IconButton>
+                                </div>
+                              </td>
                             </tr>
-                          );
-                        })}
-                      </tbody>
+
+                            {abierto && (
+                              <tr className="bg-slate-50 border-b-2 border-[#003366]/20">
+                                <td colSpan={5} className="p-0">
+                                  <DetalleDelCliente invoices={customer.invoices} />
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        );
+                      })}
                     </table>
                   </div>
                 </div>
-              ))}
-            </div>
           )}
         </AnimatePresence>
           </>
@@ -628,13 +702,12 @@ export default function ReceivablesPage() {
                   className="block w-full h-8 px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50 focus:bg-white focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 transition outline-none"
                 />
               </div>
-              <button
+              <Button
                 type="button"
                 onClick={fetchReceipts}
-                className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-              >
+                className="flex">
                 <Search className="w-3.5 h-3.5" /> Buscar
-              </button>
+              </Button>
             </div>
 
             {/* Receipts Table */}
@@ -695,20 +768,22 @@ export default function ReceivablesPage() {
                             <td className="px-4 py-2.5 text-right font-mono font-bold text-xs text-slate-800">{fmt(parseFloat(rec.amount))}</td>
                             <td className="px-4 py-2.5 text-center">
                               <div className="flex justify-center gap-3">
-                                <button
+                                <IconButton
+                                  type="button"
                                   onClick={() => handleOpenReceiptDetails(rec.id)}
-                                  className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
+                                  aria-label="Ver detalle del recibo"
                                   title="Ver detalle"
                                 >
-                                  <Eye className="w-4 h-4" />
-                                </button>
-                                <button
+                                  <Eye />
+                                </IconButton>
+                                <IconButton
+                                  type="button"
                                   onClick={() => handlePrintReceipt(rec.id, { hideBalance: true })}
-                                  className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10"
+                                  aria-label="Imprimir recibo"
                                   title="Imprimir PDF"
                                 >
-                                  <Printer className="w-4 h-4" />
-                                </button>
+                                  <Printer />
+                                </IconButton>
                               </div>
                             </td>
                           </tr>
@@ -753,6 +828,7 @@ export default function ReceivablesPage() {
                         setShowCustomerDropdown(false);
                       }}
                       className="absolute right-2.5 top-2 text-slate-400 hover:text-rose-500 transition-colors"
+                      aria-label="Quitar el cliente"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -809,19 +885,18 @@ export default function ReceivablesPage() {
               </div>
 
               {selectedStatementCustomerId && (
-                <button
+                <Button variant="documento"
                   type="button"
                   disabled={printingCustomerId === selectedStatementCustomerId}
                   onClick={() => handlePrintCustomerStatement(selectedStatementCustomerId)}
-                  className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                >
+                  className="flex">
                   {printingCustomerId === selectedStatementCustomerId ? (
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                   ) : (
                     <Printer className="w-3.5 h-3.5" />
                   )}
                   {printingCustomerId === selectedStatementCustomerId ? 'Generando...' : 'Imprimir Estado'}
-                </button>
+                </Button>
               )}
             </div>
 
@@ -977,20 +1052,22 @@ export default function ReceivablesPage() {
                               </td>
                               <td className="px-4 py-2.5 text-center print:hidden">
                                 <div className="flex justify-center gap-2">
-                                  <button
+                                  <IconButton
+                                    type="button"
                                     onClick={() => handleOpenReceiptDetails(item.receiptId)}
-                                    className="p-1.5 hover:bg-slate-100 text-slate-600 rounded transition-colors"
+                                    aria-label="Ver el recibo completo"
                                     title="Ver Recibo Completo"
                                   >
-                                    <Eye className="w-3.5 h-3.5" />
-                                  </button>
-                                  <button
+                                    <Eye />
+                                  </IconButton>
+                                  <IconButton
+                                    type="button"
                                     onClick={() => handlePrintReceipt(item.receiptId)}
-                                    className="p-1.5 hover:bg-slate-100 text-[#003366] rounded transition-colors"
+                                    aria-label="Imprimir recibo"
                                     title="Imprimir Recibo"
                                   >
-                                    <Printer className="w-3.5 h-3.5" />
-                                  </button>
+                                    <Printer />
+                                  </IconButton>
                                 </div>
                               </td>
                             </tr>
@@ -1008,19 +1085,20 @@ export default function ReceivablesPage() {
       </div>
 
       {/* MODAL: REGISTRAR COBRO */}
-      <AnimatePresence>
+      {/* La ventana de la casa (lote 278). Se monta solo con un cliente elegido: el cuerpo lo lee.
+          Pulsar fuera cierra, como antes; mientras se procesa el recibo, no se cierra. */}
         {showPaymentModal && selectedCustomer && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPaymentModal(false)} className="absolute inset-0 bg-black/45 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="bg-white border border-slate-200 rounded-3xl shadow-2xl w-full max-w-7xl relative z-10 flex flex-col max-h-[93vh] overflow-hidden">
-              <div className="bg-[#003366] px-6 py-3 flex justify-between items-center text-white shrink-0">
-                <div>
-                  <h3 className="text-white font-display font-bold text-lg flex items-center gap-2"><HandCoins className="w-5 h-5 text-[#C5A059]" /> Registrar Recibo de Cobro</h3>
-                  <p className="text-[#C5A059] font-bold text-sm mt-0.5">{selectedCustomer.customerName}</p>
-                </div>
-                <button onClick={() => setShowPaymentModal(false)} className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-xl text-xs font-bold transition active:scale-95"><X className="w-5 h-5" /></button>
-              </div>
-
+          <Modal
+            isOpen
+            onClose={() => setShowPaymentModal(false)}
+            title="Registrar Recibo de Cobro"
+            description={selectedCustomer.customerName}
+            icono={<HandCoins />}
+            maxWidth="7xl"
+            bloqueada={submitting}
+            sinRelleno
+            className="max-h-[93vh]"
+          >
               <div className="flex flex-col md:flex-row overflow-hidden flex-1">
                 {/* Left Column: Form Settings */}
                 <div className="md:w-1/4 bg-slate-50/50 border-r border-slate-200 p-6 space-y-5 overflow-y-auto shrink-0">
@@ -1076,13 +1154,15 @@ export default function ReceivablesPage() {
                       <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 font-bold">$</span>
                       <input type="number" min="0.01" step="0.01" required value={paymentForm.amount} onChange={handleAmountChange} className="w-full bg-white border border-slate-200 rounded-lg pl-7 pr-3 py-1.5 outline-none focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] font-mono text-sm font-bold text-slate-800 transition-colors" placeholder="0.00" />
                     </div>
-                    <button
+                    <Button
                       type="button"
+                      variant="secondary"
+                      size="sm"
                       onClick={handleDistributeAmount}
-                      className="w-full mt-2 bg-slate-100 hover:bg-slate-200 text-[#003366] border border-slate-200 rounded-lg py-1.5 px-3 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors active:scale-[0.98]"
+                      className="w-full mt-2"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-[#003366]" /> Distribuir en Facturas
-                    </button>
+                      <Sparkles /> Distribuir en Facturas
+                    </Button>
                     <p className="text-[10px] text-slate-500 mt-1.5 ml-1 leading-normal">Presiona para auto-distribuir el monto en las facturas más antiguas.</p>
                   </div>
                   <div>
@@ -1191,33 +1271,41 @@ export default function ReceivablesPage() {
                       </div>
                     </div>
 
-                    <button type="button" onClick={handleSubmitPayment} disabled={submitting} className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm">
+                    <Button type="button" onClick={handleSubmitPayment} disabled={submitting} className="flex">
                       {submitting ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Receipt className="w-5 h-5" />}
                       Procesar Recibo
-                    </button>
+                    </Button>
                   </div>
 
                 </div>
               </div>
-            </motion.div>
-          </div>
+          </Modal>
         )}
-      </AnimatePresence>
 
-      {/* MODAL: DETALLE DEL RECIBO */}
-      <AnimatePresence>
-        {showReceiptDetailsModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowReceiptDetailsModal(false)} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-2xl relative z-10 flex flex-col max-h-[85vh] overflow-hidden">
-              <div className="bg-[#003366] px-6 py-4 flex justify-between items-center text-white shrink-0">
-                <div>
-                  <h3 className="font-display font-bold text-lg">Detalle de Recibo de Ingreso</h3>
-                  {selectedReceipt && <p className="text-xs text-[#C5A059] font-mono">REC-{selectedReceipt.id.slice(0, 8).toUpperCase()}</p>}
-                </div>
-                <button onClick={() => setShowReceiptDetailsModal(false)} className="text-slate-300 hover:text-white transition-colors"><X className="w-6 h-6" /></button>
-              </div>
-
+      {/* MODAL: DETALLE DEL RECIBO. La ventana de la casa (lote 278); pulsar fuera cierra, como antes. */}
+          <Modal
+            isOpen={showReceiptDetailsModal}
+            onClose={() => setShowReceiptDetailsModal(false)}
+            title="Detalle de Recibo de Ingreso"
+            description={selectedReceipt ? <span className="font-mono">REC-{selectedReceipt.id.slice(0, 8).toUpperCase()}</span> : undefined}
+            maxWidth="2xl"
+            sinRelleno
+            className="max-h-[85vh]"
+            footer={
+              <>
+                <Button variant="secondary" type="button"
+                  onClick={() => setShowReceiptDetailsModal(false)}>
+                  Cerrar
+                </Button>
+                {selectedReceipt && (
+                  <Button variant="documento" type="button"
+                    onClick={() => handlePrintReceipt(selectedReceipt.id, { hideBalance: activeTab === 'receipts' })}>
+                    <Printer className="w-4 h-4" /> Imprimir Recibo
+                  </Button>
+                )}
+              </>
+            }
+          >
               {loadingReceiptDetails || !selectedReceipt ? (
                 <div className="flex-1 flex justify-center items-center py-20">
                   <RefreshCw className="w-8 h-8 animate-spin text-[#C5A059]" />
@@ -1278,27 +1366,7 @@ export default function ReceivablesPage() {
                   </div>
                 </div>
               )}
-
-              <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex justify-end gap-3 shrink-0">
-                <button
-                  onClick={() => setShowReceiptDetailsModal(false)}
-                  className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                >
-                  Cerrar
-                </button>
-                {selectedReceipt && (
-                  <button
-                    onClick={() => handlePrintReceipt(selectedReceipt.id, { hideBalance: activeTab === 'receipts' })}
-                    className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
-                    <Printer className="w-4 h-4" /> Imprimir Recibo
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          </Modal>
 
     </div>
   );

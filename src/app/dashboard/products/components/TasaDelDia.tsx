@@ -2,12 +2,17 @@
 
 /**
  * La tasa del dolar de la empresa (lote 247): la vigente, escribir la de hoy y
- * las ultimas. Escribirla NO cambia ningun precio: eso se confirma en la tabla.
+ * las ultimas.
+ *
+ * LOTE 262: guardarla APLICA los precios de todos los productos en dolares (antes
+ * no cambiaba ninguno hasta confirmar en la tabla). El boton y la linea de debajo
+ * lo dicen, para que nadie guarde una tasa de prueba creyendo que no toca nada.
  */
 import { useState } from 'react';
 import { diasDeLaTasa, escribirTasa, leerTasa, type Tasa } from '@/services/precios/preciosEnDolares';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 
+import { Button } from '@/components/ui/button';
 const campo = 'h-9 w-32 bg-slate-50 border border-slate-200 rounded-lg px-3 text-sm text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none';
 
 function Vigente({ tasa, hoy }: { tasa: Tasa | null; hoy: string }) {
@@ -52,12 +57,13 @@ export function TasaDelDia({ tasa, historial, hoy, puedeEscribir, ocupado, alGua
           <div className="flex gap-2">
             <input id="tasa-de-hoy" type="text" inputMode="decimal" autoComplete="off" value={escrita}
               onChange={(e) => setEscrita(e.target.value)} placeholder="63.50" className={campo} aria-describedby={aviso ? 'tasa-de-hoy-aviso' : undefined} />
-            <button type="submit" disabled={!leida.bien || ocupado}
-              className="h-9 px-4 rounded-lg bg-[#003366] hover:bg-[#002244] text-white text-sm font-bold transition disabled:opacity-50 disabled:cursor-not-allowed">
-              Guardar tasa
-            </button>
+            <Button type="submit" disabled={!leida.bien || ocupado}>
+              Guardar y aplicar precios
+            </Button>
           </div>
-          {aviso && <p id="tasa-de-hoy-aviso" className="text-[11px] font-semibold text-rose-600">{aviso}</p>}
+          {aviso
+            ? <p id="tasa-de-hoy-aviso" className="text-[11px] font-semibold text-rose-600">{aviso}</p>
+            : <p className="text-[11px] text-slate-500">Al guardarla se actualizan el costo y los precios de todos los productos en dólares.</p>}
         </form>
       ) : (
         <p className="text-xs text-slate-500 max-w-xs">La tasa la escribe administración.</p>

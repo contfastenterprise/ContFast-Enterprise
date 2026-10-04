@@ -7,6 +7,7 @@ import { claveDeSesion, sesionVigente, olvidarSesion } from './sesionMseller';
 import { fechaDgiiExigida } from './fechaDgii';
 import { Logger } from '@/utils/logger';
 import { baseUrlMseller } from './urlMseller';
+import { importesDeLinea } from '@/services/invoice/importesDeLinea';
 
 export interface ECFPayload {
   ECF: {
@@ -604,8 +605,10 @@ export class MSellerClient {
     //  -- todas las lineas al 18% -- el resultado es IDENTICO al de antes, asi
     //  que los envios que hoy funcionan no cambian.
     // ------------------------------------------------------------------
-    const baseDeLinea = (l: { quantity: number; unitPrice: number; discount: number }) =>
-      Number((l.quantity * l.unitPrice - (l.discount || 0)).toFixed(2));
+    //  LOTE 263: el descuento de la linea es `cantidad x descuento por unidad`. Antes se restaba
+    //  UNA vez y, con cantidad > 1, los montos gravados del XML no cuadraban con el ITBIS ni con el
+    //  total (que salen de la calculadora, que si multiplica). La regla es la de la calculadora.
+    const baseDeLinea = (l: { quantity: number; unitPrice: number; discount: number }) => importesDeLinea(l).base;
 
     //  LOS DOS CEROS
     //
@@ -967,9 +970,9 @@ export class MSellerClient {
       Encabezado: encabezado,
       DetallesItems: {
         Item: params.lines.map((line, idx) => {
-          const subtotal = line.quantity * line.unitPrice;
-          const discount = line.discount || 0;
-          const montoItem = Number((subtotal - discount).toFixed(2));
+          //  LOTE 263: `DescuentoMonto` es el descuento TOTAL del item (la DGII: MontoItem =
+          //  PrecioUnitarioItem x CantidadItem - DescuentoMonto), no el de una unidad.
+          const { descuento: discount, base: montoItem } = importesDeLinea(line);
           const item: Record<string, unknown> = {
             NumeroLinea: String(idx + 1),
             IndicadorFacturacion: indicadorDeLinea(line.taxRate, line.taxCategory),

@@ -73,6 +73,7 @@ export function EditablePriceSelect({
             className="absolute right-1 text-slate-400 hover:text-[#003366] p-1 focus:outline-none transition-colors"
             tabIndex={-1}
             title="Seleccionar Nivel de Precio"
+            aria-label="Seleccionar nivel de precio"
           >
             <ChevronDown className="w-3.5 h-3.5" />
           </button>

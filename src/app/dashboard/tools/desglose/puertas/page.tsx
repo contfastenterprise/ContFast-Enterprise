@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { useConfirm } from '@/providers/confirm-provider';
 import TablaPuertaComercial, { type TablaPuertaHandle } from './TablaPuertaComercial';
 import { formatTimeDisplay } from '@/utils/fechasLocales';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { Button } from '@/components/ui/button';
 
 export default function DesglosePuertasComercialesPage() {
   const confirm = useConfirm();
@@ -139,47 +141,42 @@ export default function DesglosePuertasComercialesPage() {
       </div>
 
       <div className="p-6 w-full space-y-6">
-        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span className="p-2 bg-[#003366]/5 rounded-xl text-[#003366]">
-                <Layers className="h-6 w-6" />
-              </span>
-              <h1 className="text-2xl font-bold text-[#003366] tracking-tight">
-                Desglose de Puertas Comerciales
-              </h1>
-            </div>
-            <p className="text-slate-500 text-sm pl-12">
-              Cálculo técnico exacto de perfiles de aluminio y cristales para puertas comerciales.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 md:pl-0 pl-12">
-            <button
+        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
+          <CabeceraDePagina
+            titulo="Desglose de Puertas Comerciales"
+            descripcion="Cálculo técnico exacto de perfiles de aluminio y cristales para puertas comerciales."
+            icono={<Layers />}
+            acciones={<>
+            <Button
+              type="button"
+              variant="secondary"
               onClick={handleSaveDraft}
-              className="px-4 py-2 bg-white text-slate-600 border border-slate-200 hover:border-slate-300 hover:bg-slate-50 rounded-xl font-semibold text-sm transition flex items-center gap-2 shadow-sm"
             >
-              <Save className="h-4 w-4 text-slate-400" /> Borrador
-            </button>
-            <button
+              <Save className="h-4 w-4" /> Borrador
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className="hover:border-red-200 hover:bg-red-50 hover:text-red-600"
               onClick={handleLimpiar}
-              className="px-4 py-2 bg-white text-slate-600 border border-slate-200 hover:border-red-200 hover:bg-red-50 hover:text-red-600 rounded-xl font-semibold text-sm transition flex items-center gap-2 shadow-sm"
             >
-              <RotateCcw className="h-4 w-4 text-slate-400 group-hover:text-red-500" /> Limpiar
-            </button>
-            <button
+              <RotateCcw className="h-4 w-4" /> Limpiar
+            </Button>
+            <Button
+              type="button"
+              variant="documento"
               onClick={handlePrint}
               disabled={isPrinting || itemsCount === 0}
-              className="px-5 py-2 bg-[#C5A059] hover:bg-[#B38D46] text-white rounded-xl font-bold text-sm transition flex items-center gap-2 shadow-sm shadow-[#C5A059]/20 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isPrinting ? (
-                <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="h-4 w-4 border-2 border-slate-950/30 border-t-slate-950 rounded-full animate-spin" />
               ) : (
                 <Printer className="h-4 w-4" />
               )}
               {isPrinting ? 'Generando PDF...' : 'Generar PDF'}
-            </button>
-          </div>
+            </Button>
+          </>}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -237,7 +234,9 @@ export default function DesglosePuertasComercialesPage() {
                       Cantidad de Puertas
                     </label>
                     <div className="flex bg-slate-50 border border-slate-200 rounded-xl overflow-hidden h-11">
-                      <button 
+                      <button
+                        type="button"
+                        aria-label="Disminuir cantidad"
                         className="w-12 flex items-center justify-center text-slate-500 hover:bg-slate-200/50 hover:text-slate-700 transition-colors font-medium border-r border-slate-200 active:bg-slate-200"
                         onClick={() => setCantidad(Math.max(1, cantidad - 1))}
                       >
@@ -246,7 +245,9 @@ export default function DesglosePuertasComercialesPage() {
                       <div className="flex-1 flex items-center justify-center bg-white font-bold text-slate-700 text-base">
                         {cantidad}
                       </div>
-                      <button 
+                      <button
+                        type="button"
+                        aria-label="Aumentar cantidad"
                         className="w-12 flex items-center justify-center text-slate-500 hover:bg-slate-200/50 hover:text-slate-700 transition-colors font-medium border-l border-slate-200 active:bg-slate-200"
                         onClick={() => setCantidad(cantidad + 1)}
                       >
@@ -286,14 +287,16 @@ export default function DesglosePuertasComercialesPage() {
                   </div>
                 </div>
 
-                <button
+                <Button
+                  type="button"
+                  size="lg"
+                  className="w-full mt-4"
                   onClick={handleAdd}
                   disabled={!enable}
-                  className="w-full h-12 bg-[#003366] hover:bg-[#002244] disabled:bg-slate-100 disabled:text-slate-400 disabled:border disabled:border-slate-200 text-white rounded-xl font-bold transition flex items-center justify-center gap-2 mt-4 shadow-sm"
                 >
                   <Plus className="h-5 w-5" />
                   Agregar al Desglose
-                </button>
+                </Button>
               </div>
             </div>
 

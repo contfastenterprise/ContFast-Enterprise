@@ -7,6 +7,7 @@ import DateRangePicker from '@/components/ui/date-range-picker';
 import { useConfirm } from '@/providers/confirm-provider';
 import { getLocalDateString, getFirstDayOfMonthString, formatDateDisplay } from '@/utils/fechasLocales';
 import { Pagination } from '@/components/ui/pagination';
+import { Button } from '@/components/ui/button';
 
 /**
  * Cheques en garantia: pendientes de aplicar y aplicados.
@@ -123,7 +124,7 @@ function GuaranteeChecksView() {
   return (
     <div className="space-y-6">
       <div className="bg-white/70 backdrop-blur-md border border-white/40 shadow-sm rounded-xl p-4">
-        <h3 className="font-bold text-[#c5a059] mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
+        <h3 className="font-bold text-oro-texto mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
           <Banknote className="h-5 w-5 text-amber-500" /> Control de Cheques en Garantía
         </h3>
         <p className="text-xs text-slate-500 mb-6">
@@ -146,25 +147,29 @@ function GuaranteeChecksView() {
               />
             </div>
           </div>
-          <button
+          <Button
+            type="button"
+            size="sm"
             onClick={fetchChecks}
             disabled={loading}
-            className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-95 disabled:opacity-50 inline-flex items-center gap-1.5 self-start sm:self-auto"
+            className="self-start sm:self-auto"
           >
             {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
             Buscar
-          </button>
+          </Button>
           {!loading && (
-            <button
+            <Button
               type="button"
+              variant="documento"
+              size="sm"
               onClick={() => {
                 window.open(`/api/v1/ap/payments/report?startDate=${startDate}&endDate=${endDate}`, '_blank');
               }}
-              className="bg-[#005E63] hover:bg-[#004d51] text-white h-8 px-3 py-1.5 rounded-lg text-xs font-bold transition active:scale-95 flex items-center gap-1.5 self-start sm:self-auto animate-fade-in"
+              className="self-start sm:self-auto animate-fade-in"
             >
               <Printer className="h-3.5 w-3.5" />
               Imprimir Reporte
-            </button>
+            </Button>
           )}
         </div>
 
@@ -176,7 +181,7 @@ function GuaranteeChecksView() {
           <div className="space-y-8">
             {/* Pendientes */}
             <div>
-              <h4 className="font-bold text-[#c5a059] mb-3 text-xs uppercase tracking-wide flex items-center gap-1.5">
+              <h4 className="font-bold text-oro-texto mb-3 text-xs uppercase tracking-wide flex items-center gap-1.5">
                 <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500"></span>
                 Cheques Pendientes por Cobrar ({pendingChecks.length})
               </h4>
@@ -215,13 +220,14 @@ function GuaranteeChecksView() {
                               RD$ {parseFloat(p.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </td>
                             <td className="px-4 py-2.5 text-xs text-center">
-                              <button
+                              <Button
+                                type="button"
+                                size="sm"
                                 onClick={() => handleApplyCheck(p.id, p.checkId, p.checkNumber)}
                                 disabled={applyingId === p.checkId}
-                                className="bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold px-3 py-1.5 rounded-xl transition shadow-sm shadow-amber-600/10 hover:shadow-md hover:shadow-amber-600/20 active:scale-95 disabled:opacity-50 cursor-pointer"
                               >
                                 {applyingId === p.checkId ? 'Procesando...' : 'Aplicar'}
-                              </button>
+                              </Button>
                             </td>
                           </tr>
                         );
@@ -244,7 +250,7 @@ function GuaranteeChecksView() {
 
             {/* Aplicados */}
             <div>
-              <h4 className="font-bold text-[#c5a059] mb-3 text-xs uppercase tracking-wide flex items-center gap-1.5">
+              <h4 className="font-bold text-oro-texto mb-3 text-xs uppercase tracking-wide flex items-center gap-1.5">
                 <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
                 Historial de Cheques Aplicados ({appliedChecks.length})
               </h4>
