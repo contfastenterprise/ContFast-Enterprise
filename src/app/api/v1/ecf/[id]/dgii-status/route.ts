@@ -13,6 +13,7 @@ import { camposDeFirma, leerEstado } from '@/services/dgii/estadoEnvio';
 import { enviarFacturaPorCorreo } from '@/services/invoice/correoFactura';
 import { Logger } from '@/utils/logger';
 import { baseUrlMseller } from '@/services/dgii/urlMseller';
+import { estadoTrasConsultar } from '@/services/dgii/consultaDeEstado';
 
 export async function GET(
   req: NextRequest,
@@ -115,6 +116,7 @@ export async function GET(
     // esa forma, pero `leerEstado` mira el rechazo primero justo por eso.
     let newStatus = invoice.status;
     let acabaDeAceptarse = false;
+    let protegido = false;
     if (statusResult.success) {
       const lectura = leerEstado(statusResult.rawResponse ?? {
         dgiiStatus: statusResult.dgiiStatus,
@@ -122,7 +124,18 @@ export async function GET(
       });
       // Un 'submitted' que sigue siendo 'submitted' no cambia nada; los otros
       // dos son veredicto y si se escriben.
-      newStatus = lectura.estado;
+      //  Una consulta no deshace un veredicto definitivo (lote 260): una
+      //  aceptada o una dada de baja se quedan como estan aunque mSeller diga
+      //  otra cosa. Se sigue guardando la firma que traiga, que es para lo que
+      //  sirve consultar una aceptada. Ver `consultaDeEstado.ts`.
+      const tras = estadoTrasConsultar(invoice.status, lectura.estado);
+      protegido = tras.protegido;
+      newStatus = tras.estado;
+      if (protegido) {
+        Logger.warn('[dgii-status] la consulta contradice un estado definitivo; no se cambia', {
+          invoiceId: id, ncf: invoice.ncf, estado: invoice.status, leido: lectura.estado,
+        });
+      }
       // Si es ESTA consulta la que descubre la aceptacion, es la que manda el
       // correo al cliente. Se compara contra el estado anterior para no
       // repetirlo en cada consulta posterior.
@@ -132,8 +145,7 @@ export async function GET(
       await db
         .update(invoices)
         .set({
-          status: newStatus as any,
-          dgiiMessage: statusResult.message || null,
+          ...(protegido ? {} : { status: newStatus as any, dgiiMessage: statusResult.message || null }),
           // DB-22: la firma que devuelve mSeller se guarda en la FACTURA, que es
           // donde nada la pisa. `camposDeFirma` solo trae lo que vino, asi que
           // un dato ausente no aparece en el objeto y este `set` NUNCA sustituye
@@ -164,7 +176,10 @@ export async function GET(
       // toca cuando no se pierde nada al hacerlo.
       const envio = await envioVigente(id, auth.companyId, auth.modo);
 
-      if (!envio) {
+      if (protegido) {
+        // Ni fila nueva ni envio tocado: lo que dijo esta consulta contradice
+        // un veredicto definitivo y no se guarda como constancia de nada.
+      } else if (!envio) {
         // No habia ningun envio registrado para esta factura.
         //
         // Pasaba con las facturas emitidas en estado 'submitted' o 'rejected',

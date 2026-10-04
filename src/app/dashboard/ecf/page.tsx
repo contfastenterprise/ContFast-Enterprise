@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { TIPOS_COMPROBANTE } from '@/services/dgii/tiposComprobante';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import {
   ShieldCheck,
   RefreshCw,
+  FileSearch,
   Eye,
   ArrowRight,
   Plus,
@@ -38,6 +39,8 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { Pagination } from '@/components/ui/pagination';
 import DateRangePicker from '@/components/ui/date-range-picker';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { leerRespuesta } from '@/utils/leerRespuesta';
+import { avisoDeSincronizacion } from '@/services/dgii/consultaDeEstado';
 
 import { Button, IconButton } from '@/components/ui/button';
 import { Modal } from '@/components/ui/dialog';
@@ -638,8 +641,13 @@ function ComprobantesTab() {
     );
   };
 
+  //  Dos clics seguidos llegan antes de que `syncingBatch` desactive el boton:
+  //  la guarda es un `ref`, como en "Aplicar Despacho" (lote 227).
+  const consultando = useRef(false);
+
   const handleBatchSyncStatus = async () => {
-    if (selectedIds.length === 0) return;
+    if (selectedIds.length === 0 || consultando.current) return;
+    consultando.current = true;
     setSyncingBatch(true);
     try {
       const res = await fetch('/api/v1/ecf/dgii-status/batch', {
@@ -649,49 +657,52 @@ function ComprobantesTab() {
         },
         body: JSON.stringify({ invoiceIds: selectedIds }),
       });
-      const data = await res.json();
-      if (data.success) {
-        const updatedCount = data.data.filter((item: any) => item.updated).length;
-        const totalChecked = data.data.length;
-        toast.success(`Sincronización completada: ${updatedCount} facturas actualizadas de ${totalChecked} consultadas.`);
+      const leido = await leerRespuesta<{ data: ConsultaDeFactura[]; meta?: MetaDeConsulta }>(res);
+      if (leido.bien) {
+        avisar(leido.cuerpo.data, leido.cuerpo.meta);
         setSelectedIds([]);
         fetchInvoices();
         fetchStats();
       } else {
-        toast.error(data.error?.message || 'Error en la sincronización en lote');
+        toast.error(leido.mensaje || 'Error al consultar el estado en la DGII');
       }
     } catch (err: any) {
       toast.error(err.message);
     } finally {
+      consultando.current = false;
       setSyncingBatch(false);
     }
   };
 
+  //  CONSULTAR DGII cubre TODO el filtro, no solo la pagina que se ve (lote
+  //  260). Antes mandaba los ids de `invoiceList` -- la pagina --, asi que con
+  //  el filtro "Enviado" y tres paginas, dos quedaban sin consultar sin que el
+  //  aviso lo dijera. Ahora se manda el FILTRO y el servidor lo resuelve con las
+  //  mismas condiciones que el listado.
   const handleSyncFilteredStatus = async () => {
-    if (invoiceList.length === 0) return;
+    if (meta.total === 0 || consultando.current) return;
+    consultando.current = true;
     setSyncingBatch(true);
     try {
-      const invoiceIds = invoiceList.map(inv => inv.id);
       const res = await fetch('/api/v1/ecf/dgii-status/batch', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ invoiceIds }),
+        body: JSON.stringify({ filtro: filters }),
       });
-      const data = await res.json();
-      if (data.success) {
-        const updatedCount = data.data.filter((item: any) => item.updated).length;
-        const totalChecked = data.data.length;
-        toast.success(`Sincronización completada: ${updatedCount} facturas actualizadas de ${totalChecked} consultadas.`);
+      const leido = await leerRespuesta<{ data: ConsultaDeFactura[]; meta?: MetaDeConsulta }>(res);
+      if (leido.bien) {
+        avisar(leido.cuerpo.data, leido.cuerpo.meta);
         fetchInvoices();
         fetchStats();
       } else {
-        toast.error(data.error?.message || 'Error en la sincronización en lote');
+        toast.error(leido.mensaje || 'Error al consultar el estado en la DGII');
       }
     } catch (err: any) {
       toast.error(err.message);
     } finally {
+      consultando.current = false;
       setSyncingBatch(false);
     }
   };
@@ -967,23 +978,25 @@ function ComprobantesTab() {
           <Button
             type="button"
             onClick={handleSyncFilteredStatus}
-            disabled={syncingBatch || invoiceList.length === 0}
+            disabled={syncingBatch || meta.total === 0}
+            title="Pregunta a la DGII el estado de todos los comprobantes del filtro que aún esperan veredicto"
             className="flex">
             {syncingBatch ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <RefreshCw className="h-4 w-4" />
+              <FileSearch className="h-4 w-4" />
             )}
-            <span>SINCRONIZAR DGII</span>
+            <span>CONSULTAR DGII</span>
           </Button>
           <Button
             type="button"
             variant="secondary"
             onClick={fetchInvoices}
+            title="Vuelve a leer la lista guardada; no consulta a la DGII"
             className="flex group whitespace-nowrap"
           >
             <RefreshCw className={`h-4 w-4 ${loadingList ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-300'}`} />
-            <span>ACTUALIZAR DATOS</span>
+            <span>RECARGAR LISTA</span>
           </Button>
         </div>
       </div>
@@ -1115,9 +1128,9 @@ function ComprobantesTab() {
               {syncingBatch ? (
                 <Loader2 className="animate-spin" />
               ) : (
-                <RefreshCw />
+                <FileSearch />
               )}
-              Sincronizar Lote DGII
+              Consultar DGII
             </Button>
             <IconButton
               type="button"
@@ -1594,6 +1607,30 @@ const TABS = [
   { id: 'secuencias', label: 'Secuencias SACF', icon: <Database className="h-4 w-4" /> },
   { id: 'notas', label: 'Notas Crédito/Débito', icon: <CreditCard className="h-4 w-4" /> },
 ];
+
+/** El aviso de una consulta de estado, con la misma regla para la seleccion y el filtro. */
+function avisar(data: ConsultaDeFactura[], m?: MetaDeConsulta) {
+  const aviso = avisoDeSincronizacion({
+    consultadas: data.length,
+    cambiaron: data.filter((item) => item.cambio).length,
+    sinConsultar: m?.sinConsultar ?? 0,
+    recortadas: m?.recortadas ?? 0,
+    fallo: m?.fallo ?? null,
+  });
+  toast[aviso.tipo](aviso.texto);
+}
+
+/** Lo que devuelve la consulta de estado por cada factura. */
+interface ConsultaDeFactura {
+  invoiceId: string;
+  cambio?: boolean;
+}
+
+interface MetaDeConsulta {
+  sinConsultar?: number;
+  recortadas?: number;
+  fallo?: string | null;
+}
 
 export default function ECFPage() {
   const router = useRouter();

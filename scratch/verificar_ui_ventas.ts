@@ -28,7 +28,10 @@ import { join, resolve } from 'path';
 import { execFileSync } from 'child_process';
 
 const raiz = resolve(__dirname, '..');
-const BASE = 'origin/lote-270-estandar-de-botones';
+//  Commit fijo y no la rama: la rama se borra al fusionar (lote 260/282), y un banco que nombra una rama
+//  borrada revienta en cuanto alguien hace `git fetch --prune` o clona de cero.
+const BASE = '57f741d'; // lote 270, la base del 272
+const LOTE = '87d0e73'; // lote 272
 let fallos = 0;
 let rotas = 0;
 const ok = (t: string, c: boolean, d = '') => { console.log(`${c ? '  OK  ' : ' FALLA'}  ${t}${d ? ` -- ${d}` : ''}`); if (!c) fallos++; };
@@ -206,7 +209,9 @@ function main() {
   for (const f of todos) {
     let antes: string;
     try { antes = enCommit(BASE, f); } catch { continue; }
-    const ahora = leer(f);
+    //  Los DOS commits del lote, no la carpeta: el 260 cambia a proposito los rotulos de e-CF
+    //  ("CONSULTAR DGII"), y asi la prueba de que el 272 no cambio ningun texto vale para siempre.
+    const ahora = enCommit(LOTE, f);
     const deAntes = lectura(antes);
     const cab = deCabecera(ahora);
     const nuevos = cab.filter((t) => !plano(antes).includes(t));

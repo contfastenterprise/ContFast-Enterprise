@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { db, invoices, customers } from '@/db';
-import { eq, and, isNull, desc, count, ilike, gte, lte, sql, inArray, notInArray, type SQL } from 'drizzle-orm';
-import { tiposDelFiltro } from '@/services/dgii/tiposComprobante';
+import { eq, and, isNull, desc, count, sql, notInArray, type SQL } from 'drizzle-orm';
+import { condicionesDelFiltro, filtroDeParametros } from '@/services/dgii/filtroDelListadoEcf';
 
 export async function GET(req: NextRequest) {
   const resHeaders = new Headers();
@@ -22,43 +22,18 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1', 10);
     const perPage = parseInt(searchParams.get('per_page') || '20', 10);
-    const status = searchParams.get('status');
-    const ecfType = searchParams.get('ecfType');
-    const from = searchParams.get('from');
-    const to = searchParams.get('to');
-    const q = searchParams.get('q');
     const excludeAdjusted = searchParams.get('excludeAdjusted') === 'true';
 
     const offset = (page - 1) * perPage;
 
-    // Build conditions
-    const conditions: SQL[] = [
-      eq(invoices.companyId, auth.companyId),
-      eq(invoices.modo, auth.modo),
-      isNull(invoices.deletedAt),
-    ];
+    // Las condiciones del filtro viven en `filtroDelListadoEcf` (lote 260):
+    // la sincronizacion de todo el filtro usa las MISMAS, para consultar
+    // exactamente lo que esta pantalla lista.
+    const conditions: SQL[] = condicionesDelFiltro(
+      { companyId: auth.companyId, modo: auth.modo },
+      filtroDeParametros(searchParams)
+    );
 
-    if (status) conditions.push(eq(invoices.status, status as any));
-    //  `ecfType` puede ser una lista (`33,34`). La pantalla de notas la necesita
-    //  para filtrar AQUI, donde se pagina, y no sobre una pagina ya cortada.
-    //  Un tipo suelto sigue siendo la misma igualdad de antes.
-    const tipos = tiposDelFiltro(ecfType);
-    if (tipos.length === 1) conditions.push(eq(invoices.ecfType, tipos[0]));
-    else if (tipos.length > 1) conditions.push(inArray(invoices.ecfType, tipos));
-    //  Antes `ecfType=,` buscaba ese tipo literal y no devolvia nada. Que la
-    //  lista quede vacia al limpiarla no puede convertirlo en "todos".
-    if (ecfType && tipos.length === 0) conditions.push(sql`false`);
-    if (from) {
-      const fromDate = from.includes('T') ? new Date(from) : new Date(`${from}T00:00:00-04:00`);
-      conditions.push(gte(invoices.createdAt, fromDate));
-    }
-    if (to) {
-      const toDate = to.includes('T') ? new Date(to) : new Date(`${to}T23:59:59.999-04:00`);
-      conditions.push(lte(invoices.createdAt, toDate));
-    }
-    if (q) {
-      conditions.push(ilike(invoices.ncf, `%${q}%`));
-    }
     if (excludeAdjusted) {
       //  UNA NOTA RECHAZADA NO AJUSTO NADA.
       //

@@ -105,10 +105,18 @@ async function main(): Promise<void> {
   // ───────────────────────────────────────────────────────────────────────
   console.log('B. LA API FILTRA LA LISTA ANTES DE PAGINAR');
   // ───────────────────────────────────────────────────────────────────────
-  const api = codigo(API);
+  //  Desde el lote 260 las condiciones del filtro viven en
+  //  `filtroDelListadoEcf.ts` (las comparten el listado y "Consultar DGII").
+  //  Se mira la RUTA mas ese modulo, y solo si la ruta delega de verdad en el:
+  //  con el modulo presente y la ruta sin usarlo, la concatenacion pasaria sin
+  //  que el listado filtrara nada.
+  const ruta = codigo(API);
+  const delega = /condicionesDelFiltro\(\s*\{ companyId: auth\.companyId, modo: auth\.modo \},\s*filtroDeParametros\(searchParams\)\s*\)/.test(ruta)
+    && /from '@\/services\/dgii\/filtroDelListadoEcf'/.test(ruta);
+  const api = delega ? `${ruta}\n${codigo('src/services/dgii/filtroDelListadoEcf.ts')}` : ruta;
   ok('importa tiposDelFiltro',
      /import \{[^}]*\btiposDelFiltro\b[^}]*\} from '@\/services\/dgii\/tiposComprobante'/.test(api));
-  ok('y la usa sobre ecfType', api.includes('const tipos = tiposDelFiltro(ecfType);'));
+  ok('y la usa sobre ecfType', /const tipos = tiposDelFiltro\((?:f\.)?ecfType(?: \?\? null)?\);/.test(api));
   ok('un tipo: la misma igualdad de siempre',
      api.includes('if (tipos.length === 1) conditions.push(eq(invoices.ecfType, tipos[0]));'));
   ok('varios: IN, dentro de la misma consulta que pagina',
@@ -117,7 +125,7 @@ async function main(): Promise<void> {
   //  Antes, `ecfType=basura` buscaba ese tipo literal y no devolvia nada. Si la
   //  lista queda vacia tras limpiarla, no puede pasar a devolverlo TODO.
   ok('un ecfType que no deja ningun tipo no se convierte en "todos"',
-     api.includes('if (ecfType && tipos.length === 0) conditions.push(sql`false`);'));
+     /if \((?:f\.)?ecfType && tipos\.length === 0\) conditions\.push\(sql`false`\);/.test(api));
 
   // ───────────────────────────────────────────────────────────────────────
   console.log('C. LA PANTALLA PIDE NOTAS, Y NO VUELVE A FILTRAR');
