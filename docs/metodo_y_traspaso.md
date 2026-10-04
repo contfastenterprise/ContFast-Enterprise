@@ -95,6 +95,10 @@ Las trampas que han salido, todas reales, todas costaron un lote:
   comprobación. Cura: `await import()` perezoso dentro de `main()`, y un
   ayudante que reporte FALLA por etiqueta cuando el módulo no está.
 
+- **Un banco nombra COMMITS, nunca ramas.** Una rama se borra al fusionar su PR, y el banco que la
+  nombraba revienta en el primer clon nuevo o `git fetch --prune`. Pasó con cinco bancos de los lotes
+  272-280 (anotado en el lote 260). La base de una comparación es un hash.
+
 - **Las precondiciones nombran ficheros, no cuentan ficheros.** Contar dio un
   número equivocado una vez y casi pasa.
 
@@ -2462,6 +2466,15 @@ Además, fuera de la tabla:
   `node_modules` como enlace ("Symlink … points out of the filesystem root"): hay que
   instalar (`pnpm install --frozen-lockfile --offline`, 3,5 min), quitando el enlace
   **antes** con `.Delete()`.
+  **Se fusionó después de los lotes 269-281** (el PR 48 se quedó abierto mientras otra sesión hacía la
+  auditoría de UI). Al traer `main` chocó en `ecf/page.tsx`: los botones que el 260 reescribía los había
+  pasado el 272 al componente `Button`; se quedó el componente con la lógica y los rótulos del 260
+  ("CONSULTAR DGII", "RECARGAR LISTA", la barra de la selección). **Y salió un defecto de los bancos del
+  propio tramo**: cinco (lotes 272, 274, 278, 279 y 280) comparaban contra RAMAS remotas
+  (`origin/lote-270-…`, `origin/lote-276-…`) que se borraron al fusionar; en `main` ya reventaban en
+  cuanto alguien hiciera `git fetch --prune` o clonara. Pasan a commits fijos (`57f741d`, `ab9e5fd`), y
+  los dos de Ventas comparan los dos commits de su lote (`87d0e73`, `ef2039b`) y no la carpeta, porque el
+  260 cambia a propósito rótulos de e-CF.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
