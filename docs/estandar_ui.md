@@ -17,11 +17,13 @@ seguían.
 | Hover del primario | `bg-primary-variant` | `#002244` |
 | Texto sobre el primario | `text-primary-foreground`, `text-on-primary` | blanco |
 | Documento (imprimir, exportar) | variante `documento` | `#C5A059` con texto `slate-950` |
+| Dorado para TEXTO sobre fondo claro (títulos de sección, contadores) | `text-oro-texto` | `#8A6A2C` (5,0:1 sobre blanco) |
 | Destructivo | `bg-destructive` | `#E11D48` (rose-600) |
 | Bordes por defecto | `border` | `#E2E8F0` (slate-200) |
 | Hover suave | `bg-accent` | `#F1F5F9` (slate-100) |
 
-- **El dorado no se usa como color de TEXTO sobre blanco**: da 2,4:1 y el mínimo es 4,5:1. Va como
+- **El dorado de la marca no se usa como color de TEXTO sobre fondo claro**: da 2,4:1 y el mínimo es 4,5:1. Para texto
+  sobre blanco o gris claro va `text-oro-texto` (lote 275). El de la marca, en iconos, rellenos o texto sobre azul marino. Va como
   fondo (con texto oscuro) o en iconos decorativos.
 - Los tokens del tema son tripletes HSL y **se usan siempre envueltos en `hsl()`** (lote 269). El
   banco `verificar_colores_del_tema.ts` resuelve el tema como el navegador y falla si alguno no es un
@@ -43,12 +45,15 @@ seguían.
 
 | Tamaño | Alto | Para |
 |---|---|---|
-| `md` (por defecto) | 36 px (`h-9`) | cabeceras, formularios, ventanas |
-| `sm` | 32 px (`h-8`) | barras de herramientas, filtros, tablas |
-| `lg` | 40 px | acción única de una pantalla vacía |
-| `icon` / `icon-sm` | 36 / 32 px | solo icono |
+| `md` (por defecto) | `h-9` (31,5 px) | cabeceras, formularios, ventanas |
+| `sm` | `h-8` (28 px) | barras de herramientas, filtros, tablas |
+| `lg` | `h-10` (35 px) | acción única de una pantalla vacía |
+| `icon` / `icon-sm` | `size-9` / `size-8` | solo icono |
 
-- Radio `rounded-lg` (10 px), texto `font-bold`, icono 16 px (14 px en `sm`), separación 8 px.
+Los píxeles son con la fuente base del panel, **14 px** (`html { font-size: 14px }` en `globals.css`):
+Tailwind mide en `rem`, así que todo sale al 87,5 % de lo que diría su documentación.
+
+- Radio `rounded-lg` (`--radius`, 0,625 rem), texto `font-bold`, icono `size-4` (`size-3.5` en `sm`), separación `gap-2`.
 - `isLoading` pone el giro y desactiva. Desactivado: `opacity-50`, sin puntero.
 - **Foco visible**: anillo de 2 px del primario. No se quita.
 - **`type` siempre explícito** dentro de un `<form>`: `submit` solo el que envía.
@@ -112,20 +117,20 @@ Solo **lucide-react**. Equivalencias:
 | Volver | `ArrowLeft` |
 | Configuración | `Settings` |
 
-Tamaño: el que pone el botón (16 / 14 px). Fuera de botones, `h-4 w-4` en texto y `h-5 w-5` en títulos de tarjeta.
+Tamaño: el que pone el botón (`size-4` y `size-3.5` en `sm`). Fuera de botones, `h-4 w-4` en texto y `h-5 w-5` en títulos de tarjeta.
 
 ## 7. Espaciado y contenedores
 
-Escala de 4 px de Tailwind, con nombres para hablar de ella:
+La escala de Tailwind (en `rem`: con la base de 14 px, cada paso son 3,5 px), con nombres para hablar de ella:
 
 | Token | Clase | px |
 |---|---|---|
-| xs | `1` | 4 |
-| sm | `2` | 8 |
-| md | `4` | 16 |
-| lg | `6` | 24 |
-| xl | `8` | 32 |
-| 2xl | `12` | 48 |
+| xs | `1` | 3,5 |
+| sm | `2` | 7 |
+| md | `4` | 14 |
+| lg | `6` | 21 |
+| xl | `8` | 28 |
+| 2xl | `12` | 42 |
 
 - Entre botones: `gap-2`. Entre campos: `gap-4`. Entre secciones de una página: `space-y-6`.
 - Tarjetas: `rounded-xl border border-slate-200 bg-white shadow-sm`, relleno `p-4` (`p-6` en las grandes).
@@ -137,7 +142,7 @@ Escala de 4 px de Tailwind, con nombres para hablar de ella:
 
 - Botón de solo icono: `aria-label`.
 - Toda `<label>` con su `htmlFor`/`id` (lotes 227, 230, 239, 252).
-- Área táctil mínima 32 px (`h-8`).
+- Área táctil mínima `h-8` (28 px con la base de 14 px).
 - Contraste de texto ≥ 4,5:1 (≥ 3:1 en texto grande).
 - Respuestas leídas con `leerRespuesta` (el estado antes que el cuerpo).
 

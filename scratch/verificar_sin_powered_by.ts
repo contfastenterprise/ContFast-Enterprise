@@ -25,7 +25,9 @@ if (!/>Total Mes</.test(codigo)) throw new Error('Precondicion: no esta la fila 
 
 ok('la pantalla de facturas ya no dice "Powered by MSeller API"', !/Powered by/i.test(codigo));
 ok('  y la fila de totales se alinea a la derecha (no se van a la izquierda sin su vecino)',
-  /<div className="flex flex-col md:flex-row md:justify-end items-start md:items-end gap-6 mb-2">\s*<div className="flex gap-4 w-full md:w-auto">/.test(codigo));
+  /<div className="flex flex-col md:flex-row md:justify-end items-start md:items-end gap-6 mb-2">\s*<div className="flex (?:flex-wrap )?gap-4 w-full md:w-auto">/.test(codigo));
+  //  LOTE 275: la fila de los totales gano `flex-wrap` (en el movil estiraba la pagina a 470 px); lo
+  //  que vigila este banco es que se alinee a la derecha, no que no parta.
 invariante('los totales del mes siguen en la pantalla', />Total Mes</.test(codigo) && /stats\?\.totalMonth/.test(codigo));
 
 console.log(`\n${fallos === 0 && rotas === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS, ${rotas} invariante(s) rota(s)`}\n`);

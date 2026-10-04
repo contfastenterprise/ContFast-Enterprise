@@ -447,7 +447,7 @@ function FormularioDeEmpleado({ h }: { h: EstadoEmployeesPage }) {
           <form onSubmit={handleSubmit} className="space-y-4 max-w-3xl">
             {/* Personal Section */}
             <div className="space-y-3">
-              <h3 className="text-[10px] font-bold text-[#c5a059] uppercase tracking-wider">1. Datos Personales</h3>
+              <h3 className="text-[10px] font-bold text-oro-texto uppercase tracking-wider">1. Datos Personales</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label htmlFor="emp-1" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nombre</label>
@@ -547,7 +547,7 @@ function FormularioDeEmpleado({ h }: { h: EstadoEmployeesPage }) {
 
             {/* Job Section */}
             <div className="space-y-3 pt-2 border-t border-slate-200">
-              <h3 className="text-[10px] font-bold text-[#c5a059] uppercase tracking-wider">2. Datos Laborales</h3>
+              <h3 className="text-[10px] font-bold text-oro-texto uppercase tracking-wider">2. Datos Laborales</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label htmlFor="emp-10" className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Código Empleado</label>

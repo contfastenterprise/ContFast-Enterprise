@@ -2291,6 +2291,31 @@ Además, fuera de la tabla:
   **El trinquete tras los cuatro lotes**: botones a mano con las clases de la casa, de 86/35/23
   (primario/secundario/dorado) a **5/0/1** — los partidos y las excepciones anotadas —; de solo icono
   sin ningún nombre, de 99 a **19**, casi todos de la tienda pública (fuera a propósito, lote 231).
+- **Lote 275: lo que encontró la revisión VISUAL de los lotes 271-274.** Con la cadena montada, el
+  principal recorrió 31 pantallas en el navegador (arnés con la red sustituida) con dos medidores: el
+  contraste de cada texto contra su fondo real, y en el móvil (375 px) qué se sale de la pantalla.
+  Ningún banco de los cuatro agentes podía ver esto:
+  · **Títulos de sección y contadores en el dorado de la marca sobre blanco: 2,4:1** (Compras
+    —"Filtros de Búsqueda", "1. Compras…", "2. Gastos…"—, Facturación, Cotizaciones, Empleados, cheques
+    en garantía, la pestaña activa de Caja). No eran `<h1>`, y la cabecera estándar no los alcanzó. Va
+    un **dorado para texto**, `text-oro-texto` (`#8A6A2C`): de la misma familia y 5,0:1 sobre blanco,
+    4,8:1 sobre los grises claros. El de siempre se queda para iconos, rellenos y texto sobre azul
+    marino — la conciliación bancaria lo usa así y se lee bien (tolerado por nombre en el banco).
+  · **Dos filas que no partían en el móvil**: la barra de la lista de productos sacaba cuatro botones
+    de la pantalla (Precios en dólares, Imprimir y su desplegable, Recargar), y los totales del mes de
+    Facturación estiraban la página a 470 px en 375. Las dos con `flex-wrap`; **eran anteriores a la
+    auditoría** y nadie las había medido en un teléfono.
+  · **El estándar escrito daba los píxeles de Tailwind**, pero el panel tiene `html { font-size: 14px }`:
+    `h-9` son 31,5 px, no 36. Corregido, con la regla para leer cualquier medida.
+  Banco `verificar_ui_cierre.ts`: 9 comprobaciones y dos invariantes, contraprueba **9 FALLA**, siete
+  mutantes y siete muertos.
+  **El barrido de la cadena cazó dos bancos que los agentes no corrieron**, ninguno una regresión:
+  `verificar_producto_en_pestana` (lote 240) anclaba el `onClick` de Cancelar con su texto, y el 271
+  pasó ese pie a `AccionesDeFormulario` (`alCancelar`, y el texto lo pone el componente) — re-anclado a
+  la propiedad, que vale en los dos estados; y en él, **la trampa del `[^>]*`**: el
+  `iconoPrincipal={<ShieldCheck />}` del pie lleva un `>` y cortaba la expresión. Y
+  `verificar_sin_powered_by` (lote 268) anclaba la fila de totales letra por letra; el `flex-wrap` de
+  este lote la cambia — re-anclado a lo que vigila (que se alinee a la derecha), con su mutante.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3480,5 +3505,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 274 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 275 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
