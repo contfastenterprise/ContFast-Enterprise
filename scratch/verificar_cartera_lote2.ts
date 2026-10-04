@@ -193,10 +193,16 @@ const TIPOS = 'src/components/cartera/tipos.ts';
     && m.includes('<ErrorDeCarga mensaje={errorCarga} onReintentar={cargar} />')
     && m.includes('errorCarga ? ('));
 
+  //  Lote 278: el oyente propio se fue a la ventana de la casa (`Modal`), que cierra con Escape (solo
+  //  la de arriba) llamando a su `onClose`. Se ancla a la PROPIEDAD: el estado de cuenta es un Modal
+  //  cuyo onClose es onCerrar, y el Modal cierra con Escape. (Antes se anclaba el oyente literal.)
+  const ventana = f('src/components/ui/dialog.tsx');
   ok('se cierra con Escape: un modal solo-raton atrapa a quien usa teclado',
-    m.includes("if (e.key === 'Escape') onCerrar();")
-    && m.includes("window.addEventListener('keydown', alPulsar)")
-    && m.includes("window.removeEventListener('keydown', alPulsar)"));
+    (m.includes("import { Modal } from '@/components/ui/dialog';") && /<Modal\b[^]*?\bonClose=\{onCerrar\}/.test(m)
+      && /if \(e\.key === "Escape"\) \{[^}]*\bcerrar\(\);/.test(ventana) && /actual\.current\.onClose\(\)/.test(ventana))
+    || (m.includes("if (e.key === 'Escape') onCerrar();")
+      && m.includes("window.addEventListener('keydown', alPulsar)")
+      && m.includes("window.removeEventListener('keydown', alPulsar)")));
 
   ok('el pie recuerda donde se opera de verdad',
     c(MODAL).includes('Este panel es para consultar.'));

@@ -6,7 +6,7 @@ import { disponible as loQueSePuedeSacar } from '@/services/inventario/existenci
 import { useSearchParams, useRouter } from 'next/navigation';
 
 import {
-  Plus, Search, FileText, Download, Check, RefreshCw, X, Trash2,
+  Plus, Search, FileText, Download, Check, RefreshCw, Trash2,
   ArrowLeft, Calendar, Filter, Eye, Printer, XCircle, ChevronLeft,
   ChevronRight, AlertCircle, Building2, Mail,
   Package, Users, FileMinus, FilePlus, ChevronDown, Save, FileCode, ListFilter,
@@ -3115,32 +3115,17 @@ function InvoicesList() {
       {/* ==============================================================================
             INVOICE DETAILS MODAL
             ============================================================================== */}
-      <AnimatePresence>
-        {selectedInvoice && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.7 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedInvoice(null)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white border border-[#003366] rounded-2xl max-w-4xl w-full shadow-2xl z-10 max-h-[90vh] overflow-y-auto"
-            >
-              <div className="flex items-center justify-between border-b border-[#003366] bg-[#001733] px-6 py-5 md:px-8">
-                <div>
-                  <h3 className="text-xl font-display font-bold text-white tracking-tight">Detalles de Factura</h3>
-                  <p className="text-sm text-[#c5a059]/80 mt-1">{selectedInvoice.ncf || 'Borrador'}</p>
-                </div>
-                <IconButton type="button" size="icon" onClick={() => setSelectedInvoice(null)} aria-label="Cerrar" className="text-slate-300 hover:text-white hover:bg-white/10">
-                  <X className="h-5 w-5" />
-                </IconButton>
-              </div>
-
+      {/* La ventana de la casa (lote 278). Se monta solo con una factura elegida: el cuerpo lee
+          `selectedInvoice` y no se puede construir sin ella. Pulsar fuera cierra, como antes. */}
+      {selectedInvoice && (
+          <Modal
+            isOpen
+            onClose={() => setSelectedInvoice(null)}
+            title="Detalles de Factura"
+            description={selectedInvoice.ncf || 'Borrador'}
+            maxWidth="4xl"
+            sinRelleno
+          >
               <div className="p-6 md:p-8">
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
@@ -3375,49 +3360,25 @@ function InvoicesList() {
                   </div>
                 </div>
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          </Modal>
+      )}
 
 
 
 
 
-      {/* Create Customer Modal */}
-      <AnimatePresence>
-        {createCustomerModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.7 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setCreateCustomerModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 20 }}
-              className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] z-10 text-slate-800"
-            >
-              {/* Header */}
-              <div className="flex justify-between items-center p-5 border-b border-slate-200 bg-slate-50">
-                <h3 className="text-lg font-bold text-[#003366] flex items-center gap-2">
-                  <Users className="h-5 w-5 text-[#C5A059]" /> Registrar Nuevo Cliente
-                </h3>
-                <IconButton
-                  type="button"
-                  size="icon"
-                  onClick={() => setCreateCustomerModalOpen(false)}
-                  aria-label="Cerrar"
-                >
-                  <X className="h-5 w-5" />
-                </IconButton>
-              </div>
-
-              {/* Form */}
-              <form onSubmit={handleCreateCustomerSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
+      {/* Create Customer Modal. Pulsar fuera cierra, como antes; mientras se registra, no se cierra. */}
+          <Modal
+            isOpen={createCustomerModalOpen}
+            onClose={() => setCreateCustomerModalOpen(false)}
+            title="Registrar Nuevo Cliente"
+            icono={<Users />}
+            maxWidth="lg"
+            bloqueada={isSavingCustomer}
+            sinRelleno
+          >
+              {/* Form: el pie va dentro, para que Enter siga registrando */}
+              <form onSubmit={handleCreateCustomerSubmit} className="p-6 space-y-4 text-slate-800">
                 <div className="space-y-1">
                   <label className="block text-xs font-semibold text-[#001e40]">RNC o Cédula</label>
                   <div className="flex gap-2">
@@ -3509,34 +3470,40 @@ function InvoicesList() {
                   </Button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
+          </Modal>
 
-        {showPrintConfirmModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.7 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowPrintConfirmModal(false)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white border border-[#003366] rounded-2xl max-w-md w-full shadow-2xl z-10 overflow-hidden"
-            >
-              <div className="flex items-center justify-between border-b border-[#003366] bg-[#001733] px-6 py-4">
-                <h3 className="text-lg font-display font-bold text-white tracking-tight flex items-center gap-2">
-                  <Printer className="h-5 w-5 text-[#c5a059]" /> Confirmar Impresión
-                </h3>
-                <IconButton type="button" size="icon" onClick={() => setShowPrintConfirmModal(false)} aria-label="Cerrar" className="text-white/70 hover:text-white hover:bg-white/10">
-                  <X className="h-5 w-5" />
-                </IconButton>
-              </div>
-
+        {/* Confirmar impresion (lote 278: solo cambia la ventana; Aceptar emite igual que antes).
+            Pulsar fuera cierra sin emitir, como antes. */}
+          <Modal
+            isOpen={showPrintConfirmModal}
+            onClose={() => setShowPrintConfirmModal(false)}
+            title="Confirmar Impresión"
+            icono={<Printer />}
+            maxWidth="md"
+            sinRelleno
+            footer={
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setShowPrintConfirmModal(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={() => {
+                    setShowPrintConfirmModal(false);
+                    const fakeEvent = { preventDefault: () => { } } as React.FormEvent;
+                    handleIssueInvoice(fakeEvent, pendingPostAction);
+                  }}
+                >
+                  Aceptar
+                </Button>
+              </>
+            }
+          >
               <div className="p-6 space-y-4">
                 <p className="text-sm text-slate-600">
                   Por favor, verifique los datos del comprobante antes de proceder con la emisión e impresión:
@@ -3575,31 +3542,7 @@ function InvoicesList() {
                   </div>
                 </div>
               </div>
-
-              <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setShowPrintConfirmModal(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="button"
-                  variant="primary"
-                  onClick={() => {
-                    setShowPrintConfirmModal(false);
-                    const fakeEvent = { preventDefault: () => { } } as React.FormEvent;
-                    handleIssueInvoice(fakeEvent, pendingPostAction);
-                  }}
-                >
-                  Aceptar
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          </Modal>
     </div>
 
   );

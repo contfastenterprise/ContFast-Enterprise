@@ -40,6 +40,7 @@ import DateRangePicker from '@/components/ui/date-range-picker';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 
 import { Button, IconButton } from '@/components/ui/button';
+import { Modal } from '@/components/ui/dialog';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -314,31 +315,17 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
 
   if (!open) return null;
 
+  //  La ventana de la casa (lote 278). Pulsar fuera cierra, como antes; mientras guarda, no se cierra.
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-          onClick={onClose}
-        />
-        <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
-          className="relative z-10 w-full max-w-md bg-white border border-[#003366] rounded-xl shadow-2xl overflow-hidden"
-        >
-          <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
-            <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
-              <Plus className="h-5 w-5 text-[#C5A059]" /> Nueva Autorización SACF
-            </h3>
-            <IconButton type="button" size="icon" onClick={onClose} aria-label="Cerrar" className="text-slate-300 hover:text-white hover:bg-white/10">
-              <X className="h-5 w-5" />
-            </IconButton>
-          </div>
-
+    <Modal
+      isOpen={open}
+      onClose={onClose}
+      title="Nueva Autorización SACF"
+      icono={<Plus />}
+      maxWidth="md"
+      bloqueada={loading}
+      sinRelleno
+    >
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
             <div className="flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-200">
               <div>
@@ -456,9 +443,7 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
               </Button>
             </div>
           </form>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+    </Modal>
   );
 }
 
@@ -517,31 +502,17 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
 
   const isElectronic = !sequence.ecfType.startsWith('0') && !sequence.ecfType.startsWith('1');
 
+  //  La ventana de la casa (lote 278). Pulsar fuera cierra, como antes; mientras guarda, no se cierra.
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-          onClick={onClose}
-        />
-        <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
-          className="relative z-10 w-full max-w-md bg-white border border-[#003366] rounded-xl shadow-2xl overflow-hidden"
-        >
-          <div className="flex items-center justify-between p-6 border-b border-[#003366] bg-[#001733]">
-            <h3 className="text-xl font-display font-bold text-white flex items-center gap-2">
-              <Pencil className="h-5 w-5 text-[#C5A059]" /> Editar Secuencia SACF
-            </h3>
-            <IconButton type="button" size="icon" onClick={onClose} aria-label="Cerrar" className="text-slate-300 hover:text-white hover:bg-white/10">
-              <X className="h-5 w-5" />
-            </IconButton>
-          </div>
-
+    <Modal
+      isOpen={open}
+      onClose={onClose}
+      title="Editar Secuencia SACF"
+      icono={<Pencil />}
+      maxWidth="md"
+      bloqueada={loading}
+      sinRelleno
+    >
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
             <div>
               <label className="text-sm font-semibold text-primary mb-1 block">Tipo Comprobante</label>
@@ -612,9 +583,7 @@ function EditSequenceModal({ open, onClose, onSuccess, sequence }: EditSeqModalP
               </Button>
             </div>
           </form>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+    </Modal>
   );
 }
 
