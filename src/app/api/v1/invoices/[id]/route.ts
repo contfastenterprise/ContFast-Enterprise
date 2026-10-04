@@ -6,6 +6,7 @@ import { checkRateLimit } from '@/middleware/rateLimiter';
 import { db, dgiiSubmissions, invoices, withTenantMode } from '@/db';
 import { eq } from 'drizzle-orm';
 import { envioVigente, firmaDelComprobante } from '@/repositories/dgiiSubmissionRepository';
+import { nivelesDeLineas } from '@/services/invoice/nivelDeLineaRepositorio';
 
 export async function GET(
   req: NextRequest,
@@ -61,8 +62,14 @@ export async function GET(
     // el codigo de seguridad y la fecha de firma.
     const { codigo: securityCode } = firmaDelComprobante(invoice, submission);
 
+    //  Lote 266: el nivel de precio de cada linea, para reabrir un BORRADOR con el suyo. Solo en
+    //  borradores (lo emitido no se reabre) y solo si la migracion 0019 esta aplicada; sin ella las
+    //  lineas salen sin nivel y la pantalla lo deduce.
+    const niveles = invoice.status === 'draft' ? await nivelesDeLineas(id) : new Map();
+    const lines = invoice.lines.map((l) => ({ ...l, priceTier: niveles.get(l.id) ?? null }));
+
     return NextResponse.json(
-      { success: true, data: { ...invoice, securityCode } },
+      { success: true, data: { ...invoice, lines, securityCode } },
       { headers: resHeaders }
     );
   } catch (error: unknown) {
