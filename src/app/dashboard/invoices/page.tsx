@@ -2696,13 +2696,11 @@ function InvoicesList() {
             className="space-y-6"
           >
             {/* Stats Row */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-2">
-              <div className="flex flex-col gap-2">
-                <div className="mt-3 flex items-center gap-2 bg-[#003366]/5 border border-[#003366]/10 px-3 py-1.5 rounded-full w-fit">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                  <span className="text-xs font-bold text-[#003366] uppercase tracking-wider">Powered by MSeller API</span>
-                </div>
-              </div>
+            {/*  LOTE 268: fuera el letrero "Powered by MSeller API" (pedido del dueño, 2026-10-03). Era
+                 lo unico de la columna izquierda; sin el, la fila se alinea a la DERECHA para que los
+                 totales se queden donde estaban (con `justify-between` y un solo hijo se irian a la
+                 izquierda).  */}
+            <div className="flex flex-col md:flex-row md:justify-end items-start md:items-end gap-6 mb-2">
               <div className="flex gap-4 w-full md:w-auto">
                 <div className="bg-white border border-slate-200 rounded-xl p-4 min-w-[140px] shadow-lg flex-1 md:flex-none">
                   <span className="block text-[10px] font-bold text-on-surface-variant/70 uppercase tracking-widest mb-1">Total Mes</span>

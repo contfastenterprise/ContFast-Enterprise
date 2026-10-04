@@ -2108,6 +2108,11 @@ Además, fuera de la tabla:
   **Para el dueño**: aplicar la 0019 cuando quiera que los borradores guarden su nivel
   (`npx tsx --env-file=.env scratch/_to_delete/aplicar_migracion.ts drizzle/0019_nivel_de_precio_en_lineas.sql --aplicar`).
   Y `verificar_precios_del_borrador_db.ts` a `deuda_bancos.txt` en su carpeta.
+- **Lote 268: fuera el letrero "Powered by MSeller API" de Facturación.** Pedido del dueño
+  (2026-10-03). Era una pastilla con un punto verde parpadeante, sola en la columna izquierda de la
+  fila de los totales del mes; sin ella, la fila se alinea a la derecha (`md:justify-end`) para que
+  los totales no se vayan a la izquierda. Banco `verificar_sin_powered_by.ts`: 2 comprobaciones y un
+  invariante (los totales siguen), contraprueba **2 FALLA**, dos mutantes y dos muertos.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3297,5 +3302,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 266 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 268 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
