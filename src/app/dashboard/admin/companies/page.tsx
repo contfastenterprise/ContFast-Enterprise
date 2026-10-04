@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Shield, RefreshCw, X, Building2, Trash2, CreditCard, Calendar, Search } from 'lucide-react';
+import { Shield, RefreshCw, Building2, Trash2, CreditCard, Calendar, Search } from 'lucide-react';
+import { Modal } from '@/components/ui/dialog';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
@@ -547,19 +548,20 @@ function VentanaDeSuscripcion({ h }: { h: EstadoAdminCompaniesPage }) {
   return (
     <>
       {/* Modal: Gestionar Suscripción */}
-      {showSubscriptionModal && selectedCompany && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 [animation-duration:200ms]">
-            <div className="flex justify-between items-center p-5 border-b border-slate-100">
-              <h2 className="text-xl font-bold text-[#003366] flex items-center gap-2">
-                <CreditCard className="h-5 w-5 text-[#C5A059]" /> Suscripción SaaS
-              </h2>
-              <IconButton type="button" onClick={() => setShowSubscriptionModal(false)} aria-label="Cerrar" className="rounded-full">
-                <X className="h-5 w-5" />
-              </IconButton>
-            </div>
-            
-            <form onSubmit={handleSaveSubscription} className="p-5 space-y-4">
+      {/* `selectedCompany` fuera: los hijos se evaluan aunque la ventana este cerrada. Se abre con
+          `showSubscriptionModal && selectedCompany`, como antes; en la capa 100, como antes. */}
+      {selectedCompany && (
+      <Modal
+        isOpen={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+        title="Suscripción SaaS"
+        icono={<CreditCard />}
+        maxWidth="md"
+        capa={100}
+        cerrarAlPulsarFuera={false}
+        bloqueada={submitting}
+      >
+            <form onSubmit={handleSaveSubscription} className="space-y-4">
               <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-xs mb-2">
                 <p className="font-bold text-slate-700">Compañía:</p>
                 <p className="text-slate-900 font-medium text-sm mt-0.5">{selectedCompany.name}</p>
@@ -629,8 +631,7 @@ function VentanaDeSuscripcion({ h }: { h: EstadoAdminCompaniesPage }) {
                 </Button>
               </div>
             </form>
-          </div>
-        </div>
+      </Modal>
       )}
     </>
   );

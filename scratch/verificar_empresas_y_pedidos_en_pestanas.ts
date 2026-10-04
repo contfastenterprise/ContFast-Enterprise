@@ -56,8 +56,10 @@ function main() {
     /companies\.map|filteredCompanies\.map|<table/.test(listaE) && !/handleCreateCompany/.test(listaE) && /<form onSubmit=\{handleCreateCompany\}/.test(formE));
   ok('  el alta ya no es un modal: va en la caja de la pestana, y sus botones a su tamano',
     /<PanelDeRegistro titulo="Registrar Empresa">/.test(formE) && !/fixed inset-0/.test(formE) && !/className="flex-1 px-4 py-2/.test(formE)
-    && (emp.match(/fixed inset-0/g) ?? []).length === 1);
-  invariante('  la suscripcion sigue en su ventana (accion sobre una empresa)', /showSubscriptionModal && selectedCompany && \(/.test(emp));
+    //  Lote 280: la unica ventana que queda (la suscripcion) puede ser a mano o el Modal comun.
+    && (emp.match(/fixed inset-0|<Modal\b/g) ?? []).length === 1);
+  invariante('  la suscripcion sigue en su ventana (accion sobre una empresa)',
+    /showSubscriptionModal && selectedCompany && \(/.test(emp) || /\{selectedCompany && \(\s*<Modal\s+isOpen=\{showSubscriptionModal\}/.test(emp));
 
   console.log('\nPedidos a suplidor\n');
   const pp = pestanas(ped);
