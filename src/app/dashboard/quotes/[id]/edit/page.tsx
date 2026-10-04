@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import clsx from 'clsx';
 
 import { Button, IconButton } from '@/components/ui/button';
+import { Modal } from '@/components/ui/dialog';
 export default function EditQuote({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -620,13 +621,18 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
         )}
       </motion.div>
 
-      {/* Product Search Modal */}
-      <AnimatePresence>
-        {productSearchOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]"
-            >
+      {/* Product Search Modal. La ventana de la casa (lote 278): su X es la de antes (cerraba
+          sin mas), y pulsar fuera sigue sin cerrar, como antes (el fondo no tenia onClick). */}
+          <Modal
+            isOpen={productSearchOpen}
+            onClose={() => setProductSearchOpen(false)}
+            title="Buscar Producto"
+            icono={<Package />}
+            maxWidth="lg"
+            cerrarAlPulsarFuera={false}
+            sinRelleno
+            className="max-h-[80vh]"
+          >
               <div className="p-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
                 <Search className="w-5 h-5 text-slate-400" />
                 <input 
@@ -636,7 +642,6 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                   onChange={(e) => searchProducts(e.target.value)}
                   className="flex-1 bg-transparent text-[#003366] text-xs font-semibold outline-none placeholder:text-slate-500 placeholder:font-normal"
                 />
-                <IconButton type="button" onClick={() => setProductSearchOpen(false)} aria-label="Cerrar"><X /></IconButton>
               </div>
               <div className="overflow-auto flex-1 p-2">
                 {modalProducts.map(p => (
@@ -661,18 +666,19 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                   </div>
                 )}
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          </Modal>
 
-      {/* Customer Search Modal */}
-      <AnimatePresence>
-        {customerSearchOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]"
-            >
+      {/* Customer Search Modal. Igual que la de productos: pulsar fuera no cierra, como antes. */}
+          <Modal
+            isOpen={customerSearchOpen}
+            onClose={() => setCustomerSearchOpen(false)}
+            title="Buscar Cliente"
+            icono={<Building2 />}
+            maxWidth="lg"
+            cerrarAlPulsarFuera={false}
+            sinRelleno
+            className="max-h-[80vh]"
+          >
               <div className="p-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
                 <Search className="w-5 h-5 text-slate-400" />
                 <input 
@@ -682,7 +688,6 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                   onChange={(e) => searchCustomers(e.target.value)}
                   className="flex-1 bg-transparent text-[#003366] text-xs font-semibold outline-none placeholder:text-slate-500 placeholder:font-normal"
                 />
-                <IconButton type="button" onClick={() => setCustomerSearchOpen(false)} aria-label="Cerrar"><X /></IconButton>
               </div>
               <div className="overflow-auto flex-1 p-2">
                 {modalCustomers.map(c => (
@@ -704,10 +709,7 @@ export default function EditQuote({ params }: { params: Promise<{ id: string }> 
                   </div>
                 )}
               </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          </Modal>
     </div>
   );
 }

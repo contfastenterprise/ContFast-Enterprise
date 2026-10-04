@@ -146,7 +146,9 @@ function main() {
   const alReves: string[] = [];
   for (const [f, s] of src) for (const b of botones(s)) {
     if (!/^(Cancelar|Cerrar)$/.test(textoDe(b.cuerpo))) continue;
-    const caja = s.slice(s.lastIndexOf('<div', b.inicio), b.inicio);
+    //  Lote 278: el pie de una ventana de la casa va en `footer={<>...</>}`, sin `<div>` propio; la caja
+    //  empieza en lo que este mas cerca, el `<div` o el `footer={`.
+    const caja = s.slice(Math.max(s.lastIndexOf('<div', b.inicio), s.lastIndexOf('footer={', b.inicio)), b.inicio);
     if (/<(button|Button|IconButton|a)\b/.test(caja)) alReves.push(`${f.replace('src/', '')}@${s.slice(0, b.inicio).split('\n').length}`);
   }
   ok('ningun pie con un boton ANTES de Cancelar/Cerrar', alReves.length === 0, alReves.join(', '));
@@ -185,7 +187,16 @@ function main() {
   console.log('\n7) Lo que se lee no cambia (invariante)\n');
   //  La huella: textos, placeholder, title, avisos y direcciones de la API. Sin clases ni aria-label.
   const { huella, enCommit, diferencia } = require('./huellaDePantalla') as typeof import('./huellaDePantalla');
-  const lectura = (s: string) => huella(s).filter((x) => !x.startsWith('clase:') && !x.startsWith('aria-label:'));
+  //  Lote 278: el `title="..."` de una ventana de la casa (`<Modal`) es el texto que antes iba en su
+  //  cabecera, y cuenta como el mismo texto. Las dos busquedas de la cotizacion no tenian cabecera: sus
+  //  titulos son NUEVOS y se nombran aqui.
+  const NUEVOS_278 = ['title:Buscar Producto', 'title:Buscar Cliente'];
+  const deModal = (s: string) => new Set([...s.replace(/\r\n/g, '\n').matchAll(/<Modal\b[^]*?\btitle="([^"]*)"/g)].map((m) => `title:${m[1]}`));
+  const lectura = (s: string) => {
+    const t = deModal(s);
+    return huella(s).filter((x) => !x.startsWith('clase:') && !x.startsWith('aria-label:') && !NUEVOS_278.includes(x))
+      .map((x) => (t.has(x) ? `texto:${x.slice(6)}` : x));
+  };
   //  Lo que pasa a `titulo="..."`/`descripcion="..."` deja de ser texto entre etiquetas: se quita UNA vez de
   //  lo de antes (la huella no cuenta las palabras sueltas: "Cotizaciones" no estaba), y se exige que el
   //  fuente de antes lo dijera letra por letra (espacios aparte).

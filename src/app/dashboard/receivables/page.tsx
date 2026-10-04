@@ -11,6 +11,7 @@ import { formatDateDisplay, formatDateTimeDisplay, diaRD } from '@/utils/fechasL
 import { entraPorBanco, motivoParaNoRegistrarCobro } from '@/services/cartera/cuentaDelCobro';
 
 import { Button, IconButton } from '@/components/ui/button';
+import { Modal } from '@/components/ui/dialog';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 // -- Types --
 interface InvoiceAR {
@@ -1084,19 +1085,20 @@ export default function ReceivablesPage() {
       </div>
 
       {/* MODAL: REGISTRAR COBRO */}
-      <AnimatePresence>
+      {/* La ventana de la casa (lote 278). Se monta solo con un cliente elegido: el cuerpo lo lee.
+          Pulsar fuera cierra, como antes; mientras se procesa el recibo, no se cierra. */}
         {showPaymentModal && selectedCustomer && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPaymentModal(false)} className="absolute inset-0 bg-black/45 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="bg-white border border-slate-200 rounded-3xl shadow-2xl w-full max-w-7xl relative z-10 flex flex-col max-h-[93vh] overflow-hidden">
-              <div className="bg-[#003366] px-6 py-3 flex justify-between items-center text-white shrink-0">
-                <div>
-                  <h3 className="text-white font-display font-bold text-lg flex items-center gap-2"><HandCoins className="w-5 h-5 text-[#C5A059]" /> Registrar Recibo de Cobro</h3>
-                  <p className="text-[#C5A059] font-bold text-sm mt-0.5">{selectedCustomer.customerName}</p>
-                </div>
-                <IconButton type="button" size="icon" onClick={() => setShowPaymentModal(false)} aria-label="Cerrar" className="bg-white/10 text-white hover:bg-white/20 hover:text-white"><X className="w-5 h-5" /></IconButton>
-              </div>
-
+          <Modal
+            isOpen
+            onClose={() => setShowPaymentModal(false)}
+            title="Registrar Recibo de Cobro"
+            description={selectedCustomer.customerName}
+            icono={<HandCoins />}
+            maxWidth="7xl"
+            bloqueada={submitting}
+            sinRelleno
+            className="max-h-[93vh]"
+          >
               <div className="flex flex-col md:flex-row overflow-hidden flex-1">
                 {/* Left Column: Form Settings */}
                 <div className="md:w-1/4 bg-slate-50/50 border-r border-slate-200 p-6 space-y-5 overflow-y-auto shrink-0">
@@ -1277,25 +1279,33 @@ export default function ReceivablesPage() {
 
                 </div>
               </div>
-            </motion.div>
-          </div>
+          </Modal>
         )}
-      </AnimatePresence>
 
-      {/* MODAL: DETALLE DEL RECIBO */}
-      <AnimatePresence>
-        {showReceiptDetailsModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowReceiptDetailsModal(false)} className="absolute inset-0 bg-surface-container-low/60 backdrop-blur-sm" />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-2xl relative z-10 flex flex-col max-h-[85vh] overflow-hidden">
-              <div className="bg-[#003366] px-6 py-4 flex justify-between items-center text-white shrink-0">
-                <div>
-                  <h3 className="font-display font-bold text-lg">Detalle de Recibo de Ingreso</h3>
-                  {selectedReceipt && <p className="text-xs text-[#C5A059] font-mono">REC-{selectedReceipt.id.slice(0, 8).toUpperCase()}</p>}
-                </div>
-                <IconButton type="button" size="icon" onClick={() => setShowReceiptDetailsModal(false)} aria-label="Cerrar" className="text-slate-300 hover:text-white hover:bg-white/10"><X className="w-6 h-6" /></IconButton>
-              </div>
-
+      {/* MODAL: DETALLE DEL RECIBO. La ventana de la casa (lote 278); pulsar fuera cierra, como antes. */}
+          <Modal
+            isOpen={showReceiptDetailsModal}
+            onClose={() => setShowReceiptDetailsModal(false)}
+            title="Detalle de Recibo de Ingreso"
+            description={selectedReceipt ? <span className="font-mono">REC-{selectedReceipt.id.slice(0, 8).toUpperCase()}</span> : undefined}
+            maxWidth="2xl"
+            sinRelleno
+            className="max-h-[85vh]"
+            footer={
+              <>
+                <Button variant="secondary" type="button"
+                  onClick={() => setShowReceiptDetailsModal(false)}>
+                  Cerrar
+                </Button>
+                {selectedReceipt && (
+                  <Button variant="documento" type="button"
+                    onClick={() => handlePrintReceipt(selectedReceipt.id, { hideBalance: activeTab === 'receipts' })}>
+                    <Printer className="w-4 h-4" /> Imprimir Recibo
+                  </Button>
+                )}
+              </>
+            }
+          >
               {loadingReceiptDetails || !selectedReceipt ? (
                 <div className="flex-1 flex justify-center items-center py-20">
                   <RefreshCw className="w-8 h-8 animate-spin text-[#C5A059]" />
@@ -1356,23 +1366,7 @@ export default function ReceivablesPage() {
                   </div>
                 </div>
               )}
-
-              <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex justify-end gap-3 shrink-0">
-                <Button variant="secondary" type="button"
-                  onClick={() => setShowReceiptDetailsModal(false)}>
-                  Cerrar
-                </Button>
-                {selectedReceipt && (
-                  <Button variant="documento" type="button"
-                    onClick={() => handlePrintReceipt(selectedReceipt.id, { hideBalance: activeTab === 'receipts' })}>
-                    <Printer className="w-4 h-4" /> Imprimir Recibo
-                  </Button>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          </Modal>
 
     </div>
   );
