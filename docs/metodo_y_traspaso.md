@@ -2382,6 +2382,32 @@ Además, fuera de la tabla:
   **Una trampa más del entorno, que costó dos bancos**: un heredoc de Bash (`<<'EOF'`) convierte `\\` en
   `\`, y un guion de Python con `\\b` metió el carácter de retroceso (0x08) en dos bancos. Se vio y se
   corrigió; la regla de la sección 4 (los guiones que tocan código, a fichero) sigue siendo la cura.
+- **Lote 281: el botón "Exportar" de los movimientos de caja no hacía nada.** Lo encontró el agente
+  del lote 273 en la auditoría de UI: un `IconButton` con su `aria-label` y **sin `onClick`**, desde
+  antes de la auditoría. Pedido del dueño (2026-10-04): arreglarlo. Ahora baja un CSV con lo mismo que
+  enseña la tabla del turno (fecha y hora, tipo, concepto, referencia y el monto **con signo**: salidas
+  y devoluciones restan), y **respeta el arqueo ciego** (lote 172): el "Total neto en caja" solo va si
+  la sesión deja ver el saldo — la misma regla que la tabla, decidida en el servidor —, y el fichero no
+  depende de que el servidor lo calle (un saldo que llegue a una sesión ciega tampoco se escribe).
+  Las reglas viven en `cash/exportarCaja.ts` (puro) y la descarga en `utils/descargarCsv.ts`; por ahí
+  pasa también **el CSV del histórico**, que ya funcionaba y tenía dos defectos: una comilla dentro de
+  un texto rompía la fila (no se doblaban), y un texto que empieza por `=`, `+`, `-` o `@` lo ejecuta
+  Excel como **fórmula** al abrir el fichero — y el concepto de un movimiento lo escribe cualquiera. Se
+  dobla la comilla y se antepone un apóstrofo. Los dos ficheros llevan la marca UTF-8 (sin ella Excel
+  enseña "DevoluciÃ³n"), y el día del nombre del histórico es el de RD (antes, el de UTC: desde las
+  20:00, mañana).
+  **El límite de 300 líneas se respetó en vez de aflojarse**: `useCaja.ts` llegó a 305 y
+  `verificar_partir_caja` (lote 229) lo cazó; el armado del fichero bajó al módulo puro
+  (`archivoDeMovimientos`) y el hook quedó en 296.
+  **No se miró en el navegador**: la página de prueba no tiene una caja abierta y la vista de los
+  movimientos no se pinta sin ella; la exportación se EJECUTA en el banco, con un documento de mentira.
+  Banco `verificar_exportar_caja.ts`: 12 comprobaciones y dos invariantes (el histórico conserva sus
+  nueve columnas; la tabla sigue enseñando el total solo con saldo visible), contraprueba **11 FALLA**
+  (antes de añadir la de `archivoDeMovimientos`), doce mutantes y doce muertos — **uno sobrevivió
+  primero**: quitar la condición del arqueo ciego, porque la prueba de la sesión ciega no pasaba ningún
+  saldo y el total no salía de todas formas. Re-anclado `verificar_avisos_caja` (lote 230): soltar la
+  memoria después del clic se mira ahora en `descargarCsv`, donde vive; pasa también con el hook de
+  antes, y un mutante que no la suelta lo hace fallar.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3571,5 +3597,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 280 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 281 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

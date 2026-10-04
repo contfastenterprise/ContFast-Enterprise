@@ -138,7 +138,7 @@ export function VistaGestion({ c }: { c: Caja }) {
             >
               <RefreshCw className="w-4 h-4 text-slate-500" />
             </IconButton>
-            <IconButton type="button" title="Exportar" aria-label="Exportar los movimientos de caja">
+            <IconButton type="button" title="Exportar" aria-label="Exportar los movimientos de caja" onClick={c.exportarMovimientos}>
               <Download className="w-4 h-4 text-slate-500" />
             </IconButton>
           </div>
