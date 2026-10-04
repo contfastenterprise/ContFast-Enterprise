@@ -2316,6 +2316,31 @@ Además, fuera de la tabla:
   `iconoPrincipal={<ShieldCheck />}` del pie lleva un `>` y cortaba la expresión. Y
   `verificar_sin_powered_by` (lote 268) anclaba la fila de totales letra por letra; el `flex-wrap` de
   este lote la cambia — re-anclado a lo que vigila (que se alinee a la derecha), con su mutante.
+- **Lote 276: la ventana común (`Modal`), lista para que las ventanas escritas a mano pasen a ella.**
+  Pedido del dueño (2026-10-04): de lo que la auditoría dejó fuera, *"la número 1"* — las 64 ventanas
+  hechas a mano (`fixed inset-0`) en 28 pantallas. Antes de moverlas, el `Modal` compartido
+  (`dialog.tsx`, lote 214) tenía que hacer lo que **ninguna** de ellas hacía entero: anunciarse como
+  ventana (`role="dialog"`, `aria-modal`, título y descripción enlazados), llevar el foco dentro al
+  abrirse y **devolverlo** al botón que la abrió, no dejar que Tab se escape a la página de detrás, que
+  **Escape cierre solo la de arriba** (con una ventana encima de otra, cada una escuchaba Escape por su
+  cuenta y se cerraban todas), `bloqueada` (mientras se guarda no se cierra por ningún camino),
+  `cerrarAlPulsarFuera` (un formulario con datos escritos no se pierde por un clic fuera), un bloqueo
+  del desplazamiento que **cuenta ventanas** (cerrar la de arriba lo devolvía con la de abajo abierta),
+  `icono`, `sinRelleno` y `capa` para la que se abre encima de otra. La API de siempre sigue: la usan
+  cuatro pantallas. Lo que no depende del navegador (la pila de ventanas y adónde salta el foco) vive en
+  `components/ui/ventanasAbiertas.ts` y el banco lo **ejecuta**.
+  **Se probó en el navegador** con dos ventanas, una encima de otra: el foco entra en el primer campo,
+  Tab da la vuelta sin salir, Escape cierra solo la de arriba y el foco vuelve al botón que la abrió,
+  guardando no se cierra ni con Escape ni con la X (desactivada) ni pulsando fuera, y al cerrar la
+  última vuelven el desplazamiento y el foco.
+  **Y un banco que se iba a romper solo, arreglado antes**: `verificar_fondo_confirmacion` (lote 216)
+  derivaba el desenfoque del fondo **contando** las ventanas escritas a mano — las que los lotes 277-280
+  iban a quitar —, igual que le pasó con la oscuridad en el 244. Ahora toma el desenfoque del `Modal`
+  compartido, que gana el de la casa (`backdrop-blur-sm`, el más repetido).
+  Banco `verificar_ventana_comun.ts` (pila y foco ejecutados, la ventana dibujada): 16 comprobaciones y
+  dos invariantes, contraprueba **16 FALLA**, once mutantes y once muertos — **uno pareció sobrevivir y
+  era equivalente**: quitaba `role="dialog"` del COMENTARIO de cabecera (la primera aparición del
+  texto); repetido sobre el código, muere.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3505,5 +3530,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 275 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 276 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
