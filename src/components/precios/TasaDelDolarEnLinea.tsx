@@ -14,6 +14,7 @@ import { DollarSign, Loader2 } from 'lucide-react';
 import { escribirTasa } from '@/services/precios/preciosEnDolares';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 import type { TasaDelDolar } from '@/hooks/useTasaDelDolar';
+import { Button } from '@/components/ui/button';
 
 export function TasaDelDolarEnLinea({ t }: { t: TasaDelDolar }) {
   const [editando, setEditando] = useState(false);
@@ -31,13 +32,14 @@ export function TasaDelDolarEnLinea({ t }: { t: TasaDelDolar }) {
       </span>
 
       {t.puedeCambiar && !editando && (
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={() => setEditando(true)}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 font-semibold text-[#003366] hover:bg-slate-50"
         >
           Cambiar tasa
-        </button>
+        </Button>
       )}
 
       {t.puedeCambiar && editando && (
@@ -60,22 +62,25 @@ export function TasaDelDolarEnLinea({ t }: { t: TasaDelDolar }) {
             placeholder="63.50"
             className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-right font-mono-data outline-none focus:border-primary focus:ring-1 focus:ring-[#c5a059]"
           />
-          <button
-            type="submit"
+          {/* Lote 273: el pie estaba al reves ([Guardar] [Cancelar]); Cancelar primero y la
+              principal la ultima, como en el resto de la aplicacion (docs/estandar_ui.md, sec. 4). */}
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => setEditando(false)}
             disabled={t.ocupado}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-[#003366] px-3 py-1.5 font-semibold text-white hover:bg-[#002244] disabled:opacity-60"
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            size="sm"
+            disabled={t.ocupado}
           >
             {t.ocupado && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
             Guardar y aplicar precios
-          </button>
-          <button
-            type="button"
-            onClick={() => setEditando(false)}
-            disabled={t.ocupado}
-            className="rounded-xl px-2 py-1.5 text-slate-500 hover:text-slate-700"
-          >
-            Cancelar
-          </button>
+          </Button>
         </form>
       )}
     </div>

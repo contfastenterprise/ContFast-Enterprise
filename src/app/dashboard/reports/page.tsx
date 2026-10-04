@@ -7,6 +7,8 @@ import DateRangePicker from '@/components/ui/date-range-picker';
 import { CustomerAutocomplete } from '@/components/ui/customer-autocomplete';
 import { SupplierAutocomplete } from '@/components/ui/supplier-autocomplete';
 
+import { Button } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 // Las tarjetas viven FUERA de `ReportsPage` (lote 212). Definidas dentro, cada render
 // creaba un tipo de componente nuevo y React desmontaba y volvia a montar todas las
 // tarjetas en cada cambio de fecha; el linter lo marca como error y paraba el CI.
@@ -25,14 +27,12 @@ const PdfCard = ({ color, icon: Icon, title, description, type, generando, onGen
       </div>
       <p className="text-[10px] text-slate-400 leading-snug flex-1">{description}</p>
       <div className="flex justify-end pt-1">
-        <button
+        <Button type="button" variant="documento"
           onClick={() => onGenerar(type)}
-          disabled={generando !== null}
-          className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-        >
+          disabled={generando !== null}>
           {generando === type ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
           PDF
-        </button>
+        </Button>
       </div>
     </div>
   </div>
@@ -127,13 +127,11 @@ export default function ReportsPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-4 font-sans">
-      <div className="flex items-center gap-2">
-        <PieChart className="h-6 w-6 text-[#c5a059]" />
-        <div>
-          <h1 className="text-xl font-bold text-slate-800 leading-tight">Reportes y Analiticas</h1>
-          <p className="text-[11px] text-slate-400">Genera estados financieros en PDF listos para auditoria.</p>
-        </div>
-      </div>
+      <CabeceraDePagina
+        titulo="Reportes y Analiticas"
+        descripcion="Genera estados financieros en PDF listos para auditoria."
+        icono={<PieChart />}
+      />
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-3 flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1">
@@ -197,14 +195,12 @@ export default function ReportsPage() {
                   />
                 </div>
                 <div className="flex justify-end pt-1">
-                  <button
+                  <Button type="button" variant="documento"
                     onClick={() => handleGeneratePdf('ar_statement')}
-                    disabled={!selectedCustomerId || loadingType !== null}
-                    className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
+                    disabled={!selectedCustomerId || loadingType !== null}>
                     {loadingType === 'ar_statement' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
                     PDF
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -235,14 +231,12 @@ export default function ReportsPage() {
                   />
                 </div>
                 <div className="flex justify-end pt-1">
-                  <button
+                  <Button type="button" variant="documento"
                     onClick={() => handleGeneratePdf('ap_statement')}
-                    disabled={!selectedSupplierId || loadingType !== null}
-                    className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
+                    disabled={!selectedSupplierId || loadingType !== null}>
                     {loadingType === 'ap_statement' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
                     PDF
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

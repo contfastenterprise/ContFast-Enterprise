@@ -11,6 +11,7 @@ import clsx from 'clsx';
 import { formatDateTimeDisplay } from '@/utils/fechasLocales';
 import { fmt } from '../caja';
 import type { HistorialCaja } from '../hooks/useHistorialCaja';
+import { Button, IconButton } from '@/components/ui/button';
 
 export function ModalVerSesion({ h }: { h: HistorialCaja }) {
   return (
@@ -33,9 +34,9 @@ export function ModalVerSesion({ h }: { h: HistorialCaja }) {
                   <h3 className="text-base font-bold font-display">Detalle de Turno</h3>
                   <p className="text-xs opacity-80 mt-0.5">{h.selectedSession.registerName}</p>
                 </div>
-                <button type="button" onClick={() => h.setShowViewModal(false)} aria-label="Cerrar el detalle del turno" className="relative z-10 text-white/70 hover:text-white transition-colors">
+                <IconButton type="button" onClick={() => h.setShowViewModal(false)} aria-label="Cerrar el detalle del turno" className="relative z-10 text-white/70 hover:text-white hover:bg-white/10">
                   <X className="w-5 h-5" />
-                </button>
+                </IconButton>
               </div>
               <div className="p-4 space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-xs">
@@ -88,20 +89,23 @@ export function ModalVerSesion({ h }: { h: HistorialCaja }) {
                 )}
               </div>
               <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
-                <button
+                <Button
+                  type="button"
+                  variant="documento"
+                  size="sm"
                   onClick={() => {
                     window.open(`/api/v1/cash/sessions/${h.selectedSession.id}/print`, '_blank');
                   }}
-                  className="px-3 py-1.5 bg-white border border-slate-300 text-slate-700 font-bold text-xs rounded-lg hover:bg-slate-100 flex items-center gap-2"
                 >
                   <Printer className="w-3 h-3" /> Reimprimir
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
                   onClick={() => h.setShowViewModal(false)}
-                  className="px-4 py-1.5 bg-[#001e40] text-white font-bold text-xs rounded-lg hover:bg-[#003366] transition-colors"
                 >
                   Cerrar
-                </button>
+                </Button>
               </div>
             </m.div>
           </m.div>

@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import clsx from 'clsx';
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select';
 import { Button } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
@@ -226,15 +227,12 @@ export default function SupplierStatementPage() {
 
     <div className="w-full space-y-6 p-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-outline-variant/10 pb-5 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Receipt className="text-primary-container w-7 h-7" /> Estado de Cuenta de Suplidores (CxP)
-          </h1>
-          <p className="text-sm text-neutral-500">
-            Visualice la ficha financiera, antigüedad de saldos y el libro auxiliar de movimientos de un proveedor.
-          </p>
-        </div>
+      <div className="border-b border-outline-variant/10 pb-5">
+        <CabeceraDePagina
+          titulo="Estado de Cuenta de Suplidores (CxP)"
+          descripcion="Visualice la ficha financiera, antigüedad de saldos y el libro auxiliar de movimientos de un proveedor."
+          icono={<Receipt />}
+        />
       </div>
 
       {/* Resumen General de Cartera (CxP) */}
@@ -304,7 +302,8 @@ export default function SupplierStatementPage() {
           />
           </div>
           <Button
-            variant="outline"
+            type="button"
+            variant="documento"
             size="sm"
             onClick={() => {
               if (selectedSupplierId === 'all' || !selectedSupplierId) {
@@ -435,19 +434,23 @@ export default function SupplierStatementPage() {
                   <option value="pending">Imprimir: Solo Pendientes</option>
                   <option value="overdue">Imprimir: Solo Vencidos</option>
                 </select>
-                <button
+                <Button
+                  type="button"
+                  variant="documento"
+                  size="sm"
                   onClick={handlePrint}
                   disabled={printing}
-                  className="flex items-center gap-2 px-3 py-1.5 border border-outline-variant/20 rounded-xl text-xs hover:bg-surface-container-low transition-colors"
                 >
                   <Printer className="w-3.5 h-3.5" /> {printing ? 'Generando PDF...' : 'Imprimir PDF'}
-                </button>
-                <button
+                </Button>
+                <Button
+                  type="button"
+                  variant="documento"
+                  size="sm"
                   onClick={handleExportCSV}
-                  className="flex items-center gap-2 px-3 py-1.5 border border-outline-variant/20 rounded-xl text-xs hover:bg-surface-container-low transition-colors"
                 >
                   <ArrowDownToLine className="w-3.5 h-3.5" /> Exportar CSV
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -494,19 +497,22 @@ export default function SupplierStatementPage() {
                 />
               </div>
               <div className="flex items-end gap-2">
-                <button
-                  onClick={() => fetchStatement()}
-                  className="flex-1 py-2 bg-primary text-white font-semibold rounded-lg hover:opacity-90 transition-opacity"
-                >
-                  Filtrar
-                </button>
-                <button
+                {/* Lote 273: la secundaria primero y la principal la ultima (docs/estandar_ui.md). */}
+                <Button
+                  type="button"
+                  variant="secondary"
                   onClick={clearFilters}
-                  className="py-2 px-3 border border-outline-variant/20 rounded-lg hover:bg-surface-bright"
                   title="Limpiar filtros"
                 >
                   Limpiar
-                </button>
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => fetchStatement()}
+                  className="flex-1"
+                >
+                  Filtrar
+                </Button>
               </div>
             </div>
 

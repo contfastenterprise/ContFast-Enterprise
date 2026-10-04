@@ -9,6 +9,7 @@ import { Plus, Minus, RefreshCw, X } from 'lucide-react';
 import { m, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import type { Caja } from '../hooks/useCaja';
+import { Button, IconButton } from '@/components/ui/button';
 
 export function ModalMovimiento({ c }: { c: Caja }) {
   return (
@@ -37,9 +38,9 @@ export function ModalMovimiento({ c }: { c: Caja }) {
                     {c.moveType === 'cash_in' ? 'Entrada de Efectivo' : 'Salida de Efectivo'}
                   </h3>
                 </div>
-                <button type="button" onClick={() => c.setShowMoveModal(false)} aria-label="Cerrar la ventana del movimiento" className="text-slate-400 hover:text-slate-600 transition-colors">
+                <IconButton type="button" onClick={() => c.setShowMoveModal(false)} aria-label="Cerrar la ventana del movimiento">
                   <X className="w-4 h-4" />
-                </button>
+                </IconButton>
               </div>
 
               <form onSubmit={c.handleAddMovement} className="p-4 space-y-4">
@@ -93,25 +94,19 @@ export function ModalMovimiento({ c }: { c: Caja }) {
                 </div>
 
                 <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
-                  <button
+                  <Button variant="secondary"
                     type="button"
-                    onClick={() => c.setShowMoveModal(false)}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
+                    onClick={() => c.setShowMoveModal(false)}>
                     Cancelar
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
+                    variant={c.moveType === 'cash_in' ? 'success' : 'destructive'}
                     disabled={c.submitting}
-                    className={clsx(
-                      'flex items-center justify-center gap-2 px-3 py-1.5 font-bold rounded-lg text-xs transition-colors text-white',
-                      c.moveType === 'cash_in' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-600 hover:bg-red-700',
-                      c.submitting && 'opacity-50 cursor-not-allowed'
-                    )}
                   >
                     {c.submitting ? <RefreshCw className="w-3 h-3 animate-spin" /> : null}
                     Registrar {c.moveType === 'cash_in' ? 'Entrada' : 'Salida'}
-                  </button>
+                  </Button>
                 </div>
               </form>
             </m.div>

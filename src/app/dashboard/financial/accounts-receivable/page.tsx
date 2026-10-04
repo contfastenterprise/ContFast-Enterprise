@@ -2,6 +2,7 @@ import React from 'react';
 import { Metadata } from 'next';
 import AccountsReceivableDashboard from './components/AccountsReceivableDashboard';
 import { getReceivablesDashboardData } from '@/actions/receivables';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
 export const metadata: Metadata = {
   title: 'Cuentas por Cobrar | ContFast Enterprise',
@@ -23,8 +24,10 @@ export default async function AccountsReceivablePage() {
   return (
     <div className="flex flex-col w-full h-full min-h-screen bg-surface dark:bg-surface-dark pb-10">
       <div className="px-6 py-6 border-b border-outline-variant/20 bg-surface-container-lowest">
-        <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">Cuentas por Cobrar</h1>
-        <p className="text-sm text-neutral-500 mt-1">Gestión integral de cartera, reportes de antigüedad y proyecciones de cobro.</p>
+        <CabeceraDePagina
+          titulo="Cuentas por Cobrar"
+          descripcion="Gestión integral de cartera, reportes de antigüedad y proyecciones de cobro."
+        />
       </div>
       
       <div className="p-6 w-full max-w-[1600px] mx-auto">

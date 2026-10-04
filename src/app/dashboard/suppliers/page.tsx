@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Truck, Search, Plus, Edit2, Trash2, X, RefreshCw, AlertTriangle, Building2, MapPin, Mail, Phone, ShieldCheck, Printer } from 'lucide-react';
+import { Truck, Search, Plus, Pencil, Trash2, X, RefreshCw, AlertTriangle, Building2, MapPin, Mail, Phone, ShieldCheck, Printer } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import { useConfirm } from '@/providers/confirm-provider';
-import { Button } from '@/components/ui/button';
+import { Button, IconButton } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 import { SearchBar } from '@/components/ui/search-bar';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 import { BotonBuscarDgii } from '@/components/ui/boton-buscar-dgii';
@@ -304,18 +305,12 @@ export default function SuppliersPage() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
 
       {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold text-slate-800 flex items-center gap-2">
-            <Truck className="h-7 w-7 text-amber-500" />
-            Gestión de Suplidores
-          </h1>
-          <p className="text-slate-500 text-xs mt-1">
-            Gestiona los datos de facturación y contacto de todos tus suplidores.
-          </p>
-        </div>
-        <div className="flex gap-2 w-full md:w-auto shrink-0">
-          {/* En la cabecera, SOLO las pestanas (como en Compras): los botones de la lista viven en su barra. */}
+      <CabeceraDePagina
+        titulo="Gestión de Suplidores"
+        descripcion="Gestiona los datos de facturación y contacto de todos tus suplidores."
+        icono={<Truck />}
+        acciones={
+          /* En la cabecera, SOLO las pestanas (como en Compras): los botones de la lista viven en su barra. */
           <PestanasDeRegistro
             enFormulario={showModal}
             lista="Suplidores"
@@ -323,8 +318,8 @@ export default function SuppliersPage() {
             alVerLista={() => setShowModal(false)}
             alRegistrar={openNewModal}
           />
-        </div>
-      </div>
+        }
+      />
 
       {!showModal && (<>
       {/* SEARCH BAR */}
@@ -340,12 +335,10 @@ export default function SuppliersPage() {
             <RefreshCw className="h-5 w-5 animate-spin" />
           </div>
         )}
-        <button
-          onClick={handlePrintList}
-          className="flex items-center gap-2 bg-[#C5A059] hover:bg-[#b08c4a] text-slate-950 px-4 py-2 h-9 rounded-lg font-bold shadow-sm hover:shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-        >
+        <Button type="button" variant="documento"
+          onClick={handlePrintList}>
           <Printer className="h-4 w-4 text-slate-950" /> Imprimir
-        </button>
+        </Button>
       </div>
 
       {/* SUPPLIERS TABLE */}
@@ -439,12 +432,12 @@ export default function SuppliersPage() {
                     </td>
                     <td className="px-4 py-2 align-middle text-right">
                       <div className="flex justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => openEditModal(s)} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-[#003366] hover:bg-[#003366]/10" title="Editar">
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </button>
-                        <button onClick={() => handleDelete(s.id, s.name)} className="p-1.5 rounded-lg transition-colors flex items-center justify-center text-slate-500 hover:text-rose-600 hover:bg-rose-50" title="Eliminar">
+                        <IconButton type="button" onClick={() => openEditModal(s)} className="hover:text-[#003366] hover:bg-[#003366]/10" title="Editar" aria-label={`Editar suplidor ${s.name}`}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </IconButton>
+                        <IconButton type="button" onClick={() => handleDelete(s.id, s.name)} className="hover:text-rose-600 hover:bg-rose-50" title="Eliminar" aria-label={`Eliminar suplidor ${s.name}`}>
                           <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        </IconButton>
                       </div>
                     </td>
                   </motion.tr>
@@ -571,22 +564,18 @@ export default function SuppliersPage() {
                 </div>
 
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
-                  <button
+                  <Button variant="secondary"
                     type="button"
-                    onClick={() => setShowModal(false)}
-                    className="flex items-center gap-2 bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 px-4 py-2 h-9 rounded-lg font-bold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
+                    onClick={() => setShowModal(false)}>
                     <X className="w-4 h-4" />
                     Cancelar
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
-                    disabled={submitting}
-                    className="flex items-center gap-2 bg-[#003366] hover:bg-[#002244] text-white px-4 py-2 h-9 rounded-lg font-bold shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed justify-center text-sm"
-                  >
+                    disabled={submitting}>
                     {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                     {editId ? 'Guardar Cambios' : 'Registrar Suplidor'}
-                  </button>
+                  </Button>
                 </div>
               </form>
         </PanelDeRegistro>

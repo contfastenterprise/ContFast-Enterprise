@@ -6,6 +6,8 @@ import { Landmark, ArrowLeft, Calendar, FileText, ChevronRight, CheckCircle2, Al
 import { toast } from 'sonner';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import clsx from 'clsx';
+import { Button } from '@/components/ui/button';
+import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 
 interface BankAccount {
@@ -250,15 +252,11 @@ export default function BankReconciliationPage() {
 
       <div className="p-4 md:p-8 space-y-6">
         {/* Title */}
-        <div>
-          <h1 className="text-2xl md:text-3xl font-display font-bold text-[#003366] flex items-center gap-2">
-            <Landmark className="h-8 w-8 text-[#C5A059]" />
-            Conciliación Bancaria
-          </h1>
-          <p className="text-on-surface-variant/70 text-sm mt-1">
-            Compara y ajusta los saldos de tus estados bancarios frente a tu contabilidad interna.
-          </p>
-        </div>
+        <CabeceraDePagina
+          titulo="Conciliación Bancaria"
+          descripcion="Compara y ajusta los saldos de tus estados bancarios frente a tu contabilidad interna."
+          icono={<Landmark />}
+        />
 
         {/* Configurations & Inputs */}
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -411,18 +409,13 @@ export default function BankReconciliationPage() {
                       }
                     </span>
                   </div>
-                  <button
+                  <Button
+                    type="button"
                     onClick={handlePostReconciliation}
                     disabled={submitting || !isReconciled}
-                    className={clsx(
-                      "px-5 py-2 rounded-lg font-bold shadow text-white flex items-center gap-1.5 transition",
-                      isReconciled 
-                        ? 'bg-[#003366] hover:bg-[#002244] cursor-pointer' 
-                        : 'bg-slate-300 cursor-not-allowed opacity-60'
-                    )}
                   >
                     {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Asentar Conciliación
-                  </button>
+                  </Button>
                 </div>
               </div>
 
