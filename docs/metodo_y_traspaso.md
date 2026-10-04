@@ -2168,6 +2168,37 @@ Además, fuera de la tabla:
   **Trampa del entorno**: en un worktree, `npx tsx` tarda ~10 s más por banco que
   `node node_modules/tsx/dist/cli.mjs` (busca si tiene que instalar); el barrido pasó de dos horas a
   media hora llamándolo directo.
+- **Lote 270: el estándar de botones, cabeceras y pies, escrito y hecho componente.** Segundo de la
+  auditoría de UI (`docs/auditoria/auditoria_ui_2026-10-03.md`, con la matriz por fichero; el
+  estándar en `docs/estandar_ui.md`). **Medido** con `scratch/_to_delete/auditoria_ui.mjs`: 712
+  botones, **682 escritos a mano** en 135 ficheros; 12 formas de escribir el título de una página; 3
+  pies con `[Guardar] [Cancelar]` al revés; 405 botones sin `type`; 99 de solo icono sin ningún
+  nombre accesible; 64 ventanas hechas a mano; una sola biblioteca de iconos.
+  **El estándar no se inventó**: se tomó de lo que ya se repetía letra por letra — 45 copias del
+  primario azul marino, 34 del secundario blanco y 19 del dorado de imprimir, las tres
+  `h-9 px-4 rounded-lg font-bold text-sm` — y se hizo variante, para que pasar una pantalla al
+  componente no cambie lo que se ve.
+  · `Button`: `primary` (por defecto), `secondary`, `outline`, `ghost`, `documento` (el dorado, con
+    texto oscuro), `destructive`, `success`, `warning` (texto oscuro: blanco sobre ámbar no pasa);
+    tamaños `md` (h-9), `sm` (h-8), `lg` (h-10), `icon`, `icon-sm`. **Sin la animación de escala**
+    que traía (los de la casa no crecen) y **sin `whitespace-nowrap`** de la plantilla (los de la casa
+    parten la línea; uno que no puede saca el botón de la pantalla del móvil). Cargando: giro,
+    desactivado y `aria-busy`.
+  · `IconButton`: **`aria-label` obligatorio por tipo**, y lo repite como globo.
+  · `CabeceraDePagina`: título azul marino (nunca el dorado, 2,4:1) con icono dorado decorativo,
+    acciones a la derecha con la principal la última; en el móvil bajan, sin cortarse.
+  · `AccionesDeFormulario`: `[Cancelar] [Guardar]` a la derecha; en el móvil, la principal **arriba**
+    y a todo el ancho; lo de más, entre las dos.
+  **Se miró en el navegador** a 1.280 px y a 375 px: ningún botón sale de la pantalla en el móvil.
+  **Y un trinquete**: lo escrito a mano no puede crecer (primario 86, secundario 35, documento 23,
+  solo icono sin nombre 99). Va como **invariante** — es cierto antes y después por construcción —, y
+  cada lote que pase pantallas baja los techos.
+  Banco `verificar_estandar_de_botones.ts` (dibuja los componentes con `react-dom/server`): 17
+  comprobaciones y seis invariantes, contraprueba **16 FALLA** (la del foco ya era cierta: pasa a
+  invariante), trece mutantes y trece muertos — **uno sobrevivió primero**: quitar el hueco de las
+  acciones de más del pie, porque nada lo probaba. Y el banco se cazó a sí mismo con la trampa del
+  lote 210: `/disabled/` casaba con la CLASE `disabled:opacity-50` de los dos botones; se ancla al
+  atributo.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3357,5 +3388,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 269 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 270 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
