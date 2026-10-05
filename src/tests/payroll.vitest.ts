@@ -117,6 +117,7 @@ describe('PayrollCalculationService', () => {
         baseSalary: 25_000,
         isrBrackets,
         config,
+        salarioMinimoTss: 10_000,
       });
 
       // AFP Employee = 25,000 × 2.87% = 717.50
@@ -132,17 +133,31 @@ describe('PayrollCalculationService', () => {
       expect(result.netSalary).toBe(23_522.50);
     });
 
-    it('applies TSS caps correctly for 350,000 DOP salary (caps reached)', () => {
+    // Lote 290: el salario minimo de los topes es de la empresa (decision del
+    // contador, 2026-10-04: 10.000); antes era 16.262,50 fijo en el codigo.
+    it('applies TSS caps correctly for 350,000 DOP salary (caps reached, minimo 10.000)', () => {
       const result = PayrollCalculationService.calculateDetails({
         baseSalary: 350_000,
         isrBrackets,
         config,
+        salarioMinimoTss: 10_000,
       });
 
-      // AFP cap: 20 × 16,262.50 = 325,250. AFP Employee = 325,250 × 2.87% ≈ 9,334.68
-      expect(result.afp).toBeCloseTo(9334.68, 1);
+      // AFP cap: 20 × 10,000 = 200,000. AFP Employee = 200,000 × 2.87% = 5,740.00
+      expect(result.afp).toBe(5740);
 
-      // SFS cap: 10 × 16,262.50 = 162,625. SFS Employee = 162,625 × 3.04% ≈ 4,943.80
+      // SFS cap: 10 × 10,000 = 100,000. SFS Employee = 100,000 × 3.04% = 3,040.00
+      expect(result.sfs).toBe(3040);
+    });
+
+    it('the caps follow the minimum wage it receives (16,262.50)', () => {
+      const result = PayrollCalculationService.calculateDetails({
+        baseSalary: 350_000,
+        isrBrackets,
+        config,
+        salarioMinimoTss: 16_262.50,
+      });
+      expect(result.afp).toBeCloseTo(9334.68, 1);
       expect(result.sfs).toBeCloseTo(4943.80, 1);
     });
   });

@@ -2857,6 +2857,94 @@ Además, fuera de la tabla:
   `null`). `verificar_desfases_del_manual` (285) se re-ancla a la propiedad — la ruta que exista, la
   petición donde viva, los cuatro momentos — y vale en los dos estados; un mutante que quita la recarga
   al guardar lo rompe.
+- **Lote 290: las guardas de la nómina y la escala del ISR** (lote A de
+  `docs/diseno_asientos_nomina.md`, que el dueño mandó empezar el 2026-10-04). Sin cuentas, asientos
+  ni pagos: eso son los lotes B, C y D.
+  **Medido antes (PRODUCCIÓN, solo lectura, `medir_isr_290.ts`)**: `isr_brackets` tiene **0 filas**;
+  es **global** (sin `company_id`), con `year`, `from_amount`, `to_amount`, `fixed_amount` y
+  `percentage`, y solo su clave primaria. Hay una nómina (Latin Doors, quincenal, 15–30/07,
+  `calculated`, 1 línea) y **no se toca**: su estado es del dueño.
+  · **Una regla de estados, una** (`services/nomina/estadoDeNomina.ts`, pura): recalcular solo
+    `draft`/`calculated` (antes rehacía una **aprobada** y la devolvía a `calculated`), aprobar solo
+    `calculated` **con detalle** (antes aprobaba un `draft` sin importes) y eliminar, la de siempre.
+    El repositorio la aplica con la fila bloqueada (`for update`) y antes de borrar nada; la ruta
+    contesta `NominaNoPermitidaError` con **409** y el motivo (antes todo era 500); la pantalla
+    ofrece los botones con la misma regla (`accionesDeNomina`) y enseña el motivo de un rechazo.
+  · **La escala, en una constante con su fuente** (`services/nomina/escalaIsr.ts`): la de 2026 de la
+    DGII (CA687 del 16/01/2026; Ley 11-92 art. 296, mod. por la Ley 30-26 art. 10): exento hasta
+    416.220,00; 15 % del excedente de 416.220,01 hasta 624.329,00; 31.216,00 + 20 % del excedente de
+    624.329,01 hasta 867.123,00; 79.776,00 + 25 % del excedente de 867.123,01. La toman
+    `run-migration.ts` (que la tenía escrita a mano), la semilla de la base desechable y el guion de
+    datos. **Como es global, no se siembra al crear una empresa.**
+  · **Sin escala del año, calcular se NIEGA** (409, «Falta la escala del ISR de 2026: …»), crear
+    incluido, y no queda nada a medias. Se eligió negarse y no avisar: un aviso deja una nómina con
+    ISR 0 lista para aprobar (y, desde el lote C, para asentar). `calculateIsr` además lanza con la
+    escala vacía (segunda barrera). La primera versión exigía la escala del año EXACTO (la DGII
+    avisa de que la Ley 30-26 cambia los tramos desde 2027); **el contador lo cambió** (ver abajo).
+    El año sale del texto de la fecha (`new Date('2027-01-01').getFullYear()` da 2026 en UTC−4).
+  · **Un defecto del cálculo, de paso**: el tramo se buscaba con `desde <= renta <= hasta`, y en el
+    centavo entre un `hasta` y el `desde` siguiente (624.329,00 / 624.329,01) no caía en ninguno e iba
+    al tramo del 25 %: 1.589,79 de ISR mensual en vez de 2.601,36. Ahora es el último tramo cuyo
+    `desde` no pasa de la renta (los tramos son contiguos). **La TSS no se tocó.**
+  **Ejemplos a mano** (base = bruto − AFP − SFS, anualizada; retención = anual / 12, y / 2 en la
+  quincena): la nómina medida, quincena de 10.000 → AFP 287, SFS 304, ISR **0** (225.816 al año),
+  neto 9.409 — o sea, el 0 de julio era correcto —; mensual 50.000 → ISR 1.854,00; 70.000 →
+  5.368,45; 100.000 → 12.105,44 (en quincena, 6.052,72); 34.685 → 0 (el «exento de 34.685 al mes» se
+  mide después de la TSS).
+  Dos bancos. `verificar_nomina_guardas_e_isr.ts` (reglas ejecutadas con las fronteras exactas de
+  cada tramo, los ejemplos y el cableado): 38 comprobaciones, contraprueba **38 FALLA** contra
+  `bac5a91`, diecinueve mutantes y diecinueve muertos. `verificar_nomina_guardas_e_isr_db.ts`
+  (**integración**, base desechable): ISR esperado con la escala sembrada, recalcular una aprobada
+  (409 y nada cambia), aprobar sin detalle (409), tabla vacía y un año sin escala propia ni anterior (409); 9 comprobaciones,
+  contraprueba **9 FALLA**, siete mutantes y siete muertos. «Aprobar una calculada funciona» era cierto antes: va de
+  precondición. `semilla_app.ts` siembra ahora la escala, porque `verificar_f1_03` calcula nóminas.
+  Re-anclado `verificar_p1_24_lote10` (la trampa de la línea literal otra vez): copiaba el cuerpo
+  del `catch` de la ruta de nómina; vigila ahora el tipado (cuatro `catch (error: unknown)` por
+  `respuestaDeError`, ningún `any`), comprobado con un mutante.
+  **Para el dueño**: lanzar
+  `npx tsx --env-file=.env scratch/_to_delete/sembrar_escala_isr.ts` (ensayo) y después con
+  `--aplicar`. **Hasta entonces, desde que se despliegue este lote, no se podrá calcular ninguna
+  nómina** (se niega con el motivo), que es lo que se busca. Y `verificar_nomina_guardas_e_isr_db.ts`
+  a `deuda_bancos.txt` en su carpeta.
+  **Las respuestas del contador (vía el dueño, 2026-10-04), en un segundo commit del lote**:
+  · **La base de la TSS excluye horas extra y bonos**: confirmado. Sin cambio; lo dice el
+    comentario del cálculo. **El Infotep del 0,5 % del empleado NO se calcula**: confirmado; también
+    en el comentario.
+  · **El salario mínimo de los topes es RD$10.000,00** (estaba fijo en el código: 16.262,50). Medido:
+    `payroll_configs` (la que siembra `altaDeEmpresa`) no tenía campo. **MIGRACIÓN
+    `drizzle/0020_salario_minimo_tss.sql`** (una columna nula, `salario_minimo_tss`), **no declarada
+    en Drizzle** (la lección de las 0013 y 0015: la nómina lee la fila entera) y leída por
+    `services/nomina/salarioMinimoRepositorio.ts`, que mira si existe antes de nombrarla. **No hace
+    falta aplicarla antes de desplegar**: sin ella, o sin valor, el cálculo usa 10.000
+    (`SALARIO_MINIMO_TSS_POR_DEFECTO`, en `topesTss.ts`, con la decisión citada); solo cambiar el
+    valor a otro contesta 409 nombrando la 0020. `calculateDetails` ya no lleva ninguno escrito:
+    lo recibe obligatorio. Se siembra con 10.000 al dar de alta la empresa, y Configuración de RRHH
+    lo enseña y lo cambia («Topes de la TSS»). Con 10.000 los topes bajan: AFP 200.000, SFS 100.000
+    y riesgo laboral 40.000 al mes (un sueldo de 150.000 cotiza SFS 3.040, no 4.560).
+  · **«Por ahora seguiremos con la escala de 2026»**: deshace el «año exacto». Regla pura
+    `escalaParaLaNomina`: la del año de la nómina si está; si no, la **más reciente anterior**, y la
+    respuesta del cálculo (`aviso`), el detalle (`avisoIsr`) y la pantalla **avisan** («ISR calculado
+    con la escala de 2026: la de 2027 no está cargada en el sistema…») sin negarse. Sin ninguna del
+    año o anterior, sigue el 409. De paso, el detalle de la nómina toma el estado de la base y no el
+    de la lista (tras crearla, la lista decía `draft` y no se ofrecía aprobar).
+  Dos bancos nuevos: `verificar_nomina_decisiones_contador.ts` (14, contraprueba **14 FALLA** contra
+  `382b02e`, quince mutantes y quince muertos — uno sobrevivió primero: el 409 de Configuración se
+  miraba por su mensaje y no por su condición) y `verificar_nomina_decisiones_contador_db.ts`
+  (**integración**: siembra y alta de empresa con 10.000, el cálculo con el de la empresa, la pantalla
+  que lo guarda, la base sin la columna, y una nómina de 2027 con la escala de 2026; 11,
+  contraprueba **11 FALLA**, seis mutantes y seis muertos). Re-anclados los dos bancos de la primera parte (el año
+  exacto pasa a «la regla elige»; 2027 → 2025 como año sin escala) y `payroll.vitest.ts` (el tope de
+  350.000 con 10.000, y otra prueba con 16.262,50). El barrido cazó dos más, ninguno una
+  regresión: `verificar_p1_24_lote3` copiaba la línea entera del `import type` de `hrRepository`
+  (ganó `DbOTx`; ahora mira que el tipo venga de '@/db', con su mutante) y
+  `verificar_ventanas_rrhh_admin` (lote 280) comparaba la huella contra la CARPETA y leía como texto
+  el `useState<string | null>` nuevo de la pantalla de nómina: compara ahora los dos commits de su
+  lote (`ab9e5fd` y `85d5dc1`), como en los lotes 227, 230 y 237.
+  **Para el dueño**, además de la escala: aplicar la 0020
+  (`npx tsx --env-file=.env scratch/_to_delete/aplicar_migracion.ts drizzle/0020_salario_minimo_tss.sql --aplicar`)
+  y después `npx tsx --env-file=.env scratch/_to_delete/salario_minimo_tss.ts` (ensayo) y con
+  `--aplicar`, que pone 10.000 en las empresas sin valor. Y `verificar_nomina_decisiones_contador_db.ts`
+  a `deuda_bancos.txt`. La escala de 2027 se añade a la constante cuando la DGII la publique.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás

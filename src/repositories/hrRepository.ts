@@ -15,9 +15,17 @@ import {
   payrollConfigs,
   auditLogs,
 } from '@/db';
-import type { DbTransaction } from '@/db';
+import type { DbTransaction, DbOTx } from '@/db';
 import { eq, and, isNull, sql, desc, or, between, like, inArray } from 'drizzle-orm';
 import { PayrollCalculationService } from '@/services/payrollCalculationService';
+import {
+  NominaNoPermitidaError,
+  motivoParaNoRecalcular,
+  motivoParaNoAprobar,
+  motivoParaNoEliminar,
+} from '@/services/nomina/estadoDeNomina';
+import { anioDeLaNomina, motivoSinEscala, escalaParaLaNomina, avisoDeEscala } from '@/services/nomina/escalaIsr';
+import { leerSalarioMinimo } from '@/services/nomina/salarioMinimoRepositorio';
 
 /**
  * Entorno de trabajo. El proyecto separa PRODUCCION de PRUEBA en las tablas
@@ -318,16 +326,16 @@ export class HRRepository {
         .returning();
 
       // 2. Perform initial calculations
-      await this.recalculatePayrollTx(tx, payroll.id, companyId, modo);
+      const { avisoIsr } = await this.recalculatePayrollTx(tx, payroll.id, companyId, modo);
 
-      return payroll;
+      // Lote 290: `status` el de despues de calcular (el `returning` traia 'draft'),
+      // y el aviso de la escala del ISR si no es la del año.
+      return { ...payroll, status: 'calculated', avisoIsr };
     });
   }
 
   static async recalculatePayroll(payrollId: string, companyId: string, modo: Modo) {
-    return db.transaction(async (tx) => {
-      await this.recalculatePayrollTx(tx, payrollId, companyId, modo);
-    });
+    return db.transaction(async (tx) => this.recalculatePayrollTx(tx, payrollId, companyId, modo));
   }
 
   private static async recalculatePayrollTx(tx: DbTransaction, payrollId: string, companyId: string, modo: Modo) {
@@ -344,8 +352,17 @@ export class HRRepository {
       .select()
       .from(payrolls)
       .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), eq(payrolls.modo, modo), isNull(payrolls.deletedAt)))
-      .limit(1);
+      .limit(1)
+      // Lote 290: bloqueada, para que un recalculo y una aprobacion a la vez
+      // no pasen las dos su guarda (la aprobacion tambien bloquea la fila).
+      .for('update');
     if (!payroll) throw new Error('Payroll period not found');
+
+    // Lote 290: una nomina aprobada (o pagada) ya no se rehace. Antes esto no
+    // miraba el estado y la devolvia a `calculated` con el detalle nuevo. Va
+    // ANTES de borrar nada.
+    const noRecalcular = motivoParaNoRecalcular(payroll.status);
+    if (noRecalcular) throw new NominaNoPermitidaError(noRecalcular);
 
     // 2. Clear existing details
     await tx
@@ -378,21 +395,29 @@ export class HRRepository {
       throw new Error('Configuración de nómina incompleta. Por favor, guarde la Configuración de RRHH antes de generar una nómina.');
     }
 
-    const payrollYear = new Date(end).getFullYear();
-    const [latestYearRecord] = await tx
-      .select({ year: isrBrackets.year })
-      .from(isrBrackets)
-      .where(sql`${isrBrackets.year} <= ${payrollYear}`)
-      .orderBy(desc(isrBrackets.year))
-      .limit(1);
-
-    const targetYear = latestYearRecord ? latestYearRecord.year : payrollYear;
-
+    // Lote 290: la escala del ISR. Antes, sin ninguna cargada, se calculaba con
+    // la tabla vacia: ISR 0 en silencio (asi estaba PRODUCCION). Ahora, con la
+    // regla de `escalaParaLaNomina` (decision del contador, 2026-10-04): la del
+    // año de la nomina si esta; si no, la mas reciente ANTERIOR, avisando de que
+    // año se uso; y sin ninguna del año o anterior, se niega (409).
+    // El año se lee del texto de la fecha (`new Date(end).getFullYear()` lo
+    // corria al año anterior el 1 de enero en UTC-4).
+    const payrollYear = anioDeLaNomina(end);
+    const aniosCargados = await this.aniosDeEscalaIsr(tx, payrollYear);
+    const anioDeEscala = escalaParaLaNomina(aniosCargados, payrollYear);
+    if (anioDeEscala === null) throw new NominaNoPermitidaError(motivoSinEscala(payrollYear));
+    const avisoIsr = avisoDeEscala(anioDeEscala, payrollYear);
     const brackets = await tx
       .select()
       .from(isrBrackets)
-      .where(eq(isrBrackets.year, targetYear))
+      .where(eq(isrBrackets.year, anioDeEscala))
       .orderBy(isrBrackets.fromAmount);
+    // Segunda barrera (no deberia ocurrir: el año salio de la propia tabla).
+    if (brackets.length === 0) throw new NominaNoPermitidaError(motivoSinEscala(payrollYear));
+
+    // Lote 290: el salario minimo de los topes de la TSS, el de la empresa
+    // (10.000 por defecto mientras falte la migracion 0020 o el valor).
+    const salarioMinimo = await leerSalarioMinimo(companyId, tx);
 
     // 5. Traer horas extra, ingresos y deducciones del periodo para TODOS los
     //    empleados de golpe.
@@ -508,6 +533,7 @@ export class HRRepository {
           overtimeFestivaRate: Number(config.overtimeFestivaRate),
           overtimeDobleRate: Number(config.overtimeDobleRate),
         },
+        salarioMinimoTss: salarioMinimo.valor,
       });
 
       // Insert payroll details row
@@ -538,6 +564,31 @@ export class HRRepository {
       .update(payrolls)
       .set({ status: 'calculated' })
       .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), eq(payrolls.modo, modo)));
+
+    // Lote 290: el aviso de la escala (null si es la del año), para la respuesta.
+    return { avisoIsr };
+  }
+
+  /** Los años con escala del ISR cargada, hasta `hasta` (inclusive). */
+  private static async aniosDeEscalaIsr(tx: DbOTx, hasta: number): Promise<number[]> {
+    const filas = await tx
+      .selectDistinct({ year: isrBrackets.year })
+      .from(isrBrackets)
+      .where(sql`${isrBrackets.year} <= ${hasta}`);
+    return filas.map((f) => f.year);
+  }
+
+  /**
+   * Lote 290: el aviso de la escala del ISR para una nomina ABIERTA (la pantalla
+   * lo enseña en el detalle). `null` si se calcula con la escala de su año, si
+   * no hay ninguna (eso ya lo dice el 409 al calcular) o si la nomina ya no se
+   * recalcula: de una aprobada, lo que cuenta es con que se calculo.
+   */
+  static async avisoDeEscalaIsr(payroll: { status: string; periodEnd: string }): Promise<string | null> {
+    if (motivoParaNoRecalcular(payroll.status) !== null) return null;
+    const anio = anioDeLaNomina(payroll.periodEnd);
+    const usado = escalaParaLaNomina(await this.aniosDeEscalaIsr(db, anio), anio);
+    return usado === null ? null : avisoDeEscala(usado, anio);
   }
 
   static async approvePayroll(payrollId: string, companyId: string, modo: Modo, userId: string) {
@@ -546,11 +597,21 @@ export class HRRepository {
         .select()
         .from(payrolls)
         .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), eq(payrolls.modo, modo), isNull(payrolls.deletedAt)))
-        .limit(1);
+        .limit(1)
+        // Lote 290: bloqueada; dos aprobaciones (o aprobar y recalcular) a la
+        // vez no pasan las dos la guarda.
+        .for('update');
       if (!payroll) throw new Error('Nómina no encontrada');
-      if (payroll.status !== 'calculated' && payroll.status !== 'draft') {
-        throw new Error('Solo se pueden aprobar nóminas calculadas o borradores');
-      }
+
+      // Lote 290: el detalle se lee ANTES de decidir. Antes se admitia aprobar
+      // un `draft`, o sea una nomina sin importes; y una calculada sin ninguna
+      // linea (ningun empleado activo con esa frecuencia) tambien pasaba.
+      const details = await tx
+        .select()
+        .from(payrollDetails)
+        .where(and(eq(payrollDetails.payrollId, payrollId), eq(payrollDetails.companyId, companyId), eq(payrollDetails.modo, modo)));
+      const noAprobar = motivoParaNoAprobar(payroll.status, details.length);
+      if (noAprobar) throw new NominaNoPermitidaError(noAprobar);
 
       const start = payroll.periodStart;
       const end = payroll.periodEnd;
@@ -569,11 +630,7 @@ export class HRRepository {
       // ingresos y deducciones pendientes de ese periodo en toda la base: las
       // de las demas empresas y las de los empleados que no entran en esta
       // nomina (otra frecuencia de pago, o de alta posterior). Esos conceptos
-      // desaparecian sin llegar a pagarse a nadie.
-      const details = await tx
-        .select()
-        .from(payrollDetails)
-        .where(and(eq(payrollDetails.payrollId, payrollId), eq(payrollDetails.companyId, companyId), eq(payrollDetails.modo, modo)));
+      // desaparecian sin llegar a pagarse a nadie. (El detalle se lee arriba.)
       const employeeIds: string[] = details.map((d) => d.employeeId);
 
       if (employeeIds.length > 0) {
@@ -646,9 +703,9 @@ export class HRRepository {
       .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), eq(payrolls.modo, modo), isNull(payrolls.deletedAt)))
       .limit(1);
     if (!payroll) throw new Error('Nómina no encontrada');
-    if (payroll.status !== 'draft' && payroll.status !== 'calculated') {
-      throw new Error('No se pueden eliminar nóminas aprobadas o pagadas');
-    }
+    // Lote 290: la misma regla de estados que recalcular y aprobar.
+    const noEliminar = motivoParaNoEliminar(payroll.status);
+    if (noEliminar) throw new NominaNoPermitidaError(noEliminar);
 
     return db.transaction(async (tx) => {
       await tx

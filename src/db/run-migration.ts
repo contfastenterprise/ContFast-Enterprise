@@ -1,6 +1,7 @@
 import postgres from 'postgres';
 import fs from 'fs';
 import path from 'path';
+import { ESCALAS_ISR_ASALARIADOS, filasDeLaEscala } from '../services/nomina/escalaIsr';
 
 // Load environment variables
 try {
@@ -50,21 +51,17 @@ async function run() {
     }
 
     console.log('Tables created. Seeding ISR Brackets...');
-    // Clear old brackets to prevent duplicates
-    await sql`DELETE FROM isr_brackets WHERE year = 2026`;
-    
-    const brackets = [
-      { year: 2026, from_amount: 0.00, to_amount: 416220.00, fixed_amount: 0.00, percentage: 0.00 },
-      { year: 2026, from_amount: 416220.01, to_amount: 624329.00, fixed_amount: 0.00, percentage: 15.00 },
-      { year: 2026, from_amount: 624329.01, to_amount: 867123.00, fixed_amount: 31216.00, percentage: 20.00 },
-      { year: 2026, from_amount: 867123.01, to_amount: null, fixed_amount: 79776.00, percentage: 25.00 }
-    ];
-
-    for (const b of brackets) {
-      await sql`
-        INSERT INTO isr_brackets (year, from_amount, to_amount, fixed_amount, percentage)
-        VALUES (${b.year}, ${b.from_amount}, ${b.to_amount}, ${b.fixed_amount}, ${b.percentage})
-      `;
+    // Lote 290: la escala sale de UN sitio (`services/nomina/escalaIsr.ts`, con
+    // su fuente de la DGII); antes estaba escrita aqui a mano.
+    for (const escala of ESCALAS_ISR_ASALARIADOS) {
+      // Clear old brackets to prevent duplicates
+      await sql`DELETE FROM isr_brackets WHERE year = ${escala.anio}`;
+      for (const b of filasDeLaEscala(escala)) {
+        await sql`
+          INSERT INTO isr_brackets (year, from_amount, to_amount, fixed_amount, percentage)
+          VALUES (${b.year}, ${b.fromAmount}, ${b.toAmount}, ${b.fixedAmount}, ${b.percentage})
+        `;
+      }
     }
     console.log('ISR Brackets seeded.');
 

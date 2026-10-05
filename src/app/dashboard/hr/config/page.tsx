@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useConfirm } from '@/providers/confirm-provider';
 import { Button, IconButton } from '@/components/ui/button';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { SALARIO_MINIMO_TSS_POR_DEFECTO } from '@/services/nomina/topesTss';
 
 // Format currency helper
 const formatCurrency = (val: number | string) => {
@@ -28,7 +29,11 @@ export default function ConfigPage() {
     overtimeNocturnaRate: 1.85,
     overtimeFestivaRate: 2.00,
     overtimeDobleRate: 2.00,
+    salarioMinimoTss: SALARIO_MINIMO_TSS_POR_DEFECTO,
   });
+  // Lote 290: si la base no tiene aun la columna (migracion 0020), el salario
+  // minimo se ve pero no se puede cambiar.
+  const [salarioMinimoEditable, setSalarioMinimoEditable] = useState(true);
   const [brackets, setBrackets] = useState<any[]>([]);
 
   useEffect(() => {
@@ -54,7 +59,9 @@ export default function ConfigPage() {
           overtimeNocturnaRate: parseFloat(cfg.overtimeNocturnaRate),
           overtimeFestivaRate: parseFloat(cfg.overtimeFestivaRate),
           overtimeDobleRate: parseFloat(cfg.overtimeDobleRate),
+          salarioMinimoTss: Number(resData.data.salarioMinimoTss?.valor ?? SALARIO_MINIMO_TSS_POR_DEFECTO),
         });
+        setSalarioMinimoEditable(resData.data.salarioMinimoTss?.hayColumna !== false);
         setBrackets(resData.data.brackets || []);
       } else {
         toast.error(resData.error?.message || 'Error al cargar configuraciones');
@@ -89,6 +96,7 @@ export default function ConfigPage() {
         overtimeNocturnaRate: config.overtimeNocturnaRate,
         overtimeFestivaRate: config.overtimeFestivaRate,
         overtimeDobleRate: config.overtimeDobleRate,
+        salarioMinimoTss: config.salarioMinimoTss,
       };
 
       const res = await fetch('/api/v1/hr/config', {
@@ -131,6 +139,7 @@ export default function ConfigPage() {
         overtimeNocturnaRate: 1.85,
         overtimeFestivaRate: 2.00,
         overtimeDobleRate: 2.00,
+        salarioMinimoTss: SALARIO_MINIMO_TSS_POR_DEFECTO,
       };
 
       const res = await fetch('/api/v1/hr/config', {
@@ -285,6 +294,31 @@ export default function ConfigPage() {
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* Lote 290: el salario minimo de los topes de la TSS (decision del contador, 2026-10-04) */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-3">
+                  Topes de la TSS
+                </h4>
+                <label htmlFor="salario-minimo-tss" className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                  Salario mínimo para los topes (RD$ mensual)
+                </label>
+                <input
+                  id="salario-minimo-tss"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={config.salarioMinimoTss}
+                  onChange={(e) => handleInputChange('salarioMinimoTss', e.target.value)}
+                  disabled={!salarioMinimoEditable}
+                  required
+                  className="w-full rounded-md border border-outline bg-surface p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary text-on-surface disabled:opacity-60"
+                />
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  AFP hasta 20 salarios mínimos, SFS hasta 10 y riesgo laboral hasta 4.
+                  {!salarioMinimoEditable && ' Para cambiarlo falta aplicar la migración 0020; mientras tanto se usa RD$10.000,00.'}
+                </p>
               </div>
 
               {/* Overtime Sections */}

@@ -4,6 +4,19 @@ import { requirePermission } from '@/middleware/permissions';
 import { HRRepository } from '@/repositories/hrRepository';
 import { z } from 'zod';
 import { hasActivePlan } from '@/utils/subscriptionHelper';
+import { NominaNoPermitidaError } from '@/services/nomina/estadoDeNomina';
+
+/**
+ * Lote 290: una transicion que la regla de estados no admite (recalcular una
+ * aprobada, aprobar sin detalle, calcular sin la escala del ISR del año) es un
+ * conflicto con el estado de la nomina: 409 con el motivo, no un 500.
+ */
+function respuestaDeError(error: unknown) {
+  if (error instanceof NominaNoPermitidaError) {
+    return NextResponse.json({ success: false, error: { code: error.code, message: error.message } }, { status: error.status });
+  }
+  return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
+}
 
 const createPayrollSchema = z.object({
   periodStart: z.string().min(1, 'La fecha de inicio es obligatoria'),
@@ -32,7 +45,9 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ success: false, error: { message: 'Nómina no encontrada' } }, { status: 404 });
       }
       const details = await HRRepository.findPayrollDetails(id, session.companyId, session.modo);
-      return NextResponse.json({ success: true, data: { payroll, details } });
+      // Lote 290: si se calcula con la escala del ISR de otro año, la pantalla lo dice.
+      const avisoIsr = await HRRepository.avisoDeEscalaIsr(payroll);
+      return NextResponse.json({ success: true, data: { payroll, details, avisoIsr } });
     }
 
     const limit = parseInt(searchParams.get('limit') || '50', 10);
@@ -49,7 +64,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: unknown) {
-    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
+    return respuestaDeError(error);
   }
 }
 
@@ -86,9 +101,9 @@ export async function POST(req: NextRequest) {
 
     await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'create_payroll', 'payrolls', payroll.id, null, payroll);
 
-    return NextResponse.json({ success: true, data: payroll }, { status: 201 });
+    return NextResponse.json({ success: true, data: payroll, aviso: payroll.avisoIsr }, { status: 201 });
   } catch (error: unknown) {
-    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
+    return respuestaDeError(error);
   }
 }
 
@@ -113,10 +128,10 @@ export async function PUT(req: NextRequest) {
     const action = body.action; // 'recalculate' | 'approve'
 
     if (action === 'recalculate') {
-      await HRRepository.recalculatePayroll(id, session.companyId, session.modo);
+      const { avisoIsr } = await HRRepository.recalculatePayroll(id, session.companyId, session.modo);
       const payroll = await HRRepository.findPayrollById(id, session.companyId, session.modo);
       await HRRepository.logAudit(session.companyId, session.modo, session.userId, 'recalculate_payroll', 'payrolls', id, null, payroll);
-      return NextResponse.json({ success: true, message: 'Nómina recalculada exitosamente' });
+      return NextResponse.json({ success: true, message: 'Nómina recalculada exitosamente', aviso: avisoIsr });
     }
 
     if (action === 'approve') {
@@ -126,7 +141,7 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({ success: false, error: { message: 'Acción no válida' } }, { status: 400 });
   } catch (error: unknown) {
-    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
+    return respuestaDeError(error);
   }
 }
 
@@ -154,6 +169,6 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({ success: true, message: 'Nómina eliminada/cancelada exitosamente' });
   } catch (error: unknown) {
-    return NextResponse.json({ success: false, error: { message: (error as Error).message } }, { status: 500 });
+    return respuestaDeError(error);
   }
 }

@@ -9,8 +9,10 @@
  * el candado precargado: `tsx --import ./scratch/bancos_db/precarga.mts`.
  */
 import { db } from '../../src/db';
-import { payrollConfigs } from '../../src/db/schema';
+import { payrollConfigs, isrBrackets } from '../../src/db/schema';
+import { ESCALAS_ISR_ASALARIADOS, filasDeLaEscala } from '../../src/services/nomina/escalaIsr';
 import { AccountingRepository } from '../../src/repositories/accountingRepository';
+import { sembrarSalarioMinimo } from '../../src/services/nomina/salarioMinimoRepositorio';
 import { exigirBaseDesechable } from './candado';
 
 const EMPRESAS = [
@@ -39,6 +41,8 @@ async function main() {
         overtimeFestivaRate: '2.00',
         overtimeDobleRate: '2.00',
       });
+      // Lote 290: el salario minimo de los topes de la TSS, como `altaDeEmpresa`.
+      await sembrarSalarioMinimo(empresa, tx);
       await AccountingRepository.seedDefaultChartOfAccounts(empresa, tx);
       await AccountingRepository.seedDefaultExpenseTypes(empresa, tx);
       // Desde enero de 2026 y no desde hoy: los bancos fechan sus movimientos
@@ -48,7 +52,13 @@ async function main() {
       await AccountingRepository.sembrarPeriodosContables(empresa, tx);
     });
   }
-  console.log(`Semilla de la aplicacion: ${EMPRESAS.length} empresas (nomina, catalogo, tipos de gasto, periodos).`);
+  // Lote 290: la escala del ISR (global, sin empresa). Sin ella, calcular una
+  // nomina se niega (`motivoSinEscala`), y `verificar_f1_03` calcula nominas.
+  // Es lo que el guion de datos carga en las bases reales.
+  for (const escala of ESCALAS_ISR_ASALARIADOS) {
+    await db.insert(isrBrackets).values(filasDeLaEscala(escala));
+  }
+  console.log(`Semilla de la aplicacion: ${EMPRESAS.length} empresas (nomina, catalogo, tipos de gasto, periodos) y la escala del ISR.`);
   process.exit(0);
 }
 
