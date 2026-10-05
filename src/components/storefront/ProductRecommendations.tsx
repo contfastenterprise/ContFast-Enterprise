@@ -4,7 +4,8 @@
  * Lote 231: usa la tarjeta comun (`TarjetaProducto`) en vez de su propia copia,
  * que ya no se parecia a la del catalogo.
  */
-import Link from 'next/link';
+import { EnlaceTienda } from './BotonTienda';
+import TituloDeSeccion from './TituloDeSeccion';
 import { StorefrontProduct } from '@/services/storefront/productService';
 import { RejillaDeProductos } from './TarjetaProducto';
 
@@ -19,12 +20,8 @@ export default function ProductRecommendations({ products, title = "También te 
 
   return (
     <section className="mt-20 border-t border-slate-200 pt-14">
-      <div className="mb-10 flex items-end justify-between gap-4">
-        <h2 className="text-xl font-medium uppercase tracking-[0.15em] text-slate-900">{title}</h2>
-        <Link href={`/${empresaSlug}/productos`} className="text-sm uppercase tracking-[0.15em] text-slate-900 underline underline-offset-8 hover:opacity-70">
-          Ver más
-        </Link>
-      </div>
+      <TituloDeSeccion nivel={2} titulo={title} className="mb-10"
+        accion={<EnlaceTienda href={`/${empresaSlug}/productos`} variante="enlace">Ver más</EnlaceTienda>} />
       <RejillaDeProductos productos={products} empresaSlug={empresaSlug} />
     </section>
   );

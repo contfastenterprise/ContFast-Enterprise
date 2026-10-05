@@ -86,3 +86,41 @@ export function alcanza(nivel: NivelDeAlmacen | null | undefined, cantidadPedida
 export function quedaAlgo(nivel: NivelDeAlmacen | null | undefined): boolean {
   return disponible(nivel) > HOLGURA;
 }
+
+/**
+ * LOTE 285: ¿Este nivel esta por debajo de su minimo? -- "stock bajo".
+ *
+ * La tarjeta "Stock Bajo" de Productos pintaba un `0` escrito a mano. Para que cuente de verdad se
+ * usa la regla que ya decide que hay que REPONER: la de la pantalla de reorden
+ * (`/api/v1/inventory/reorder-suggestions`), `minStock > 0 && quantity <= minStock`. Asi la tarjeta
+ * y la lista de reorden dicen lo mismo: si la tarjeta dice 3, reorden enseña esos tres.
+ *
+ * NO es la pregunta de `alcanza` (si se puede vender): aquella es la que corrigio F1-04 y no se
+ * mezcla con esta. Un minimo en 0 -- el valor por defecto -- significa "no vigilo este nivel", y
+ * no cuenta como bajo aunque no quede nada.
+ */
+export function estaBajoElMinimo(nivel: NivelDeAlmacen | null | undefined): boolean {
+  if (!nivel) return false;
+  const minimo = aCantidad(nivel.minStock);
+  return minimo > HOLGURA && aCantidad(nivel.quantity) <= minimo + HOLGURA;
+}
+
+/** Un nivel con su producto, para contar productos y no almacenes. */
+export interface NivelDeProducto extends NivelDeAlmacen {
+  productId: string;
+  /** Los de servicio (sin inventario) no tienen existencia que vigilar. */
+  tracksInventory?: boolean | null;
+}
+
+/**
+ * Cuantos PRODUCTOS tienen algun almacen por debajo del minimo. Un producto bajo en dos almacenes
+ * cuenta una vez (la tarjeta habla de productos). Los que no llevan inventario no cuentan.
+ */
+export function contarProductosConStockBajo(niveles: readonly NivelDeProducto[]): number {
+  const bajos = new Set<string>();
+  for (const n of niveles) {
+    if (n.tracksInventory === false) continue;
+    if (estaBajoElMinimo(n)) bajos.add(n.productId);
+  }
+  return bajos.size;
+}

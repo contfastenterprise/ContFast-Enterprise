@@ -2412,6 +2412,71 @@ Además, fuera de la tabla:
   saldo y el total no salía de todas formas. Re-anclado `verificar_avisos_caja` (lote 230): soltar la
   memoria después del clic se mira ahora en `descargarCsv`, donde vive; pasa también con el hook de
   antes, y un mutante que no la suelta lo hace fallar.
+- **Lote 282: la tienda pública, al sistema de UI sin perder su estética.** La auditoría de UI
+  (lotes 269-281) la dejó fuera a propósito: tiene la estética del lote 231 (Spree: redondeados,
+  mayúsculas espaciadas, azul `#001e40`) y la ve el cliente final. Pedido del dueño (2026-10-04):
+  traerla al sistema. **Decisión de alcance**: la tienda **no** se pinta con el `Button` del panel
+  (`h-9 rounded-lg` azul marino); se trae el SISTEMA — un componente por cosa, accesibilidad, iconos y
+  móvil — con las clases que ya tenía.
+  · **Un botón de la tienda**: `components/storefront/BotonTienda.tsx` (`BotonTienda`, un `<button>`
+    con `type` obligatorio por tipo e `isLoading` como el del panel, y `EnlaceTienda`, un `Link` con
+    las mismas clases) y sus variantes en `botonTiendaVariantes.ts` (`primario`, `contorno`, `enlace`;
+    tamaños `xs`, `sm`, `md`, `lg`), **sacadas de las copias letra por letra**. Eran **14 copias a
+    mano**: 8 primarios (los cuatro estados vacíos, la portada, "Añadir a mi cotización", imprimir la
+    cotización, el "Buscar" del buscador), 3 contornos y 3 enlaces subrayados ("Ver todos", "Ver más",
+    "Quitar"). Dos componentes y no `asChild`: casi todos viven en componentes de SERVIDOR. El enlace
+    no tiene color propio: hereda el del sitio, que es lo que hacían las copias ("Quitar" va en ámbar
+    dentro del aviso). Lo único que se va: la escala al pulsar de dos copias, y el "Cotizar" se rellena
+    de `slate-900` y no de `#001e40` al pasar, como los otros dos contornos.
+  · **Un patrón por cosa**: `TituloDeSeccion` (el `<h1>` de catálogo, promociones, favoritos y
+    cotización, y el `<h2>` de sección con su enlace, que estaba en dos tamaños) y `EstadoVacio` (cuatro
+    copias con dos rellenos, `py-16` y `py-20`: queda `py-16`).
+  · **Accesibilidad**: foco visible (`FOCO_TIENDA`: anillo de 2 px del azul de la tienda, separado) en
+    todo lo que se pulsa — antes no lo tenían el menú, los filtros, el "Ordenar por", el pie, la ruta de
+    la ficha, las tarjetas de categoría, los +/− ni la papelera —; la tarjeta de producto lo dibuja en
+    el `before:` que la cubre entera (antes, solo un subrayado); los iconos dentro de botones y enlaces,
+    `aria-hidden`; la lupa del móvil, con `aria-expanded`/`aria-controls`; "Quitar" dice qué quita.
+    **Contraste, medido**: `slate-400` da 2,6:1 sobre blanco (contadores de filtros, precio tachado,
+    "+ ITBIS", papelera, ejemplo del buscador) → `slate-500` (4,8:1); y `slate-500` sobre el gris de la
+    tienda (`#f4f4f3`) da **4,3:1**, así que ahí va `slate-600` (6,9:1: la cantidad de cada categoría de
+    la portada y la categoría del marcador).
+  · **Iconos**: el "▾" del orden era un carácter; ahora `ChevronDown`.
+  · **Un texto que mentía** (pedido del coordinador): la ficha decía *"Al enviar tu cotización
+    validamos el inventario…"*, y desde el lote 233 la cotización no se envía. Ahora dice que se
+    guarda en el navegador para imprimirla o guardarla en PDF, y que inventario y entrega se
+    confirman al pedir. Buscado en toda la tienda: no queda otro texto de enviar, iniciar sesión ni
+    crear cuenta (los dos comentarios viejos de `AddToCartClient` que hablaban de sesión y de "Phase 7",
+    corregidos). El banco lo vigila con una lista de promesas falsas, y la huella lleva ese único
+    cambio anotado como hecho a propósito.
+  · **Móvil, y esto solo salió MIRÁNDOLO**: a 375 px ninguna página desbordaba, pero en la cotización
+    la fila (foto, nombre, cantidad, importe, papelera) dejaba el nombre en **50 px**, partido palabra a
+    palabra, y el precio montado sobre la cantidad. En el móvil la foto y el nombre van en una línea y
+    los mandos debajo. Además: la búsqueda larga se recorta en su pastilla y el desplegable del orden
+    no pasa del ancho de la pantalla.
+  **Lo que no cambia**: la lógica (cotización, favoritos, filtros, orden, búsqueda, precios), qué se
+  pinta en servidor y qué en cliente (los componentes nuevos son de servidor), el `<Suspense>` de los
+  enlaces del menú y lo que no sale al imprimir.
+  **Se miró en el navegador** (`next dev` en el worktree, puerto 3282, contra la tienda real de Latin
+  Doors, solo lectura): portada, catálogo (con búsqueda vacía y con filtros y orden abiertos), ficha,
+  promociones (sin ofertas), favoritos y cotización (con un producto retirado), a 1.280 y a 375 px.
+  Barrido del foco **en el navegador**: se enfoca cada `<a>`, `<button>` y `<summary>` tras una pulsación
+  de Tab y se mira el anillo — **0 sin foco** en las seis pantallas; ningún elemento pasa del ancho.
+  Comprobado con `curl` que el catálogo sigue saliendo del servidor con sus productos.
+  Banco `verificar_ui_tienda.ts` (dibuja el botón, la cabecera y el estado vacío, la tarjeta, los
+  filtros, el pie y la portada): 31 comprobaciones y 9 invariantes — la huella de lo que la tienda
+  dice (textos, ejemplos, títulos, avisos y API) contra `3166354`, ningún `aria-label` perdido, nada
+  pasa de servidor a cliente, el `<Suspense>`, la impresión y las llamadas a la lógica. Contraprueba
+  **31 FALLA** (contra `3166354`, con los ficheros sacados de `git show`), dieciocho mutantes y
+  dieciocho muertos — **dos sobrevivieron primero**: `py-3.5` en
+  lugar de `py-3` (con `\bpy-3\b`, el punto es frontera de palabra) y un `'use client'` puesto tras el
+  comentario de cabecera (se miraba el principio del fichero sin quitar los comentarios).
+  **Re-anclado**: `verificar_estandar_de_botones` (lote 270) contaba el `<button>{children}</button>`
+  de `BotonTienda` como "solo icono sin nombre" (20, techo 19): un componente de botón no es un botón
+  a mano, y se salta como el del panel. Sin la exclusión, el invariante se rompe (comprobado).
+  **Fuera, a propósito**: los `<img>` (P3-47, lote 236); el "Cotizar" de la tarjeta conserva su
+  `aria-label` "Añadir … a mi cotización", que no contiene la palabra visible (WCAG 2.5.3) — cambiarlo
+  cambia lo que oye un lector de pantalla y es decisión aparte; y el cajón y el buscador del móvil no
+  atrapan el foco (no son ventanas modales: empujan la página).
 - **Lote 260: "Consultar DGII" cubre todo el filtro, y una consulta ya no deshace un
   veredicto definitivo.** Pedido del dueño (2026-10-03), tras preguntar si "Actualizar
   datos" y "Sincronizar DGII" hacían lo mismo: no — el primero relee la base, el segundo
@@ -2529,6 +2594,114 @@ Además, fuera de la tabla:
   llevaba a la vez `hidden` y `sr-only`, que no tiene sentido.
   **No se miró en el navegador**: el cambio son dos atributos y un nombre accesible, que el banco lee en
   el HTML dibujado.
+- **Lote 286: la siembra del menú dice lo mismo que la base.** Lo advirtió el agente del manual
+  (lote 283): copió los nombres del menú de `src/constants/defaultMappings.ts`, la siembra de
+  `route_mappings`, y la base podía tener otros. **Medido en PRODUCCIÓN, solo lectura**
+  (`scratch/_to_delete/medir_menu_286.ts`, dentro de una transacción `read only`): 50 filas, y **los
+  renombres del lote 190 SÍ están aplicados** — `/dashboard/ap` es "Pagos a Suplidores", el ajuste
+  de inventario "Ajustes de Inventario" y `/dashboard/settings` "Configuración" —, más uno que nadie
+  había anotado: `/dashboard/receivables-report` es **"Cuenta por Cobrar"**, en singular (así ya no
+  choca con "Cuentas por Cobrar" de Finanzas). La siembra seguía con los cuatro nombres viejos. No es
+  cosmético: es lo que el menú pinta mientras llega la respuesta de la base (`rbacContext`) y lo que
+  nace en una base nueva (`seed-routes.ts`).
+  **Alineado** (solo nombres): esos cuatro en la siembra; el manual (`scripts/generate-manual.js`,
+  sus `ruta(grupo, nombre)`: los cuatro y "Facturacion e-CF", que el manual escribía con tilde y el
+  menú no — PDF regenerado, 23 páginas); el botón de la alerta de BI que lleva a los ajustes ("Ver
+  Ajustes de Inventario"); y `menuLateral.vitest.ts`, que dice usar "el menú real" y ponía
+  Comprobantes Fiscales en Ingresos (es de Sistema; la restricción de `facturacion` va por ruta, así
+  que la prueba no cambia). El buscador Ctrl+K y las pestañas del inicio no escriben nombres del
+  menú: los leen de `route_mappings`.
+  **Dejado, a propósito, porque es permiso y no nombre**: el `module` de
+  `/dashboard/financial/accounts-receivable` y `accounts-payable` (siembra `caja`; base `cobros` y
+  `proveedores`), y las dos filas de `/dashboard/antiguedad-saldos` (`cobros` y `proveedores`, lote
+  190), que están en la base y **no en la siembra**: una base nueva nace sin esa pantalla en el menú.
+  Las dos cosas son del dueño. Tampoco se tocaron los títulos de las pantallas ("Módulo de Cuentas
+  por Pagar" en `/dashboard/ap`, "Ajustes del Sistema" en `/dashboard/settings`), que no son el menú.
+  Banco `verificar_menu_como_la_base.ts`, con la medición **congelada dentro** (fecha incluida; si el
+  dueño renombra algo en la base hay que volver a medir): 9 comprobaciones y tres invariantes (módulos
+  y acciones sin tocar salvo las dos rutas conocidas, las mismas rutas en los dos lados salvo
+  antigüedad de saldos, BI y el Agente fuera del menú), contraprueba **9 FALLA** contra `696854e`,
+  doce mutantes y doce muertos — incluido "corregir" el módulo de CxC en la siembra, que rompe un
+  invariante: el día que se alinee el permiso, será a propósito.
+- **Lote 285: cuatro pantallas que decían otra cosa de lo que hacen.** Los encontró el agente del
+  manual (lote 283) al describirlas. **No cambia ninguna regla de negocio**: solo lo que se enseña.
+  · **Clientes, "Tipo de Precio"** decía "Precio 1 (Base +25%)": el **recargo** de antes del lote
+    265. Ahora `NIVELES_DE_PRECIO` y `rotuloDelNivel` (`services/precios/margen.ts`) lo derivan de
+    `MARGENES_SOBRE_VENTA`: "Precio 1 (Base, margen 25 % sobre la venta)". Lo que se guarda
+    (`base`, `consumidor`…) no cambia. Ninguna otra pantalla repetía el rótulo viejo (las etiquetas
+    del formulario de productos ya decían "margen 25%" desde el 265).
+  · **Productos, tarjeta "Stock Bajo"**: pintaba un `0` escrito a mano. **Regla elegida, medida
+    antes**: había cuatro — reorden (`minStock > 0 && cantidad <= minimo`), la de Inteligencia de
+    Negocio (excluye lo agotado), la de `alcanza` (si se puede VENDER, F1-04) y el estado `critical`
+    del informe de inventario —. Se usa **la de reorden**, porque es la que dice "hay que reponer" y
+    así la tarjeta y la lista de reorden enseñan lo mismo. Vive una vez en
+    `services/inventario/existencia.ts` (`estaBajoElMinimo`, `contarProductosConStockBajo`: cuenta
+    productos, no almacenes, y los de servicio no cuentan). La lista solo trae una página y se pide en
+    cada tecla, así que el conteo va en una ruta propia, `GET /api/v1/products/stock-bajo`
+    (`catalogo:read`, acotada por empresa y modo, sin borrados); sin respuesta la tarjeta dice "—", no
+    0. **Medido en PRODUCCIÓN (solo lectura): ningún nivel de inventario tiene mínimo puesto**, así
+    que la cifra honesta hoy es 0 — y la pantalla de reorden también sale vacía — hasta que alguien
+    configure mínimos.
+  · **Caja, histórico**: "EXPORTAR XLS" bajaba un `.csv` (lote 281). Dice "EXPORTAR CSV". **Visto y no
+    tocado**: `components/financial/TablaCuentas.tsx` tiene el mismo desfase (botón "Excel" que baja un
+    CSV).
+  · **Central e-CF**: el mapa de nombres se arregló hace tiempo, pero los **desplegables** de crear
+    secuencia y del filtro seguían escritos a mano con el 46 y el 47 cruzados (y el filtro ofrecía el 46
+    dos veces). Se curó la causa: las opciones salen del catálogo en `ecf/opcionesDeTipo.ts` (también
+    la serie B, en lista ORDENADA: "11"-"17" son índices enteros y un `Object.entries` los pondría
+    delante del "01"), con los mismos tipos que antes. Barrido de `src/`: ninguna otra copia cruzada
+    de 46/47 ni de 16/17.
+  Banco `verificar_desfases_del_manual.ts` (reglas ejecutadas, el histórico y el desplegable de
+  clientes dibujados, barridos de `src/`): 20 comprobaciones y 5 invariantes, contraprueba **20 FALLA**
+  contra `696854e`, quince mutantes y quince muertos. **Dos comprobaciones se cazaron solas**: los
+  barridos casaban con los comentarios que cuentan el defecto de antes; se barre sin comentarios.
+  **El barrido cazó tres bancos, ninguno una regresión**: `verificar_ui_compras_finanzas` (273),
+  `verificar_ui_inventario` (271) y `verificar_ventanas_inventario` (277) comparaban la huella visible
+  de la CARPETA contra su base, y este lote cambia a propósito un texto ("EXPORTAR CSV") y añade una
+  dirección de la API (`stock-bajo`). Comparan ahora **dos commits** (su base y `696854e`, el último
+  `main` en que se comprobaron), como en los lotes 227 y 230; un mutante que vuelve a leer `HEAD` los
+  rompe. Los otros tres rojos (`gancho_y_compras`, `p3_48`, `padron_de_rnc`) son los falsos conocidos
+  de un worktree.
+- **Lote 289: los permisos de la siembra del menú, iguales a la base — y una guarda que solo leía
+  una fila.** Decisión del dueño (2026-10-04) sobre lo que el 286 dejó fuera por ser permiso: en
+  `src/constants/defaultMappings.ts`, `/dashboard/financial/accounts-receivable` pasa de `caja` a
+  **`cobros`**, `accounts-payable` de `caja` a **`proveedores`**, y entran las **dos** filas de
+  `/dashboard/antiguedad-saldos` (`cobros` y `proveedores`, lote 190) con nombre, grupo, icono,
+  orden (51), acción e `is_menu_item` de la base. Los valores son los medidos y congelados en el
+  286; no hizo falta volver a la base. **La siembra es ahora igual a la base fila por fila, con
+  repetidos.** Ids nuevos `40a` y `40b`, y de paso el `'35'` doble del 286 se deshace (Desglose
+  Puertas pasa a `29b`): los ids de la siembra no llegan a la base (`seed-routes` y la reparación
+  ponen un uuid), solo tienen que ser únicos.
+  **Lo que salió al mirar quién lee dos filas con la misma ruta**: el menú (`buildSidebar`, una
+  entrada por fila; el sidebar y `unaEntradaPorRuta` quitan la repetida), `seed-routes` (inserta
+  todas) y la reparación de faltantes (una ruta ausente entra con todas sus filas) las admitían.
+  **`canAccessRoute` no**: se quedaba con la PRIMERA fila que casaba. Con las filas de PRODUCCIÓN,
+  a `compras` (solo `proveedores`) o a `facturacion` (solo `cobros`) el menú le ofrecía Antigüedad
+  de Saldos y la guarda de rutas lo mandaba a /403 **según el orden en que la base devolviera las
+  filas** — ejecutado: con un orden entra uno, con el contrario el otro. Ahora decide el patrón más
+  específico (el más largo, como antes) con **todas** sus filas: basta el permiso de una
+  (`src/utils/filasDeLaRuta.ts`, puro, y `rbacContext` lo llama). `RbacService.resolveRoutePermission`
+  tiene la misma forma pero **no lo llama nadie**: se deja, anotado aquí.
+  **Lo que NO se cambió, a propósito**: la reparación de `auth/route-mappings` sigue comparando por
+  RUTA y no por ruta + módulo. Corre sola y alcanza a las seis empresas; comparando también el
+  módulo, AÑADIRÍA permisos en cuanto base y siembra discreparan. Una ruta a la que le falta una de
+  sus filas no se repara sola (comentario en la ruta).
+  **Quién entra (`canAccessRoute`) y quién lo ve en el menú, con la siembra y los permisos por
+  defecto de cada rol** (sistemas y administración, todo, antes y después):
+  CxC de Finanzas — antes entraban facturacion y cajero (`caja`), ahora contabilidad, facturacion y
+  banco (`cobros`); en el menú, contabilidad pasa a verla (la restricción de `/dashboard/financial`
+  ya la limitaba a contabilidad). CxP — antes facturacion y cajero, ahora contabilidad, banco y
+  compras; mismo cambio en el menú. Antigüedad de Saldos — antes, sin fila, entraba todo el mundo y
+  no salía en el menú de nadie; ahora entran y la ven contabilidad, facturacion, banco y compras, y
+  ni cajero ni recursos_humanos. **Con la base de PRODUCCIÓN nada de esto cambia** (ya tenía esos
+  módulos), salvo el /403 por orden de filas, que se cierra.
+  Banco `verificar_permisos_como_la_base.ts` (siembra, regla y `buildSidebar` ejecutados): 18
+  comprobaciones y tres invariantes, contraprueba **18 FALLA** contra `bac5a91`, diez mutantes y
+  diez muertos — **uno sobrevivió primero**: quitar la guarda de longitud (gana el último patrón
+  que casa en vez del más largo) pasaba, porque en la siembra `/dashboard/financial%` va antes que
+  CxC; ahora se prueba en los dos órdenes. Y `verificar_menu_como_la_base.ts` cambia sus dos
+  invariantes tolerantes por la igualdad completa (ok: falla contra `bac5a91`), y "ningún nombre del
+  menú repetido" pasa a contarse por **pantalla**: antigüedad son dos filas de la misma.
 - **Lote 287: el registro público crea la empresa con SU nombre y SU RNC.** Decisión del dueño
   (2026-10-04): el registro (`/auth/register`) **sigue abierto**, para que un cliente nuevo se dé
   de alta solo, pero la empresa ya no nace como "Empresa Demo S.R.L." con RNC 101001001 y

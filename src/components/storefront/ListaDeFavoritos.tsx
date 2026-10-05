@@ -8,7 +8,8 @@
  * diria un instante a quien si los tiene. Y lo guardado cuyo producto ya no
  * esta activo simplemente no sale (no se borra: si vuelve, vuelve con el).
  */
-import Link from 'next/link';
+import { EnlaceTienda } from './BotonTienda';
+import EstadoVacio from './EstadoVacio';
 import type { StorefrontProduct } from '@/services/storefront/productService';
 import { esFavorito } from '@/services/storefront/favoritos';
 import { useFavoritos } from './useFavoritos';
@@ -25,14 +26,9 @@ export default function ListaDeFavoritos({ empresaSlug, productos }: { empresaSl
 
   if (guardados.length === 0) {
     return (
-      <div className="py-16 text-center">
-        <p className="text-lg text-slate-900">Aún no tienes favoritos</p>
-        <p className="mt-2 text-sm text-slate-500">Pulsa el corazón de un producto para guardarlo aquí.</p>
-        <Link href={`/${empresaSlug}/productos`}
-          className="mt-8 inline-block rounded-full bg-[#001e40] px-8 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-white hover:bg-[#00142a]">
-          Ver productos
-        </Link>
-      </div>
+      <EstadoVacio titulo="Aún no tienes favoritos" texto="Pulsa el corazón de un producto para guardarlo aquí.">
+        <EnlaceTienda href={`/${empresaSlug}/productos`}>Ver productos</EnlaceTienda>
+      </EstadoVacio>
     );
   }
 

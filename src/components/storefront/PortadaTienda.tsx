@@ -9,7 +9,7 @@
  * recortar, sobre el gris); sin ella, el logo sobre gris (o las iniciales si
  * tampoco hay logo).
  */
-import Link from 'next/link';
+import { EnlaceTienda } from './BotonTienda';
 import { inicialesDe } from '@/services/storefront/catalogo';
 import { FOTO_ENTERA } from '@/utils/fotoEntera';
 import { portadaParaMostrar, type PortadaGuardada } from '@/services/storefront/portada';
@@ -37,14 +37,12 @@ export function PortadaTienda({ empresaSlug, nombre, logoUrl, portada }: {
           {/* `whitespace-pre-line`: el texto admite parrafos, y se respetan. */}
           <p className="mt-6 whitespace-pre-line text-lg leading-relaxed text-slate-600">{p.texto}</p>
           <div className="mt-10 flex flex-wrap gap-3">
-            <Link href={`/${empresaSlug}/productos`}
-              className="rounded-full bg-[#001e40] px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.15em] text-white transition-colors hover:bg-[#00142a]">
+            <EnlaceTienda href={`/${empresaSlug}/productos`} tamano="lg">
               Ver productos
-            </Link>
-            <Link href={`/${empresaSlug}/mi-cotizacion`}
-              className="rounded-full border border-slate-900 px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.15em] text-slate-900 transition-colors hover:bg-slate-900 hover:text-white">
+            </EnlaceTienda>
+            <EnlaceTienda href={`/${empresaSlug}/mi-cotizacion`} variante="contorno" tamano="lg">
               Mi cotización
-            </Link>
+            </EnlaceTienda>
           </div>
         </div>
       </div>

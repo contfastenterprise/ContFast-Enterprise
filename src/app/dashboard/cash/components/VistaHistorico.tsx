@@ -32,9 +32,11 @@ export function VistaHistorico({ h }: { h: HistorialCaja }) {
           descripcion="Consulta y audita los turnos de facturación finalizados."
           acciones={
             <>
+              {/* LOTE 285: decia "EXPORTAR XLS" y baja un .csv (lote 281, `descargarCsv`). Excel lo
+                  abre igual, pero quien busca el fichero en Descargas busca lo que el boton prometio. */}
               <Button type="button" variant="documento" onClick={h.handleExportHistory}>
                 <Download className="w-4 h-4" />
-                EXPORTAR XLS
+                EXPORTAR CSV
               </Button>
               <Button
                 type="button"

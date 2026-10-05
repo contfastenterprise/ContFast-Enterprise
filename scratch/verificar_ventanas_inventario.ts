@@ -234,7 +234,12 @@ async function main() {
   for (const f of todos) {
     let antes: string;
     try { antes = enBase(f); } catch { continue; }
-    const d = diferencia(visibles(antes), visibles(leer(f)));
+    //  LOTE 285: DOS COMMITS, no la carpeta (como en los lotes 227 y 230). El 285 pide a proposito una
+    //  ruta nueva desde productos (la tarjeta "Stock Bajo"); la prueba de este lote sigue siendo la
+    //  misma entre ab9e5fd y 696854e, el ultimo main en que se comprobo.
+    let despues: string;
+    try { despues = execFileSync('git', ['show', `696854e:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 }).replace(/\r\n/g, '\n'); } catch { continue; }
+    const d = diferencia(visibles(antes), visibles(despues));
     if (d.faltan.length || d.sobran.length) cambiados.push(`${f.replace('src/app/dashboard/', '')}: faltan ${JSON.stringify(d.faltan.slice(0, 3))} sobran ${JSON.stringify(d.sobran.slice(0, 3))}`);
   }
   invariante(`los textos, placeholder, title, avisos y direcciones de la API de los ${todos.length} ficheros son los de ${BASE}`, cambiados.length === 0, cambiados.join(' | '));

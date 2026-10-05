@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/table';
 import { Pagination } from '@/components/ui/pagination';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { NIVELES_DE_PRECIO, rotuloDelNivel } from '@/services/precios/margen';
 
 
 interface Customer {
@@ -632,10 +633,12 @@ export default function CustomersPage() {
                       onChange={(e) => setFormData({ ...formData, priceType: e.target.value })}
                       className="w-full h-8 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors appearance-none"
                     >
-                      <option value="base">Precio 1 (Base +25%)</option>
-                      <option value="consumidor">Precio 2 (Consumidor Final +20%)</option>
-                      <option value="mayorista">Precio 3 (Mayorista +15%)</option>
-                      <option value="proveedor">Precio 4 (Proveedor +10%)</option>
+                      {/* LOTE 285: decia "Base +25%", el RECARGO de antes del lote 265. Desde entonces
+                          el porcentaje es un margen sobre el precio de venta, y el rotulo sale de
+                          MARGENES_SOBRE_VENTA para no volver a quedarse atras. */}
+                      {NIVELES_DE_PRECIO.map((n) => (
+                        <option key={n.valor} value={n.valor}>{rotuloDelNivel(n)}</option>
+                      ))}
                     </select>
                   </div>
 

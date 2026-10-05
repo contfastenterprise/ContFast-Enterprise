@@ -7,6 +7,7 @@ import { UserProfile, RouteMapping } from '@/types/rbac';
 import { DEFAULT_ROLE_PERMISSIONS } from '@/constants/rolePermissions';
 import { DEFAULT_ROUTE_MAPPINGS } from '@/constants/defaultMappings';
 import { esAdministracion, esSistemas } from '@/utils/rolMatch';
+import { algunaFilaConcede } from '@/utils/filasDeLaRuta';
 
 export interface RbacContextType {
   user: UserProfile | null;
@@ -143,10 +144,6 @@ export function RbacProvider({
     return userRole === target || userRole.includes(target);
   }, [user]);
 
-  const sortedMappings = React.useMemo(() => {
-    return [...routeMappings].sort((a, b) => b.routePattern.length - a.routePattern.length);
-  }, [routeMappings]);
-
   const canAccessRoute = React.useCallback((path: string): boolean => {
     if (!user) return false;
     const userRole = (user.role || '').toLowerCase();
@@ -161,27 +158,16 @@ export function RbacProvider({
       return false;
     }
 
-    for (const mapping of sortedMappings) {
-      const pattern = mapping.routePattern;
-      
-      // SQL LIKE to regex translation
-      const regexPattern = '^' + pattern
-        .replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')
-        .replace(/%/g, '.*') + '$';
-        
-      const regex = new RegExp(regexPattern, 'i');
-      if (regex.test(path)) {
-        const moduleName = mapping.module;
-        // Default action is read for views
-        const action = mapping.action || 'read';
-
-        return hasPermission(moduleName, action);
-      }
-    }
+    //  LOTE 289: decide el patron mas especifico que casa (el mas largo, como antes), pero
+    //  con TODAS sus filas: una pantalla puede tener una fila por modulo que da acceso
+    //  (`/dashboard/antiguedad-saldos`: `cobros` y `proveedores`, lote 190). Antes se
+    //  miraba solo la primera fila y a quien tenia el otro permiso el menu le ofrecia la
+    //  pantalla y esta guarda lo mandaba a /403. Ver `utils/filasDeLaRuta`.
+    const concede = algunaFilaConcede(path, routeMappings, hasPermission);
 
     // If no route mapping exists in database, fallback to allow access
-    return true;
-  }, [user, sortedMappings, hasPermission]);
+    return concede ?? true;
+  }, [user, routeMappings, hasPermission]);
 
   // Perform client-side route protection checking in real-time
   useEffect(() => {

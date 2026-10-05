@@ -10,6 +10,7 @@ import { precioVigente, tieneOferta } from '@/services/storefront/catalogo';
 import { StorefrontCompanyService } from '@/services/storefront/companyService';
 import { Metadata } from 'next';
 import { FOTO_ENTERA } from '@/utils/fotoEntera';
+import { FOCO_TIENDA } from '@/components/storefront/botonTiendaVariantes';
 
 export const dynamic = 'force-dynamic';
 
@@ -59,15 +60,15 @@ export default async function StorefrontProductDetailPage({
     <div className="mx-auto max-w-[1400px] px-4 pb-20 pt-8 sm:px-6 lg:px-10">
       <nav aria-label="Ruta" className="mb-8 text-xs uppercase tracking-[0.15em] text-slate-500">
         <ol className="flex flex-wrap items-center gap-2">
-          <li><Link href={`/${empresaSlug}/productos`} className="hover:text-slate-900">Productos</Link></li>
+          <li><Link href={`/${empresaSlug}/productos`} className={`rounded-sm hover:text-slate-900 ${FOCO_TIENDA}`}>Productos</Link></li>
           {categoryName && categoryId && (
             <>
               <li aria-hidden="true">/</li>
-              <li><Link href={`/${empresaSlug}/productos?categoria=${categoryId}`} className="hover:text-slate-900">{categoryName}</Link></li>
+              <li><Link href={`/${empresaSlug}/productos?categoria=${categoryId}`} className={`rounded-sm hover:text-slate-900 ${FOCO_TIENDA}`}>{categoryName}</Link></li>
             </>
           )}
           <li aria-hidden="true">/</li>
-          <li aria-current="page" className="text-slate-900">{name}</li>
+          <li aria-current="page" className="min-w-0 break-words text-slate-900">{name}</li>
         </ol>
       </nav>
 
@@ -87,7 +88,7 @@ export default async function StorefrontProductDetailPage({
 
         <div className="flex flex-col">
           {categoryName && <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{categoryName}</p>}
-          <h1 className="mt-2 text-2xl font-medium uppercase tracking-[0.08em] text-slate-900 md:text-3xl">{name}</h1>
+          <h1 className="mt-2 break-words text-2xl font-medium uppercase tracking-[0.08em] text-slate-900 md:text-3xl">{name}</h1>
 
           <div className="mt-5">
             <PrecioDeTienda producto={product} grande />
