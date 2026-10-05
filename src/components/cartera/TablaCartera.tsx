@@ -11,6 +11,8 @@ import { IconoRiesgo } from './iconosRiesgo';
 import type { FilaCartera, TipoCartera } from './tipos';
 import { PALABRAS, dinero, dineroCorto } from './tipos';
 import { urlEstadoImpreso } from './estadoImpreso';
+import { clasesDeAtraso } from '@/services/cartera/reglasDeCartera';
+import { sumaVencida } from '@/services/cartera/vencimiento';
 import { Button, IconButton } from '@/components/ui/button';
 
 type Campo = 'nombre' | 'saldo' | 'riesgo' | 'atraso';
@@ -281,6 +283,15 @@ export function TablaCartera({
 
                     <td className="py-3 px-4 text-right">
                       <div className="font-bold text-neutral-900 text-xs tabular-nums">{dinero(f.saldo)}</div>
+                      {/* Lote 304: cuanto de ese saldo esta VENCIDO, documento a documento. El
+                          nivel lo marca la factura mas atrasada, pero el saldo de la fila es de
+                          todas: sin esta linea, 24.707 "en riesgo medio" se leia como 24.707
+                          vencidos cuando lo vencido eran 10.487. */}
+                      {f.tramos && sumaVencida(f.tramos) > 0 && (
+                        <div className={`text-[10px] font-medium tabular-nums ${clasesDeAtraso(f.diasAtraso)}`} data-vencido-fila>
+                          Vencido: {dinero(sumaVencida(f.tramos))}
+                        </div>
+                      )}
                       {f.cupoCredito !== null && (
                         <div className="text-[10px] text-neutral-600">Cupo: {dineroCorto(f.cupoCredito)}</div>
                       )}
@@ -292,7 +303,9 @@ export function TablaCartera({
                     <td className="py-3 px-4 text-center">
                       <IconoRiesgo nivel={f.nivelRiesgo} className="w-[18px] h-[18px]" />
                       {f.diasAtraso > 0 && (
-                        <div className="text-[10px] text-rose-600 font-medium mt-0.5">{f.diasAtraso} d. atraso</div>
+                        // Lote 304: el color del atraso es el de su nivel. Antes TODO atraso salia en
+                        // rojo, aunque de 1 a 15 dias es riesgo medio (ambar, como su icono).
+                        <div className={`text-[10px] font-medium mt-0.5 ${clasesDeAtraso(f.diasAtraso)}`} data-atraso-fila>{f.diasAtraso} d. atraso</div>
                       )}
                     </td>
 
@@ -341,11 +354,11 @@ export function TablaCartera({
           </span>
           <span className="hidden sm:inline">|</span>
           <span className="hidden sm:inline">
-            Con atraso: <strong className="text-rose-600 tabular-nums">{ordenadas.filter((f) => f.diasAtraso > 0).length}</strong>
+            Con atraso: <strong className="text-neutral-800 tabular-nums">{ordenadas.filter((f) => f.diasAtraso > 0).length}</strong>
           </span>
         </div>
         <div className="text-[11px] text-neutral-400">
-          El crédito es de 30 días; el atraso se cuenta desde que vence
+          El atraso se cuenta desde el vencimiento pactado de cada documento
         </div>
       </div>
     </div>

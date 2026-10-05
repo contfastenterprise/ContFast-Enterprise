@@ -10,14 +10,26 @@ import {
   invoices,
   expenses,
 } from '@/db';
-import { and, eq, inArray, sql, isNull, desc } from 'drizzle-orm';
-import { nivelPorAtraso, type NivelRiesgo } from '@/services/cartera/riesgo';
+import { and, eq, inArray, sql, isNull, desc, type SQLWrapper } from 'drizzle-orm';
+import type { NivelRiesgo } from '@/services/cartera/riesgo';
+import { analizarVencimiento, type SumaPorTramo } from '@/services/cartera/vencimiento';
+import {
+  resumirPorEntidad, vencimientoDeCxc, type SaldoPorNivel,
+} from '@/services/cartera/reglasDeCartera';
+import { facturaEsDeudaSql, vencimientoDeCxcSql } from '@/services/cartera/sqlDeCartera';
+import { diaRD } from '@/utils/fechasLocales';
+
+/**
+ * Un `timestamp` sin zona que guarda UTC, convertido a la hora de RD (lote 174: el primer
+ * `AT TIME ZONE` no sobra, sin el Postgres lo lee en la zona de la sesion).
+ */
+const creadoEnRD = (col: SQLWrapper) => sql`((${col} AT TIME ZONE 'UTC') AT TIME ZONE 'America/Santo_Domingo')`;
 
 export type TipoCartera = 'clientes' | 'suplidores';
 export type Modo = ModoOperativo;
 
-/** Una fila del resumen por cliente o suplidor, tal como sale de la consulta. */
-interface FilaEntidadCartera {
+/** Un documento de la cartera con los datos de su cliente o suplidor, tal como sale de la consulta. */
+interface FilaDocumentoCartera {
   id: string;
   nombre: string;
   rncCedula: string | null;
@@ -26,9 +38,8 @@ interface FilaEntidadCartera {
   /** Solo clientes: `suppliers` no tiene cupo. */
   cupoCredito?: string | number | null;
   saldo: string;
-  diasAtraso: number;
-  documentosPendientes: number;
-  ultimoDocumento: string | null;
+  vence: string | null;
+  creado: Date | string | null;
 }
 
 /** Un punto de la grafica mensual. */
@@ -76,6 +87,10 @@ export interface FilaCartera {
   /** Fecha del documento mas reciente. `null` si no hay ninguno. */
   ultimoDocumento: string | null;
   documentosPendientes: number;
+  /** Lote 304: el saldo por antiguedad, documento a documento (por vencer, 1-30 ... 90+). */
+  tramos: SumaPorTramo;
+  /** Lote 304: el saldo por el nivel de riesgo de CADA documento, no el de la entidad. */
+  saldoPorNivel: SaldoPorNivel;
   mensual: PuntoMensual[];
 }
 
@@ -91,9 +106,10 @@ export interface FilaCartera {
  *
  * EL RIESGO NO SE GUARDA
  * ----------------------
- * Sale de `nivelPorAtraso` sobre los dias de la cuota mas atrasada, calculados
- * por Postgres contra CURRENT_DATE en el momento de preguntar. Ver
- * `src/services/cartera/riesgo.ts`.
+ * Sale de `nivelPorAtraso` sobre los dias de la cuota mas atrasada, contados
+ * contra el DIA DE RD en el momento de preguntar (lote 304: antes contra
+ * `CURRENT_DATE`, que en Postgres es UTC). Ver `src/services/cartera/riesgo.ts`
+ * y `reglasDeCartera.ts`.
  *
  * MODO Y EMPRESA
  * --------------
@@ -103,9 +119,9 @@ export interface FilaCartera {
  *
  * SOLO SALE QUIEN DEBE
  * --------------------
- * Los agregados filtran por `balance > 0`, pero eso NO quita la fila: quita lo
- * que suma. Un cliente con todo saldado seguia saliendo en la tabla con saldo
- * 0, 0 dias y 0 documentos. Quien lo quita es el `HAVING`. Y no es cosmetica:
+ * Un cliente con todo saldado seguia saliendo en la tabla con saldo 0, 0 dias
+ * y 0 documentos. Quien lo quita es `resumirPorEntidad` (antes un `HAVING`),
+ * con el mismo centavo de tolerancia. Y no es cosmetica:
  * la dona reparte sobre `filas.length` y el CSV exporta `filas`, asi que cada
  * saldado de mas encogia el porcentaje de los que si deben.
  */
@@ -121,8 +137,18 @@ export class CarteraRepository {
   }
 
   // ─────────────────────────── clientes ───────────────────────────
+  //
+  //  Lote 304: antes eran dos agregados en SQL que (1) sumaban la CxC de facturas RECHAZADAS
+  //  (E310000000029: 102.616,67 de mas a un cliente), (2) contaban el atraso contra la fecha de la
+  //  CxC y no contra la PACTADA en la factura, y (3) contra `CURRENT_DATE`, que en Postgres (UTC) es
+  //  mañana desde las 20:00 de RD. Ahora se traen los documentos -- una consulta, no una por
+  //  cliente (P2-28) -- y el resumen lo hace `resumirPorEntidad`, la misma regla que el banco
+  //  ejecuta y que reparte el saldo por tramos documento a documento.
   private static async resumenClientes(companyId: string, modo: Modo): Promise<FilaCartera[]> {
-    const filas = await db
+    const hoy = diaRD();
+    // Lote 304: las dos consultas no dependen una de otra: van a la vez.
+    const [docs, series] = await Promise.all([
+      db
       .select({
         id: customers.id,
         nombre: customers.name,
@@ -130,131 +156,110 @@ export class CarteraRepository {
         telefono: customers.phone,
         correo: customers.email,
         cupoCredito: customers.creditLimit,
-        // Solo las cuotas que siguen debiendo algo suman al saldo.
-        saldo: sql<string>`COALESCE(SUM(CASE WHEN ${accountsReceivable.balance} > 0 THEN ${accountsReceivable.balance} ELSE 0 END), 0)`,
-        // La cuota MAS atrasada con saldo. `GREATEST(...,0)` para que una
-        // factura dentro de sus 30 dias de credito no reste dias y disfrace
-        // el atraso de las que si vencieron.
-        diasAtraso: sql<number>`COALESCE(MAX(CASE WHEN ${accountsReceivable.balance} > 0 THEN GREATEST(CURRENT_DATE - ${accountsReceivable.dueDate}, 0) ELSE 0 END), 0)`,
-        documentosPendientes: sql<number>`COUNT(*) FILTER (WHERE ${accountsReceivable.balance} > 0)`,
-        ultimoDocumento: sql<string | null>`MAX(${accountsReceivable.createdAt})`,
+        saldo: accountsReceivable.balance,
+        vence: vencimientoDeCxcSql(invoices.paymentDueDate, accountsReceivable.dueDate),
+        creado: accountsReceivable.createdAt,
       })
       .from(accountsReceivable)
       .innerJoin(customers, eq(accountsReceivable.customerId, customers.id))
+      .innerJoin(invoices, eq(accountsReceivable.invoiceId, invoices.id))
       .where(
         and(
           eq(accountsReceivable.companyId, companyId),
           eq(accountsReceivable.modo, modo),
           isNull(accountsReceivable.deletedAt),
-          isNull(customers.deletedAt)
+          // Un cliente borrado SIGUE debiendo: antes se le quitaba de la cartera y su deuda
+          // desaparecia de esta pantalla mientras las demas la seguian enseñando.
+          facturaEsDeudaSql(invoices.status, invoices.deletedAt)
         )
-      )
-      .groupBy(
-        customers.id,
-        customers.name,
-        customers.rncCedula,
-        customers.phone,
-        customers.email,
-        customers.creditLimit
-      )
-      // Fuera el que no debe nada. El `CASE WHEN` de arriba solo evita que las
-      // cuotas saldadas sumen; la fila del cliente sale igual, con todo en cero.
-      //
-      // El centavo de tolerancia es el mismo con el que `partidasCliente` da una
-      // cuenta por saldada. Con `> 0` un cliente que debe exactamente RD$0.01
-      // saldria en la tabla y su estado de cuenta abriria vacio.
-      .having(
-        sql`COALESCE(SUM(CASE WHEN ${accountsReceivable.balance} > 0 THEN ${accountsReceivable.balance} ELSE 0 END), 0) > 0.01`
-      );
-
-    const series = await db
+      ),
+      db
       .select({
         id: accountsReceivable.customerId,
-        mes: sql<string>`TO_CHAR(DATE_TRUNC('month', ${accountsReceivable.createdAt}), 'YYYY-MM')`,
+        mes: sql<string>`TO_CHAR(DATE_TRUNC('month', ${creadoEnRD(accountsReceivable.createdAt)}), 'YYYY-MM')`,
         monto: sql<string>`COALESCE(SUM(${accountsReceivable.amount}), 0)`,
       })
       .from(accountsReceivable)
+      .innerJoin(invoices, eq(accountsReceivable.invoiceId, invoices.id))
       .where(
         and(
           eq(accountsReceivable.companyId, companyId),
           eq(accountsReceivable.modo, modo),
           isNull(accountsReceivable.deletedAt),
-          sql`${accountsReceivable.createdAt} >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months'`
+          facturaEsDeudaSql(invoices.status, invoices.deletedAt),
+          sql`${creadoEnRD(accountsReceivable.createdAt)} >= ${this.ultimosSeisMeses(hoy)[0] + '-01'}::date`
         )
       )
-      .groupBy(accountsReceivable.customerId, sql`DATE_TRUNC('month', ${accountsReceivable.createdAt})`);
+      .groupBy(sql`1`, sql`2`),
+    ]);
 
-    return this.armar(filas, series, true);
+    return this.armar(docs, series, true, hoy);
   }
 
   // ─────────────────────────── suplidores ───────────────────────────
+  //
+  //  Del lado de compras no hay estado DGII que mirar: la deuda es la CxP de una compra que sigue
+  //  viva. Una CxP cuya compra se borro no es deuda (antes contaba).
   private static async resumenSuplidores(companyId: string, modo: Modo): Promise<FilaCartera[]> {
-    const filas = await db
+    const hoy = diaRD();
+    const compraViva = sql`(${expenses.id} IS NULL OR ${expenses.deletedAt} IS NULL)`;
+    // Lote 304: las dos consultas no dependen una de otra: van a la vez.
+    const [docs, series] = await Promise.all([
+      db
       .select({
         id: suppliers.id,
         nombre: suppliers.name,
         rncCedula: suppliers.rnc,
         telefono: suppliers.phone,
         correo: suppliers.email,
-        saldo: sql<string>`COALESCE(SUM(CASE WHEN ${accountsPayable.balance} > 0 THEN ${accountsPayable.balance} ELSE 0 END), 0)`,
-        diasAtraso: sql<number>`COALESCE(MAX(CASE WHEN ${accountsPayable.balance} > 0 THEN GREATEST(CURRENT_DATE - ${accountsPayable.dueDate}, 0) ELSE 0 END), 0)`,
-        documentosPendientes: sql<number>`COUNT(*) FILTER (WHERE ${accountsPayable.balance} > 0)`,
-        ultimoDocumento: sql<string | null>`MAX(${accountsPayable.createdAt})`,
+        saldo: accountsPayable.balance,
+        vence: accountsPayable.dueDate,
+        creado: accountsPayable.createdAt,
       })
       .from(accountsPayable)
       .innerJoin(suppliers, eq(accountsPayable.supplierId, suppliers.id))
+      .leftJoin(expenses, eq(accountsPayable.expenseId, expenses.id))
       .where(
         and(
           eq(accountsPayable.companyId, companyId),
           eq(accountsPayable.modo, modo),
           isNull(accountsPayable.deletedAt),
-          isNull(suppliers.deletedAt)
+          compraViva
         )
-      )
-      .groupBy(
-        suppliers.id,
-        suppliers.name,
-        suppliers.rnc,
-        suppliers.phone,
-        suppliers.email
-      )
-      // Mismo freno que en clientes: el suplidor al que ya no se le debe nada no
-      // es cartera. Mismo centavo de tolerancia que `partidasSuplidor`.
-      .having(
-        sql`COALESCE(SUM(CASE WHEN ${accountsPayable.balance} > 0 THEN ${accountsPayable.balance} ELSE 0 END), 0) > 0.01`
-      );
-
-    const series = await db
+      ),
+      db
       .select({
         id: accountsPayable.supplierId,
-        mes: sql<string>`TO_CHAR(DATE_TRUNC('month', ${accountsPayable.createdAt}), 'YYYY-MM')`,
+        mes: sql<string>`TO_CHAR(DATE_TRUNC('month', ${creadoEnRD(accountsPayable.createdAt)}), 'YYYY-MM')`,
         monto: sql<string>`COALESCE(SUM(${accountsPayable.amount}), 0)`,
       })
       .from(accountsPayable)
+      .leftJoin(expenses, eq(accountsPayable.expenseId, expenses.id))
       .where(
         and(
           eq(accountsPayable.companyId, companyId),
           eq(accountsPayable.modo, modo),
           isNull(accountsPayable.deletedAt),
-          sql`${accountsPayable.createdAt} >= DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '5 months'`
+          compraViva,
+          sql`${creadoEnRD(accountsPayable.createdAt)} >= ${this.ultimosSeisMeses(hoy)[0] + '-01'}::date`
         )
       )
-      .groupBy(accountsPayable.supplierId, sql`DATE_TRUNC('month', ${accountsPayable.createdAt})`);
+      .groupBy(sql`1`, sql`2`),
+    ]);
 
     // `cupoCredito` va en null a proposito: `suppliers` NO tiene esa columna, y
     // poner 0 se leeria como "cupo cero", que es lo contrario de "no aplica".
-    return this.armar(filas, series, false);
+    return this.armar(docs, series, false, hoy);
   }
 
   // ─────────────────────────── el cruce ───────────────────────────
-  //  Lote 123: `filas` era `any[]`. Es lo que devuelven los dos `select` de
-  //  arriba (clientes lleva `cupoCredito`, suplidores no), con su forma escrita.
   private static armar(
-    filas: FilaEntidadCartera[],
+    docs: FilaDocumentoCartera[],
     series: { id: string; mes: string; monto: string }[],
-    conCupo: boolean
+    conCupo: boolean,
+    hoy: string
   ): FilaCartera[] {
-    const meses = this.ultimosSeisMeses();
+    const meses = this.ultimosSeisMeses(hoy);
 
     const porEntidad = new Map<string, Map<string, number>>();
     for (const s of series) {
@@ -262,8 +267,22 @@ export class CarteraRepository {
       porEntidad.get(s.id)!.set(s.mes, Number(s.monto) || 0);
     }
 
-    return filas.map((f) => {
-      const suyos = porEntidad.get(f.id) ?? new Map<string, number>();
+    const datos = new Map<string, FilaDocumentoCartera>();
+    for (const d of docs) if (!datos.has(d.id)) datos.set(d.id, d);
+
+    const resumen = resumirPorEntidad(
+      docs.map((d) => ({
+        entidadId: d.id,
+        saldo: Number(d.saldo) || 0,
+        vence: d.vence ? String(d.vence).slice(0, 10) : null,
+        creado: d.creado,
+      })),
+      hoy
+    );
+
+    return [...resumen.entries()].map(([id, r]) => {
+      const f = datos.get(id)!;
+      const suyos = porEntidad.get(id) ?? new Map<string, number>();
 
       // Los seis meses SIEMPRE, con cero donde no hubo movimiento: si solo se
       // pintaran los meses con datos, un mes en blanco se leeria como una
@@ -280,31 +299,32 @@ export class CarteraRepository {
         return { mes, monto, variacion };
       });
 
-      const diasAtraso = Number(f.diasAtraso) || 0;
-
       return {
-        id: f.id,
+        id,
         nombre: f.nombre,
         rncCedula: f.rncCedula ?? null,
         telefono: f.telefono ?? null,
         correo: f.correo ?? null,
-        saldo: Number(f.saldo) || 0,
+        saldo: r.saldo,
         cupoCredito: conCupo ? Number(f.cupoCredito) || 0 : null,
-        diasAtraso,
-        nivelRiesgo: nivelPorAtraso(diasAtraso),
-        ultimoDocumento: f.ultimoDocumento ? new Date(f.ultimoDocumento).toISOString() : null,
-        documentosPendientes: Number(f.documentosPendientes) || 0,
+        diasAtraso: r.diasAtraso,
+        nivelRiesgo: r.nivelRiesgo,
+        ultimoDocumento: r.ultimoDocumento,
+        documentosPendientes: r.documentosPendientes,
+        tramos: r.tramos,
+        saldoPorNivel: r.saldoPorNivel,
         mensual,
       };
     });
   }
 
-  /** 'AAAA-MM' de los ultimos seis meses, del mas viejo al actual. */
-  private static ultimosSeisMeses(): string[] {
-    const hoy = new Date();
+  /** 'AAAA-MM' de los ultimos seis meses de RD, del mas viejo al actual. */
+  private static ultimosSeisMeses(hoy: string = diaRD()): string[] {
+    const ano = Number(hoy.slice(0, 4));
+    const mes = Number(hoy.slice(5, 7)) - 1;
     const out: string[] = [];
     for (let i = 5; i >= 0; i--) {
-      const d = new Date(Date.UTC(hoy.getUTCFullYear(), hoy.getUTCMonth() - i, 1));
+      const d = new Date(Date.UTC(ano, mes - i, 1));
       out.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`);
     }
     return out;
@@ -389,19 +409,23 @@ export class CarteraRepository {
     // TODAS las cuentas del cliente, no solo las que deben: una factura ya
     // saldada puede arrastrar una nota de debito que sigue abierta, y esa nota
     // tiene que colgar de su factura.
-    const cuentas = await db
+    //
+    // Lote 304: las de facturas que son deuda (no rechazadas ni dadas de baja), con el
+    // vencimiento PACTADO y los dias contra el dia de RD -- las mismas reglas que el resumen.
+    const hoy = diaRD();
+    const filas = await db
       .select({
         arId: accountsReceivable.id,
         invoiceId: accountsReceivable.invoiceId,
         monto: accountsReceivable.amount,
         saldo: accountsReceivable.balance,
-        vence: accountsReceivable.dueDate,
+        venceCuenta: accountsReceivable.dueDate,
+        vencePactado: invoices.paymentDueDate,
         fecha: accountsReceivable.createdAt,
         ncf: invoices.ncf,
         codigo: invoices.codigoFactura,
         ecfType: invoices.ecfType,
         corrigeA: invoices.modifiedInvoiceId,
-        diasAtraso: sql<number>`GREATEST(CURRENT_DATE - ${accountsReceivable.dueDate}, 0)`,
       })
       .from(accountsReceivable)
       .innerJoin(invoices, eq(accountsReceivable.invoiceId, invoices.id))
@@ -410,9 +434,14 @@ export class CarteraRepository {
           eq(accountsReceivable.companyId, companyId),
           eq(accountsReceivable.modo, modo),
           eq(accountsReceivable.customerId, clienteId),
-          isNull(accountsReceivable.deletedAt)
+          isNull(accountsReceivable.deletedAt),
+          facturaEsDeudaSql(invoices.status, invoices.deletedAt)
         )
       );
+    const cuentas = filas.map((c) => {
+      const vence = vencimientoDeCxc(c.vencePactado, c.venceCuenta);
+      return { ...c, vence: vence ?? '', diasAtraso: analizarVencimiento(vence, { hoy }).atraso };
+    });
 
     if (cuentas.length === 0) return [];
 
@@ -442,7 +471,9 @@ export class CarteraRepository {
           eq(invoices.companyId, companyId),
           eq(invoices.modo, modo),
           eq(invoices.ecfType, '34'),
-          inArray(invoices.modifiedInvoiceId, facturaIds)
+          inArray(invoices.modifiedInvoiceId, facturaIds),
+          // Una nota de credito rechazada o dada de baja no acredita nada (lote 304).
+          facturaEsDeudaSql(invoices.status, invoices.deletedAt)
         )
       )
       .groupBy(invoices.modifiedInvoiceId);
@@ -527,7 +558,6 @@ export class CarteraRepository {
         vence: accountsPayable.dueDate,
         fecha: accountsPayable.createdAt,
         ncf: expenses.ncf,
-        diasAtraso: sql<number>`GREATEST(CURRENT_DATE - ${accountsPayable.dueDate}, 0)`,
       })
       .from(accountsPayable)
       .leftJoin(expenses, eq(accountsPayable.expenseId, expenses.id))
@@ -537,9 +567,12 @@ export class CarteraRepository {
           eq(accountsPayable.modo, modo),
           eq(accountsPayable.supplierId, suplidorId),
           isNull(accountsPayable.deletedAt),
+          // Lote 304: la CxP de una compra borrada no es deuda (la misma regla que el resumen).
+          sql`(${expenses.id} IS NULL OR ${expenses.deletedAt} IS NULL)`,
           sql`${accountsPayable.balance} > 0`
         )
       );
+    const hoy = diaRD();
 
     if (cuentas.length === 0) return [];
 
@@ -568,7 +601,8 @@ export class CarteraRepository {
         notasCredito: 0,
         abonos: abonoPorAp.get(c.apId) ?? 0,
         saldo: Number(c.saldo) || 0,
-        diasAtraso: Number(c.diasAtraso) || 0,
+        // Lote 304: contra el dia de RD, no contra `CURRENT_DATE` (UTC).
+        diasAtraso: analizarVencimiento(c.vence, { hoy }).atraso,
         huerfana: false,
       }))
       .filter((p) => p.saldo > 0.01)
@@ -592,18 +626,26 @@ export class CarteraRepository {
     tipo: TipoCartera,
     entidadId: string
   ) {
+    // Lote 304: los mismos documentos y los mismos dias que el resumen. Antes el estado de cuenta
+    // enseñaba la factura rechazada que la cartera ya habia sumado, y sus dias salian de
+    // `CURRENT_DATE` (UTC) y del vencimiento de la CxC en vez del pactado.
+    const hoy = diaRD();
+    const conDias = <T extends { vence: string | null }>(filas: T[]) =>
+      filas
+        .map((f) => ({ ...f, diasAtraso: analizarVencimiento(f.vence, { hoy }).atraso }))
+        .sort((a, b) => String(b.vence ?? '').localeCompare(String(a.vence ?? '')));
+
     if (tipo === 'clientes') {
-      return await db
+      const filas = await db
         .select({
           id: accountsReceivable.id,
           referencia: invoices.ncf,
           codigo: invoices.codigoFactura,
           fecha: accountsReceivable.createdAt,
-          vence: accountsReceivable.dueDate,
+          vence: vencimientoDeCxcSql(invoices.paymentDueDate, accountsReceivable.dueDate),
           monto: accountsReceivable.amount,
           saldo: accountsReceivable.balance,
           estado: accountsReceivable.status,
-          diasAtraso: sql<number>`GREATEST(CURRENT_DATE - ${accountsReceivable.dueDate}, 0)`,
         })
         .from(accountsReceivable)
         .innerJoin(invoices, eq(accountsReceivable.invoiceId, invoices.id))
@@ -613,13 +655,14 @@ export class CarteraRepository {
             eq(accountsReceivable.modo, modo),
             eq(accountsReceivable.customerId, entidadId),
             isNull(accountsReceivable.deletedAt),
+            facturaEsDeudaSql(invoices.status, invoices.deletedAt),
             sql`${accountsReceivable.balance} > 0`
           )
-        )
-        .orderBy(desc(accountsReceivable.dueDate));
+        );
+      return conDias(filas.map((f) => ({ ...f, vence: f.vence ? String(f.vence).slice(0, 10) : null })));
     }
 
-    return await db
+    const filas = await db
       .select({
         id: accountsPayable.id,
         referencia: expenses.ncf,
@@ -629,7 +672,6 @@ export class CarteraRepository {
         monto: accountsPayable.amount,
         saldo: accountsPayable.balance,
         estado: accountsPayable.status,
-        diasAtraso: sql<number>`GREATEST(CURRENT_DATE - ${accountsPayable.dueDate}, 0)`,
       })
       .from(accountsPayable)
       .leftJoin(expenses, eq(accountsPayable.expenseId, expenses.id))
@@ -639,9 +681,10 @@ export class CarteraRepository {
           eq(accountsPayable.modo, modo),
           eq(accountsPayable.supplierId, entidadId),
           isNull(accountsPayable.deletedAt),
+          sql`(${expenses.id} IS NULL OR ${expenses.deletedAt} IS NULL)`,
           sql`${accountsPayable.balance} > 0`
         )
-      )
-      .orderBy(desc(accountsPayable.dueDate));
+      );
+    return conDias(filas);
   }
 }

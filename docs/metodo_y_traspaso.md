@@ -3530,6 +3530,79 @@ Además, fuera de la tabla:
   `estandar_de_botones`, `colores_del_tema`) en verde sin tocarlos: ninguno anclaba los textos cambiados.
   Los de integración (`limites_del_plan_db`, `prueba_gratis_db`) no anclan el texto de los mensajes y no se
   corrieron. **No se miró en el navegador**: la tarjeta es la misma que ya pinta Plan & Suscripción.
+- **Lote 304: la antigüedad de saldos dice lo que dicen los documentos.** Pedido del dueño
+  (2026-10-05): *"/dashboard/antiguedad-saldos: los datos no coinciden, por lo menos en cuentas por
+  cobrar; los estados en rojo no son correctos, y otros datos"*. **Medido en PRODUCCIÓN (solo
+  lectura, `scratch/_to_delete/medir_antiguedad_304*.ts`)** y contrastado con una referencia
+  independiente calculada desde los datos en bruto (`referencia_antiguedad_2026-10-05.json`, otra
+  sesión): después del lote, los tres clientes y el suplidor de Latin Doors **cuadran al centavo**,
+  por total y por tramo. Los defectos, todos de código:
+  · **Se sumaba la CxC de una factura RECHAZADA.** JUNIO JOSE FLORENTINO NICACIO salía con
+    1.060.446,79 y debe 957.830,12: E310000000029 (rechazada, 1209; la venta salió como 030) sigue
+    con su CxC de 102.616,67, porque un rechazado ya contabilizado no se revierte solo (lote 140).
+    **Ninguna** fuente de CxC miraba el estado de la factura. Ahora una sola regla,
+    `services/cartera/reglasDeCartera.ts` (`ESTADOS_QUE_SON_DEUDA`: aceptada, enviada o firmada, y no
+    borrada; lista POSITIVA) y su gemela SQL `sqlDeCartera.ts` (recibe las columnas y no importa
+    `@/db`), en la antigüedad, Cuentas por Cobrar (`getPendingAR`), el reporte de CxC, el tablero de
+    CxC, los estados de cuenta y el panel financiero. Si la 029 se reenvía y se acepta, vuelve sola.
+  · **El vencimiento era inventado.** La CxC nacía con `ahora + 1 mes` en hora UTC, no con la fecha
+    límite PACTADA que la factura declara a la DGII (`invoices.payment_due_date`). E320000000078:
+    pactada 25/09, la CxC decía 28/10 — al día en pantalla, vencida en el papel del cliente. Manda
+    la pactada (`vencimientoDeCxc`, `COALESCE` en SQL) y, si la factura no la tiene, la de la CxC;
+    **hacia adelante**, `invoiceDbBooker` crea la CxC con la pactada (`vencimientoPorDefecto`, un
+    mes desde el DÍA DE RD y acotado a fin de mes, solo si falta). Decisión anotada: la pactada
+    manda aunque sea anterior a la emisión (078); que se pudiera pactar así es un dato a corregir.
+  · **El día era el de UTC.** La cartera contaba contra `CURRENT_DATE` (Postgres en UTC) y las
+    acciones de CxC/CxP, el panel financiero y `vencimiento.ts` contra `hoyDia()`/`toISOString()`,
+    que en el servidor (Vercel, UTC) son mañana desde las 20:00 de RD: todo llevaba un día más de
+    atraso y lo que vencía hoy salía vencido. Ahora `diaRD()` en todas, y `vencimiento.ts` lo usa
+    por defecto. El reporte de CxC comparaba `new Date(vencimiento) < new Date()` (lo que el 267
+    cerró en Cuentas por Cobrar): pasa por `estaVencida`.
+  · **El rojo.** "N d. atraso" salía en rojo siempre, también de 1 a 15 días (riesgo MEDIO, con su
+    icono ámbar al lado); el saldo del estado de cuenta, en rojo siempre. `clasesDeAtraso`: ámbar de
+    1 a 15, rojo de 16 en adelante; el saldo pendiente, neutro.
+  · **Cifras de cliente presentadas como de documento.** "Cartera en riesgo — más de 15 días de
+    atraso" y las tres cifras del "Balance Operativo" sumaban el saldo ENTERO de cada cliente bajo su
+    nivel, incluidas sus facturas por vencer (D` Luis: 24.707,44 "con atraso ≤ 15 días", y vencidos
+    había 10.487,40). Ahora salen de `saldoPorNivel`, documento a documento. La dona y la leyenda
+    siguen clasificando CLIENTES (su nivel = el de su factura más atrasada), como dicen.
+  · **No había antigüedad.** La pantalla se llama así y no tenía tramos; las demás reparten en 1-30,
+    31-60, 61-90 y +90. Nuevo bloque "Saldo por antigüedad" (`TramosDeAntiguedad`), la línea
+    "Vencido" en cada fila y los tramos en el CSV, con `tramoDeAtraso` de `vencimiento.ts`.
+  · **De paso**: la CxP de una compra BORRADA ya no es deuda; un cliente borrado sigue debiendo (la
+    cartera lo quitaba y las demás no); la serie mensual agrupa por mes de RD; el aviso dejaba de
+    ser cierto ("el crédito es de 30 días") y ahora dice que manda la fecha pactada.
+  El resumen ya no son agregados en SQL: una consulta de documentos (y la serie, a la vez) y
+  `resumirPorEntidad` en memoria — la misma regla que el banco ejecuta.
+  **Para el contador / el dueño (datos, no se tocan)**: (1) **dar de baja E310000000029** desde e-CF
+  (lote 140): mientras tanto sigue en el mayor 1.1.02.01 y en el estado de cuenta por movimientos de
+  Junio José (1.060.446,79); (2) E320000000078 tiene una fecha límite pactada (25/09) anterior a su
+  emisión (28/09), y 027, 033 y 076 una CxC con otro vencimiento que la factura; (3) E320000000059
+  sigue aceptada a crédito sin CxC (el duplicado del lote 141); (4) el mayor no cuadra con la CxC por
+  los asientos ya anotados en el cuadre (`docs/auditoria/cuadre_latin_doors_informe.md`). Y no es de
+  este lote: el cheque en garantía #129 apunta a la compra 13667 y su pago a la 13669.
+  **Decisión de criterio**: los cheques en garantía pendientes NO rebajan la CxP (lote 161); la CxP
+  de EVERLAST (1.155.666,55) lleva 994.537,67 cubiertos por cheques que aún no se cobran.
+  Dos bancos. `verificar_antiguedad_de_saldos.ts` (reglas ejecutadas con los casos frontera —vence
+  hoy, ayer, a las 21:00 de RD con el reloj y la zona sustituidos, los límites de cada tramo, pago
+  parcial, saldado, saldo a favor, dos clientes con el mismo nombre—, el SQL renderizado con
+  `PgDialect`, la tabla, las tarjetas y los tramos dibujados, y el cableado de cada fuente acotado a
+  su bloque): 44 comprobaciones y 3 invariantes, contraprueba **44 FALLA**.
+  `verificar_antiguedad_de_saldos_db.ts` (**integración**, base desechable: rechazada, dada de baja,
+  PRUEBA, pactada distinta de la CxC, pago parcial, vence hoy, dos clientes gemelos y una CxP de
+  compra borrada, contra la antigüedad, `getPendingAR`, el estado de cuenta, el panel financiero y
+  los dos estados de cuenta de la antigüedad): 11 comprobaciones y 2 invariantes (el lote no toca
+  datos), contraprueba **11 FALLA**. Veintitrés mutantes y veintitrés muertos — **dos mal
+  escritos primero**: quitar una coma dejaba el fichero sin compilar (salió "rc=1, 0 FALLA", que no
+  es un muerto), y `|| saldo <= 0` era equivalente (lo cubre `saldada`): se quitó del código.
+  **Re-anclados a la propiedad** (copiaban el SQL viejo): `verificar_cartera_lote1` (el cruce en
+  memoria, el riesgo derivado, el máximo con saldo), `verificar_cartera_sin_saldo` (el HAVING pasa a
+  `resumirPorEntidad`, ahora EJECUTADO con 0, 0,01 y 0,02), `verificar_cartera_lote2` (el texto del
+  aviso) y `verificar_tope_any` (la firma de `armar`).
+  Barrido en un worktree: 320 bancos; los únicos rojos son los falsos conocidos del worktree
+  (`gancho_y_compras`, `p3_48`, `padron_de_rnc`) y bancos de integración que no están en la lista de
+  deuda y necesitan base; 20 de integración que leen CxC, CxP o facturas, en verde en la desechable.
+  **Para la carpeta del dueño**: `verificar_antiguedad_de_saldos_db.ts` a `deuda_bancos.txt`.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás

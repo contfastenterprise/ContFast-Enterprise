@@ -10,7 +10,8 @@ import clsx from 'clsx';
 import { Input } from '@/components/ui/input';
 import { CustomerAutocomplete } from '@/components/ui/customer-autocomplete';
 import { AutocompleteSelect } from '@/components/ui/autocomplete-select';
-import { formatDateDisplay } from '@/utils/fechasLocales';
+import { formatDateDisplay, diaRD } from '@/utils/fechasLocales';
+import { estaVencida } from '@/services/cartera/listaDeClientes';
 import { Button, IconButton } from '@/components/ui/button';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 
@@ -52,6 +53,8 @@ export default function ReceivablesReportPage() {
   const [printing, setPrinting] = useState(false);
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
   const [printingCustomer, setPrintingCustomer] = useState<string | null>(null);
+  // Lote 304: el dia de RD, una vez al montar (la regla del lote 267).
+  const [hoy] = useState(() => diaRD());
 
   const fetchData = async () => {
     setLoading(true);
@@ -126,7 +129,9 @@ export default function ReceivablesReportPage() {
     groupedData[item.customerId].totalBalance += Number(item.balance);
     
     totalBalance += Number(item.balance);
-    if (new Date(item.dueDate) < new Date()) {
+    // Lote 304: `new Date(vencimiento) < new Date()` daba vencida desde las 20:00 del dia anterior
+    // (un `date` es medianoche UTC). La regla del lote 267, con el dia de RD.
+    if (estaVencida(item.dueDate, Number(item.balance), hoy)) {
       overdueBalance += Number(item.balance);
     }
   });
@@ -310,7 +315,7 @@ export default function ReceivablesReportPage() {
                                           </thead>
                                           <tbody className="divide-y divide-slate-100">
                                             {group.invoices.map(invoice => {
-                                              const isOverdue = new Date(invoice.dueDate) < new Date();
+                                              const isOverdue = estaVencida(invoice.dueDate, Number(invoice.balance), hoy);
                                               return (
                                                 <tr key={invoice.id} className="hover:bg-slate-50 transition-colors">
                                                   <td className="px-4 py-2.5 font-mono font-bold text-[#003366]">

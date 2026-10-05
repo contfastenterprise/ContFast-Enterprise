@@ -121,20 +121,34 @@ const veces = (s: string, sub: string): number => s.split(sub).length - 1;
 
   // Si alguien vuelve a meter un `await` dentro de un bucle sobre las filas,
   // esto deja de ser dos consultas.
+  // Lote 304: el resumen ya no son agregados en SQL; los documentos se traen en UNA consulta y los
+  // resume `resumirPorEntidad` en memoria. La propiedad es la misma: ningun `await` por fila.
   ok('el cruce se hace en memoria: el recorrido de filas no es asincrono',
-    src.includes('return filas.map((f) => {')
-    && !src.includes('filas.map(async')
+    src.includes('return [...resumen.entries()].map(([id, r]) => {')
+    && /resumirPorEntidad\(/.test(src)
+    && !/\.map\(async/.test(src)
     && !src.includes('for (const f of filas)'));
 
-  ok('el riesgo sale de la funcion derivada, no de un campo guardado',
-    src.includes("import { nivelPorAtraso") && src.includes('nivelPorAtraso(diasAtraso)')
-    && !src.includes('riskLevel:'));
+  // Lote 304: el nivel lo pone `resumirPorEntidad` (reglasDeCartera.ts) con `nivelPorAtraso`.
+  {
+    const reglas = fuente('src/services/cartera/reglasDeCartera.ts');
+    ok('el riesgo sale de la funcion derivada, no de un campo guardado',
+      reglas.includes('r.nivelRiesgo = nivelPorAtraso(r.diasAtraso)')
+      && src.includes('nivelRiesgo: r.nivelRiesgo,')
+      && !src.includes('riskLevel:'));
+  }
 
   // La cuota MAS atrasada, no un promedio: una factura de 60 dias es un
   // problema aunque las otras nueve esten al dia.
-  ok('el atraso es el de la cuota mas atrasada CON saldo, no un promedio',
-    src.includes('MAX(CASE WHEN') && src.includes('GREATEST(CURRENT_DATE')
-    && !src.includes('AVG('));
+  // Lote 304: el maximo se toma en `resumirPorEntidad`, despues de saltar lo saldado.
+  {
+    const reglas = fuente('src/services/cartera/reglasDeCartera.ts');
+    const dentro = reglas.slice(reglas.indexOf('if (v.saldada) continue;'));
+    ok('el atraso es el de la cuota mas atrasada CON saldo, no un promedio',
+      reglas.includes('if (v.saldada) continue;')
+      && dentro.includes('r.diasAtraso = Math.max(r.diasAtraso, v.atraso);')
+      && !src.includes('AVG(') && !reglas.includes('promedio(') );
+  }
 
   ok('los suplidores no fingen tener cupo de credito',
     src.includes('cupoCredito: conCupo ? Number(f.cupoCredito) || 0 : null'));
@@ -143,7 +157,7 @@ const veces = (s: string, sub: string): number => s.split(sub).length - 1;
     src.includes('variacion = previo === 0 ? null : ((monto - previo) / previo) * 100;'));
 
   ok('los seis meses salen siempre, con cero donde no hubo movimiento',
-    src.includes('private static ultimosSeisMeses()')
+    src.includes('private static ultimosSeisMeses(')
     && src.includes('for (let i = 5; i >= 0; i--)')
     && src.includes('const monto = suyos.get(mes) ?? 0;'));
 

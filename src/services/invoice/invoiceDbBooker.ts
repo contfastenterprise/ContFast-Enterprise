@@ -16,6 +16,7 @@ import { resolverCuentaPorMapeo, resolverCuentaDeInventario } from '@/services/a
 import { resolverCuentasDeVenta, lineasDeVenta, type ImportesDeVenta } from './asientoDeFactura';
 import { Logger } from '@/utils/logger';
 import { quedaPorDebajoDelCosto, motivoBajoCosto } from './precioMinimo';
+import { vencimientoPorDefecto } from '@/services/cartera/reglasDeCartera';
 
 export class InvoiceDbBooker {
   /**
@@ -794,8 +795,12 @@ export class InvoiceDbBooker {
           }
         } else {
           // Standard invoice or Debit Note (increases receivable)
-          const dueDate = new Date();
-          dueDate.setMonth(dueDate.getMonth() + 1); // 1 month credit default
+          // Lote 304: la cuenta por cobrar vence en la fecha limite de pago PACTADA en la factura,
+          // la que se declara a la DGII (`FechaLimitePago`) y sale impresa. Antes era siempre
+          // "ahora + 1 mes" en hora UTC: la antiguedad de saldos media el atraso contra un dia que
+          // nadie pacto (E320000000078: pactada 25/09, la CxC decia 28/10). Sin fecha pactada (solo
+          // lo emitido antes de que existiera la columna), el plazo de siempre, a partir del DIA DE RD.
+          const dueDate: string = data.paymentDueDate || vencimientoPorDefecto(new Date());
           await AccountRepository.createAccountsReceivable(tx, {
             companyId: data.companyId,
             customerId: data.customerId,

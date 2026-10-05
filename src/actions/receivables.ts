@@ -5,7 +5,8 @@ import { eq, and, isNull, desc, sql, inArray } from 'drizzle-orm';
 import { exigirSesion } from './_sesion';
 import { enforcePermission } from '@/middleware/permissions';
 import type { ModoOperativo } from '@/services/dgii/modoPeticion';
-import { hoyDia } from '@/utils/fechasLocales';
+import { diaRD } from '@/utils/fechasLocales';
+import { facturaEsDeudaSql, vencimientoDeCxcSql } from '@/services/cartera/sqlDeCartera';
 import { repartirEnTramos, sumaVencida } from '@/services/cartera/vencimiento';
 
 export async function getReceivablesDashboardData() {
@@ -49,7 +50,8 @@ export async function getReceivablesDashboardData() {
       id: accountsReceivable.id,
       amount: accountsReceivable.amount,
       balance: accountsReceivable.balance,
-      dueDate: accountsReceivable.dueDate,
+      // Lote 304: el vencimiento pactado en la factura manda (el mismo de la antiguedad de saldos).
+      dueDate: vencimientoDeCxcSql(invoices.paymentDueDate, accountsReceivable.dueDate),
       status: accountsReceivable.status,
       customerId: accountsReceivable.customerId,
       customerName: customers.name,
@@ -59,12 +61,14 @@ export async function getReceivablesDashboardData() {
     })
     .from(accountsReceivable)
     .leftJoin(customers, eq(accountsReceivable.customerId, customers.id))
-    .leftJoin(invoices, eq(accountsReceivable.invoiceId, invoices.id))
+    .innerJoin(invoices, eq(accountsReceivable.invoiceId, invoices.id))
     .where(
       and(
         eq(accountsReceivable.companyId, companyId),
         eq(accountsReceivable.modo, modo as ModoOperativo),
-        isNull(accountsReceivable.deletedAt)
+        isNull(accountsReceivable.deletedAt),
+        // Lote 304: rechazadas y dadas de baja no son deuda (la regla de la antiguedad).
+        facturaEsDeudaSql(invoices.status, invoices.deletedAt)
       )
     );
 
@@ -73,7 +77,9 @@ export async function getReceivablesDashboardData() {
     // El dia de hoy como texto. Ni un `Date` mas en todo el calculo: las
     // fechas de vencimiento llegan como 'AAAA-MM-DD' y convertirlas a `Date`
     // las corre un dia hacia atras en cualquier huso al oeste de Greenwich.
-    const hoy = hoyDia();
+    // Lote 304: el dia de RD. Esto corre en el SERVIDOR (UTC): `hoyDia` lee la hora local del
+    // proceso y desde las 20:00 de RD ya era mañana.
+    const hoy = diaRD();
 
     const pendingInvoicesCount = allAr.filter(x => Number(x.balance) > 0).length;
 

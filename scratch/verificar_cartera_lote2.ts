@@ -233,7 +233,9 @@ const TIPOS = 'src/components/cartera/tipos.ts';
     && f(MODAL).includes('{AVISO_CREDITO}'));
 
   ok('el aviso dice desde cuando cuenta el riesgo, no solo el plazo',
-    c(TIPOS).includes('Los niveles de riesgo empiezan a contarse cuando ese ')
+    // Lote 304: el aviso ya no dice "30 dias" (el vencimiento es el pactado); sigue diciendo
+    // desde cuando cuenta.
+    c(TIPOS).includes('Los días de atraso y los tramos se cuentan desde ')
     && c(TIPOS).includes('aparece como riesgo bajo, y eso es correcto.'));
 
   // Arriba y siempre: un cliente que debe mucho y sale en verde no se entiende

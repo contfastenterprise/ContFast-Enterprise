@@ -73,60 +73,40 @@ if (!blClientes || !blSuplidores
 const agregados = (b: string): string => b.slice(b.indexOf('await db'), b.indexOf('const series'));
 const serie = (b: string): string => b.slice(b.indexOf('const series'));
 
-const CONSULTAS: [string, string, string][] = [
-  ['clientes', blClientes, 'accountsReceivable'],
-  ['suplidores', blSuplidores, 'accountsPayable'],
-];
-
-for (const [etiqueta, bl, tabla] of CONSULTAS) {
-  const agg = agregados(bl);
-  const ser = serie(bl);
-  const hv = agg.includes('.having(') ? agg.slice(agg.indexOf('.having(')) : '';
-
-  // Negar a secas ("la serie no lleva having") seria gratis: tambien era cierto
-  // ANTES, cuando no habia ningun having en ninguna parte. La asercion util es
-  // que hay UNO y esta donde tiene que estar.
-  ok(`${etiqueta}: UN having, y en los agregados (no en la serie mensual)`,
-    veces(bl, '.having(') === 1 && agg.includes('.having(') && !ser.includes('.having('));
-
-  // Drizzle encadena where -> groupBy -> having. Al reves no compone el SQL.
-  ok(`${etiqueta}: el having va despues del groupBy`,
-    hv.length > 0 && agg.indexOf('.groupBy(') < agg.indexOf('.having('));
-
-  // Si el freno filtrara por otra cosa -- por COUNT(*), por el balance crudo --
-  // el saldo de la fila y el motivo por el que la fila existe dirian cosas
-  // distintas, que es justo el fallo que se esta arreglando.
-  ok(`${etiqueta}: el having suma el MISMO CASE WHEN que el saldo`,
-    hv.includes(`SUM(CASE WHEN \${${tabla}.balance} > 0 THEN \${${tabla}.balance} ELSE 0 END)`));
-
-  // Estas dos consultas son gemelas: el riesgo real aqui es copiar una sobre la
-  // otra y dejar la tabla de la de al lado.
-  ok(`${etiqueta}: el having mira SU tabla (${tabla})`,
-    hv.includes(tabla) && !hv.includes(tabla === 'accountsReceivable' ? 'accountsPayable' : 'accountsReceivable'));
-
-  ok(`${etiqueta}: corta en > 0.01, el mismo centavo del estado de cuenta`,
-    hv.includes('> 0.01'));
-
-  // En Postgres el HAVING no ve los alias del SELECT. `HAVING saldo > 0.01`
-  // pasa el compilador de TypeScript y falla en tiempo de consulta, que es el
-  // peor sitio para enterarse.
-  ok(`${etiqueta}: el having no usa el alias de salida \`saldo\``,
-    hv.length > 0 && !/`[^`]*\bsaldo\b[^`]*`/.test(hv));
+// Lote 304: el freno ya no es un HAVING. Los documentos se traen en una consulta y quien quita al
+// que no debe es `resumirPorEntidad` (reglasDeCartera.ts), con el centavo de `TOLERANCIA`. La
+// propiedad que defendia este banco se comprueba EJECUTANDO esa regla, y que las dos carteras
+// pasen por ella.
+const reglas = fuente('src/services/cartera/reglasDeCartera.ts');
+for (const [etiqueta, bl] of [['clientes', blClientes], ['suplidores', blSuplidores]] as const) {
+  ok(`${etiqueta}: el resumen pasa por armar() y resumirPorEntidad`,
+    bl.includes('return this.armar(docs, series,'));
 }
+ok('armar() resume con resumirPorEntidad y solo devuelve lo que este deja',
+  src.includes('const resumen = resumirPorEntidad(') && src.includes('return [...resumen.entries()].map('));
+ok('el freno usa la tolerancia comun (TOLERANCIA), no un numero suelto',
+  reglas.includes('if (r.saldo <= TOLERANCIA) out.delete(id);'));
 
-ok('el fichero entero tiene exactamente DOS having', veces(src, '.having(') === 2);
+// El estado de cuenta y la lista tienen que dar por saldado lo mismo: los dos del estado de cuenta
+// siguen en el repositorio; el de la lista es TOLERANCIA (0.01, la de `vencimiento.ts`).
+ok('un solo centavo de tolerancia: dos en el estado de cuenta y TOLERANCIA en el resumen',
+  veces(src, '0.01') === 2
+  && src.includes('g.saldo > 0.01') && src.includes('p.saldo > 0.01')
+  && fuente('src/services/cartera/vencimiento.ts').includes('export const TOLERANCIA = 0.01;'));
 
-// El estado de cuenta y la lista tienen que dar por saldado lo mismo. Si alguien
-// cambia una tolerancia y no la otra, vuelve el sintoma: una fila en la lista
-// cuyo detalle abre vacio.
-//
-// Comprobar solo que el estado de cuenta conserva su 0.01 ya pasaba ANTES del
-// arreglo -- ese filtro lleva ahi desde siempre. Apretada: tienen que ser CUATRO
-// sitios con el mismo umbral (los dos del estado de cuenta y los dos havings) y
-// ningun otro numero de tolerancia suelto por el fichero.
-ok('cuatro sitios, un solo centavo de tolerancia',
-  veces(src, '0.01') === 4
-  && src.includes('g.saldo > 0.01') && src.includes('p.saldo > 0.01'));
+async function ejecutar(): Promise<void> {
+  const { resumirPorEntidad } = await import('../src/services/cartera/reglasDeCartera');
+  const hoy = '2026-10-05';
+  const r = resumirPorEntidad([
+    { entidadId: 'saldado', saldo: 0, vence: '2026-09-01', creado: null },
+    { entidadId: 'centavo', saldo: 0.01, vence: '2026-09-01', creado: null },
+    { entidadId: 'debe', saldo: 0.02, vence: '2026-09-01', creado: null },
+    { entidadId: 'debe', saldo: 0, vence: '2026-08-01', creado: null },
+  ], hoy);
+  ok('quien lo tiene todo saldado NO sale', !r.has('saldado'));
+  ok('quien debe exactamente RD$0.01 NO sale (el centavo del estado de cuenta)', !r.has('centavo'));
+  ok('quien debe 0.02 sale, con UN documento pendiente', r.get('debe')?.documentosPendientes === 1);
+}
 
 // Un contrato que no se escribe se rompe sin que nadie lo note.
 //  `cupoCredito` se busca DESPUES de FilaCartera: el lote 123 declaro arriba
@@ -138,5 +118,7 @@ ok('cuatro sitios, un solo centavo de tolerancia',
     desde >= 0 && raw.slice(desde, raw.indexOf('cupoCredito', desde)).includes('no debe nada no es una fila'));
 }
 
-console.log(fallos === 0 ? '\nTODO OK' : `\n${fallos} FALLA(S)`);
-process.exit(fallos === 0 ? 0 : 1);
+ejecutar().catch((e) => { ok(`la regla se ejecuta (${(e as Error).message})`, false); }).finally(() => {
+  console.log(fallos === 0 ? '\nTODO OK' : `\n${fallos} FALLA(S)`);
+  process.exit(fallos === 0 ? 0 : 1);
+});

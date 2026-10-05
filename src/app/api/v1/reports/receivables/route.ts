@@ -3,6 +3,7 @@ import { db, accountsReceivable, customers, invoices } from '@/db';
 import { eq, and, isNull, desc, gt } from 'drizzle-orm';
 import { verifyAuth } from '@/middleware/auth';
 import { requirePermission } from '@/middleware/permissions';
+import { facturaEsDeudaSql, vencimientoDeCxcSql } from '@/services/cartera/sqlDeCartera';
 
 export async function GET(req: NextRequest) {
   try {
@@ -23,7 +24,9 @@ export async function GET(req: NextRequest) {
       eq(accountsReceivable.companyId, companyId),
       eq(accountsReceivable.modo, modo),
       isNull(accountsReceivable.deletedAt),
-      gt(accountsReceivable.balance, '0')
+      gt(accountsReceivable.balance, '0'),
+      // Lote 304: la misma regla que la antiguedad de saldos: rechazadas y dadas de baja no son deuda.
+      facturaEsDeudaSql(invoices.status, invoices.deletedAt)
     );
 
     if (customerId && customerId !== 'all') {
@@ -38,7 +41,8 @@ export async function GET(req: NextRequest) {
         codigoFactura: invoices.codigoFactura,
         amount: accountsReceivable.amount,
         balance: accountsReceivable.balance,
-        dueDate: accountsReceivable.dueDate,
+        // Lote 304: el vencimiento pactado en la factura manda (el mismo de la antiguedad).
+        dueDate: vencimientoDeCxcSql(invoices.paymentDueDate, accountsReceivable.dueDate),
         status: accountsReceivable.status,
         customerId: accountsReceivable.customerId,
         customerName: customers.name,
@@ -49,7 +53,7 @@ export async function GET(req: NextRequest) {
       .leftJoin(customers, eq(accountsReceivable.customerId, customers.id))
       .leftJoin(invoices, eq(accountsReceivable.invoiceId, invoices.id))
       .where(queryConditions)
-      .orderBy(desc(accountsReceivable.dueDate));
+      .orderBy(desc(vencimientoDeCxcSql(invoices.paymentDueDate, accountsReceivable.dueDate)));
 
     return NextResponse.json(data);
   } catch (error: unknown) {
