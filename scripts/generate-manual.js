@@ -571,7 +571,7 @@ seccion('rrhh', 'Recursos humanos y nómina', `
   ${tabla(['Estado', 'Qué se puede hacer'], [
     ['<strong>Calculada</strong>', `Revisar los volantes, ${b('Recalcular Todo')}, ${b('Aprobar Nómina')} o eliminarla.`],
     ['<strong>Aprobada</strong>', `Sus importes quedan fijos y su asiento de devengo, registrado. Se puede ${b('Pagar nómina')}.`],
-    ['<strong>Pagada</strong>', 'Muestra su pago y el asiento del pago, y ya no admite cambios. En pantalla este estado aparece en inglés: «PAID».'],
+    ['<strong>Pagada</strong>', 'Muestra su pago y el asiento del pago, y ya no admite cambios.'],
   ])}
 
   <h4 class="mini">1. Generar y calcular</h4>
@@ -645,7 +645,7 @@ seccion('herramientas', 'Herramientas y soporte', `
   </ul>
 
   <h3 class="subsection-title">Soporte y Centro de Ayuda</h3>
-  <p>La pantalla tiene preguntas frecuentes y el formulario «Enviar Ticket de Soporte»:</p>
+  <p>Se abre desde el menú de su usuario (su nombre, arriba a la derecha) › ${b('Soporte')}. La pantalla tiene preguntas frecuentes y el formulario «Enviar Ticket de Soporte»:</p>
   ${pasos([
     `Elija la ${b('Categoría del Problema')} (Facturación e-CF, Módulo de Caja, Bancos y Cuentas o Configuración / Empresa), escriba el ${b('Asunto')} (una línea) y la ${b('Descripción del Problema')}.`,
     `Pulse ${b('Enviar Mensaje')}. El ticket sale por correo <strong>al correo de la empresa</strong>, el que está en ${ruta('Sistema', 'Configuración')} › ${b('Configuración Empresa')}, con un número del tipo <strong>SOP-XXXXXX</strong>, su nombre y su correo. La respuesta le llega a su correo.`,
