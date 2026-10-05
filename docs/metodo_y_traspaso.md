@@ -2662,6 +2662,43 @@ Además, fuera de la tabla:
   `main` en que se comprobaron), como en los lotes 227 y 230; un mutante que vuelve a leer `HEAD` los
   rompe. Los otros tres rojos (`gancho_y_compras`, `p3_48`, `padron_de_rnc`) son los falsos conocidos
   de un worktree.
+- **Lote 291: "Valor de Inventario" vale el inventario, y "Excel" que baja un CSV dice "CSV".** Pedido
+  del dueño (2026-10-04), encima del 285 (sin fusionar). La tarjeta de Productos sumaba `cost` de la
+  **página visible** (15 productos) **sin multiplicar por la existencia**: la cifra cambiaba al pasar
+  de página y no era de nada.
+  **Ahora**: catálogo entero, **existencia × costo promedio del kardex**
+  (`inventory_levels.average_cost`, por producto, almacén y modo), que es el que asienta la
+  contabilidad (el conduce saca a ese costo y la compra mete a ese costo). La regla es pura,
+  `services/inventario/valorDeInventario.ts` (`valorDelInventario`), con redondeo a centavos al final.
+  **Solo la existencia positiva**: una negativa es un descuadre del kardex, no mercancía que valga
+  menos, y restarla le quitaría valor a lo que sí está en el estante; se cuenta y no suma. Servicios y
+  borrados fuera; empresa y modo. **Un nivel con existencia y promedio 0 vale 0** — no se rellena con
+  el costo de catálogo, porque valorar los conteos sin costo es del contador (sección 8, "costo de venta
+  0") — y la tarjeta lo dice en una línea ("7 existencias sin costo promedio cuentan como 0").
+  **La ruta del 285 se amplía, no se duplica**: `products/stock-bajo` pasa a `GET
+  /api/v1/products/resumen`, que trae todos los niveles una vez y devuelve `stockBajo` (la misma
+  `contarProductosConStockBajo`; el filtro "mínimo > 0" ya no va en la consulta, lo decide la regla) y
+  `valorInventario`. La pantalla hace **una** petición (`products/resumenDelCatalogo.ts`) en los mismos
+  cuatro momentos que el 285; si falla, las **dos** tarjetas dicen "—". El rótulo pasa a "Valor de
+  Inventario (a costo promedio)", para que nadie lo lea como precio de venta.
+  **Medido en PRODUCCIÓN, Latin Doors, solo lectura** (`scratch/_to_delete/medir_valor_inventario_291.ts`):
+  a costo promedio **RD$224.040,09**; a costo de catálogo **RD$309.840,19**; **7 de 32** niveles con
+  existencia tienen promedio 0 (a catálogo valdrían RD$32.009,66); **ningún nivel negativo**. Y el
+  mayor: la cuenta de la clave `inventory`, **1.1.03.01, −74.045,59**, más la **1.1.06** heredada (lote
+  121, pendiente de reclasificar por el contador) **+347.892,30**: juntas 273.846,71. **La tarjeta no
+  cuadra con el mayor, y no es la tarjeta**: el saldo ya asentado sigue partido en dos cuentas, y los
+  conteos sin costo y las 66 compras sin líneas (sección 8) separan el kardex del libro. Es del contador.
+  **"Excel" → "CSV"** en `components/financial/TablaCuentas.tsx` (cuentas por cobrar y por pagar), con
+  el criterio del 285. Barrido de `src`: era el único rótulo Excel/XLS que quedaba; lo que genera .xlsx
+  de verdad es del servidor y no tiene botón con ese rótulo.
+  Banco `verificar_valor_de_inventario.ts` (la regla y la petición ejecutadas, ésta contra un `fetch`
+  sustituido; barrido de rótulos): 21 comprobaciones y un invariante, contraprueba **21 FALLA** contra
+  `07ff28f`, dieciocho mutantes y dieciocho muertos — **dos parecieron sobrevivir y eran equivalentes**,
+  anotados en el código: quitar el `continue` de la negativa (la línea siguiente también la deja fuera)
+  y quitar `if (!leido.bien)` en la petición (leer el cuerpo de un fallo lanza y el `catch` da el mismo
+  `null`). `verificar_desfases_del_manual` (285) se re-ancla a la propiedad — la ruta que exista, la
+  petición donde viva, los cuatro momentos — y vale en los dos estados; un mutante que quita la recarga
+  al guardar lo rompe.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás

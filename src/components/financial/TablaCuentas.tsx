@@ -310,8 +310,10 @@ export default function TablaCuentas({
               {verSaldadas ? 'Ocultar saldadas' : `Ver saldadas${saldadas ? ` (${saldadas})` : ''}`}
             </span>
           </Button>
-          <Button type="button" variant="documento" size="sm" onClick={handleExportCSV}>
-            <Download className="w-4 h-4" /> Excel
+          {/* LOTE 291: decia "Excel" y baja un .csv (criterio del lote 285, caja). Excel lo abre, pero
+              quien busca un .xlsx en su carpeta no lo encuentra. */}
+          <Button type="button" variant="documento" size="sm" onClick={handleExportCSV} title="Exportar la lista a CSV">
+            <Download className="w-4 h-4" /> CSV
           </Button>
           <Button type="button" variant="documento" size="sm" onClick={handlePrint}>
             <Printer className="w-4 h-4" /> Imprimir

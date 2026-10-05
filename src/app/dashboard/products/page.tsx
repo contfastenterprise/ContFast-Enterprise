@@ -37,7 +37,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { Pagination } from '@/components/ui/pagination';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay } from '@/utils/fechasLocales';
-import { leerRespuesta } from '@/utils/leerRespuesta';
+import { pedirResumenDelCatalogo, type ResumenDelCatalogo } from './resumenDelCatalogo';
 
 
 interface Product {
@@ -287,21 +287,20 @@ export default function ProductsPage() {
   // LOTE 285: la tarjeta "Stock Bajo" pintaba un `0` escrito a mano. Ahora lo cuenta el servidor
   // sobre el catalogo entero (la lista solo trae una pagina), con la regla de reorden. `null` es
   // "no se sabe": la tarjeta dice "—" en vez de un cero que se lee como "todo bien".
-  const [stockBajo, setStockBajo] = useState<number | null>(null);
-  const fetchStockBajo = async () => {
-    try {
-      const leido = await leerRespuesta<{ data: { total: number } }>(await fetch('/api/v1/products/stock-bajo'));
-      setStockBajo(leido.bien ? leido.cuerpo.data.total : null);
-    } catch {
-      setStockBajo(null);
-    }
+  //
+  // LOTE 291: la misma peticion trae ahora tambien el valor del inventario (existencia x costo
+  // promedio del catalogo entero), que antes se sumaba aqui con el `cost` de la pagina visible y sin
+  // la existencia. Una peticion para las dos tarjetas; `null` = "—" en las dos.
+  const [resumen, setResumen] = useState<ResumenDelCatalogo | null>(null);
+  const fetchResumen = async () => {
+    setResumen(await pedirResumenDelCatalogo());
   };
 
   useEffect(() => {
     fetchProducts('', selectedCategory, 1);
     fetchCategories();
     fetchWarehouses();
-    fetchStockBajo();
+    fetchResumen();
   }, []);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -536,7 +535,7 @@ export default function ProductsPage() {
         // La pagina en la que estabas: sin ella, `fetchProducts` cae a la 1 y
         // editar un producto de la pagina 4 te devolvia al principio.
         fetchProducts(search, selectedCategory, page);
-        fetchStockBajo();
+        fetchResumen();
       } else {
         // El servidor manda `fields` cuando el fallo es de validacion: lo que
         // el esquema no pudo ver desde aqui -- un SKU repetido, por ejemplo --
@@ -615,7 +614,7 @@ export default function ProductsPage() {
         if (invData.success) {
           setInventoryLevels(invData.data);
         }
-        fetchStockBajo();
+        fetchResumen();
       } else {
         toast.error(data.error?.message || 'Error al actualizar');
       }
@@ -652,7 +651,7 @@ export default function ProductsPage() {
         if (invData.success) {
           setInventoryLevels(invData.data);
         }
-        fetchStockBajo();
+        fetchResumen();
       } else {
         toast.error(data.error?.message || 'Error al actualizar límites');
       }
@@ -867,9 +866,6 @@ export default function ProductsPage() {
 
     window.open(`/api/v1/products/barcodes/pdf?${queryParams.toString()}`, '_blank');
   };
-
-  // Metrics calculation (Mock/derived from current page for demo purposes)
-  const totalValue = products.reduce((sum, p) => sum + (Number(p.cost) || 0), 0);
 
   // ===========================================================================
   // P2-35: EL ALTA DE UN PRODUCTO VA POR PASOS
@@ -1425,8 +1421,16 @@ export default function ProductsPage() {
         {/* Card 2: Valor Inventario (Emerald) */}
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
           <div className="absolute top-0 right-0 p-4 opacity-10 text-emerald-600 group-hover:scale-110 transition-transform"><DollarSign className="h-16 w-16" /></div>
-          <p className="text-emerald-800 text-sm font-semibold mb-1">Valor de Inventario (Costos)</p>
-          <p className="text-3xl font-bold text-emerald-950 font-display">{formatCurrency(totalValue)}</p>
+          {/* LOTE 291: sumaba `cost` de la pagina visible, sin la existencia. Ahora es el catalogo
+              entero, existencia x costo promedio del kardex (el que asienta la contabilidad), lo
+              calcula el servidor (`valorDelInventario`), y "—" si no se pudo saber. */}
+          <p className="text-emerald-800 text-sm font-semibold mb-1">Valor de Inventario (a costo promedio)</p>
+          <p className="text-3xl font-bold text-emerald-950 font-display">{resumen ? formatCurrency(resumen.valorInventario) : '—'}</p>
+          {resumen && resumen.nivelesSinCosto > 0 && (
+            <p className="text-xs text-emerald-800 mt-1">
+              {resumen.nivelesSinCosto === 1 ? '1 existencia sin costo promedio cuenta' : `${resumen.nivelesSinCosto} existencias sin costo promedio cuentan`} como 0
+            </p>
+          )}
         </div>
 
         {/* Card 3: Stock Bajo (Amber) */}
@@ -1435,7 +1439,7 @@ export default function ProductsPage() {
           {/* LOTE 285: pintaba `0` siempre. Productos con algun almacen en su minimo o por debajo
               (la regla de reorden, `estaBajoElMinimo`). */}
           <p className="text-amber-800 text-sm font-semibold mb-1">Stock Bajo</p>
-          <p className="text-3xl font-bold text-amber-950 font-display">{stockBajo ?? '—'}</p>
+          <p className="text-3xl font-bold text-amber-950 font-display">{resumen?.stockBajo ?? '—'}</p>
         </div>
       </div>
 
