@@ -56,12 +56,12 @@ async function main() {
   //  La lista de empresas la carga el layout; si dejara de cargarla, el selector no
   //  tendria nada que ofrecer y este banco estaria vigilando una cascara.
   if (!/setCompanies\(/.test(layout)) throw new Error('Precondicion: el layout ya no carga las empresas');
-  //  `entorno` SE QUEDA en el sidebar aunque su rotulo se fuera en el lote 192: con
-  //  el se calcula el hueco de la franja de PRUEBA, y sin el el menu se mete debajo.
-  //  Va de PRECONDICION porque ya era verdad antes de este lote: como comprobacion
-  //  sobrevivia a la contraprueba y no comprobaba nada de aqui.
-  if (!/entorno=\{entorno\}/.test(layout) || !/entorno !== 'PROD'/.test(sidebar)) {
-    throw new Error('Precondicion: el sidebar ya no recibe el entorno para el hueco de la franja');
+  //  `entorno` SE QUEDA en el sidebar aunque su rotulo se fuera en el lote 192 (lo pasa a
+  //  sus piezas). Hasta el lote 301 calculaba ademas el hueco de la franja de PRUEBA; la
+  //  franja se retiro (decision del dueño) y el hueco es el mismo en los dos entornos.
+  //  Va de PRECONDICION porque ya era verdad antes de este lote.
+  if (!/entorno=\{entorno\}/.test(layout)) {
+    throw new Error('Precondicion: el sidebar ya no recibe el entorno');
   }
   console.log('  pre   el layout carga empresas, cambia de empresa, monta el sidebar y le da el entorno');
 
