@@ -93,6 +93,9 @@ export function Pagination({
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1}
           className="gap-1 px-2.5"
+          //  LOTE 284: en el movil el texto se esconde y queda solo la flecha; sin esto, un lector
+          //  de pantalla anuncia "boton" sin decir cual.
+          aria-label="Página anterior"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Anterior</span>
@@ -108,6 +111,7 @@ export function Pagination({
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= safeTotalPages}
           className="gap-1 px-2.5"
+          aria-label="Página siguiente"
         >
           <span className="hidden sm:inline">Siguiente</span>
           <ChevronRight className="h-3.5 w-3.5" />
