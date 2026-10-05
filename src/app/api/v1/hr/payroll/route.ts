@@ -45,11 +45,14 @@ export async function GET(req: NextRequest) {
       if (!payroll) {
         return NextResponse.json({ success: false, error: { message: 'Nómina no encontrada' } }, { status: 404 });
       }
-      const details = await HRRepository.findPayrollDetails(id, session.companyId, session.modo);
       // Lote 290: si se calcula con la escala del ISR de otro año, la pantalla lo dice.
-      const avisoIsr = await HRRepository.avisoDeEscalaIsr(payroll);
-      // Lote 293: el asiento de devengo que registro la aprobacion (null si no tiene).
-      const asiento = await asientoDeLaNomina(id, session.companyId, session.modo);
+      // Lote 293: y el asiento de devengo que registro la aprobacion (null si no tiene).
+      // Las tres lecturas no dependen entre si: a la vez.
+      const [details, avisoIsr, asiento] = await Promise.all([
+        HRRepository.findPayrollDetails(id, session.companyId, session.modo),
+        HRRepository.avisoDeEscalaIsr(payroll),
+        asientoDeLaNomina(id, session.companyId, session.modo),
+      ]);
       return NextResponse.json({ success: true, data: { payroll, details, avisoIsr, asiento } });
     }
 
