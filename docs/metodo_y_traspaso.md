@@ -2475,6 +2475,37 @@ Además, fuera de la tabla:
   cuanto alguien hiciera `git fetch --prune` o clonara. Pasan a commits fijos (`57f741d`, `ab9e5fd`), y
   los dos de Ventas comparan los dos commits de su lote (`87d0e73`, `ef2039b`) y no la carpeta, porque el
   260 cambia a propósito rótulos de e-CF.
+- **Lote 283: el manual de usuario, al día.** Pedido del dueño (2026-10-04). `scripts/generate-manual.js`
+  y `manual_usuario_contfast.pdf` no se tocaban desde el 2026-07-26 (`9bba628`), unos 150 lotes atrás, y
+  **el guion ni arrancaba**: leía `public/dashboard_main_mockup.jpg`, que no existe. Reescrito entero contra
+  el **código** de cada pantalla —no contra este documento—, con cinco agentes en paralelo que copiaron los
+  rótulos tal cual (ventas, compras y finanzas, inventario, marco y administración, tienda). Quince
+  secciones por módulos del menú, versión 3.0, octubre 2026, 23 páginas.
+  · **Retirado**: el módulo de documentos, WhatsApp, cuentas e inicio de sesión de la tienda, la leyenda
+    "pendiente de la DGII" en el papel, "Sincronizar DGII", el modal de productos, la cola Redis "auto-curativa",
+    la pantalla de transición tras el login y las cuentas contables con código fijo de los ejemplos (2101-01,
+    1101-02: no existen; las elige el contador en Cuentas Puente).
+  · **Corregido**: altas en pestañas «Registrar», caja (arqueo ciego, desglose, aprobar la diferencia), origen
+    del pago en compras, cobros y pagos con banco, límite de las notas de crédito, 606/607, margen sobre el
+    precio de venta, costo con descuento, roles (solo Sistemas cambia de empresa).
+  · **Añadido**: campana y correo de avisos con informe PDF, recuperar contraseña, cheques en garantía y su
+    cobro, conduces (faltante, despachar lo disponible, filtros), precios en dólares y tasa desde compras y
+    facturación, borradores con aviso de precios, foto y descripción, tienda y su portada, períodos («Abrir
+    próximos 12 meses»), dar de baja un rechazado, padrón de RNC, menú (favoritos, Ctrl+K), exportar caja.
+  **Sin imágenes, a propósito**: las once `public/*_mockup.jpg` no son capturas de ContFast (otras marcas
+  —NAVISTAR, FinanzaPro, GlobalSolutions, Acme, Onyx, e-CF Innova—, interfaz en inglés, importes en $) y
+  contradicen el texto. Se quedan en `public/`; la lista va en la cabecera del guion.
+  **El índice se calcula**: cada sección se dibuja sola, se cuentan sus páginas (`/Type /Page` en el PDF) y
+  el guion se niega si el documento entero no da el total esperado. **Se miró**: el PDF se rasterizó con
+  pdf.js página a página; de mirarlo salió que el texto justificado abría huecos alrededor de los rótulos.
+  **Desfases del código que el manual no copia, para lotes aparte**: el «Tipo de Precio» del cliente aún
+  dice «Base +25%» (recargo, anterior al 265); la tarjeta «Stock Bajo» de productos es un 0 fijo; la ficha
+  de la tienda dice «Al enviar tu cotización…» y la cotización ya no se envía (233); el formulario de
+  Soporte simula el envío y no manda nada; la Central e-CF rotula al revés el 46 y el 47; el histórico de
+  caja dice «EXPORTAR XLS» y baja un CSV; la nómina no asienta (175); `/auth/register` sigue abierta sin
+  enlace; el padrón de RNC se carga con un guion, sin pantalla.
+  **Al cambiar un rótulo en una pantalla, el manual se queda atrás**: hay que tocar el guion y regenerar
+  (`node scripts/generate-manual.js`).
 - **Lote 284: los 19 botones "sin nombre" eran 3, y los tres eran del MOVIL.** Pedido del dueño
   (2026-10-04): revisar los 19 de solo icono sin nombre que dejó el trinquete del lote 270. El lote 274
   los atribuyó "casi todos" a la tienda pública, y **era falso**: mirados uno a uno, ninguno era de la
