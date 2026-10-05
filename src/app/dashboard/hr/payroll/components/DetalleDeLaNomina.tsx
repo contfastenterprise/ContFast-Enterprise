@@ -6,6 +6,7 @@
  */
 import { RefreshCw } from 'lucide-react';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { etiquetaDelEstado } from '@/services/nomina/estadoDeNomina';
 import { AsientoDeLaNomina } from './AsientoDeLaNomina';
 import { PagoDeLaNomina } from './PagoDeLaNomina';
 import type { EstadoNominas } from '../hooks/useNominas';
@@ -26,7 +27,7 @@ export function DetalleDeLaNomina({ h }: { h: EstadoNominas }) {
               Nómina Período: {formatDateDisplay(selectedPayroll.periodStart)} - {formatDateDisplay(selectedPayroll.periodEnd)}
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Estado: <span className="font-semibold text-[#003366]">{selectedPayroll.status.toUpperCase()}</span> | Pago: {formatDateDisplay(selectedPayroll.paymentDate)}
+              Estado: <span className="font-semibold text-[#003366]">{etiquetaDelEstado(selectedPayroll.status)}</span> | Pago: {formatDateDisplay(selectedPayroll.paymentDate)}
             </p>
           </div>
           <AccionesDeLaNomina h={h} />
