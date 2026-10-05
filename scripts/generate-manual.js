@@ -46,6 +46,11 @@ const RAIZ = path.join(__dirname, '..');
 const FECHA = 'Octubre 2026';
 const VERSION = '3.1';
 
+// El logo del sistema, el mismo de la pantalla de acceso (`public/Logo.svg`), incrustado en el
+// HTML: Chromium no tiene que salir a buscarlo. Va sobre una placa blanca porque la mitad del
+// logo es azul oscuro (#202739, #242476) y desaparecería sobre el fondo azul marino de la portada.
+const LOGO_SVG = `data:image/svg+xml;base64,${fs.readFileSync(path.join(RAIZ, 'public', 'Logo.svg')).toString('base64')}`;
+
 // Por si algun dia vuelven las imagenes: una que no exista no tumba el manual.
 function imagen(fichero, pie) {
   const ruta = path.join(RAIZ, 'public', fichero);
@@ -81,7 +86,10 @@ const CSS = `
     color: #fff; page-break-after: always;
   }
   .cover-header { font-size: 14px; font-weight: 700; letter-spacing: 3px; color: var(--oro); text-transform: uppercase; }
-  .cover-middle { margin-top: 80px; }
+  .cover-logo { align-self: flex-start; background: #fff; border-radius: 14px; padding: 18px 26px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+  .cover-logo img { display: block; width: 260px; height: auto; }
+  .cover-middle { margin-top: 60px; }
   .cover-middle h1 { font-size: 40px; font-weight: 800; line-height: 1.15; margin: 0 0 16px; letter-spacing: -0.5px; }
   .cover-middle h2 { font-size: 17px; font-weight: 400; margin: 0 0 30px; color: #cbd5e1; }
   .cover-divider { width: 80px; height: 5px; background: var(--oro); border-radius: 2px; }
@@ -712,7 +720,7 @@ function documento(cuerpo) {
 
 const PORTADA = `
   <div class="cover-page">
-    <div class="cover-header">ContFast Enterprise</div>
+    <div class="cover-logo"><img src="${LOGO_SVG}" alt="ContFast Enterprise"></div>
     <div class="cover-middle">
       <h1>Manual de Usuario<br>y Guía de Operaciones</h1>
       <h2>Sistema ERP contable y de Facturación Electrónica (e-CF) — República Dominicana</h2>
