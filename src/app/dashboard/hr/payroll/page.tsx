@@ -12,6 +12,7 @@ import { Button, IconButton } from '@/components/ui/button';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
 // Lote 290: la pantalla ofrece lo que la API admitiria, con la misma regla.
 import { accionesDeNomina } from '@/services/nomina/estadoDeNomina';
+import { AsientoDeLaNomina, type AsientoParaVer } from './components/AsientoDeLaNomina';
 interface Payroll {
   id: string;
   periodStart: string;
@@ -34,6 +35,9 @@ export default function PayrollPage() {
   const [loadingDetails, setLoadingDetails] = useState(false);
   // Lote 290: aviso cuando el ISR se calcula con la escala de otro año.
   const [avisoIsr, setAvisoIsr] = useState<string | null>(null);
+  // Lote 293: el asiento que registro la aprobacion, y el motivo si se nego.
+  const [asiento, setAsiento] = useState<AsientoParaVer | null>(null);
+  const [motivoRechazo, setMotivoRechazo] = useState<string | null>(null);
 
   // Modals state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -73,6 +77,8 @@ export default function PayrollPage() {
   const handleSelectPayroll = async (payroll: Payroll) => {
     setSelectedPayroll(payroll);
     setAvisoIsr(null);
+    setAsiento(null);
+    setMotivoRechazo(null);
     setLoadingDetails(true);
     try {
       const res = await fetch(`/api/v1/hr/payroll?id=${payroll.id}`);
@@ -83,6 +89,7 @@ export default function PayrollPage() {
         // traia 'draft' y no se ofrecia aprobar).
         if (data.data.payroll) setSelectedPayroll(data.data.payroll);
         setAvisoIsr(data.data.avisoIsr ?? null);
+        setAsiento(data.data.asiento ?? null);
       }
     } catch (e) {
       toast.error('Error al cargar detalles de la nómina');
@@ -156,14 +163,15 @@ export default function PayrollPage() {
           // Lote 290: el motivo del 409 (sin detalle, ya aprobada) se dice;
           // la confirmacion solo enseña su mensaje fijo.
           if (data.error?.message) toast.error(data.error.message);
+          // Lote 293: y se queda a la vista (cuenta sin enlazar, periodo cerrado).
+          setMotivoRechazo(data.error?.message || 'Error al aprobar la nómina.');
           throw new Error(data.error?.message || 'Error');
         }
         fetchPayrolls();
-        if (selectedPayroll && selectedPayroll.id === id) {
-          setSelectedPayroll({ ...selectedPayroll, status: 'approved' });
-        }
+        // Lote 293: se relee para enseñar el estado y el asiento registrado.
+        if (selectedPayroll && selectedPayroll.id === id) handleSelectPayroll(selectedPayroll);
       },
-      onSuccessMessage: 'Nómina aprobada exitosamente. Se ha registrado en la auditoría.',
+      onSuccessMessage: 'Nómina aprobada y asentada en el libro diario.',
       onErrorMessage: 'Error al aprobar la nómina.',
     });
   };
@@ -412,6 +420,10 @@ export default function PayrollPage() {
               <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
                 {avisoIsr}
               </p>
+            )}
+
+            {!loadingDetails && (
+              <AsientoDeLaNomina status={selectedPayroll.status} asiento={asiento} motivoRechazo={motivoRechazo} />
             )}
 
             {loadingDetails ? (

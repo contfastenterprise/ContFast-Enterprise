@@ -72,7 +72,10 @@ export default function AccountingPage() {
   // `?tab=periods`. Se lee de `window` y no con `useSearchParams`, que obligaria
   // a envolver la pagina en Suspense.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get('tab') === 'periods') setActiveTab('periods');
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    if (tab === 'periods') setActiveTab('periods');
+    // Lote 293: el enlace "Ver en el Libro Diario" de la nomina aprobada.
+    if (tab === 'journals') setActiveTab('journals');
   }, []);
   const [loading, setLoading] = useState(true);
   // P2-37: uno para las seis pestañas, porque el cargador es uno. Mientras

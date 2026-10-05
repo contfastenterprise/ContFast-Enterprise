@@ -135,7 +135,7 @@ async function main() {
   const rutaN = sinComentarios(leer('src/app/api/v1/hr/payroll/route.ts'));
   const pagN = sinComentarios(leer('src/app/dashboard/hr/payroll/page.tsx'));
   ok('la respuesta del calculo y la pantalla avisan del año de la escala, sin negarse',
-    /aviso: payroll\.avisoIsr/.test(rutaN) && /aviso: avisoIsr/.test(rutaN) && /data: \{ payroll, details, avisoIsr \}/.test(rutaN)
+    /aviso: payroll\.avisoIsr/.test(rutaN) && /aviso: avisoIsr/.test(rutaN) && /data: \{ payroll, details, avisoIsr\b[^}]*\}/.test(rutaN) /* lote 293: el objeto gana `asiento`; lo vigilado es que lleve avisoIsr */
       && (pagN.match(/if \(data\.aviso\) toast\.warning\(data\.aviso/g) ?? []).length === 2
       && /setAvisoIsr\(data\.data\.avisoIsr \?\? null\)/.test(pagN) && /\{avisoIsr && \(/.test(pagN)
       && /if \(data\.data\.payroll\) setSelectedPayroll\(data\.data\.payroll\);/.test(pagN));

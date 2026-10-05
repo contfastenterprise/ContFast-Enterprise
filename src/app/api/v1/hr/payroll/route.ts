@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { requirePermission } from '@/middleware/permissions';
 import { HRRepository } from '@/repositories/hrRepository';
+import { asientoDeLaNomina } from '@/services/nomina/asentarNomina';
 import { z } from 'zod';
 import { hasActivePlan } from '@/utils/subscriptionHelper';
 import { NominaNoPermitidaError } from '@/services/nomina/estadoDeNomina';
@@ -44,10 +45,15 @@ export async function GET(req: NextRequest) {
       if (!payroll) {
         return NextResponse.json({ success: false, error: { message: 'Nómina no encontrada' } }, { status: 404 });
       }
-      const details = await HRRepository.findPayrollDetails(id, session.companyId, session.modo);
       // Lote 290: si se calcula con la escala del ISR de otro año, la pantalla lo dice.
-      const avisoIsr = await HRRepository.avisoDeEscalaIsr(payroll);
-      return NextResponse.json({ success: true, data: { payroll, details, avisoIsr } });
+      // Lote 293: y el asiento de devengo que registro la aprobacion (null si no tiene).
+      // Las tres lecturas no dependen entre si: a la vez.
+      const [details, avisoIsr, asiento] = await Promise.all([
+        HRRepository.findPayrollDetails(id, session.companyId, session.modo),
+        HRRepository.avisoDeEscalaIsr(payroll),
+        asientoDeLaNomina(id, session.companyId, session.modo),
+      ]);
+      return NextResponse.json({ success: true, data: { payroll, details, avisoIsr, asiento } });
     }
 
     const limit = parseInt(searchParams.get('limit') || '50', 10);
@@ -135,8 +141,9 @@ export async function PUT(req: NextRequest) {
     }
 
     if (action === 'approve') {
-      await HRRepository.approvePayroll(id, session.companyId, session.modo, session.userId);
-      return NextResponse.json({ success: true, message: 'Nómina aprobada exitosamente' });
+      // Lote 293: aprobar registra el asiento de devengo; la respuesta lo nombra.
+      const { asiento } = await HRRepository.approvePayroll(id, session.companyId, session.modo, session.userId);
+      return NextResponse.json({ success: true, message: 'Nómina aprobada exitosamente', data: { asiento } });
     }
 
     return NextResponse.json({ success: false, error: { message: 'Acción no válida' } }, { status: 400 });

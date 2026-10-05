@@ -26,6 +26,7 @@ import {
 } from '@/services/nomina/estadoDeNomina';
 import { anioDeLaNomina, motivoSinEscala, escalaParaLaNomina, avisoDeEscala } from '@/services/nomina/escalaIsr';
 import { leerSalarioMinimo } from '@/services/nomina/salarioMinimoRepositorio';
+import { asentarDevengoDeNomina, type AsientoRegistrado } from '@/services/nomina/asentarNomina';
 
 /**
  * Entorno de trabajo. El proyecto separa PRODUCCION de PRUEBA en las tablas
@@ -591,7 +592,7 @@ export class HRRepository {
     return usado === null ? null : avisoDeEscala(usado, anio);
   }
 
-  static async approvePayroll(payrollId: string, companyId: string, modo: Modo, userId: string) {
+  static async approvePayroll(payrollId: string, companyId: string, modo: Modo, userId: string): Promise<{ asiento: AsientoRegistrado }> {
     return db.transaction(async (tx) => {
       const [payroll] = await tx
         .select()
@@ -615,6 +616,12 @@ export class HRRepository {
 
       const start = payroll.periodStart;
       const end = payroll.periodEnd;
+
+      // Lote 293: el asiento de devengo, ANTES de cambiar nada. Si no se puede
+      // (una cuenta de nomina sin enlazar, el periodo cerrado, un detalle que no
+      // cuadra) lanza un 409 y la transaccion se deshace: la nomina sigue
+      // `calculated`, sin asiento y con sus novedades pendientes.
+      const asiento = await asentarDevengoDeNomina(tx, payroll, details, companyId, modo, userId);
 
       // 1. Update status to approved
       await tx
@@ -686,9 +693,11 @@ export class HRRepository {
         entityType: 'payrolls',
         entityId: payrollId,
         oldValues: { status: payroll.status },
-        newValues: { status: 'approved' },
+        newValues: { status: 'approved', asiento: asiento.id },
         ipAddress: 'System',
       });
+
+      return { asiento };
     });
   }
 
