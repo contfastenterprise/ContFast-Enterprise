@@ -33,6 +33,10 @@
  * nada tecnico (guiones, migraciones). Donde una pantalla necesita eso, se dice "consulte
  * con el administrador del sistema".
  *
+ * LOTE 302 (version 3.2): la seccion "Planes, prueba gratis y limites" (lotes 299 y 300)
+ * y una linea en facturacion, contabilidad, nomina, almacenes, usuarios y avisos. Sin
+ * Administracion > Planes ni la asignacion de suscripciones (son del rol Sistemas).
+ *
  * INDICE: los numeros de pagina se CALCULAN. Cada seccion empieza en pagina nueva, asi que
  * se dibuja cada una por separado con los mismos margenes, se cuentan sus paginas, y con eso
  * se escribe el indice antes de dibujar el documento entero. Si una seccion crece, el indice
@@ -44,7 +48,7 @@ const path = require('path');
 
 const RAIZ = path.join(__dirname, '..');
 const FECHA = 'Octubre 2026';
-const VERSION = '3.1';
+const VERSION = '3.2';
 
 // El logo del sistema, el mismo de la pantalla de acceso (`public/Logo.svg`), incrustado en el
 // HTML: Chromium no tiene que salir a buscarlo. La portada es blanca, asi que va directo:
@@ -215,6 +219,8 @@ seccion('inicio', 'El inicio y los avisos', `
     ['606 / 607 pendiente', 'El mes cerrado no está marcado como presentado (plazo: día 15).', 'Se marca como presentado.'],
     ['Períodos contables', 'Quedan menos de 45 días con período abierto.', 'Se abren los siguientes meses.'],
     ['Padrón de RNC', 'El padrón de la DGII cargado en el sistema tiene 30 días o más.', 'Se actualiza el padrón (consulte con el administrador del sistema).'],
+    ['El plan vence / venció', 'Desde 5 días antes de vencer, y al quedar sin plan.', 'Se renueva el plan.'],
+    ['e-CF del mes', 'Al 80 % y al 100 % del límite del plan.', 'Empieza otro mes o se amplía el plan.'],
   ])}
   <p>Cada aviso trae un botón que lleva a resolverlo (por ejemplo ${b('Ir a Caja')} o ${b('Abrir períodos')}).</p>
 
@@ -292,7 +298,7 @@ seccion('inventario', 'Inventario: productos, precios y existencias', `
   <p>Pantalla <strong>Gestión Unificada de Códigos</strong>: totales con y sin código, filtros ${b('Todos')}, ${b('Con Código')} y ${b('Sin Código')}. ${b('Autogenerar Faltantes')} asigna códigos a todos los productos que no tienen (pide confirmación). Por fila, ${b('Editar o Generar Código')}. ${b('Imprimir Etiquetas')} abre la ventana de etiquetas: modo de selección (producto único, seleccionados, por categoría o todo el catálogo), tamaño (30×20, 50×25, 50×30, 60×40 mm o personalizado), cantidad por producto, campos visibles (marca, nombre, precio, SKU, código, QR), formato del código y vista previa; ${b('Mandar a Imprimir')} abre el PDF.</p>
 
   <h3 class="subsection-title">Almacenes y categorías</h3>
-  <p><strong>Gestión de Almacenes</strong> (pestañas ${b('Almacenes')} / ${b('Registrar')}): código, nombre, dirección y estado. Un almacén se ${b('Deshabilitar')} / ${b('Habilitar')}. <strong>Categorías</strong> (pestañas ${b('Categorías')} / ${b('Registrar')}): nombre, descripción y estado.</p>
+  <p><strong>Gestión de Almacenes</strong> (pestañas ${b('Almacenes')} / ${b('Registrar')}): código, nombre, dirección y estado. Un almacén se ${b('Deshabilitar')} / ${b('Habilitar')}. Crear uno nuevo exige un plan vigente y no pasar de su límite de almacenes. <strong>Categorías</strong> (pestañas ${b('Categorías')} / ${b('Registrar')}): nombre, descripción y estado.</p>
 
   <h3 class="subsection-title">Traslados — ${ruta('Inventario', 'Traslados')}</h3>
   ${pasos([
@@ -358,6 +364,7 @@ seccion('facturacion', 'Facturación electrónica (e-CF)', `
     `<strong>Los artículos:</strong> ${b('Agregar Fila')}, elija el producto y el nivel de precio (Base, Consumidor, Mayorista o Proveedor); el precio también se puede escribir. ${b('Desc. Unit.')} es un descuento en pesos <em>por unidad</em> (solo Administración). ITBIS 18 %, 16 %, Exento o Tasa 0 % de exportación. Si un producto no tiene existencia, se avisa pero se puede emitir: lo que no se podrá es aprobar el conduce hasta que entre mercancía.`,
     `<strong>Revisar y emitir:</strong> el resumen con un enlace «editar» por apartado, las notas de la factura y los totales. Pulse ${b('Emitir e Imprimir')} y confirme. La flecha del botón ofrece ${b('Solo Guardar')} (emite sin imprimir).`,
   ])}
+  ${nota('<strong>El plan.</strong> Emitir exige un plan vigente, y en PRODUCCIÓN, no haber llegado al límite de e-CF del mes. Si no, la factura no sale y la pantalla dice por qué; el borrador sí se puede guardar (sección «Planes, prueba gratis y límites»).')}
   ${nota('<strong>No se vende por debajo del costo, contando el descuento.</strong> Si el precio menos el descuento por unidad queda por debajo del costo del producto, el precio se pone en rojo y la factura no se emite: «Con el descuento queda por debajo del costo (mínimo: RD$ X por unidad).» Justo en el costo sí se permite.', 'warn')}
 
   <h4 class="mini">La tasa del dólar desde la factura</h4>
@@ -524,7 +531,7 @@ seccion('finanzas', 'Bancos y contabilidad', `
   <p>Pantalla <strong>Libro Mayor y Asientos</strong>, pestañas: ${b('Catálogo de Cuentas')}, ${b('Asientos Contables')}, ${b('Libro Mayor')}, ${b('Balanza de Comprobación')}, ${b('Estados Financieros')} y ${b('Períodos Contables')}.</p>
   <ul>
     <li><strong>Catálogo:</strong> el plan de cuentas de la empresa, que se crea al crear la empresa y lo administra el contador (${b('Nueva Cuenta')}, ${b('Imprimir Catálogo')}).</li>
-    <li><strong>Asiento manual:</strong> ${b('Nuevo Asiento')}, líneas con cuenta, débito o crédito (nunca los dos en la misma línea). ${b('Contabilizar')} solo se activa cuando el asiento está «Cuadrado»; si no, dice qué falta.</li>
+    <li><strong>Asiento manual:</strong> ${b('Nuevo Asiento')}, líneas con cuenta, débito o crédito (nunca los dos en la misma línea). ${b('Contabilizar')} solo se activa cuando el asiento está «Cuadrado»; si no, dice qué falta. Sin un plan vigente, el asiento manual no se registra.</li>
     <li><strong>Libro Mayor:</strong> elija la cuenta y el rango; muestra saldo inicial, movimientos y saldo final.</li>
     <li><strong>Estados Financieros:</strong> ${b('Estado de Resultados')} y ${b('Balance General')}. Cada grupo suma sus cuentas hijas y el balance incluye el resultado acumulado; si no cuadrara, dice la diferencia.</li>
   </ul>
@@ -605,6 +612,7 @@ seccion('rrhh', 'Recursos humanos y nómina', `
   ${nota('<strong>La TSS, el IR-3 y el Infotep no se pagan aquí.</strong> Se pagan desde ' + ruta('Finanzas', 'Cuentas Bancarias') + ' › ' + b('Registrar Movimiento') + ' (tipo «Egreso (Transferencia)» o «Egreso (Retiro)»), eligiendo como ' + b('Cuenta Contable (Contrapartida)') + ' la cuenta por pagar que corresponde: TSS por Pagar, ISR Retenido a Asalariados por Pagar o Infotep por Pagar.')}
 
   <h4 class="mini">Cuando el sistema se niega, y por qué</h4>
+  <p>Calcular, recalcular, aprobar y pagar exigen además que la empresa tenga un <strong>plan vigente</strong> (sección «Planes, prueba gratis y límites»); eliminar una nómina no aprobada, no.</p>
   <p>Si algo impide un paso, la nómina <strong>no cambia</strong> y la pantalla dice el motivo: al generar o recalcular, en un aviso; al aprobar, además queda a la vista en el detalle; al pagar, dentro de la ventana de pago, que no se cierra.</p>
   ${tabla(['Situación', 'Lo que dice la pantalla', 'Qué hacer'], [
     ['No hay escala del ISR para el año de la nómina ni para uno anterior', '«Falta la escala del ISR de 2026: … Hay que cargar la escala vigente de la DGII antes de calcular.»', 'Consulte con el administrador del sistema.'],
@@ -671,14 +679,82 @@ seccion('configuracion', 'Configuración y administración', `
   <h4 class="mini">Tipos de Gastos</h4>
   <p>Los tipos del 606. Los códigos 01 a 10 son estándar de la DGII y solo se pueden desactivar; ${b('Crear Tipo de Gasto')} añade otros (código de 2 dígitos).</p>
   <h4 class="mini">Tienda y Plan</h4>
-  <p>${b('Tienda')} configura la portada de la tienda en línea (sección siguiente). ${b('Plan & Suscripción')} muestra el plan contratado y sus límites de e-CF, usuarios y almacenes; para cambiarlo, contacte a soporte.</p>
+  <p>${b('Tienda')} configura la portada de la tienda en línea (sección «La tienda en línea»). ${b('Plan & Suscripción')} muestra el plan y su uso (sección siguiente).</p>
 
   <h3 class="subsection-title">Administración — ${ruta('Sistema', 'Administracion')}</h3>
-  <p>Pantalla <strong>Gestión de Acceso y Planes</strong>:</p>
+  <p>Pantalla <strong>Gestión de Acceso y Planes</strong>. ${b('Usuarios')}: ${b('Nuevo Usuario')} (nombre, correo, contraseña inicial de 6 caracteres o más, rol). Al editar, el campo de contraseña en blanco no la cambia; si se cambia, <strong>se cierran todas las sesiones de ese usuario</strong>. Un usuario se puede suspender y volver a activar, dentro del límite del plan. ${b('Roles del Sistema')} muestra los roles y su descripción, y ${b('Mi Suscripción')}, los límites del plan.</p>
+`);
+
+// LOTE 302: planes y prueba gratis (lotes 299 y 300). Comprobado en
+// `services/suscripcion/planVigente.ts`, `periodoDePrueba.ts`, la pestaña
+// `settings/components/PlanYSuscripcion.tsx` y las rutas que bloquean. Sin
+// Administracion > Planes ni la asignacion de suscripciones: son del rol Sistemas.
+seccion('planes', 'Planes, prueba gratis y límites', `
+  <p class="intro-lead">Cada empresa trabaja con un <strong>plan</strong> que fija cuántos e-CF puede emitir al mes, cuántos usuarios activos puede tener y cuántos almacenes. Mientras el plan está vigente todo funciona con normalidad; sin plan vigente, lo que crea o emite se detiene, pero nada de lo registrado se pierde.</p>
+
+  <h3 class="subsection-title">Dónde se ve — ${ruta('Sistema', 'Configuración')} › pestaña ${b('Plan & Suscripción')}</h3>
+  <p>Solo Administración. La tarjeta «Plan y Suscripción» muestra:</p>
   <ul>
-    <li>${b('Usuarios')}: ${b('Nuevo Usuario')} (nombre, correo, contraseña inicial de 6 caracteres o más, rol). Al editar, el campo de contraseña en blanco no la cambia; si se cambia, <strong>se cierran todas las sesiones de ese usuario</strong>. Un usuario se puede suspender y volver a activar.</li>
-    <li>${b('Roles del Sistema')} (los roles y su descripción) y ${b('Mi Suscripción')} (el plan contratado).</li>
+    <li><strong>Plan Contratado:</strong> el nombre del plan y, a su lado, una etiqueta con su estado.</li>
+    <li><strong>e-CF de este mes:</strong> «N de M», y debajo el porcentaje («x % · emitidos en PRODUCCIÓN»). La cifra se pone en ámbar al llegar al 80 % y en rojo al llegar al límite. Si el plan no tiene límite, sale «N (ilimitado)».</li>
+    <li><strong>Usuarios activos</strong> y <strong>Almacenes:</strong> los que tiene la empresa contra los que permite el plan («2 de 2»; «ilimitado» si no hay tope).</li>
+    <li><strong>Vencimiento / Renovación:</strong> el último día del plan y cuántos quedan («Quedan 12 días», «Vence hoy», «Venció hace 3 días»).</li>
   </ul>
+  <p>Debajo, «Planes Disponibles en ContFast» enseña los planes con su precio mensual y sus límites; el suyo lleva la marca «Plan Actual». <strong>Para contratar, cambiar o renovar un plan, consulte con el administrador del sistema</strong>: no se hace desde esta pantalla.</p>
+  ${tabla(['Estado', 'Qué significa'], [
+    ['<strong>Prueba</strong>', 'La prueba gratis, dentro de sus 30 días. Funciona igual que un plan activo, con los límites del plan de prueba.'],
+    ['<strong>Activo</strong>', 'Un plan contratado, dentro de su período.'],
+    ['<strong>Por empezar</strong>', 'Hay un plan, pero su período todavía no ha comenzado.'],
+    ['<strong>Vencido</strong>', 'Pasó el último día del plan (o de la prueba) sin renovarse.'],
+    ['<strong>Pago pendiente</strong>', 'El plan tiene un pago por regularizar.'],
+    ['<strong>Cancelado</strong>', 'El plan se dio de baja.'],
+  ])}
+  <p>Solo <strong>Prueba</strong> y <strong>Activo</strong> son un plan vigente. Con cualquier otro estado, o si la empresa no tiene plan («Esta empresa no tiene un plan.»), la pantalla lo advierte en rojo y se aplica el bloqueo descrito más abajo. Un plan vale hasta el final de su último día, en hora de República Dominicana.</p>
+
+  <h3 class="subsection-title">La prueba gratis</h3>
+  <ul>
+    <li>Toda empresa nueva empieza con una <strong>prueba gratis de 30 días</strong>, contados desde el día en que se registra. No hay que pedirla ni activarla.</li>
+    <li>Durante la prueba rigen los límites del plan de prueba, que hoy es el <strong>Plan Básico: 100 e-CF al mes, 2 usuarios activos y 1 almacén</strong>.</li>
+    <li>Cinco días antes de terminar aparece el aviso de vencimiento (más abajo). <strong>Al terminar la prueba hace falta un plan</strong>; para contratarlo, consulte con el administrador del sistema.</li>
+  </ul>
+
+  <h3 class="subsection-title">El límite de e-CF del mes</h3>
+  <ul>
+    <li><strong>Cuentan</strong> solo los comprobantes emitidos en <strong>PRODUCCIÓN</strong> que salieron a la DGII, <strong>también los rechazados</strong>: el envío se hizo aunque la DGII no lo aceptara.</li>
+    <li><strong>No cuentan</strong> los borradores ni nada de lo emitido en modo <strong>PRUEBA</strong>: practicar no consume el plan. Aun así, sin plan vigente tampoco se emite en PRUEBA.</li>
+    <li>El mes es el <strong>mes calendario</strong> (del día 1 al último día), en hora de República Dominicana; el día 1 el contador vuelve a cero.</li>
+    <li><strong>Corregir un rechazado no cuenta dos veces:</strong> reenviar un comprobante rechazado con su mismo e-NCF es el mismo comprobante, que ya se contó. Por eso un rechazo se puede corregir aunque el mes esté lleno.</li>
+    <li><strong>Al 80 %</strong> el panel avisa («Ha usado el 80 % de sus e-CF de este mes (N de M)»). <strong>Al 100 %</strong> no se puede emitir más hasta el día 1 del mes siguiente o hasta ampliar el plan; los borradores se pueden seguir guardando.</li>
+  </ul>
+  <h4 class="mini">Usuarios y almacenes</h4>
+  <p>Crear un usuario, o volver a activar uno suspendido, exige no pasar del límite de <strong>usuarios activos</strong> del plan: si está lleno, suspenda otro usuario o amplíe el plan. Crear un almacén exige no pasar del límite de <strong>almacenes</strong>, y aquí cuentan todos los almacenes de la empresa, también los deshabilitados.</p>
+
+  <h3 class="subsection-title">El vencimiento</h3>
+  <ul>
+    <li><strong>Desde 5 días antes</strong> el panel de inicio avisa «El plan vence en N días» (el último día, «El plan vence hoy»), y el aviso llega también por correo con los demás avisos.</li>
+    <li>Al vencer, o si la empresa no tiene un plan vigente, el aviso pasa a «El plan venció» o «No hay un plan vigente», como aviso grave.</li>
+  </ul>
+  ${tabla(['Sin plan vigente se bloquea…', '…y sigue funcionando'], [
+    ['Emitir e-CF (también enviar un borrador o reenviar un rechazado)', 'Consultar cualquier pantalla, reporte o comprobante'],
+    ['Calcular, recalcular, aprobar y pagar nóminas', 'Imprimir y descargar facturas y documentos'],
+    ['Crear asientos manuales', 'Guardar borradores de factura'],
+    ['Crear o volver a activar usuarios, y crear almacenes', 'El resto de la operación diaria'],
+  ])}
+  <p>Lo bloqueado vuelve a funcionar en cuanto la empresa tiene un plan vigente otra vez.</p>
+
+  <div style="page-break-inside: avoid">
+  <h3 class="subsection-title">Los mensajes que se ven</h3>
+  <p>Cuando el plan impide una acción, la acción no se hace y la pantalla muestra el motivo. Los textos son estos («…» es el nombre del plan; N y M, las cifras del caso):</p>
+  ${tabla(['Situación', 'Lo que dice la pantalla'], [
+    ['Sin plan', '«La empresa no tiene un plan vigente. Mientras tanto no se pueden emitir e-CF, calcular, aprobar ni pagar nóminas, ni crear asientos manuales, usuarios o almacenes. Consultar, imprimir y guardar borradores sigue funcionando. Contacte a soporte para activar un plan.»'],
+    ['Plan vencido', '«El … venció el dd-mm-aaaa. Mientras tanto no se pueden emitir e-CF, … Renueve el plan para continuar.» Si era la prueba: «La prueba gratis venció el dd-mm-aaaa. …»'],
+    ['Pago pendiente o plan cancelado', '«El … tiene un pago pendiente. … Renueve el pago para continuar.» / «El … está cancelado. … Contacte a soporte para activar un plan.»'],
+    ['Límite de e-CF', '«Llegó al límite de e-CF de su plan este mes (N de M). No se pueden emitir más hasta el 1 de &lt;mes&gt; o hasta ampliar el plan; los borradores se pueden seguir guardando.»'],
+    ['Límite de usuarios', '«Su plan permite N usuario(s) activo(s) y ya tiene N. Desactive otro usuario o amplíe el plan.»'],
+    ['Límite de almacenes', '«Su plan permite N almacén(es) y ya tiene N. Amplíe el plan para crear otro.»'],
+  ])}
+  </div>
+  ${nota('Para contratar, renovar o ampliar el plan, consulte con el administrador del sistema.')}
 `);
 
 seccion('tienda', 'La tienda en línea', `
