@@ -64,12 +64,17 @@ describe('lote 165 · cuentas del sistema', () => {
       ['1.1.01.01', 'asset'], ['1.1.01.02', 'asset'], ['1.1.02.01', 'asset'], ['1.1.03.01', 'asset'],
       ['1.1.04.01', 'asset'], ['1.1.04.02', 'asset'], ['2.1.01.01', 'liability'], ['2.1.02.01', 'liability'],
       ['2.1.02.02', 'liability'], ['2.1.02.03', 'liability'], ['4.1.01', 'revenue'], ['5.1.01', 'expense'],
+      // Lote 292: tambien estaban desde siempre en el sembrador, y medido el
+      // 2026-10-04 las SEIS empresas las tienen, con 0 renglones. Hacen falta
+      // ahora porque la nomina las pide; el ejemplo estaba incompleto.
+      ['2.1.01.02', 'liability'], ['6.1.01.01', 'expense'], ['6.1.01.02', 'expense'],
     ].map(([code, type]) => ({ id: `id-${code}`, code, type, isTransactional: true, status: 'active', renglones: 0 }));
     // `2.1.01` esta desde el lote 171, que anade 2.1.01.03 y necesita su padre.
     // No es un apaño para la prueba: el sembrador crea 2.1.01 desde siempre, y
     // medido el 2026-09-19 las SEIS empresas la tienen (pasivo, acreedora, de
     // agrupacion). El ejemplo estaba incompleto respecto a la realidad.
-    const grupos: CuentaExistente[] = [['1.1.04', 'asset'], ['2.1.01', 'liability'], ['5.1', 'expense']]
+    const grupos: CuentaExistente[] = [['1.1.04', 'asset'], ['2.1.01', 'liability'], ['5.1', 'expense'],
+      ['2.1.02', 'liability'], ['6.1.01', 'expense']]
       .map(([code, type]) => ({ id: `id-${code}`, code, type, isTransactional: false, status: 'active', renglones: 0 }));
     const clavesViejas = new Set(['sales_revenue', 'accounts_receivable', 'cash', 'bank', 'itbis_sales',
       'itbis_purchases', 'cost_of_goods_sold', 'inventory', 'supplier_payable']);
@@ -80,10 +85,14 @@ describe('lote 165 · cuentas del sistema', () => {
       expect(enlaza).toEqual({
         purchase_itbis_paid: '1.1.04.01', isr_retention_receivable: '1.1.04.02',
         itbis_withholding_payable: '2.1.02.02', isr_withholding_payable: '2.1.02.03',
+        // Lote 292: las tres de nomina que ya existen en el catalogo sembrado.
+        payroll_salaries_expense: '6.1.01.01', payroll_employer_tss_expense: '6.1.01.02',
+        payroll_other_deductions: '2.1.01.02',
       });
       const crea = plan.filter((p) => p.accion === 'crear_y_enlazar').map((p) => (p as { cuenta: { codigo: string } }).cuenta.codigo).sort();
       // 2.1.01.03 la anade el lote 171 (tarjeta de credito).
-      expect(crea).toEqual(['1.1.04.03', '1.1.04.04', '2.1.01.03', '5.1.02']);
+      // 2.1.01.04, 2.1.02.04-06 y 6.1.01.03, el lote 292 (nomina).
+      expect(crea).toEqual(['1.1.04.03', '1.1.04.04', '2.1.01.03', '2.1.01.04', '2.1.02.04', '2.1.02.05', '2.1.02.06', '5.1.02', '6.1.01.03']);
     });
 
     it('como Latin Doors: una cuenta antigua CON movimientos se respeta; sin movimientos, no', () => {

@@ -56,14 +56,18 @@ export interface CuentaDelSistema {
 /**
  * Los bloques en que se agrupan las cuentas puente.
  *
- * Son CINCO y no seis: no hay categoria de recursos humanos porque, medido el
- * 2026-09-20, la nomina NO ASIENTA -- `api/v1/hr/` no menciona ni asientos ni
- * cuentas contables. Los sueldos, la TSS y el ISR retenido a empleados se
- * calculan y se pagan, pero no entran al libro mayor. Crear un bloque vacio
- * sugeriria que hay algo que configurar; cuando la nomina se contabilice,
- * entrara con sus claves y su categoria.
+ * Hasta el lote 291 eran CINCO: no habia categoria de recursos humanos porque,
+ * medido el 2026-09-20, la nomina NO ASENTABA, y un bloque vacio habria
+ * sugerido que habia algo que configurar.
+ *
+ * Lote 292 (el "lote B" de `docs/diseno_asientos_nomina.md`): entra `nomina`,
+ * con sus ocho claves. La nomina TODAVIA no asienta -- el asiento al aprobar es
+ * el lote C y el pago el D --, pero las cuentas tienen que existir y estar
+ * enlazadas ANTES: si no, aprobar la primera nomina fallaria con "no hay
+ * ninguna cuenta configurada" en cada empresa. El bloque no esta vacio: lleva
+ * las ocho, y el contador puede repuntarlas desde ya.
  */
-export type CategoriaDePuente = 'caja_bancos' | 'clientes' | 'inventario' | 'compras' | 'impuestos';
+export type CategoriaDePuente = 'caja_bancos' | 'clientes' | 'inventario' | 'compras' | 'impuestos' | 'nomina';
 
 /** La tabla. El sembrador la siembra entera y el codigo la usa por defecto. */
 export const CUENTAS_DEL_SISTEMA: readonly CuentaDelSistema[] = [
@@ -89,6 +93,41 @@ export const CUENTAS_DEL_SISTEMA: readonly CuentaDelSistema[] = [
   { clave: 'sales_revenue', codigo: '4.1.01', nombre: 'Ventas de Mercancías', tipo: 'revenue', naturaleza: 'credit', etiqueta: 'Ingresos por Ventas', categoria: 'clientes' },
   { clave: 'cost_of_goods_sold', codigo: '5.1.01', nombre: 'Costo de Ventas Mercancías', tipo: 'expense', naturaleza: 'debit', etiqueta: 'Costo de Ventas', categoria: 'inventario' },
   { clave: 'purchase_other_taxes', codigo: '5.1.02', nombre: 'Otros Impuestos y Tasas', tipo: 'expense', naturaleza: 'debit', etiqueta: 'Otros Impuestos y Tasas (compras)', categoria: 'compras' },
+
+  // Lote 292: la nomina (docs/diseno_asientos_nomina.md, seccion 4). Lo que
+  // asentara al aprobarse (lote C) y lo que pagara despues (lote D).
+  //
+  // POR QUE ESTOS CODIGOS Y NO 2.1.03-2.1.05: en Latin Doors esas tres ya son
+  // "ITBIS por Pagar", "ISR Retenido" e "ITBIS Retenido", transaccionales y con
+  // movimientos (las creo el sistema sobre la marcha antes del lote 137).
+  // `planParaCompletar` enlaza una cuenta estandar que YA existe mirando solo
+  // su tipo, no su nombre: con "Sueldos por pagar" en 2.1.03 habria enganchado
+  // la nomina al ITBIS sin avisar. Los codigos de aqui se midieron libres (o
+  // con su significado) en las seis empresas el 2026-10-04, y el banco del
+  // lote ejecuta el plan con esos catalogos congelados.
+  //
+  // Tres ya existen en el catalogo sembrado (6.1.01.01, 6.1.01.02 y 2.1.01.02,
+  // con 0 renglones en las seis); las otras cinco las crea el sembrador en una
+  // empresa nueva y `completarCuentasDelSistema` en una existente.
+  { clave: 'payroll_salaries_expense', codigo: '6.1.01.01', nombre: 'Sueldos y Salarios', tipo: 'expense', naturaleza: 'debit', etiqueta: 'Sueldos y Salarios', categoria: 'nomina' },
+  // D7: 6.1.01.02 se llamaba "Retenciones TSS (SFS/AFP/TSS)", y una retencion
+  // no es un gasto: es dinero del empleado que la empresa debe a la TSS. Por
+  // naturaleza es la cuenta de los APORTES PATRONALES. El nombre se corrige en
+  // el sembrador (empresas nuevas); en las seis que existen lo renombra el
+  // contador -- el codigo no renombra datos.
+  { clave: 'payroll_employer_tss_expense', codigo: '6.1.01.02', nombre: 'Aportes Patronales TSS', tipo: 'expense', naturaleza: 'debit', etiqueta: 'Aportes Patronales TSS (AFP, SFS, SRL)', categoria: 'nomina' },
+  { clave: 'payroll_infotep_expense', codigo: '6.1.01.03', nombre: 'Aporte Infotep', tipo: 'expense', naturaleza: 'debit', etiqueta: 'Aporte Infotep', categoria: 'nomina' },
+  { clave: 'payroll_salaries_payable', codigo: '2.1.01.04', nombre: 'Sueldos por Pagar', tipo: 'liability', naturaleza: 'credit', etiqueta: 'Sueldos por Pagar', categoria: 'nomina' },
+  { clave: 'payroll_tss_payable', codigo: '2.1.02.04', nombre: 'TSS por Pagar (AFP, SFS, SRL)', tipo: 'liability', naturaleza: 'credit', etiqueta: 'TSS por Pagar (AFP, SFS, SRL)', categoria: 'nomina' },
+  // Separada de 2.1.02.03 (retenciones a terceros) a proposito: el ISR de
+  // asalariados se declara en el IR-3 y el de terceros en el IR-17. Con una
+  // sola cuenta, el contador no podria cuadrar cada declaracion con su saldo.
+  { clave: 'payroll_isr_payable', codigo: '2.1.02.05', nombre: 'ISR Retenido a Asalariados por Pagar', tipo: 'liability', naturaleza: 'credit', etiqueta: 'ISR Retenido a Asalariados (IR-3)', categoria: 'nomina' },
+  { clave: 'payroll_infotep_payable', codigo: '2.1.02.06', nombre: 'Infotep por Pagar', tipo: 'liability', naturaleza: 'credit', etiqueta: 'Infotep por Pagar', categoria: 'nomina' },
+  // D5: prestamos, cooperativa, seguro, embargo. Por defecto una cuenta que ya
+  // existe y nadie usa; si son prestamos que dio la empresa, el contador la
+  // repunta a una cuenta por cobrar (el descuento cobra, no crea una deuda).
+  { clave: 'payroll_other_deductions', codigo: '2.1.01.02', nombre: 'Otras Cuentas por Pagar', tipo: 'liability', naturaleza: 'credit', etiqueta: 'Otras deducciones de nómina', categoria: 'nomina' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -163,6 +202,9 @@ const BLOQUES: readonly { categoria: CategoriaDePuente; titulo: string; descripc
     descripcion: 'Lo que se le debe a los suplidores y los impuestos que van al costo de la compra.' },
   { categoria: 'impuestos', titulo: 'Impuestos y retenciones',
     descripcion: 'ITBIS cobrado y pagado, y las retenciones — las que hace la empresa y las que le hacen a ella.' },
+  // Lote 292. El texto es el del diseño aprobado (seccion 4).
+  { categoria: 'nomina', titulo: 'Nómina',
+    descripcion: 'Sueldos, aportes a la TSS, Infotep y retenciones de ISR de los empleados: lo que la nómina asienta al aprobarse y paga después.' },
 ];
 
 /**
