@@ -12,9 +12,11 @@ import { RefreshCw, Printer, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { accionesDeNomina } from '@/services/nomina/estadoDeNomina';
 import type { EstadoNominas } from '../hooks/useNominas';
+import { PagarNomina } from './PagarNomina';
+import { netoEnCentavos } from '@/services/nomina/pagoDeNomina';
 
 export function AccionesDeLaNomina({ h }: { h: EstadoNominas }) {
-  const { selectedPayroll, payrollDetailsList, loadingDetails, handleRecalculate, handleApprove } = h;
+  const { selectedPayroll, payrollDetailsList, loadingDetails, handleRecalculate, handleApprove, alPagar } = h;
   //  Solo se pinta con una nomina elegida (la pagina lo decide); esto lo dice al compilador.
   if (!selectedPayroll) return null;
 
@@ -43,6 +45,15 @@ export function AccionesDeLaNomina({ h }: { h: EstadoNominas }) {
         >
           <Award className="h-4 w-4" /> Aprobar Nómina
         </Button>
+      )}
+      {/* Lote 295: pagar una aprobada. El boton solo se pinta si se puede (`sePuedePagar`). */}
+      {!loadingDetails && (
+        <PagarNomina
+          payrollId={selectedPayroll.id}
+          neto={netoEnCentavos(payrollDetailsList) / 100}
+          status={selectedPayroll.status}
+          alPagar={alPagar}
+        />
       )}
     </div>
   );

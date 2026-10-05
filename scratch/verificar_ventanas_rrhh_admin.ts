@@ -34,7 +34,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
 import { join, resolve } from 'path';
 import { enCommit, huella, diferencia } from './huellaDePantalla';
-import { leerPantallaDeNomina } from './pantallaDeNomina';
+import { leerPantallaDeNomina, ficherosDePantallaDeNomina } from './pantallaDeNomina';
 
 const raiz = resolve(__dirname, '..');
 const BASE = 'ab9e5fd' /* lote 276: commit fijo, la rama se borro al fusionar */;
@@ -140,6 +140,14 @@ function textos(src: string): string[] {
   return h.sort();
 }
 
+/** El Modal comun se importa en cada fichero que pinta un <Modal>; en la nomina, fichero a fichero. */
+function importaElModalComun(f: string, s: string): boolean {
+  const RE = /import \{ Modal \} from '@\/components\/ui\/dialog';/;
+  if (f !== 'src/app/dashboard/hr/payroll/page.tsx') return RE.test(s);
+  const conModal = ficherosDePantallaDeNomina(raiz).map((x) => sinComentarios(leer(x))).filter((x) => /<Modal\b/.test(x));
+  return conModal.length > 0 && conModal.every((x) => RE.test(x));
+}
+
 async function main() {
   for (const f of FICHEROS) if (!existsSync(resolve(raiz, f))) throw new Error(`Precondicion: no esta ${f}`);
   //  Precondicion valida en los dos estados: la ventana comun existe (la trae la base).
@@ -153,7 +161,11 @@ async function main() {
   for (const f of FICHEROS) {
     const s = sinComentarios(fuentes.get(f) ?? '');
     ok(`  ${f.replace(/^src\/app\/dashboard\//, '')}: importa el Modal comun y lo usa`,
-      /import \{ Modal \} from '@\/components\/ui\/dialog';/.test(s) && modales(s).length === VENTANAS.filter((v) => v.f === f).length);
+      //  "Al menos": un lote posterior puede traer una ventana NUEVA hecha ya con el Modal comun
+      //  (el pago de la nomina, lote 295). Cada ventana de este lote se mira una por una abajo.
+      //  Y el import se mira en CADA fichero que pinta un <Modal>: con la pantalla de nomina partida
+      //  (lote 294), uno solo que lo importara bien taparia a otro que no (lote 295, un mutante).
+      importaElModalComun(f, s) && modales(s).length >= VENTANAS.filter((v) => v.f === f).length);
   }
 
   console.log('\n2-4) Cada ventana: la misma variable, el mismo cierre, title, sin cerrar al pulsar fuera, bloqueada\n');

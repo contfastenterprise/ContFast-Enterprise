@@ -15,6 +15,8 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useConfirm } from '@/providers/confirm-provider';
 import type { AsientoParaVer } from '../components/AsientoDeLaNomina';
+import type { PagoParaVer } from '../components/PagoDeLaNomina';
+import { leerRespuesta } from '@/utils/leerRespuesta';
 
 export interface Payroll {
   id: string;
@@ -41,6 +43,8 @@ export function useNominas() {
   // Lote 293: el asiento que registro la aprobacion, y el motivo si se nego.
   const [asiento, setAsiento] = useState<AsientoParaVer | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState<string | null>(null);
+  // Lote 295: el pago de una nomina pagada (fecha, origen y su asiento).
+  const [pago, setPago] = useState<PagoParaVer | null>(null);
 
   // Modals state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -82,6 +86,7 @@ export function useNominas() {
     setAvisoIsr(null);
     setAsiento(null);
     setMotivoRechazo(null);
+    setPago(null);
     setLoadingDetails(true);
     try {
       const res = await fetch(`/api/v1/hr/payroll?id=${payroll.id}`);
@@ -93,6 +98,13 @@ export function useNominas() {
         if (data.data.payroll) setSelectedPayroll(data.data.payroll);
         setAvisoIsr(data.data.avisoIsr ?? null);
         setAsiento(data.data.asiento ?? null);
+        // Lote 295: una nomina pagada enseña su pago. Se pide aparte (su ruta mira si existe
+        // la tabla 0021); si no se puede leer, el detalle sale igual y dice que no consta.
+        const estado = data.data.payroll?.status ?? payroll.status;
+        if (estado === 'paid') {
+          const leido = await leerRespuesta<{ data: { pago: PagoParaVer | null } }>(await fetch(`/api/v1/hr/payroll/${payroll.id}/pay`));
+          if (leido.bien) setPago(leido.cuerpo.data?.pago ?? null);
+        }
       }
     } catch (e) {
       toast.error('Error al cargar detalles de la nómina');
@@ -197,7 +209,14 @@ export function useNominas() {
     });
   };
 
-  return { confirm, payrolls, setPayrolls, loading, setLoading, page, setPage, selectedPayroll, setSelectedPayroll, payrollDetailsList, setPayrollDetailsList, loadingDetails, setLoadingDetails, avisoIsr, setAvisoIsr, asiento, setAsiento, motivoRechazo, setMotivoRechazo, showCreateModal, setShowCreateModal, submitting, setSubmitting, itemsPerPage, totalPages, pagedPayrolls, formData, setFormData, fetchPayrolls, handleSelectPayroll, handleCreatePayroll, handleRecalculate, handleApprove, handleDelete };
+  // Lote 295: tras pagar, lo mismo que tras aprobar -- la lista (cambia el estado) y el
+  // detalle releido de la base (ahora con su pago).
+  const alPagar = () => {
+    fetchPayrolls();
+    if (selectedPayroll) handleSelectPayroll(selectedPayroll);
+  };
+
+  return { confirm, payrolls, setPayrolls, loading, setLoading, page, setPage, selectedPayroll, setSelectedPayroll, payrollDetailsList, setPayrollDetailsList, loadingDetails, setLoadingDetails, avisoIsr, setAvisoIsr, asiento, setAsiento, motivoRechazo, setMotivoRechazo, pago, showCreateModal, setShowCreateModal, submitting, setSubmitting, itemsPerPage, totalPages, pagedPayrolls, formData, setFormData, fetchPayrolls, handleSelectPayroll, handleCreatePayroll, handleRecalculate, handleApprove, handleDelete, alPagar };
 }
 
 export type EstadoNominas = ReturnType<typeof useNominas>;

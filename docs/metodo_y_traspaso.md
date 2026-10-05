@@ -3108,6 +3108,77 @@ Además, fuera de la tabla:
   etiquetas en la ventana y los volantes). Arreglarlos cambia comportamiento y va aparte, como en 226/227.
   **Trampa repetida**: un heredoc con `\n` dentro de una expresión regular volvió a romper un guion
   (sección 4); se arregló escribiendo el guion a fichero.
+- **Lote 295: pagar una nómina aprobada** (el "lote D" de `docs/diseno_asientos_nomina.md`). Hasta
+  ahora la nómina llegaba a "Aprobada" y ahí se quedaba: nada la ponía en `paid`. Ahora se paga **el
+  neto, de una vez** (como propone el diseño; la TSS, el IR-3 y el Infotep siguen pagándose desde
+  Bancos contra su cuenta por pagar, D4), desde **una cuenta bancaria** (transferencia o cheque) o
+  **la caja**. Asiento por `createJournalEntry` (lote 152), fechado el **día del pago**, con
+  `reference` = id del pago: **debe Sueldos por Pagar** (la clave del 292, ENLAZADA: no se cae al
+  código por defecto) / **haber** la cuenta contable de ese banco o la Caja General. Con la nómina
+  medida, por transferencia desde Banreservas: debe 2.1.01.04 Sueldos por Pagar 9.409,00 / haber
+  1.1.01.03 Banco de Reservas 9.409,00; Sueldos por Pagar queda en cero para esa nómina.
+  · **Las piezas son las de compras y pagos, no una copia**: el banco se valida con
+  `resolverOrigenDeCompra` (170; de la empresa y con cuenta contable), el retiro queda en el **libro
+  de banco pendiente de conciliar** con `reflejarEnBancoDeCompra` (151, 163, 170), el efectivo sale de
+  la **sesión de caja abierta** con `sesionParaEfectivo`/`reflejarEnCaja` (169) — **sin caja abierta
+  se niega** —, y lo que se mueve en banco o caja es lo que el asiento cambió en el mayor
+  (`efectoEnCuentaDeDocumento`). La regla de método y banco es la de `cuentaDelPago` (163), y la
+  referencia (número de transferencia o de cheque) es **obligatoria** fuera del efectivo (172).
+  · **Todo en una transacción, con la nómina bloqueada** (`for update`), y todo lo que niega va
+  **antes** de la primera escritura. **409 sin cambiar nada**: no aprobada, ya pagada, aprobada **sin
+  asiento de devengo** (antes del 293: la asienta el contador), sin el enlace de Sueldos por Pagar,
+  el devengo que no deja el neto en la Sueldos por Pagar enlazada hoy (el enlace se cambió después
+  de aprobar), banco de otra empresa o sin cuenta contable, efectivo sin caja abierta, y el período del
+  día del pago cerrado o sin abrir. Fecha futura o referencia que falta: 400. Pagar dos veces,
+  seguidas o a la vez, deja **un** pago (el bloqueo, y detrás el `UNIQUE` de `payroll_id`). Queda
+  `paid`, y la auditoría (`pay_payroll`) guarda fecha, método, banco, referencia, importe y autor.
+  · **MIGRACIÓN `drizzle/0021_pagos_de_nomina.sql`**: una tabla nueva, `pagos_de_nomina` (empresa,
+  modo, nómina, fecha, método, banco o sesión de caja, referencia, monto, asiento, autor), **ninguna
+  columna en `payrolls`** y la tabla **fuera del esquema de Drizzle** (la lección de las 0013 y 0015).
+  El código mira si existe antes de usarla (como la 0016-0020): sin ella, **pagar contesta 409
+  nombrándola** y nada más cambia. **No hace falta aplicarla antes de desplegar.**
+  · **Ruta** `POST /api/v1/hr/payroll/[id]/pay` (`nomina:write`, el permiso de aprobar) y `GET` (el pago
+  con su asiento; sin la tabla, `pago: null, hayTabla: false`). Aparte del PUT de `hr/payroll` a
+  propósito. Regla pura en `services/nomina/pagoDeNomina.ts`, base en `services/nomina/pagarNomina.ts`
+  (`hrRepository.ts` pasa de 1.100 líneas).
+  · **Pantalla**: dos componentes nuevos, **sin conectar**: `payroll/page.tsx` no se tocó porque otra
+  sesión la estaba partiendo (lote 294). `components/PagarNomina.tsx` (`payrollId`, `neto` en pesos,
+  `status`, `alPagar`): el botón "Pagar nómina" (solo con una aprobada con neto) y su `Modal` con el
+  origen, el banco (se piden al abrir), la fecha (hoy de RD), la referencia y la confirmación con el
+  neto; valida con la misma regla, lee con `leerRespuesta`, guarda el doble clic con `useRef`, y un 409
+  se queda dentro de la ventana. `components/PagoDeLaNomina.tsx` (`status`, `pago` del GET) enseña el
+  pago y su asiento con el visor del 293.
+  **No se tocó la nómina de julio de Latin Doors** (real; la asienta el contador). No se paga hacia atrás.
+  Dos bancos. `verificar_nomina_pago.ts` (la regla ejecutada, la migración, el cableado y los dos
+  componentes dibujados): 41 comprobaciones, contraprueba **0 OK** (todo FALLA) contra `42730af`.
+  `verificar_nomina_pago_db.ts` (**integración**, base desechable: aprobar de verdad y pagar por la
+  ruta; banco con asiento, libro y saldo; caja con la sesión; sin caja; dos veces seguidas y a la vez;
+  no aprobada y sin devengo; banco ajeno y sin cuenta; sin enlace y con el enlace cambiado; período
+  cerrado; sin la tabla renombrándola; y nada a medias con la auditoría forzada a fallar): 23,
+  contraprueba **23 FALLA**. Diecinueve mutantes y diecinueve muertos. **Uno equivalente para el de
+  integración, anotado en el código**: quitar el `for update` no lo ve con un pool pequeño (las dos
+  peticiones se serializan, y el `UNIQUE` frenaría a la segunda); lo mata el de código. **Uno apretó el
+  banco**: con el devengo dado por existente, el 409 del devengo que no cuadra también decía "devengo"
+  y la comprobación pasaba; ahora exige el motivo exacto.
+  **Para el dueño**: aplicar la 0021 cuando quiera pagar nóminas desde el sistema
+  (`npx tsx --env-file=.env scratch/_to_delete/aplicar_migracion.ts drizzle/0021_pagos_de_nomina.sql --aplicar`),
+  y `verificar_nomina_pago_db.ts` a `deuda_bancos.txt` en su carpeta.
+  **La conexión, hecha por el principal al juntar las ramas** (el 295 no podía tocar la página: el
+  294 la estaba partiendo a la vez). «Pagar nómina» va en `AccionesDeLaNomina`, con el neto del
+  detalle (`netoEnCentavos`), y solo con el detalle ya cargado; el pago se pinta en
+  `DetalleDeLaNomina`. El hook pide el pago (`GET …/pay`) **solo de una pagada**, lo limpia al abrir
+  otra, y `alPagar` hace lo mismo que aprobar: recarga la lista y relee el detalle. Banco
+  `verificar_nomina_pago_conectado.ts`: 11 comprobaciones, contraprueba **11 FALLA** — las cuatro
+  negaciones ("no se ofrece en una calculada…") salían en OK de balde antes del botón y se ataron a
+  la marca positiva —, ocho mutantes y ocho muertos.
+  **Dos bancos que la pieza nueva rompía, sin regresión**: `verificar_partir_nomina` (294: "nadie
+  más que el hook guarda estado") mira ahora solo las piezas del corte (las que existen en `97bdf14`),
+  porque `PagarNomina` guarda su propio formulario a propósito; y `verificar_ventanas_rrhh_admin` (280)
+  exige **al menos** las ventanas del lote, y el import del `Modal` común **en cada fichero** que pinta
+  uno — con la pantalla partida, el import de `PagarNomina` tapaba que `GenerarNomina` dejara de
+  importarlo (un mutante sobrevivía). **Y el heredoc volvió a meter un carácter de retroceso en una
+  expresión** (sección 4): el banco salió en rojo con 0 OK y los "mutantes muertos" no valían; se
+  rehízo desde un guion escrito a fichero, y se cuentan los OK.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
