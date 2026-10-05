@@ -20,6 +20,7 @@
  */
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { leerPantallaDeNomina } from './pantallaDeNomina';
 
 let fallos = 0;
 let total = 0;
@@ -244,7 +245,8 @@ async function main() {
       && /if \(error instanceof NominaNoPermitidaError\)[\s\S]*?status: error\.status/.test(manejo)
       && (ruta.match(/return respuestaDeError\(error\);/g) ?? []).length >= 3);
 
-  const pagina = sinComentarios(leer('src/app/dashboard/hr/payroll/page.tsx'));
+  //  Lote 294: la pagina de nomina esta partida (hooks/ y components/); se lee la pantalla entera.
+  const pagina = sinComentarios(leerPantallaDeNomina(raiz));
   ok('la pantalla ofrece recalcular y aprobar con la regla, no con `!== \'approved\'`',
     /from '@\/services\/nomina\/estadoDeNomina'/.test(pagina)
       && /accionesDeNomina\(selectedPayroll\.status, payrollDetailsList\.length\)\.recalcular && \(/.test(pagina)

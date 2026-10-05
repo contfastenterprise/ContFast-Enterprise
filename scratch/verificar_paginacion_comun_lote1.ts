@@ -27,6 +27,7 @@
  */
 import fs from 'fs';
 import { sinComentarios } from './_fuente';
+import { leerPantallaDeNomina } from './pantallaDeNomina';
 
 let fallos = 0;
 function ok(t: string, x: boolean, d = ''): void {
@@ -36,7 +37,9 @@ function ok(t: string, x: boolean, d = ''): void {
 function exige(cond: boolean, queja: string): void {
   if (!cond) throw new Error(`Precondicion rota: ${queja}`);
 }
-const codigo = (f: string) => sinComentarios(fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n'));
+//  Lote 294: la pagina de nomina esta partida (hooks/ y components/); se lee la pantalla entera.
+const leerF = (f: string) => (f === 'src/app/dashboard/hr/payroll/page.tsx' ? leerPantallaDeNomina('.') : fs.readFileSync(f, 'utf8'));
+const codigo = (f: string) => sinComentarios(leerF(f).replace(/\r\n/g, '\n'));
 
 const PANTALLAS = [
   { f: 'src/app/dashboard/inventory/categories/page.tsx', lista: 'categories', etiqueta: 'categorías' },

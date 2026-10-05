@@ -3064,6 +3064,50 @@ Además, fuera de la tabla:
   mutante que lo quita y muere.
   **Para el dueño**: `verificar_nomina_asiento_al_aprobar_db.ts` a `deuda_bancos.txt`. Y lanzar el
   guion de la escala del ISR (lote 290) antes de calcular nóminas nuevas.
+- **Lote 294: la página de nómina, partida en componentes sin cambiar lo que hace.** Pedido del dueño
+  (2026-10-05), antes del lote D (pagar la nómina), que hace otra sesión a la vez. `hr/payroll/page.tsx`
+  tenía **607 líneas**; queda el armazón (64: cabecera, volver al historial y qué pieza se pinta) y
+  salen `hooks/useNominas.ts` (203) y cinco piezas en `components/`: `ListaDeNominas` (167, el
+  historial con su paginación), `DetalleDeLaNomina` (54: cabecera, aviso del ISR y el asiento del 293),
+  `AccionesDeLaNomina` (49: imprimir, recalcular, aprobar), `VolantesDeLaNomina` (112) y
+  `GenerarNomina` (86, la ventana). `AsientoDeLaNomina` (293) no se tocó.
+  **El sitio del lote D**: el botón «Pagar» va en `AccionesDeLaNomina`, que recibe el hook (`h`) y ya
+  tiene a mano `selectedPayroll` (con su `status` releído de la base), `payrollDetailsList`,
+  `loadingDetails` y las acciones; su estado y su acción van en `useNominas`, junto a `handleApprove`,
+  que es el modelo (confirmar, recargar la lista y releer el detalle).
+  **Cómo se cortó**: `scratch/_to_delete/partir294.py`, por **rangos de líneas** leídos de
+  `git show 42730af:` (se puede repetir); el cuerpo del componente pasa al hook tal cual y cada pieza
+  saca del hook, con su nombre de siempre, lo que usa. Ninguna línea de JSX se reescribe: solo cambia
+  su sangría. Las tres piezas del detalle llevan `if (!selectedPayroll) return null;`: en la página
+  vieja el ternario estrechaba el tipo y en una pieza aparte el compilador ya no lo sabe.
+  **Un hook y no dos, a propósito**: las llamadas que un corte podía romper sin que compilara peor
+  (aprobar recarga la lista y RELEE el detalle — así sale el asiento del 293 —; crear recarga y abre
+  la nueva; recalcular relee; eliminar vuelve a la lista) siguen juntas dentro de `useNominas`, y no
+  cruzan de un hook a otro como en caja (229) y configuración (238).
+  Banco `verificar_partir_nomina.ts`: la **huella** visible de la página de `42730af` contra la
+  pantalla en `97bdf14` (el commit del corte) — 195 elementos, uno por uno y con repetidos, más el
+  texto que va detrás de una expresión, el hueco de `huella` que cubrió el banco del 280 — como
+  **invariante**, entre dos commits fijos porque el lote D cambiará la pantalla a propósito; y **ejecuta
+  el hook** sobre un motor de React mínimo (`useState`/`useEffect`, lo único que usa), con `fetch`, la
+  confirmación y los avisos sustituidos **solo para el hook** (interceptando `Module._load` por el
+  fichero que pide): así se comprueba, pedido a pedido, cada llamada encadenada con el estado de
+  verdad — sin DOM de pruebas, un `renderToStaticMarkup` deja el estado inicial y "aprobar relee la
+  nómina abierta" no se podría ver. Y **dibuja** las piezas con el `h` que dejó el motor. 16
+  comprobaciones, contraprueba **16 FALLA** (la huella sigue `inv`), doce mutantes y doce muertos.
+  **Siete bancos leían la página** y pasan a la pantalla entera con `scratch/pantallaDeNomina.ts`
+  (mismo criterio que `pantallaDeCaja` y `pantallaDeAjustes`; sin prefijo, porque el corte no cambió
+  ningún nombre): `verificar_nomina_asiento_al_aprobar`, `_decisiones_contador`, `_guardas_e_isr`,
+  `verificar_paginacion_comun_lote1`, `verificar_fechas_pantallas`, `verificar_ventanas_rrhh_admin`
+  y `verificar_ui_rrhh_admin` — este pasaba igual, pero había dejado de mirar los botones que se
+  movieron; ahora barre también las piezas (sus secciones 1-7; la 8 compara commits del 274). Los
+  siete en verde **en los dos estados**, y un mutante por banco sobre el código movido, ocho y ocho
+  muertos.
+  **React Doctor, medido en local**: la página vieja daba 18 avisos; las piezas dan 16 — se van
+  "componente gigante" y `prefer-useReducer`, y quedan los mismos de siempre, cambiados de fichero
+  (seis respuestas leídas sin mirar el estado y el `fetch` en un efecto en el hook; nueve de
+  etiquetas en la ventana y los volantes). Arreglarlos cambia comportamiento y va aparte, como en 226/227.
+  **Trampa repetida**: un heredoc con `\n` dentro de una expresión regular volvió a romper un guion
+  (sección 4); se arregló escribiendo el guion a fichero.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás

@@ -25,6 +25,7 @@
 import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { enCommit, huella, diferencia } from './huellaDePantalla';
+import { ficherosDePantallaDeNomina } from './pantallaDeNomina';
 
 const raiz = resolve(__dirname, '..');
 const BASE = '57f741d' /* lote 270: commit fijo, la rama se borro al fusionar */;
@@ -235,6 +236,9 @@ function textosDe(src: string, despues: boolean): string[] {
 async function main() {
   for (const f of FICHEROS) if (!existsSync(resolve(raiz, f))) throw new Error(`Precondicion: no esta ${f}`);
   const fuentes = new Map(FICHEROS.map((f) => [f, leer(f)] as const));
+  //  Lote 294: las piezas de la pantalla de nomina (hooks/ y components/) se miran como la pagina en las
+  //  secciones 1 a 7; la 8 compara commits fijos del 274, cuando aun no existian.
+  for (const f of ficherosDePantallaDeNomina(raiz)) if (!fuentes.has(f as typeof FICHEROS[number])) fuentes.set(f as typeof FICHEROS[number], leer(f));
 
   console.log('\n1) Ningun boton de accion pintado a mano\n');
   const aMano: string[] = [];
