@@ -31,6 +31,37 @@ export function precioConMargen(costo: number, margen: number): number {
   return centavos(costo / (1 - margen));
 }
 
+/**
+ * LOTE 285: los cuatro niveles de precio, con el rotulo que se ENSEÑA.
+ *
+ * El desplegable "Tipo de Precio" de Clientes decia "Precio 1 (Base +25%)": el RECARGO de antes del
+ * lote 265, escrito a mano, que nadie cambio cuando el porcentaje paso a ser un margen sobre la venta.
+ * Un cliente configurado "a +25 %" se lee como costo x 1,25, y el precio que cobra es costo / 0,75.
+ * El porcentaje sale ahora de `MARGENES_SOBRE_VENTA`: si cambia el margen, cambia el rotulo.
+ *
+ * `valor` es lo que se guarda en `customers.price_type` y en el nivel de la linea (lote 266): no se
+ * toca. `clave` es la columna del producto de la que sale ese precio.
+ */
+export const NIVELES_DE_PRECIO = [
+  { valor: 'base', clave: 'price', numero: 1, nombre: 'Base' },
+  { valor: 'consumidor', clave: 'priceConsumidor', numero: 2, nombre: 'Consumidor Final' },
+  { valor: 'mayorista', clave: 'priceMayorista', numero: 3, nombre: 'Mayorista' },
+  { valor: 'proveedor', clave: 'priceProveedor', numero: 4, nombre: 'Proveedor' },
+] as const satisfies readonly { valor: string; clave: ClaveDePrecio; numero: number; nombre: string }[];
+
+export type NivelDePrecio = (typeof NIVELES_DE_PRECIO)[number];
+
+/** "25 %" de 0,25. Sin decimales sobrantes: 0,125 da "12,5 %". */
+export function porcentajeDelMargen(clave: ClaveDePrecio): string {
+  const n = Math.round(MARGENES_SOBRE_VENTA[clave] * 1000) / 10;
+  return `${String(n).replace('.', ',')} %`;
+}
+
+/** "Precio 1 (Base, margen 25 % sobre la venta)". */
+export function rotuloDelNivel(nivel: NivelDePrecio): string {
+  return `Precio ${nivel.numero} (${nivel.nombre}, margen ${porcentajeDelMargen(nivel.clave)} sobre la venta)`;
+}
+
 /** Los cuatro precios de un costo, con los margenes de fabrica. */
 export function preciosDesdeCosto(costo: number): Record<ClaveDePrecio, number> {
   return {
