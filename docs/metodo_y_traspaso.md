@@ -3004,6 +3004,66 @@ Además, fuera de la tabla:
   `verificar_nomina_cuentas_puente_db.ts` a `deuda_bancos.txt`. **Para el contador**: renombrar
   6.1.01.02 a "Aportes Patronales TSS" en las seis (D7), y repuntar las claves si prefiere otras
   cuentas. **La nómina de julio de Latin Doors no se toca** (D6: la asienta él a mano).
+- **Lote 293: aprobar una nómina registra su asiento de devengo** (el "lote C" de
+  `docs/diseno_asientos_nomina.md`). No incluye el pago (lote D) ni revertir una aprobación (D11).
+  Al aprobar, **en la misma transacción** que el cambio de estado y **antes** de marcarla, se registra
+  UN asiento por nómina (D1), fechado el **fin del período** (D10), con `reference` = id de la nómina
+  (la convención de facturas y compras: sin migración) y una descripción legible ("Nómina quincenal
+  01-15/10/2026"), por `createJournalEntry` (lote 152). Debe: sueldos (Σ bruto), aportes patronales
+  TSS (Σ AFP + SFS + SRL del empleador) e Infotep; haber: sueldos por pagar (Σ neto), TSS por pagar
+  (empleado + empleador), ISR retenido (IR-3), Infotep por pagar y otras deducciones (D5). Las cifras
+  son las **guardadas** en `payroll_details`: no se recalcula nada. Con la nómina medida (bruto
+  10.000, neto 9.409): 10.000 + 1.529 + 100 = 9.409 + 2.120 + 100 = **11.629**; sin línea de ISR ni de
+  otras (cero).
+  · **La regla es pura** (`services/nomina/asientoDeNomina.ts`) y el acceso a la base aparte
+  (`services/nomina/asentarNomina.ts`), porque `hrRepository.ts` ya pasa de 700 líneas.
+  · **Los redondeos**: se suma en CENTAVOS enteros (cada importe es `decimal(18,2)`), así que no hay
+  deriva de coma flotante ni redondeo que repartir. Si una línea del detalle no cumple neto = bruto −
+  AFP − SFS − ISR − otras al centavo, **se niega** (409) nombrando al empleado y la diferencia, y se
+  pide recalcular. **Nunca se ajusta una cuenta**: unos centavos metidos en "Sueldos por pagar" harían
+  que el libro debiera al empleado algo distinto de su volante.
+  · **Las cuentas** salen de las claves del lote 292, y tienen que estar **ENLAZADAS** en Cuentas
+  Puente: no se cae al código por defecto. Solo se exigen las que el asiento usa (con ISR 0, la del
+  ISR no). Se validan con `resolverCuentaPorMapeo` (activa, de la empresa, transaccional). Si dos claves
+  apuntan a una cuenta (D8), sale una línea con la suma. Ningún código de cuenta escrito.
+  · **Se niega con 409, sin cambiar nada** (sigue `calculated`, sin asiento, novedades pendientes):
+  si falta alguna cuenta enlazada (las nombra como la pantalla y dice "Configuración > Cuentas
+  Puente" o el guion), y si el período de la fecha está cerrado o no existe — se mira antes con
+  `isPeriodOpen` para que el motivo hable de una nómina: "si está cerrado, la asienta el contador a
+  mano; si no se ha abierto, ábralo en Contabilidad > Períodos". Es el mensaje que verá quien apruebe
+  la nómina de julio de Latin Doors (julio cerrado).
+  · **No asienta dos veces**: la guarda de estado y el `for update` del 290 frenan la segunda
+  aprobación (409), y si una nómina `calculated` ya tuviera un asiento con su referencia, no se crea
+  otro (la respuesta lo dice con `yaExistia`).
+  · **La pantalla**: tras aprobar se relee la nómina y enseña su asiento (fecha, descripción, cada
+  cuenta con debe y haber, total) con "Ver en el Libro Diario" (`/dashboard/accounting?tab=journals`;
+  Contabilidad gana esa pestaña por dirección, como `?tab=periods`). Un rechazo deja el motivo a la
+  vista como alerta, además del aviso emergente. Una aprobada sin asiento lo dice (no inventa uno).
+  El visor es `hr/payroll/components/AsientoDeLaNomina.tsx`. **`payroll/page.tsx` llega a 607
+  líneas**: hay que partirla antes del lote D (pagar), como pedía el diseño.
+  **Medido antes (PRODUCCIÓN, solo lectura, `medir_293.mjs`, 2026-10-05)**: las **8 claves de nómina
+  enlazadas en las seis empresas** (el dueño ya lanzó el guion del 292); **`isr_brackets` VACÍA** (el
+  guion del 290 no se ha lanzado: calcular una nómina se niega con 409 hasta que se cargue); la única
+  nómina es la de julio de Latin Doors, `calculated`, y el período 07/2026 está **cerrado**, así que
+  aprobarla se negaría con el motivo de arriba. No hay ningún asiento con referencia de nómina. **No se
+  tocó**.
+  Dos bancos. `verificar_nomina_asiento_al_aprobar.ts` (la regla ejecutada con la nómina medida,
+  varios empleados, otras deducciones y redondeos; cuentas sin enlazar; descripción y período; el
+  trinquete de "ningún código"; el cableado; el visor dibujado): 28 comprobaciones, contraprueba **28
+  FALLA** contra `62d216c`. `verificar_nomina_asiento_al_aprobar_db.ts` (**integración**, base
+  desechable: la ruta de verdad; asiento con las ocho cuentas, cuadrado, fecha, referencia y autor;
+  dos aprobaciones seguidas y a la vez; un asiento previo con su referencia; sin enlaces; julio cerrado
+  y agosto sin período; y la **misma transacción** — un disparador hace fallar la auditoría DESPUÉS de
+  asentar y el asiento se deshace —): 14, contraprueba **14 FALLA**. Veintitrés mutantes y veintitrés
+  muertos (diecisiete del de código, seis del de integración: entre ellos `createJournalEntry` sin la
+  `tx`, que solo caza el disparador, y no exigir el enlace, que cae al código por defecto y asienta).
+  **Una negación de balde cazada a tiempo**: "tras el fallo no hay asiento" es cierto en un código que
+  no asienta nunca; la comprobación exige además que, sin el fallo, la misma nómina sí se asiente.
+  **Re-anclado**: `verificar_nomina_decisiones_contador` (290) copiaba el objeto literal del GET
+  (`data: { payroll, details, avisoIsr }`), que gana `asiento`; ahora mira que lleve `avisoIsr`, con un
+  mutante que lo quita y muere.
+  **Para el dueño**: `verificar_nomina_asiento_al_aprobar_db.ts` a `deuda_bancos.txt`. Y lanzar el
+  guion de la escala del ISR (lote 290) antes de calcular nóminas nuevas.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
