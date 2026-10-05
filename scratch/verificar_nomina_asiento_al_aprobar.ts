@@ -26,6 +26,7 @@
  */
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { leerPantallaDeNomina } from './pantallaDeNomina';
 
 const raiz = join(__dirname, '..');
 const leer = (p: string) => (existsSync(join(raiz, p)) ? readFileSync(join(raiz, p), 'utf8') : '');
@@ -209,7 +210,8 @@ async function main() {
   console.log('\n8. El cableado');
   const repo = leer('src/repositories/hrRepository.ts');
   const ruta = leer('src/app/api/v1/hr/payroll/route.ts');
-  const pagina = leer('src/app/dashboard/hr/payroll/page.tsx');
+  //  Lote 294: la pagina de nomina esta partida (hooks/ y components/); se lee la pantalla entera.
+  const pagina = leerPantallaDeNomina(raiz);
   const contab = leer('src/app/dashboard/accounting/page.tsx');
   const aprobar = (() => {
     const i = repo.indexOf('static async approvePayroll(');

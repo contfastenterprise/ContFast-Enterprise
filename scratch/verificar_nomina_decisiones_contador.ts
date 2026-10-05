@@ -20,6 +20,7 @@
  */
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { leerPantallaDeNomina } from './pantallaDeNomina';
 
 let fallos = 0;
 let total = 0;
@@ -133,7 +134,8 @@ async function main() {
     iInsert > 0 && iSiembra > iInsert && /sembrarSalarioMinimo\(empresa, tx\)/.test(sem));
 
   const rutaN = sinComentarios(leer('src/app/api/v1/hr/payroll/route.ts'));
-  const pagN = sinComentarios(leer('src/app/dashboard/hr/payroll/page.tsx'));
+  //  Lote 294: la pagina de nomina esta partida (hooks/ y components/); se lee la pantalla entera.
+  const pagN = sinComentarios(leerPantallaDeNomina(raiz));
   ok('la respuesta del calculo y la pantalla avisan del año de la escala, sin negarse',
     /aviso: payroll\.avisoIsr/.test(rutaN) && /aviso: avisoIsr/.test(rutaN) && /data: \{ payroll, details, avisoIsr\b[^}]*\}/.test(rutaN) /* lote 293: el objeto gana `asiento`; lo vigilado es que lleve avisoIsr */
       && (pagN.match(/if \(data\.aviso\) toast\.warning\(data\.aviso/g) ?? []).length === 2
