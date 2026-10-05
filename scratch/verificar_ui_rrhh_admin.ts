@@ -326,6 +326,9 @@ async function main() {
   //  textos a proposito (el 288 quito la simulacion de Soporte) no es una regresion del 274.
   const DESPUES = '0061e43' /* lote 274, commit fijo */;
   const cambiados: string[] = [];
+  //  Lote 287: el registro y el acceso cambian a proposito, y por eso mismo la comparacion es
+  //  entre los dos commits del 274 (lo de arriba): ni la reescritura del registro ni el enlace
+  //  "Regístrate" entran en ella.
   for (const f of FICHEROS) {
     let antes: string;
     let ahora: string;

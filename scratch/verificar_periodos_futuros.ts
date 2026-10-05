@@ -44,8 +44,18 @@ async function main() {
     const i = repo.indexOf('static async isPeriodOpen');
     const j = repo.indexOf('static async createJournalEntry');
     exige('isPeriodOpen sigue sin crear periodos (JRN-11)', i > 0 && j > i && !repo.slice(i, j).includes('insert(accountingPeriods)'));
+    //  Lote 287: admin/companies y auth/register comparten el alta
+    //  (services/empresas/altaDeEmpresa.ts); la siembra puede vivir alli, siempre que la
+    //  ruta la LLAME (el import y la llamada, por separado).
+    const ALTA = 'src/services/empresas/altaDeEmpresa.ts';
+    const siembra = (r: string) => {
+      const f = fuente(r);
+      if (f.includes('sembrarPeriodosContables')) return true;
+      return /from '@\/services\/empresas\/altaDeEmpresa'/.test(f) && /\bcrearEmpresaConSuSiembra\(tx,/.test(f)
+        && /AccountingRepository\.sembrarPeriodosContables\(/.test(fuente(ALTA));
+    };
     exige('las tres altas de empresa siembran', ['src/app/api/v1/admin/companies/route.ts', 'src/app/api/v1/auth/register/route.ts', 'src/app/api/v1/setup/confirm/route.ts']
-      .every((r) => fuente(r).includes('sembrarPeriodosContables')));
+      .every(siembra));
     exige('crear y abrir/cerrar periodos exige escritura en contabilidad',
       /'contabilidad', 'write'/.test(fuente(RUTA)) && /'contabilidad', 'write'/.test(fuente('src/app/api/v1/accounting/periods/[id]/route.ts')));
   }

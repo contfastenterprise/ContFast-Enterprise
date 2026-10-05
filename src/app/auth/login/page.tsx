@@ -315,6 +315,19 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+
+          {/* Lote 287: el registro publico existia sin un solo enlace que llevara a el.
+              Ahora crea la empresa con su razon social y su RNC de verdad, asi que
+              se ofrece aqui, debajo del formulario, sin competir con "Acceder". */}
+          <p className="mt-5 pt-4 border-t border-outline-variant/30 text-center text-sm text-on-surface-variant">
+            ¿No tienes cuenta?{' '}
+            <Link
+              href="/auth/register"
+              className="font-semibold text-oro-texto hover:underline rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c5a059]"
+            >
+              Regístrate
+            </Link>
+          </p>
         </div>
       </motion.div>
     </RippleBackground>

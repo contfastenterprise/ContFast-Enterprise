@@ -137,8 +137,13 @@ ok('DbTransaction ya no se importa en permissions.ts (no se volvio a usar tras t
 
 console.log('\n=== Ningun caller real pasa `db` donde se exige DbTransaction (verificado en el codigo fuente) ===\n');
 
-ok('auth/register/route.ts sigue llamando a seedRolePermissionsForCompany con `db` directo (el motivo de por que ese parametro no puede ser DbTransaction)',
-  /await seedRolePermissionsForCompany\(db, companyId, allRoles\);/.test(fuente('src/app/api/v1/auth/register/route.ts')));
+//  Lote 287: el registro ya no siembra con `db` suelto. Las dos altas (registro y
+//  Administracion) llaman al alta compartida dentro de su transaccion, y esta pasa
+//  la `tx`. El parametro sigue aceptando `db` (DbOTx, arriba) para quien lo llame
+//  fuera de una transaccion.
+ok('el alta compartida siembra los permisos por rol con la transaccion que recibe',
+  /await seedRolePermissionsForCompany\(tx, empresa\.id, allRoles\);/.test(fuente('src/services/empresas/altaDeEmpresa.ts'))
+  && /\bcrearEmpresaConSuSiembra\(tx,/.test(fuente('src/app/api/v1/auth/register/route.ts')));
 
 console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS`}\n`);
 process.exit(fallos === 0 ? 0 : 1);
