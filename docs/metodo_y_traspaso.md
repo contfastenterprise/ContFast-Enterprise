@@ -3484,6 +3484,52 @@ Además, fuera de la tabla:
   **Trampa repetida**: `sed -i` en Git Bash pasó el guion de CRLF a LF entero sin avisar; se devolvió con
   Python. Y un guion de Python con `"\n"` escrito desde Bash metió saltos de línea reales en las cadenas:
   se usa `chr(10)`.
+- **Lote 303: Administración › «Mi Suscripción» dice la verdad del plan, con la MISMA tarjeta que
+  Configuración › Plan & Suscripción.** Pedido del dueño (2026-10-05); era el desfase que el lote 302
+  dejó anotado. La pestaña que ve quien no es Sistemas seguía siendo la de antes del 299: rotulaba
+  «Plan de Suscripción Activo» y «Suscripción Activa» (con un punto verde parpadeante) aunque el plan
+  estuviera **vencido**, en **prueba** o con el pago pendiente; enseñaba solo los límites, sin el uso; y
+  sin plan decía «No se encontró una suscripción activa» y «póngase en contacto con soporte técnico».
+  **Medido antes**: los DATOS ya eran los buenos — la pestaña lee `/api/v1/admin/settings`, que desde el
+  299 devuelve `planParaLaPantalla(await usoDelPlan(...))` — y la pantalla los tipaba a mano con su forma
+  vieja y no miraba `estado`, `rotulo` ni `ecf`. No hacía falta otra ruta ni otra regla: hacía falta
+  pintarlos igual.
+  · **Un componente**, `src/components/suscripcion/TarjetaDelPlan.tsx`: la tarjeta que vivía en
+    `PlanYSuscripcion.tsx` se mueve tal cual (chip del estado con el `rotulo` de la regla, colores, «Quedan
+    N días» / «Venció hace N días» con la fecha, e-CF del mes «N de M · x %» en ámbar al 80 % y en rojo al
+    100 %, usuarios y almacenes contra su límite) y la pintan las DOS pantallas. Plan & Suscripción queda
+    con la tarjeta y los planes disponibles debajo; Mi Suscripción, con la tarjeta sola (no enseñaba nada
+    que Plan & Suscripción no tenga: ni precio ni historial). El estado de la página pasa a
+    `PlanParaLaPantalla | null`.
+  · **Sin plan**, la tarjeta enseña el chip «Sin plan» (`ROTULO_SIN_PLAN`, el de la regla), «Esta empresa
+    no tiene un plan.», lo que se bloquea y a quién acudir. Con plan no vigente, el aviso en rojo dice «El
+    plan no está vigente.» y lo mismo. **Los dos textos salen de la regla**: `LO_QUE_SE_BLOQUEA` se exporta
+    y `PARA_ACTIVAR_UN_PLAN` («Para activar un plan, consulte con el administrador del sistema.») es nuevo;
+    los usan la tarjeta y los mensajes de bloqueo.
+  · **Mensajes del 299 cambiados**: los de «sin plan» y «cancelado» decían «Contacte a soporte para activar
+    un plan.» y ahora terminan con `PARA_ACTIVAR_UN_PLAN` (el cliente no contrata desde la aplicación, y el
+    manual ya remitía al administrador). El pie de la tarjeta: «Para contratar, renovar o ampliar su plan,
+    consulte con el administrador del sistema.». **No se tocaron** «Renueve el plan / el pago para
+    continuar» (vencido, pago pendiente), ni la lógica de bloqueo, ni los límites, ni la cuenta.
+  · **Manual, versión 3.3** (`scripts/generate-manual.js` y el PDF, 30 páginas): la tabla de mensajes con
+    el texto nuevo, la fila «Sin plan» en la tabla de estados, Administración dice que «Mi Suscripción» es
+    la misma tarjeta, y «Dónde se ve» lo repite. Se miraron con PyMuPDF las páginas 26 a 29.
+  Banco `verificar_mi_suscripcion.ts`: **dibuja** la tarjeta con `react-dom/server` en nueve casos armados
+  con la regla (activo, prueba, vencido, pago pendiente, cancelado, por empezar, sin plan, al 80 % y al
+  100 %), dibuja también Plan & Suscripción y exige que la tarjeta salga **idéntica** dentro, comprueba los
+  mensajes de la regla y el cableado (la pestaña pinta la tarjeta con el plan de `admin/settings`, una sola
+  copia de los días y del color, ningún rótulo escrito a mano, el manual al día). 23 comprobaciones y dos
+  invariantes, contraprueba contra `ebb3762` **23 FALLA**, catorce mutantes y catorce muertos. Las
+  negaciones («no dice Activo», «no dice soporte») van atadas a una marca positiva: sin tarjeta no se dibuja
+  nada. **La primera versión cazó un falso rojo propio**: «ningún rótulo escrito a mano» miraba la página de
+  Administración entera, y el `'Activo'` de la lista de planes de Sistemas (si el plan está habilitado) no es
+  un estado de suscripción; se mira solo la pestaña.
+  **Barrido**: los bancos que leen estas pantallas (`limites_del_plan`, `prueba_gratis`, `ui_rrhh_admin`,
+  `ventanas_rrhh_admin`, `gating_ui`, `staff_plataforma`, `partir_configuracion`, `avisos_configuracion`,
+  `avisos_portada`, `ajustes_whatsapp`, `foto_entera`, `menu_como_la_base`, `nomina_cuentas_puente`,
+  `estandar_de_botones`, `colores_del_tema`) en verde sin tocarlos: ninguno anclaba los textos cambiados.
+  Los de integración (`limites_del_plan_db`, `prueba_gratis_db`) no anclan el texto de los mensajes y no se
+  corrieron. **No se miró en el navegador**: la tarjeta es la misma que ya pinta Plan & Suscripción.
 - **Lote 304: la antigüedad de saldos dice lo que dicen los documentos.** Pedido del dueño
   (2026-10-05): *"/dashboard/antiguedad-saldos: los datos no coinciden, por lo menos en cuentas por
   cobrar; los estados en rojo no son correctos, y otros datos"*. **Medido en PRODUCCIÓN (solo
@@ -4746,5 +4792,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 302 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 303 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

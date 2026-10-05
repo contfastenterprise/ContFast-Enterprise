@@ -199,9 +199,25 @@ export function elegirSuscripcion(
   return [...suscripciones].sort(porFin)[0];
 }
 
-const LO_QUE_SE_BLOQUEA =
+/**
+ * Lo que se bloquea sin plan vigente. Lo comparten los mensajes de bloqueo y la
+ * tarjeta del plan (Configuracion > Plan & Suscripcion y Administracion > Mi
+ * Suscripcion, lote 303): una pantalla que lo dijera con otras palabras acabaria
+ * diciendo otra cosa.
+ */
+export const LO_QUE_SE_BLOQUEA =
   'Mientras tanto no se pueden emitir e-CF, calcular, aprobar ni pagar nóminas, ' +
   'ni crear asientos manuales, usuarios o almacenes. Consultar, imprimir y guardar borradores sigue funcionando.';
+
+/**
+ * A quien se acude sin plan (lote 303). El cliente no contrata ni renueva desde la
+ * aplicacion: lo hace el administrador del sistema. Antes decia "Contacte a soporte",
+ * y el manual (lote 302) ya remitia al administrador.
+ */
+export const PARA_ACTIVAR_UN_PLAN = 'Para activar un plan, consulte con el administrador del sistema.';
+
+/** El rotulo de una empresa sin plan: lo usan la regla y la tarjeta cuando no hay suscripcion. */
+export const ROTULO_SIN_PLAN = 'Sin plan';
 
 /** La situacion del plan de una empresa, hoy. */
 export function situacionDelPlan(
@@ -211,11 +227,11 @@ export function situacionDelPlan(
   const s = elegirSuscripcion(suscripciones, ahora);
   if (!s) {
     return {
-      estado: 'sin_plan', rotulo: 'Sin plan', vigente: false, suscripcionId: null, plan: null,
+      estado: 'sin_plan', rotulo: ROTULO_SIN_PLAN, vigente: false, suscripcionId: null, plan: null,
       diaFin: null, diasRestantes: null,
       bloqueo: {
         code: 'SIN_PLAN', status: 403,
-        message: `La empresa no tiene un plan vigente. ${LO_QUE_SE_BLOQUEA} Contacte a soporte para activar un plan.`,
+        message: `La empresa no tiene un plan vigente. ${LO_QUE_SE_BLOQUEA} ${PARA_ACTIVAR_UN_PLAN}`,
       },
     };
   }
@@ -240,7 +256,7 @@ export function situacionDelPlan(
   if (s.status === 'canceled') {
     return {
       ...base, estado: 'cancelado', rotulo: 'Cancelado', vigente: false,
-      bloqueo: { code: 'SIN_PLAN', status: 403, message: `El ${s.planName} está cancelado. ${LO_QUE_SE_BLOQUEA} Contacte a soporte para activar un plan.` },
+      bloqueo: { code: 'SIN_PLAN', status: 403, message: `El ${s.planName} está cancelado. ${LO_QUE_SE_BLOQUEA} ${PARA_ACTIVAR_UN_PLAN}` },
     };
   }
   if (ESTADOS_QUE_PUEDEN_ESTAR_VIGENTES.includes(s.status) && hoy < diaRD(s.currentPeriodStart)) {
@@ -253,7 +269,7 @@ export function situacionDelPlan(
   //  haya vencido sin mentir sobre la fecha, asi que se dice tal cual.
   if (!ESTADOS_QUE_PUEDEN_ESTAR_VIGENTES.includes(s.status)) {
     return {
-      ...base, estado: 'sin_plan', rotulo: 'Sin plan', vigente: false,
+      ...base, estado: 'sin_plan', rotulo: ROTULO_SIN_PLAN, vigente: false,
       bloqueo: { code: 'SIN_PLAN', status: 403, message: `El ${s.planName} no está vigente (estado "${s.status}"). ${LO_QUE_SE_BLOQUEA}` },
     };
   }
