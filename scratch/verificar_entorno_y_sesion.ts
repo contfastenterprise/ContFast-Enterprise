@@ -51,18 +51,15 @@ async function main() {
   if (sidebar === '') throw new Error('Precondicion: no esta el sidebar');
   if (!/<CampanaAvisos \/>/.test(layout)) throw new Error('Precondicion: ya no hay campana en la barra');
   if (!/handleLogout/.test(layout)) throw new Error('Precondicion: ya no existe handleLogout');
-  //  La franja de PRUEBA tiene que seguir ahi en los dos estados: es lo que este
-  //  lote NO toca, y si desapareciera habria que enterarse.
-  if (!/OPERACIONES FISCALMENTE NULAS/.test(layout)) {
-    throw new Error('Precondicion: la franja de modo prueba ya no esta');
-  }
-  //  EL ENTORNO SIGUE LLEGANDO AL SIDEBAR aunque su rotulo se vaya: lo usa para
-  //  dejar hueco a la franja de arriba (`entorno !== 'PROD' ? 'pt-24' : 'pt-14'`).
-  //  Si se quitara, el menu se metaria debajo de la franja. Es PRECONDICION y no
-  //  comprobacion porque ya era verdad antes del lote: como comprobacion sobrevivia
-  //  a la contraprueba y no comprobaba nada de este lote.
-  if (!/entorno=\{entorno\}/.test(layout) || !/entorno !== 'PROD'/.test(sidebar)) {
-    throw new Error('Precondicion: el sidebar ya no recibe el entorno para el hueco de la franja');
+  //  LA FRANJA DE MODO PRUEBA YA NO EXISTE (lote 301, decision del dueño, 2026-10-05:
+  //  "hay un indicador que dice cuando esta en prueba o produccion"). Este banco la
+  //  exigia como precondicion porque el lote 192 la dejo a proposito; el dueño la
+  //  retiro despues, y lo vigila `verificar_cabecera_sin_color_de_prueba.ts`. Lo que
+  //  este banco sigue exigiendo es lo que la sustituye: el punto del entorno, abajo.
+  //  EL ENTORNO SIGUE LLEGANDO AL SIDEBAR (lo pasa a sus piezas), aunque desde el lote
+  //  301 ya no lo usa para el hueco de la franja.
+  if (!/entorno=\{entorno\}/.test(layout)) {
+    throw new Error('Precondicion: el sidebar ya no recibe el entorno');
   }
   console.log('  pre   la campana, handleLogout, la franja de PRUEBA y el hueco del sidebar siguen ahi');
 

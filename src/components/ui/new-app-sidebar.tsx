@@ -959,7 +959,8 @@ export default function NewAppSidebar({
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  const topOffset = entorno !== 'PROD' ? 'pt-24' : 'pt-14';
+  //  LOTE 301: sin la franja de MODO PRUEBA, el menu deja el mismo hueco en los dos entornos.
+  const topOffset = 'pt-14';
 
   //  LOTE 259: `reducedMotion="user"` -- quien tenga "reducir movimiento" en su
   //  sistema ve el fondo de la fila activa cambiar de sitio sin deslizarse (y el
