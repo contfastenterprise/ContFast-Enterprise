@@ -28,7 +28,7 @@ type Estado = PlanParaLaPantalla['estado'];
 const ROJO = { chip: 'bg-rose-50 text-rose-700 border border-rose-200', punto: 'bg-rose-500' };
 
 /** El color de cada estado. Solo "Activo" y "Prueba" son vigentes; lo demas, rojo o ambar. */
-export const COLOR_DEL_ESTADO: Record<Estado, { chip: string; punto: string }> = {
+const COLOR_DEL_ESTADO: Record<Estado, { chip: string; punto: string }> = {
   activo: { chip: 'bg-emerald-50 text-emerald-700 border border-emerald-200', punto: 'bg-emerald-500' },
   prueba: { chip: 'bg-sky-50 text-sky-700 border border-sky-200', punto: 'bg-sky-500' },
   por_empezar: { chip: 'bg-amber-50 text-amber-700 border border-amber-200', punto: 'bg-amber-500' },
@@ -41,7 +41,7 @@ export const COLOR_DEL_ESTADO: Record<Estado, { chip: string; punto: string }> =
 const limite = (n: number) => (n === -1 ? 'ilimitado' : String(n));
 
 /** "Quedan 12 días", "Vence hoy", "Venció hace 3 días". */
-export function textoDeLosDias(p: Pick<PlanParaLaPantalla, 'diasRestantes'>): string | null {
+function textoDeLosDias(p: Pick<PlanParaLaPantalla, 'diasRestantes'>): string | null {
   const n = p.diasRestantes;
   if (n === null) return null;
   if (n > 0) return `Quedan ${n} día${n === 1 ? '' : 's'}`;
@@ -50,7 +50,7 @@ export function textoDeLosDias(p: Pick<PlanParaLaPantalla, 'diasRestantes'>): st
 }
 
 /** Lo que se dice cuando el plan no deja operar: lo que se bloquea y a quien acudir. */
-export const TEXTO_SIN_PLAN_VIGENTE = `${LO_QUE_SE_BLOQUEA} ${PARA_ACTIVAR_UN_PLAN}`;
+const TEXTO_SIN_PLAN_VIGENTE = `${LO_QUE_SE_BLOQUEA} ${PARA_ACTIVAR_UN_PLAN}`;
 
 function ChipDelEstado({ estado, rotulo }: { estado: Estado; rotulo: string }) {
   const c = COLOR_DEL_ESTADO[estado];
