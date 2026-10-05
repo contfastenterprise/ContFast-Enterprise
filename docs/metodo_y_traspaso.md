@@ -2529,6 +2529,45 @@ Además, fuera de la tabla:
   llevaba a la vez `hidden` y `sr-only`, que no tiene sentido.
   **No se miró en el navegador**: el cambio son dos atributos y un nombre accesible, que el banco lee en
   el HTML dibujado.
+- **Lote 285: cuatro pantallas que decían otra cosa de lo que hacen.** Los encontró el agente del
+  manual (lote 283) al describirlas. **No cambia ninguna regla de negocio**: solo lo que se enseña.
+  · **Clientes, "Tipo de Precio"** decía "Precio 1 (Base +25%)": el **recargo** de antes del lote
+    265. Ahora `NIVELES_DE_PRECIO` y `rotuloDelNivel` (`services/precios/margen.ts`) lo derivan de
+    `MARGENES_SOBRE_VENTA`: "Precio 1 (Base, margen 25 % sobre la venta)". Lo que se guarda
+    (`base`, `consumidor`…) no cambia. Ninguna otra pantalla repetía el rótulo viejo (las etiquetas
+    del formulario de productos ya decían "margen 25%" desde el 265).
+  · **Productos, tarjeta "Stock Bajo"**: pintaba un `0` escrito a mano. **Regla elegida, medida
+    antes**: había cuatro — reorden (`minStock > 0 && cantidad <= minimo`), la de Inteligencia de
+    Negocio (excluye lo agotado), la de `alcanza` (si se puede VENDER, F1-04) y el estado `critical`
+    del informe de inventario —. Se usa **la de reorden**, porque es la que dice "hay que reponer" y
+    así la tarjeta y la lista de reorden enseñan lo mismo. Vive una vez en
+    `services/inventario/existencia.ts` (`estaBajoElMinimo`, `contarProductosConStockBajo`: cuenta
+    productos, no almacenes, y los de servicio no cuentan). La lista solo trae una página y se pide en
+    cada tecla, así que el conteo va en una ruta propia, `GET /api/v1/products/stock-bajo`
+    (`catalogo:read`, acotada por empresa y modo, sin borrados); sin respuesta la tarjeta dice "—", no
+    0. **Medido en PRODUCCIÓN (solo lectura): ningún nivel de inventario tiene mínimo puesto**, así
+    que la cifra honesta hoy es 0 — y la pantalla de reorden también sale vacía — hasta que alguien
+    configure mínimos.
+  · **Caja, histórico**: "EXPORTAR XLS" bajaba un `.csv` (lote 281). Dice "EXPORTAR CSV". **Visto y no
+    tocado**: `components/financial/TablaCuentas.tsx` tiene el mismo desfase (botón "Excel" que baja un
+    CSV).
+  · **Central e-CF**: el mapa de nombres se arregló hace tiempo, pero los **desplegables** de crear
+    secuencia y del filtro seguían escritos a mano con el 46 y el 47 cruzados (y el filtro ofrecía el 46
+    dos veces). Se curó la causa: las opciones salen del catálogo en `ecf/opcionesDeTipo.ts` (también
+    la serie B, en lista ORDENADA: "11"-"17" son índices enteros y un `Object.entries` los pondría
+    delante del "01"), con los mismos tipos que antes. Barrido de `src/`: ninguna otra copia cruzada
+    de 46/47 ni de 16/17.
+  Banco `verificar_desfases_del_manual.ts` (reglas ejecutadas, el histórico y el desplegable de
+  clientes dibujados, barridos de `src/`): 20 comprobaciones y 5 invariantes, contraprueba **20 FALLA**
+  contra `696854e`, quince mutantes y quince muertos. **Dos comprobaciones se cazaron solas**: los
+  barridos casaban con los comentarios que cuentan el defecto de antes; se barre sin comentarios.
+  **El barrido cazó tres bancos, ninguno una regresión**: `verificar_ui_compras_finanzas` (273),
+  `verificar_ui_inventario` (271) y `verificar_ventanas_inventario` (277) comparaban la huella visible
+  de la CARPETA contra su base, y este lote cambia a propósito un texto ("EXPORTAR CSV") y añade una
+  dirección de la API (`stock-bajo`). Comparan ahora **dos commits** (su base y `696854e`, el último
+  `main` en que se comprobaron), como en los lotes 227 y 230; un mutante que vuelve a leer `HEAD` los
+  rompe. Los otros tres rojos (`gancho_y_compras`, `p3_48`, `padron_de_rnc`) son los falsos conocidos
+  de un worktree.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
