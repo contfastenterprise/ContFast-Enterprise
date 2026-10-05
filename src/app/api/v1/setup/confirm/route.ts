@@ -8,6 +8,7 @@ import { createSession } from '@/middleware/auth';
 import { seedRolePermissionsForCompany } from '@/middleware/permissions';
 import { AccountingRepository } from '@/repositories/accountingRepository';
 import { crearPruebaGratis } from '@/services/suscripcion/pruebaGratis';
+import { marcarPlanDePruebaInicial } from '@/services/suscripcion/planDePrueba';
 import { count, and, eq } from 'drizzle-orm';
 
 const confirmSchema = z.object({
@@ -121,6 +122,9 @@ export async function POST(req: NextRequest) {
             active: true,
           }
         ]);
+        // Lote 300: con la 0022 aplicada, la prueba usa el plan MARCADO, y uno
+        // recien sembrado no lo esta. Se marca el Basico, como hace la 0022.
+        await marcarPlanDePruebaInicial(tx);
       }
 
       // 2.1. Create company

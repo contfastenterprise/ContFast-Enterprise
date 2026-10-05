@@ -18,16 +18,14 @@ import { diaRD, DESFASE_RD_MS } from '@/utils/fechasLocales';
 export const DIAS_DE_PRUEBA = 30;
 
 /**
- * El plan cuyos limites lleva la prueba. `plans` NO tiene un campo de codigo:
- * solo `id` (distinto en cada base) y `name`. Por eso se busca por NOMBRE, sin
- * mirar mayusculas ni espacios de los bordes.
+ * El nombre del plan de la prueba MIENTRAS la base no tenga la migracion 0022.
+ * Desde la 0022 manda la casilla "Plan de prueba" de Administracion > Planes
+ * (decision del dueno, 2026-10-05) y este nombre solo sirve para marcar el plan
+ * la primera vez (la propia 0022 y `setup/confirm`). Ver `planDePrueba.ts`.
  *
- * EL RIESGO, dicho: si alguien renombra el plan en Administracion > Planes
- * ("Basico", "Plan Inicial"...), la alta dejara de encontrarlo y FALLARA con un
- * mensaje que nombra este texto (ver `PlanDePruebaNoExiste`). Se eligio fallar a
- * proposito: es ruidoso pero no deja empresas a medias. Escribir el `id` a mano
- * no era mejor: cambia de una base a otra (la desechable, una instalacion nueva
- * por `setup/confirm`) y fallaria igual, sin decir por que.
+ * Sin la 0022, el riesgo de buscar por nombre sigue ahi: renombrar el plan hace
+ * que las altas fallen con un mensaje que nombra este texto. Escribir el `id` a
+ * mano no era mejor: cambia de una base a otra.
  */
 export const NOMBRE_DEL_PLAN_DE_PRUEBA = 'Plan Básico';
 

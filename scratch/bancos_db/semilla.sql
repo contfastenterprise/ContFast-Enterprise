@@ -84,3 +84,12 @@ INSERT INTO plans (id, name, price, max_ecf_limit, max_users, max_warehouses, ac
   ('f1a40000-0000-0000-0000-000000000001', 'Plan Básico', 2000, 100, 2, 1, true),
   ('f1a40000-0000-0000-0000-000000000002', 'Plan Profesional', 3500, 500, 5, 2, true),
   ('f1a40000-0000-0000-0000-000000000003', 'Plan Corporativo', 6000, 2000, 15, 5, true);
+-- Con la migracion 0022 (siempre aplicada aqui, que migra todo drizzle/), el plan de la prueba es
+-- el MARCADO: se marca el Basico, como hace la propia 0022 en una base con datos. Condicional para
+-- que la semilla siga valiendo en un arbol sin la 0022.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'plans' AND column_name = 'es_plan_de_prueba') THEN
+    EXECUTE 'UPDATE plans SET es_plan_de_prueba = true WHERE id = ''f1a40000-0000-0000-0000-000000000001''';
+  END IF;
+END $$;

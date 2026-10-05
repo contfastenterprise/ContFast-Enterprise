@@ -3285,10 +3285,41 @@ Además, fuera de la tabla:
   leído en crudo llega como "2026-10-05 04:00:00" y `new Date` lo toma como hora LOCAL; se pide con
   `to_char(..., 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`. Y la del lote 212 otra vez, en el lanzador de
   mutantes: `$s` y `$S` son la misma variable en PowerShell.
+  **Segunda parte (mismo lote, decisión del dueño del mismo día): el plan de la prueba deja de buscarse
+  por nombre.** En Administración > Planes cada plan lleva una casilla **«Plan de prueba»** y solo puede
+  haber uno marcado; la prueba toma ese plan, se llame como se llame (renombrarlo ya no rompe las altas).
+  · **MIGRACIÓN `drizzle/0022_plan_de_prueba.sql`, OPCIONAL**: columna `es_plan_de_prueba boolean not
+    null default false`, un **índice único parcial** (`where es_plan_de_prueba`: la BASE impide dos
+    marcados) y marca el «Plan Básico» si existe (el más antiguo, solo si no hay uno marcado), así que
+    aplicarla no cambia nada. Tres sentencias sin NOTICE (la regla de la 0019).
+  · **La columna no se declara en Drizzle** (`plans` se lee entera: la lección de las 0013 y 0015): la
+    lee y escribe solo `services/suscripcion/planDePrueba.ts`, que mira antes si existe. **Sin ella** se
+    busca por nombre, como en la primera parte. **Con ella y ninguno marcado**, la alta se deshace con
+    «No hay plan de prueba: marque uno en Administración > Planes» — no cae al nombre, o desmarcar no
+    significaría nada.
+  · **Las rutas** `admin/plans` (crear) y `admin/plans/[id]` (editar) aceptan `esPlanDePrueba`; marcar
+    uno desmarca el anterior **en la misma transacción**, y sin la 0022 marcar contesta **409** nombrando
+    la migración. La lista dice cuál es el de prueba y si la casilla está disponible. Los cambios van en
+    líneas aparte del esquema de `maxWarehouses`, que toca a la vez el lote 299.
+  · **La pantalla**: la casilla en el formulario (deshabilitada, con el motivo, sin la 0022; en ese caso
+    lo que se manda no lleva el campo) y una insignia «Plan de prueba» en la lista
+    (`dashboard/admin/components/PlanDePrueba.tsx`, `dashboard/admin/planDePrueba.ts`).
+  · `setup/confirm` marca el Básico al sembrar los planes (`marcarPlanDePruebaInicial`), y la semilla de
+    la base desechable también, si tiene la columna.
+  Bancos ampliados: `verificar_prueba_gratis.ts` 30 (contraprueba contra `388f2ee`: **17 FALLA**, todas
+  las nuevas), `verificar_prueba_gratis_db.ts` 19 y un invariante (sin la columna se busca por nombre:
+  cierto antes y después). La de base **quita la columna** para simular la base sin la 0022 y la vuelve a
+  aplicar **desde el fichero**; contraprueba **11 FALLA** (las nuevas). Quince mutantes nuevos, quince
+  muertos; uno es equivalente para la base (quitar el `throw` de marcar sin columna: la ruta ya lo mira
+  antes) y lo mata el de código. **Trampa del lanzador**: en una tanda contó 0 FALLA del banco de base
+  en mutantes que el banco sí mata (repetidos a mano, lo matan): no se fía de un recuento de 0.
   **Para el dueño: lanzar** `npx tsx --env-file=.env scratch/_to_delete/prueba_gratis_empresas.ts`
-  (ensayo: debe nombrar las cinco y dejar fuera a Latin Doors) y, si cuadra, lo mismo con `--aplicar`.
-  Crea la prueba de 30 días **desde el día en que se lance**, en una transacción, y lanzarlo otra vez no
-  cambia nada. Y `verificar_prueba_gratis_db.ts` a `deuda_bancos.txt` en su carpeta.
+  (ensayo: debe nombrar las cinco, dejar fuera a Latin Doors y decir **qué plan usará y por qué**) y, si
+  cuadra, lo mismo con `--aplicar`. Crea la prueba de 30 días **desde el día en que se lance**, en una
+  transacción, y lanzarlo otra vez no cambia nada. **La 0022 es opcional** (sin ella se busca por
+  nombre); para tener la casilla:
+  `npx tsx --env-file=.env scratch/_to_delete/aplicar_migracion.ts drizzle/0022_plan_de_prueba.sql --aplicar`.
+  Y `verificar_prueba_gratis_db.ts` a `deuda_bancos.txt` en su carpeta.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás

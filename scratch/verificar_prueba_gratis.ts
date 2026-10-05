@@ -33,6 +33,11 @@ const SETUP = 'src/app/api/v1/setup/confirm/route.ts';
 const REGISTRO = 'src/app/api/v1/auth/register/route.ts';
 const ADMIN = 'src/app/api/v1/admin/companies/route.ts';
 const PRUEBA = 'src/services/suscripcion/pruebaGratis.ts';
+const PLAN = 'src/services/suscripcion/planDePrueba.ts';
+const MIGRACION = 'drizzle/0022_plan_de_prueba.sql';
+const RUTA_PLANES = 'src/app/api/v1/admin/plans/route.ts';
+const RUTA_PLAN = 'src/app/api/v1/admin/plans/[id]/route.ts';
+const PANTALLA = 'src/app/dashboard/admin/page.tsx';
 const DIA = 24 * 60 * 60 * 1000;
 
 async function main() {
@@ -83,10 +88,14 @@ async function main() {
   ok('crearPruebaGratis crea la suscripcion en estado `trialing`, con inicio y fin de periodoDePrueba',
     /\.insert\(subscriptions\)/.test(pr) && /status:\s*'trialing'/.test(pr) && /periodoDePrueba\(ahora\)/.test(pr)
     && /currentPeriodStart:\s*inicio/.test(pr) && /currentPeriodEnd:\s*fin/.test(pr));
-  ok('  el plan sale de buscarlo por nombre: ningun uuid escrito en la funcion',
-    /lower\(btrim\(\$\{plans\.name\}\)\)/.test(pr) && !/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(pr));
-  ok('  sin Plan Basico lanza (la alta se deshace), en vez de seguir sin prueba',
-    /if\s*\(!plan\)\s*throw new PlanDePruebaNoExiste\(\)/.test(pr));
+  //  Desde la segunda parte del lote el plan lo resuelve `planDePrueba.ts` (la casilla, o el
+  //  nombre sin la 0022); la funcion lo pide y no atrapa lo que lance.
+  const pp = sinComentarios(leer(PLAN));
+  ok('  el plan no lleva ningun uuid escrito: sin la 0022 se busca por nombre',
+    /lower\(btrim\(\$\{plans\.name\}\)\)/.test(pp) && !/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(pr + pp));
+  ok('  sin plan de prueba lanza (la alta se deshace), en vez de seguir sin prueba',
+    /if\s*\(!porNombre\)\s*throw new PlanDePruebaNoExiste\(\)/.test(pp) && /const plan = await planDePrueba\(tx\);/.test(pr)
+    && !/\bcatch\b/.test(pr));
   ok('  bloquea la empresa y no crea otra si ya tiene suscripcion',
     /\.for\('update'\)/.test(pr) && /if\s*\(yaTiene\)\s*return\s*\{\s*creada:\s*false/.test(pr));
   ok('crearEmpresaConSuSiembra (registro y Administracion) llama a crearPruebaGratis con SU tx y la empresa nueva',
@@ -104,6 +113,71 @@ async function main() {
   const rutasConInsert = ['src/app/api/v1/auth/register/route.ts', ADMIN, SETUP, ALTA].filter((f) => /insert\(subscriptions\)/.test(sinComentarios(leer(f))));
   ok('ninguna alta inserta su propia suscripcion: todas pasan por la funcion', rutasConInsert.length === 0 && /insert\(subscriptions\)/.test(pr),
     rutasConInsert.join(', '));
+
+  console.log('\n3) El plan de prueba es el MARCADO (casilla de Administracion > Planes, migracion 0022)\n');
+  const mig = leer(MIGRACION).replace(/--[^\n]*/g, ' ');
+  ok('la 0022 anade la columna `es_plan_de_prueba boolean not null default false` a plans',
+    /ALTER TABLE "plans" ADD COLUMN IF NOT EXISTS "es_plan_de_prueba" boolean DEFAULT false NOT NULL/.test(mig));
+  ok('  y un indice UNICO parcial: la base impide dos marcados',
+    /CREATE UNIQUE INDEX IF NOT EXISTS "\w+" ON "plans" \("es_plan_de_prueba"\) WHERE "es_plan_de_prueba"/.test(mig));
+  ok('  y marca el "Plan Básico" (el mas antiguo) solo si no hay ninguno marcado, sin avisos (sin DROP ... IF EXISTS)',
+    /UPDATE "plans" SET "es_plan_de_prueba" = true\s+WHERE "id" = \(SELECT "id" FROM "plans" WHERE lower\(btrim\("name"\)\) = 'plan básico' ORDER BY "created_at", "id" LIMIT 1\)\s+AND NOT EXISTS \(SELECT 1 FROM "plans" WHERE "es_plan_de_prueba"\)/.test(mig)
+    && !/DROP/i.test(mig));
+  ok('la columna NO se declara en el esquema de Drizzle (plans se lee entera): se mira si existe antes de nombrarla',
+    mig.length > 0 && !/es_plan_de_prueba|esPlanDePrueba/.test(leer('src/db/schema/companies.ts'))
+    && /information_schema\.columns[\s\S]{0,120}table_name = 'plans' AND column_name = 'es_plan_de_prueba'/.test(pp));
+  const conColumna = pp.slice(pp.indexOf('export async function planDePrueba'), pp.indexOf('const [porNombre]'));
+  ok('con la columna manda la casilla, y SIN plan marcado lanza (no cae al nombre)',
+    /if \(await hayColumnaPlanDePrueba\(tx\)\)/.test(conColumna) && /WHERE es_plan_de_prueba LIMIT 1/.test(conColumna)
+    && /if \(!marcado\) throw new NingunPlanDePrueba\(\)/.test(conColumna) && /return \{ \.\.\.marcado, porCasilla: true \}/.test(conColumna));
+  let PL: typeof import('../src/services/suscripcion/planDePrueba') | null = null;
+  try { process.env.DATABASE_URL ||= 'postgres://nadie@127.0.0.1:1/ninguna'; PL = await import('../src/services/suscripcion/planDePrueba'); } catch { PL = null; }
+  ok('  con el mensaje que dice donde arreglarlo',
+    !!PL && new PL.NingunPlanDePrueba().message === 'No hay plan de prueba: marque uno en Administración > Planes'
+    && new PL.FaltaMigracionPlanDePrueba().message.includes('drizzle/0022_plan_de_prueba.sql'));
+  const marcar = pp.slice(pp.indexOf('export async function marcarPlanDePrueba'), pp.indexOf('export async function marcarPlanDePruebaInicial'));
+  const iDesmarca = marcar.search(/SET es_plan_de_prueba = false WHERE es_plan_de_prueba AND id <> \$\{planId\}::uuid/);
+  const iMarca = marcar.search(/SET es_plan_de_prueba = true WHERE id = \$\{planId\}::uuid/);
+  ok('marcar un plan desmarca ANTES el que estaba (el indice rechazaria dos), y sin columna marcar lanza',
+    iDesmarca > 0 && iMarca > iDesmarca && /if \(marcado\) throw new FaltaMigracionPlanDePrueba\(\)/.test(marcar), `${iDesmarca} ${iMarca}`);
+  for (const [f, nombre] of [[RUTA_PLANES, 'crear'], [RUTA_PLAN, 'editar']] as const) {
+    const r = sinComentarios(leer(f));
+    ok(`la ruta de ${nombre} plan acepta la casilla, la marca en SU transaccion, y sin la 0022 contesta 409`,
+      /esPlanDePrueba: z\.boolean\(\)\.optional\(\),/.test(r) && /db\.transaction\(async \(tx\) =>[\s\S]*?await marcarPlanDePrueba\(tx,/.test(r)
+      && /if \(parsed\.data\.esPlanDePrueba && !\(await hayColumnaPlanDePrueba\(db\)\)\)[\s\S]{0,200}status: 409/.test(r));
+  }
+  ok('la lista de planes dice cual es el de prueba, y si la base tiene la casilla',
+    /planesMarcados\(db\)/.test(sinComentarios(leer(RUTA_PLANES))) && /esPlanDePrueba: marcados\?\.has\(p\.id\)/.test(leer(RUTA_PLANES))
+    && /planDePrueba: \{ disponible: marcados !== null/.test(leer(RUTA_PLANES)));
+  const pant = sinComentarios(leer(PANTALLA));
+  ok('la pantalla pinta la casilla en el formulario y la insignia en la lista, y manda lo que dice `cuerpoDelPlan`',
+    /<CasillaPlanDePrueba marcado=\{planForm\.esPlanDePrueba\} estado=\{estadoPrueba\}/.test(pant)
+    && /\{plan\.esPlanDePrueba && <div className="mt-1"><InsigniaPlanDePrueba \/><\/div>\}/.test(pant)
+    && (pant.match(/JSON\.stringify\(cuerpoDelPlan\(planForm, estadoPrueba\)\)/g) || []).length === 2
+    && /setEstadoPrueba\(estadoPlanDePrueba\(pData\)\)/.test(pant));
+  let PP: typeof import('../src/app/dashboard/admin/planDePrueba') | null = null;
+  try { PP = await import('../src/app/dashboard/admin/planDePrueba'); } catch { PP = null; }
+  const form = { name: 'X', active: true, esPlanDePrueba: true };
+  ok('sin la 0022 lo que se manda NO lleva la casilla (un 409 que nadie pidio); con ella, si',
+    !!PP && !('esPlanDePrueba' in PP.cuerpoDelPlan(form, { disponible: false, migracion: 'm' }))
+    && PP.cuerpoDelPlan(form, { disponible: true, migracion: 'm' }).esPlanDePrueba === true
+    && PP.estadoPlanDePrueba({ planDePrueba: { disponible: true, migracion: 'm' } }).disponible === true
+    && PP.estadoPlanDePrueba({ data: [] }).disponible === false);
+  let htmlSin = ''; let htmlCon = '';
+  try {
+    const React = await import('react');
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const { CasillaPlanDePrueba } = await import('../src/app/dashboard/admin/components/PlanDePrueba');
+    htmlSin = renderToStaticMarkup(React.createElement(CasillaPlanDePrueba, { marcado: true, estado: { disponible: false, migracion: 'drizzle/0022_plan_de_prueba.sql' }, alCambiar: () => {} }));
+    htmlCon = renderToStaticMarkup(React.createElement(CasillaPlanDePrueba, { marcado: true, estado: { disponible: true, migracion: 'x' }, alCambiar: () => {} }));
+  } catch { /* sin el componente: FALLA abajo */ }
+  ok('sin la 0022 la casilla sale deshabilitada, sin marcar, y dice que migracion falta',
+    /<input[^>]*\sdisabled=""/.test(htmlSin) && !/<input[^>]*\schecked=""/.test(htmlSin) && htmlSin.includes('drizzle/0022_plan_de_prueba.sql'), htmlSin.slice(0, 160));
+  ok('  con ella, habilitada y con su etiqueta', htmlCon.length > 0 && !/<input[^>]*\sdisabled=""/.test(htmlCon)
+    && /<input[^>]*\schecked=""/.test(htmlCon) && /<label for="planDePrueba"/.test(htmlCon));
+  const iSemilla = setup.search(/await marcarPlanDePruebaInicial\(tx\);/);
+  ok('setup/confirm marca el plan de prueba al sembrar los planes, antes de crear la prueba',
+    iSemilla > iSembrarPlanes && iSembrarPlanes >= 0 && iSemilla < iLlamada && /from '@\/services\/suscripcion\/planDePrueba'/.test(setup));
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLA(S)`}`);
   process.exit(fallos === 0 ? 0 : 1);

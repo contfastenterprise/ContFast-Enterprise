@@ -24,7 +24,7 @@ process.env.INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'banco-lote-300';
 import { NextRequest } from 'next/server';
 import { sql } from 'drizzle-orm';
 import { spawnSync } from 'child_process';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { db } from '../src/db';
 import { DEFAULT_COMPANY_ROLES } from '../src/utils/defaultRoles';
@@ -39,6 +39,11 @@ const GUION = 'scratch/_to_delete/prueba_gratis_empresas.ts';
 
 let fallos = 0;
 const ok = (t: string, c: boolean, d = '') => { console.log(`${c ? '  OK  ' : ' FALLA'}  ${t}${d ? ` -- ${d}` : ''}`); if (!c) fallos++; };
+//  Cierto antes y despues de la segunda parte del lote: como ok() regalaria un OK en la contraprueba.
+const invariante = (t: string, c: boolean, d = '') => {
+  if (!c) { console.log(` ROTO   ${t}${d ? ` -- ${d}` : ''}`); fallos++; return; }
+  console.log(`  inv   ${t}`);
+};
 const todas = async (q: ReturnType<typeof sql>) => (await db.execute(q)) as unknown as Record<string, unknown>[];
 const uno = async (q: ReturnType<typeof sql>) => (await todas(q))[0];
 const fin = () => {
@@ -114,6 +119,64 @@ async function main() {
     return res.status;
   };
 
+  //  Segunda parte del lote: Administracion > Planes y su casilla "Plan de prueba".
+  let rPlanes: Record<string, Handler> | null = null;
+  let rPlan: Record<string, Handler> | null = null;
+  try { rPlanes = (await import('../src/app/api/v1/admin/plans/route')) as unknown as Record<string, Handler>; } catch { rPlanes = null; }
+  try { rPlan = (await import('../src/app/api/v1/admin/plans/[id]/route')) as unknown as Record<string, Handler>; } catch { rPlan = null; }
+  if (!rPlanes?.POST || !rPlanes?.GET || !rPlan?.PUT) throw new Error('Precondicion: faltan las rutas de planes');
+  const cabeceras = () => ({
+    'x-user-id': USER, 'x-company-id': ALFA, 'x-user-role': 'sistemas', 'x-role-id': ROL, 'x-is-platform-staff': 'true',
+    'x-environment': 'PRODUCCION', 'x-internal-proxy-signature': process.env.INTERNAL_API_KEY as string, 'content-type': 'application/json',
+    'x-forwarded-for': ip(),
+  });
+  type Resp = { estado: number; cuerpo: { success?: boolean; data?: Record<string, unknown> | Record<string, unknown>[]; planDePrueba?: { disponible?: boolean }; error?: { code?: string; message?: string } } };
+  const crearPlan = async (cuerpo: Record<string, unknown>): Promise<Resp> => {
+    const res = await rPlanes!.POST(new NextRequest('http://localhost/api/v1/admin/plans', { method: 'POST', headers: cabeceras(), body: JSON.stringify(cuerpo) }));
+    return { estado: res.status, cuerpo: await res.json() };
+  };
+  const editarPlan = async (id: string, cuerpo: Record<string, unknown>): Promise<Resp> => {
+    const res = await rPlan!.PUT(new NextRequest(`http://localhost/api/v1/admin/plans/${id}`, { method: 'PUT', headers: cabeceras(), body: JSON.stringify(cuerpo) }),
+      { params: Promise.resolve({ id }) });
+    return { estado: res.status, cuerpo: await res.json() };
+  };
+  const listarPlanes = async (): Promise<Resp> => {
+    const res = await rPlanes!.GET(new NextRequest('http://localhost/api/v1/admin/plans', { headers: cabeceras() }));
+    return { estado: res.status, cuerpo: await res.json() };
+  };
+  const hayColumna = async () => (await cuenta(sql`SELECT count(*)::int n FROM information_schema.columns WHERE table_name = 'plans' AND column_name = 'es_plan_de_prueba'`)) === 1;
+  const marcados = async () => { try { return (await todas(sql`SELECT name FROM plans WHERE es_plan_de_prueba ORDER BY name`)).map((f) => String(f.name)); } catch { return ["(sin columna)"]; } };
+  //  En la contraprueba (sin la 0022) la columna no existe: escribirla no puede reventar el banco.
+  const sinColumnaNoPasaNada = async (q: ReturnType<typeof sql>) => { try { await db.execute(q); } catch { /* sin la columna */ } };
+  const BASICO = String((await uno(sql`SELECT id::text id FROM plans WHERE name = 'Plan Básico'`)).id);
+  const planDe = async (rnc: string) => {
+    const e = await empresaPorRnc(rnc);
+    return e ? (await suscripciones(e)).map((s) => `${s.plan}/${s.status}`).join(',') : '(sin empresa)';
+  };
+
+  //  0. PRIMERO, sin la columna (la base de antes de la 0022): `planDePrueba.ts` recuerda la columna
+  //  en cuanto la ve, asi que este caso va antes que ningun otro.
+  console.log('\n0) Sin la migracion 0022\n');
+  await db.execute(sql.raw('ALTER TABLE plans DROP COLUMN IF EXISTS es_plan_de_prueba'));
+  const r6 = await registrar(6);
+  invariante('sin la columna la prueba toma el plan por su nombre, "Plan Básico"', r6 === 200 && (await planDe(rncNuevo(6))) === 'Plan Básico/trialing',
+    `${r6} ${await planDe(rncNuevo(6))}`);
+  const sinCol = await editarPlan(BASICO, { esPlanDePrueba: true });
+  const listaSin = await listarPlanes();
+  ok('sin la columna, marcar un plan contesta 409 nombrando la 0022, y la lista dice que la casilla no esta disponible',
+    sinCol.estado === 409 && sinCol.cuerpo.error?.code === 'MIGRACION_PENDIENTE' && String(sinCol.cuerpo.error?.message).includes('0022_plan_de_prueba.sql')
+    && listaSin.estado === 200 && listaSin.cuerpo.planDePrueba?.disponible === false,
+    `${sinCol.estado} ${JSON.stringify(sinCol.cuerpo.error)} / lista ${listaSin.estado} ${JSON.stringify(listaSin.cuerpo.planDePrueba)}`);
+  //  Aplicar la 0022 tal cual esta en el fichero (sin comentarios, por sentencias).
+  let aplicada = false;
+  const MIG = join(raiz, 'drizzle/0022_plan_de_prueba.sql');
+  if (existsSync(MIG)) {
+    for (const s of readFileSync(MIG, 'utf8').replace(/--[^\n]*/g, '').split(';').map((x) => x.trim()).filter(Boolean)) await db.execute(sql.raw(s));
+    aplicada = true;
+  }
+  ok('aplicar la 0022 crea la casilla y marca el "Plan Básico", que ya era el de la prueba: nada cambia',
+    aplicada && (await hayColumna()) && JSON.stringify(await marcados()) === '["Plan Básico"]', JSON.stringify(aplicada ? await marcados() : 'sin 0022'));
+
   console.log('\n1) Las altas crean la empresa con su prueba\n');
   const r1 = await registrar(1);
   const e1 = await empresaPorRnc(rncNuevo(1));
@@ -169,15 +232,16 @@ async function main() {
   ok('una alta que falla despues de crear la prueba no deja empresa ni suscripcion; la misma, repetida, entra con su prueba',
     (r3 ?? 500) >= 500 && empDespues === empAntes && susDespues === susAntes && r3b === 200 && !!e3 && esPrueba(await suscripciones(e3)),
     `1.º ${r3}, empresas ${empAntes}→${empDespues}, suscripciones ${susAntes}→${susDespues}; 2.º ${r3b}`);
-  //  b) Sin Plan Basico la alta falla entera.
-  await db.execute(sql`UPDATE plans SET name = 'Plan Básico_300' WHERE name = 'Plan Básico'`);
+  //  b) Sin plan de prueba (ninguno marcado) la alta falla entera. Antes de la casilla (0022) se
+  //     probaba renombrando el Basico; desde la casilla renombrar ya no rompe nada (seccion 5).
+  await sinColumnaNoPasaNada(sql`UPDATE plans SET es_plan_de_prueba = false WHERE es_plan_de_prueba`);
   let r4: number | null = null;
   try { r4 = await registrar(4); } catch { r4 = null; }
   let r5: number | null = null;
   try { r5 = await altaAdmin(5); } catch { r5 = null; } finally {
-    await db.execute(sql`UPDATE plans SET name = 'Plan Básico' WHERE name = 'Plan Básico_300'`);
+    await sinColumnaNoPasaNada(sql`UPDATE plans SET es_plan_de_prueba = true WHERE id = ${BASICO}::uuid`);
   }
-  ok('sin Plan Básico ninguna de las dos altas deja una empresa (sin prueba) a medias',
+  ok('sin plan de prueba marcado ninguna de las dos altas deja una empresa (sin prueba) a medias',
     (r4 ?? 500) >= 500 && (r5 ?? 500) >= 500 && !(await empresaPorRnc(rncNuevo(4))) && !(await empresaPorRnc(rncNuevo(5))),
     `registro ${r4}, Administracion ${r5}`);
 
@@ -201,6 +265,50 @@ async function main() {
   const g3 = guion('--aplicar');
   ok('aplicar otra vez no cambia nada', g3.codigo === 0 && g3.salida.includes('Total: 0') && (await cuenta(sql`SELECT count(*)::int n FROM subscriptions`)) === totalTras,
     g3.salida.slice(0, 300));
+  ok('el ensayo dice que plan va a usar y por que (el marcado en Administracion > Planes)',
+    g1.salida.includes('Plan que se usara: "Plan Básico"') && g1.salida.includes('el marcado como "Plan de prueba"'), g1.salida.slice(0, 400));
+
+  console.log('\n5) La casilla "Plan de prueba" manda, se llame como se llame el plan\n');
+  const arranque = await crearPlan({ name: `Plan Arranque ${sello}`, description: '', price: 0, maxEcfLimit: 50, maxUsers: 1, maxWarehouses: 1, esPlanDePrueba: true });
+  const idArranque = String((arranque.cuerpo.data as Record<string, unknown> | undefined)?.id ?? '');
+  ok('crear un plan marcado desmarca el anterior: queda uno solo, el nuevo',
+    arranque.estado === 201 && JSON.stringify(await marcados()) === JSON.stringify([`Plan Arranque ${sello}`]), `${arranque.estado} ${JSON.stringify(await marcados())}`);
+  const r7 = await registrar(7);
+  ok('la prueba de una empresa nueva toma el plan MARCADO aunque no se llame "Plan Básico"',
+    r7 === 200 && (await planDe(rncNuevo(7))) === `Plan Arranque ${sello}/trialing`, `${r7} ${await planDe(rncNuevo(7))}`);
+  const renombrado = idArranque ? await editarPlan(idArranque, { name: `Inicial ${sello}` }) : null;
+  const r8 = await registrar(8);
+  ok('renombrar el plan marcado no rompe la alta: sigue siendo el de la prueba',
+    renombrado?.estado === 200 && r8 === 200 && (await planDe(rncNuevo(8))) === `Inicial ${sello}/trialing`, `${renombrado?.estado} ${r8} ${await planDe(rncNuevo(8))}`);
+  const lista = await listarPlanes();
+  const filas = (Array.isArray(lista.cuerpo.data) ? lista.cuerpo.data : []) as Array<{ id?: string; esPlanDePrueba?: boolean }>;
+  ok('la lista de planes dice cual es el de prueba (uno solo) y que la casilla esta disponible',
+    lista.estado === 200 && lista.cuerpo.planDePrueba?.disponible === true
+    && filas.filter((p) => p.esPlanDePrueba === true).map((p) => p.id).join() === idArranque, `${lista.estado} ${JSON.stringify(filas.map((p) => p.esPlanDePrueba))}`);
+  let dosMarcados = 'no lanzo';
+  try { await db.execute(sql`UPDATE plans SET es_plan_de_prueba = true WHERE id = ${BASICO}::uuid`); } catch (e) {
+    dosMarcados = String((e as { cause?: { code?: string } }).cause?.code ?? (e as { code?: string }).code ?? e);
+  }
+  ok('dos planes marcados es imposible: la base lo rechaza (indice unico, 23505)',
+    dosMarcados === '23505' && JSON.stringify(await marcados()) === JSON.stringify([`Inicial ${sello}`]), dosMarcados);
+  const otraVez = await editarPlan(BASICO, { esPlanDePrueba: true });
+  ok('marcar otro plan al editarlo desmarca el anterior, en la misma transaccion',
+    otraVez.estado === 200 && JSON.stringify(await marcados()) === '["Plan Básico"]', `${otraVez.estado} ${JSON.stringify(await marcados())}`);
+  //  Ninguno marcado: la alta se deshace con el mensaje, y no cae al nombre.
+  const quitar = await editarPlan(BASICO, { esPlanDePrueba: false });
+  const empAntes9 = await cuenta(sql`SELECT count(*)::int n FROM companies`);
+  let mensaje = '';
+  try {
+    const { crearEmpresaConSuSiembra } = await import('../src/services/empresas/altaDeEmpresa');
+    await db.transaction((tx) => crearEmpresaConSuSiembra(tx, { name: `Sin plan ${sello}`, rnc: rncNuevo(9) }));
+    mensaje = 'la alta no fallo';
+  } catch (e) { mensaje = e instanceof Error ? e.message : String(e); }
+  const r9 = await registrar(9);
+  ok('con la columna y ningun plan marcado la alta se deshace con "No hay plan de prueba: marque uno en Administración > Planes"',
+    quitar.estado === 200 && (await marcados()).length === 0 && mensaje === 'No hay plan de prueba: marque uno en Administración > Planes'
+    && r9 >= 500 && !(await empresaPorRnc(rncNuevo(9))) && (await cuenta(sql`SELECT count(*)::int n FROM companies`)) === empAntes9,
+    `${quitar.estado} "${mensaje}" registro ${r9}`);
+  await sinColumnaNoPasaNada(sql`UPDATE plans SET es_plan_de_prueba = true WHERE id = ${BASICO}::uuid`);
 
   fin();
 }
