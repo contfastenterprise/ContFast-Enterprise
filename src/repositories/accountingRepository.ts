@@ -840,10 +840,17 @@ export class AccountingRepository {
         // banco, se le debe al emisor. Toda empresa nace con ella para que el
         // selector de origen de la compra tenga donde apuntar.
         { code: '2.1.01.03', name: 'Tarjetas de Crédito por Pagar', type: 'liability', nature: 'credit', isTransactional: true },
+        // Lote 292: lo que la nomina debe a los empleados entre aprobarse y pagarse.
+        { code: '2.1.01.04', name: 'Sueldos por Pagar', type: 'liability', nature: 'credit', isTransactional: true },
         { code: '2.1.02', name: 'Impuestos Retenidos y por Pagar', type: 'liability', nature: 'credit', isTransactional: false },
         { code: '2.1.02.01', name: 'ITBIS Cobrado en Ventas', type: 'liability', nature: 'credit', isTransactional: true },
         { code: '2.1.02.02', name: 'ITBIS Retenido por Pagar', type: 'liability', nature: 'credit', isTransactional: true },
         { code: '2.1.02.03', name: 'Retenciones de ISR por Pagar', type: 'liability', nature: 'credit', isTransactional: true },
+        // Lote 292: lo que la nomina retiene o aporta y se paga a la TSS, a la
+        // DGII (IR-3, aparte del IR-17 de 2.1.02.03) y al Infotep.
+        { code: '2.1.02.04', name: 'TSS por Pagar (AFP, SFS, SRL)', type: 'liability', nature: 'credit', isTransactional: true },
+        { code: '2.1.02.05', name: 'ISR Retenido a Asalariados por Pagar', type: 'liability', nature: 'credit', isTransactional: true },
+        { code: '2.1.02.06', name: 'Infotep por Pagar', type: 'liability', nature: 'credit', isTransactional: true },
         
         { code: '3', name: 'Patrimonio', type: 'equity', nature: 'credit', isTransactional: false },
         { code: '3.1', name: 'Capital Social', type: 'equity', nature: 'credit', isTransactional: false },
@@ -866,7 +873,13 @@ export class AccountingRepository {
         { code: '6.1', name: 'Gastos Operacionales', type: 'expense', nature: 'debit', isTransactional: false },
         { code: '6.1.01', name: 'Gastos de Personal', type: 'expense', nature: 'debit', isTransactional: false },
         { code: '6.1.01.01', name: 'Sueldos y Salarios', type: 'expense', nature: 'debit', isTransactional: true },
-        { code: '6.1.01.02', name: 'Retenciones TSS (SFS/AFP/TSS)', type: 'expense', nature: 'debit', isTransactional: true },
+        // Lote 292 (D7 del diseño de la nomina): se llamaba "Retenciones TSS
+        // (SFS/AFP/TSS)", y una retencion no es un gasto -- es dinero del
+        // empleado que se debe a la TSS (2.1.02.04). Lo que es gasto de la
+        // empresa son sus APORTES. Solo cambia para las empresas NUEVAS: en las
+        // seis que existen la renombra el contador (0 renglones al medirlo).
+        { code: '6.1.01.02', name: 'Aportes Patronales TSS', type: 'expense', nature: 'debit', isTransactional: true },
+        { code: '6.1.01.03', name: 'Aporte Infotep', type: 'expense', nature: 'debit', isTransactional: true },
         { code: '6.1.02', name: 'Gastos Administrativos', type: 'expense', nature: 'debit', isTransactional: false },
         { code: '6.1.02.01', name: 'Gastos de Energía Eléctrica', type: 'expense', nature: 'debit', isTransactional: true },
         { code: '6.1.02.02', name: 'Gastos de Teléfono e Internet', type: 'expense', nature: 'debit', isTransactional: true },

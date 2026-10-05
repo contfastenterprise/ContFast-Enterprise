@@ -124,7 +124,7 @@ async function main() {
       '  y ninguna cae en dos',
       'ningun bloque sale vacio',
       'cada bloque dice que alimenta',
-      'no hay bloque de recursos humanos, porque la nomina no asienta',
+      'hay un bloque de nomina, y lleva las claves de nomina (lote 292)',
     ]) falta(t, 'cuentasDelSistema.ts no exporta GRUPOS_DE_PUENTES');
   } else {
     const { GRUPOS_DE_PUENTES, PUENTES_DE_CUENTAS, CUENTAS_DEL_SISTEMA } = T;
@@ -151,14 +151,24 @@ async function main() {
     ok('  y cada cuenta del bloque es de su categoria',
       GRUPOS_DE_PUENTES.every((g) => g.puentes.every((p) => p.categoria === g.categoria)));
 
-    // No es un olvido: medido el 2026-09-20, `api/v1/hr/` no menciona asientos
-    // ni cuentas contables. Un bloque vacio sugeriria que hay algo que
-    // configurar. Si algun dia la nomina asienta, esta comprobacion cae y toca
-    // revisarla -- que es justo lo que se quiere.
-    ok('no hay bloque de recursos humanos, porque la nomina no asienta',
-      !GRUPOS_DE_PUENTES.some((g) => /recursos humanos|nomina|nómina/i.test(g.titulo)));
-    ok('  y ninguna clave del sistema es de nomina',
-      !CUENTAS_DEL_SISTEMA.some((c) => /payroll|salar|nomina/i.test(c.clave)));
+    // Lote 175 -> lote 292, INVERTIDAS, no borradas. Decian: "no hay bloque de
+    // recursos humanos, porque la nomina no asienta" y "ninguna clave del
+    // sistema es de nomina" -- medido el 2026-09-20, `api/v1/hr/` no
+    // mencionaba asientos ni cuentas, y un bloque vacio sugeriria algo que
+    // configurar. El propio comentario pedia revisarlas el dia que cayeran.
+    // Cayeron en el lote 292 ("lote B" de docs/diseno_asientos_nomina.md): la
+    // nomina TODAVIA no asienta (eso es el lote C), pero sus cuentas ya se
+    // siembran y se enlazan, y el bloque no esta vacio. Lo que ahora es verdad:
+    const nomina = GRUPOS_DE_PUENTES.find((g) => g.categoria === 'nomina');
+    ok('hay un bloque de nomina, y lleva las claves de nomina (lote 292)',
+      !!nomina && /nómina/i.test(nomina.titulo) && nomina.puentes.length > 0,
+      nomina ? `${nomina.titulo}: ${nomina.puentes.length} cuentas` : 'no hay bloque de nomina');
+    const clavesDeNomina = CUENTAS_DEL_SISTEMA.filter((c) => /^payroll_/.test(c.clave));
+    ok('  y toda clave de nomina cae en ese bloque, y en el no cae ninguna otra',
+      clavesDeNomina.length > 0
+      && clavesDeNomina.every((c) => c.categoria === 'nomina')
+      && CUENTAS_DEL_SISTEMA.filter((c) => c.categoria === 'nomina').every((c) => /^payroll_/.test(c.clave)),
+      clavesDeNomina.map((c) => `${c.clave}:${c.categoria}`).join(' '));
 
     ok('la tarjeta de credito va con caja y bancos (es de donde sale el dinero)',
       GRUPOS_DE_PUENTES.find((g) => g.puentes.some((p) => p.codigo === '2.1.01.03'))?.categoria === 'caja_bancos');
@@ -203,13 +213,22 @@ async function main() {
       cta('2.1.02.02', 'liability'), cta('2.1.02.03', 'liability'), cta('4.1.01', 'revenue'),
       cta('5.1.01', 'expense'), cta('5.1.02', 'expense'),
       cta('2.1.01', 'liability', true), cta('1.1.04', 'asset', true), cta('5.1', 'expense', true),
+      // Lote 292: la nomina pide 6.1.01.0x y 2.1.02.0x, asi que el ejemplo
+      // gana lo que una empresa antigua YA tiene (medido el 2026-10-04 en las
+      // seis: 2.1.02 y 6.1.01 de agrupacion, 6.1.01.01 y 6.1.01.02). Sin eso
+      // el plan se niega por falta de padre, que no es lo que se mira aqui.
+      cta('2.1.02', 'liability', true), cta('6.1.01', 'expense', true),
+      cta('6.1.01.01', 'expense'), cta('6.1.01.02', 'expense'),
     ];
     const plan = planParaCompletar(catalogo, new Set());
     const crea = plan.filter((p) => p.accion === 'crear_y_enlazar') as { cuenta: { codigo: string }; codigoPadre: string; claves: string[] }[];
+    // Lote 292: ya no es la UNICA que se crea (la nomina trae cinco mas, que
+    // vigila verificar_nomina_cuentas_puente.ts); se mira la de la tarjeta.
+    const tarjetaCreada = crea.filter((c) => c.cuenta.codigo === '2.1.01.03');
     ok('crea 2.1.01.03 bajo 2.1.01 en una empresa antigua',
-      crea.length === 1 && crea[0].cuenta.codigo === '2.1.01.03' && crea[0].codigoPadre === '2.1.01',
+      tarjetaCreada.length === 1 && tarjetaCreada[0].codigoPadre === '2.1.01',
       JSON.stringify(crea.map((c) => `${c.cuenta.codigo} bajo ${c.codigoPadre}`)));
-    ok('  y le enlaza su clave', crea[0]?.claves.includes('credit_card_payable'));
+    ok('  y le enlaza su clave', tarjetaCreada[0]?.claves.includes('credit_card_payable'));
     // Sin el padre no adivina: crear 2.1.01.03 colgando de cualquier sitio
     // seria peor que no crearla.
     let sinPadre = '';

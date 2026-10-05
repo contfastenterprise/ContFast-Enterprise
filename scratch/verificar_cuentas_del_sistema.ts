@@ -46,6 +46,11 @@ const BASE: Cta[] = [
   cta('1.1.01.01', 'asset'), cta('1.1.01.02', 'asset'), cta('1.1.02.01', 'asset'), cta('1.1.03.01', 'asset'),
   cta('1.1.04.01', 'asset'), cta('1.1.04.02', 'asset'), cta('2.1.01.01', 'liability'), cta('2.1.02.01', 'liability'),
   cta('2.1.02.02', 'liability'), cta('2.1.02.03', 'liability'), cta('4.1.01', 'revenue'), cta('5.1.01', 'expense'),
+  // Lote 292: la nomina pide 6.1.01.0x. Las SEIS empresas tienen 6.1.01 (de
+  // agrupacion), 6.1.01.01, 6.1.01.02 y 2.1.01.02 desde el sembrador de
+  // siempre (medido el 2026-10-04). Sin ellas el plan se niega por falta de
+  // padre, que no es lo que se mira aqui: el ejemplo estaba incompleto otra vez.
+  cta('6.1.01', 'expense', false), cta('6.1.01.01', 'expense'), cta('6.1.01.02', 'expense'), cta('2.1.01.02', 'liability'),
 ];
 const VIEJAS = new Set(['sales_revenue', 'accounts_receivable', 'cash', 'bank', 'itbis_sales', 'itbis_purchases',
   'cost_of_goods_sold', 'inventory', 'supplier_payable']);

@@ -2945,6 +2945,65 @@ Además, fuera de la tabla:
   y después `npx tsx --env-file=.env scratch/_to_delete/salario_minimo_tss.ts` (ensayo) y con
   `--aplicar`, que pone 10.000 en las empresas sin valor. Y `verificar_nomina_decisiones_contador_db.ts`
   a `deuda_bancos.txt`. La escala de 2027 se añade a la constante cuando la DGII la publique.
+- **Lote 292: las cuentas de la nómina, en Cuentas Puente** (el "lote B" de
+  `docs/diseno_asientos_nomina.md`, que sigue sin versionar). **No asienta nada**: el asiento al
+  aprobar es el lote C y el pago el D. Lo que hace es que las cuentas existan y estén enlazadas
+  ANTES, para que aprobar la primera nómina no falle con "no hay ninguna cuenta configurada".
+  · **Ocho claves nuevas** en `CUENTAS_DEL_SISTEMA`, con la categoría nueva `nomina`:
+    `payroll_salaries_expense` 6.1.01.01 Sueldos y Salarios, `payroll_employer_tss_expense` 6.1.01.02
+    Aportes Patronales TSS, `payroll_infotep_expense` 6.1.01.03 Aporte Infotep (gastos, deudoras);
+    `payroll_salaries_payable` 2.1.01.04 Sueldos por Pagar, `payroll_tss_payable` 2.1.02.04 TSS por
+    Pagar (AFP, SFS, SRL), `payroll_isr_payable` 2.1.02.05 ISR Retenido a Asalariados por Pagar (el
+    IR-3, aparte de 2.1.02.03, que es el IR-17), `payroll_infotep_payable` 2.1.02.06 Infotep por Pagar y
+    `payroll_other_deductions` 2.1.01.02 Otras Cuentas por Pagar (D5; pasivos, acreedoras).
+  · **El bloque "Nómina"** en Configuración > Cuentas Puente, el último, con el texto del diseño. Sale
+    solo de la categoría (lote 175): la pantalla no se tocó.
+  · **El sembrador** crea las cinco que faltaban (6.1.01.03, 2.1.01.04, 2.1.02.04, 05 y 06), cada una
+    después de su padre, y **D7**: 6.1.01.02 nace como "Aportes Patronales TSS" y no como "Retenciones
+    TSS (SFS/AFP/TSS)" — una retención no es un gasto. **En las seis empresas existentes NO se
+    renombra**: es del contador (0 renglones en las seis, sin efecto en saldos).
+  **Medido antes (PRODUCCIÓN, solo lectura, `medir_292.ts`, 2026-10-04)**: en las seis empresas
+  existen 6.1.01, 6.1.01.01, 6.1.01.02, 2.1.01, 2.1.01.02 y 2.1.02, con **0 renglones** las
+  transaccionales, y **ninguna** tiene 6.1.01.03, 2.1.01.04 ni 2.1.02.04-06; ninguna tiene claves de
+  nómina. **Latin Doors** tiene además 2.1.03 ITBIS por Pagar (43 renglones), 2.1.04 ISR Retenido (1)
+  y 2.1.05 ITBIS Retenido (2): por eso la nómina **no** usa esos códigos — `planParaCompletar` enlaza
+  una cuenta que ya existe mirando su TIPO, no su nombre, y "Sueldos por pagar" en 2.1.03 habría
+  caído en el ITBIS sin avisar. Los seis catálogos quedan **congelados** en
+  `scratch/catalogosMedidos_2026-10-04.ts` y el banco ejecuta el plan real con ellos: en las seis,
+  enlaza las tres que existen, crea las cinco bajo su padre y no mueve nada más.
+  **`getMappings` (lote 171) sí cambia algo, y es benigno**: en cuanto se despliegue, abrir
+  Contabilidad en cualquier empresa enlaza solas las tres claves cuya cuenta ya existe (6.1.01.01,
+  6.1.01.02, 2.1.01.02 — mira solo el código, y con los catálogos medidos las tres son las suyas). No
+  crea las otras cinco: para eso está el guion. El banco de integración lo ejecuta, y comprueba que
+  completar después de `getMappings` crea las cinco y que una segunda vez no hace nada.
+  **Invertidas, no borradas**: las dos comprobaciones del lote 175 en `verificar_cuentas_puente.ts`
+  ("no hay bloque de recursos humanos, porque la nómina no asienta" y "ninguna clave es de nómina")
+  pasan a "hay un bloque de nómina con sus claves, y en él no cae ninguna otra". **Re-anclados**,
+  porque sus ejemplos de "empresa antigua" no traían 6.1.01 ni 2.1.02 (que las seis empresas tienen
+  desde siempre) y el plan se negaba por falta de padre: `verificar_cuentas_puente` (la cuenta de la
+  tarjeta ya no es la única que se crea), `verificar_cuentas_del_sistema` y
+  `cuentasDelSistema.vitest.ts` (la lista exacta de lo que se crea y se enlaza gana las de nómina);
+  cada uno con un mutante que lo sigue rompiendo.
+  Dos bancos. `verificar_nomina_cuentas_puente.ts` (claves, plan contra los seis catálogos, bloque
+  dibujado con el componente de verdad, reparto, sembrador y D7, y el trinquete del 171: ningún código
+  nuevo suelto en `src/`): 26 comprobaciones, contraprueba **26 FALLA** contra `8508580`.
+  `verificar_nomina_cuentas_puente_db.ts` (**integración**, base desechable: una empresa nueva por
+  `crearEmpresaConSuSiembra`; una existente dejada como las de PRODUCCIÓN y con la trampa de Latin
+  Doors, completada sin mover un céntimo ni renombrar 6.1.01.02; `getMappings`; e idempotencia): 11,
+  contraprueba **11 FALLA**. Catorce mutantes y catorce muertos (dos solo los ve el de integración: el
+  nivel fijo y la cuenta creada sin sus claves).
+  **El guion de siempre sirve**: `scratch/_to_delete/completar_cuentas_empresas.ts` (lote 165) deriva
+  de la tabla. Solo gana una comprobación antes de guardar: las ocho claves de nómina en su código y
+  ninguna en 2.1.03-2.1.05. Ensayado contra la base desechable (sembrada con el catálogo de antes y la
+  trampa de Latin Doors): ensayo, `--aplicar` y otra vez `--aplicar` (la segunda no hace nada).
+  **Para el dueño: lanzar**, cuando el lote llegue a `main` (antes, la comprobación nueva se niega,
+  porque el código de `main` no tiene claves de nómina):
+  `npx tsx --env-file=.env scratch/_to_delete/completar_cuentas_empresas.ts` (ensayo) y con
+  `--aplicar`. En cada una de las seis enlaza 6.1.01.01, 6.1.01.02 y 2.1.01.02 y crea 6.1.01.03,
+  2.1.01.04, 2.1.02.04, 2.1.02.05 y 2.1.02.06; en Latin Doors no toca 2.1.03-2.1.05. Y
+  `verificar_nomina_cuentas_puente_db.ts` a `deuda_bancos.txt`. **Para el contador**: renombrar
+  6.1.01.02 a "Aportes Patronales TSS" en las seis (D7), y repuntar las claves si prefiere otras
+  cuentas. **La nómina de julio de Latin Doors no se toca** (D6: la asienta él a mano).
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
