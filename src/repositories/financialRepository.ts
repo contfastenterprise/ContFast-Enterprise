@@ -6,7 +6,8 @@ import {
 } from '@/db/schema';
 import { eq, and, desc, asc, sql, lte, gte, ilike, or, notInArray, type SQLWrapper } from 'drizzle-orm';
 import { repartirEnTramos, sumaVencida } from '@/services/cartera/vencimiento';
-import { hoyDia } from '@/utils/fechasLocales';
+import { diaRD } from '@/utils/fechasLocales';
+import { facturaEsDeudaSql, vencimientoDeCxcSql } from '@/services/cartera/sqlDeCartera';
 
 export interface StatementFilters {
   startDate?: string;
@@ -25,8 +26,10 @@ export class FinancialRepository {
     customerId: string,
     filters?: StatementFilters
   ) {
-    const today = new Date().toISOString().split('T')[0];
-    const hoy = hoyDia();
+    // Lote 304: el dia de RD. Esto corre en el servidor (UTC): `toISOString` y `hoyDia` daban
+    // mañana desde las 20:00 de RD, y un cliente salia moroso el dia en que aun podia pagar.
+    const today = diaRD();
+    const hoy = today;
 
     // 1. Fetch Customer Info
     const [customer] = await db
@@ -109,7 +112,8 @@ export class FinancialRepository {
         codigoFactura: invoices.codigoFactura,
         amount: accountsReceivable.amount,
         balance: accountsReceivable.balance,
-        dueDate: accountsReceivable.dueDate,
+        // Lote 304: el vencimiento pactado en la factura (el mismo de la antiguedad de saldos).
+        dueDate: vencimientoDeCxcSql(invoices.paymentDueDate, accountsReceivable.dueDate),
         status: accountsReceivable.status,
         createdAt: invoices.createdAt
       })
@@ -121,10 +125,12 @@ export class FinancialRepository {
           eq(accountsReceivable.modo, modo),
           eq(accountsReceivable.customerId, customerId),
           sql`accounts_receivable.balance > 0`,
-          sql`accounts_receivable.deleted_at IS NULL`
+          sql`accounts_receivable.deleted_at IS NULL`,
+          // Lote 304: rechazadas y dadas de baja no son deuda.
+          facturaEsDeudaSql(invoices.status, invoices.deletedAt)
         )
       )
-      .orderBy(asc(accountsReceivable.dueDate));
+      .orderBy(asc(vencimientoDeCxcSql(invoices.paymentDueDate, accountsReceivable.dueDate)));
 
     // Calculate pending totals
     let totalPending = 0;
@@ -306,8 +312,10 @@ export class FinancialRepository {
     supplierId: string,
     filters?: StatementFilters
   ) {
-    const today = new Date().toISOString().split('T')[0];
-    const hoy = hoyDia();
+    // Lote 304: el dia de RD. Esto corre en el servidor (UTC): `toISOString` y `hoyDia` daban
+    // mañana desde las 20:00 de RD, y un cliente salia moroso el dia en que aun podia pagar.
+    const today = diaRD();
+    const hoy = today;
 
     // 1. Fetch Supplier Info
     const [supplier] = await db
@@ -522,17 +530,25 @@ export class FinancialRepository {
    */
   static async getFinancialDashboard(companyId: string, modo: 'PRODUCCION' | 'PRUEBA') {
     const ctx = { companyId, modo };
-    const today = new Date().toISOString().split('T')[0];
-    const hoy = hoyDia();
+    // Lote 304: el dia de RD. Esto corre en el servidor (UTC): `toISOString` y `hoyDia` daban
+    // mañana desde las 20:00 de RD, y un cliente salia moroso el dia en que aun podia pagar.
+    const today = diaRD();
+    const hoy = today;
+
+    // Lote 304: la regla de la antiguedad de saldos en el SQL a mano del panel: la factura es deuda
+    // (ni rechazada ni dada de baja) y vence en la fecha pactada. Un cliente borrado SIGUE debiendo.
+    const deudaAr = facturaEsDeudaSql(sql`inv.status`, sql`inv.deleted_at`);
+    const venceAr = vencimientoDeCxcSql(sql`inv.payment_due_date`, sql`ar.due_date`);
 
     // 1. Clientes con mayor deuda (Top debtors)
     const topDebtors = await db.execute(sql`
       SELECT c.id, c.name, c.rnc_cedula, 
              COALESCE(SUM(ar.balance), 0)::float as pending_balance,
-             COALESCE(SUM(CASE WHEN ar.due_date < ${today} THEN ar.balance ELSE 0 END), 0)::float as overdue_balance
+             COALESCE(SUM(CASE WHEN ${venceAr} < ${today}::date THEN ar.balance ELSE 0 END), 0)::float as overdue_balance
       FROM customers c
       JOIN accounts_receivable ar ON c.id = ar.customer_id
-      WHERE c.company_id = ${companyId} AND ar.balance > 0 AND ar.deleted_at IS NULL AND c.deleted_at IS NULL AND ar.modo = ${modo}
+      JOIN invoices inv ON inv.id = ar.invoice_id AND ${deudaAr}
+      WHERE c.company_id = ${companyId} AND ar.balance > 0 AND ar.deleted_at IS NULL AND ar.modo = ${modo}
       GROUP BY c.id, c.name, c.rnc_cedula
       ORDER BY pending_balance DESC
       LIMIT 5
@@ -541,10 +557,11 @@ export class FinancialRepository {
     // 2. Clientes al día vs Clientes morosos (counts)
     const clientStatusCounts = await db.execute(sql`
       SELECT 
-        COUNT(DISTINCT CASE WHEN ar.due_date < ${today} THEN c.id END)::int as morosos_count,
-        COUNT(DISTINCT CASE WHEN ar.due_date >= ${today} AND ar.balance > 0 THEN c.id END)::int as al_dia_count
+        COUNT(DISTINCT CASE WHEN ${venceAr} < ${today}::date THEN c.id END)::int as morosos_count,
+        COUNT(DISTINCT CASE WHEN ${venceAr} >= ${today}::date AND ar.balance > 0 THEN c.id END)::int as al_dia_count
       FROM customers c
-      LEFT JOIN accounts_receivable ar ON c.id = ar.customer_id AND ar.balance > 0 AND ar.deleted_at IS NULL AND ar.modo = ${modo}
+      LEFT JOIN (accounts_receivable ar JOIN invoices inv ON inv.id = ar.invoice_id AND ${deudaAr})
+        ON c.id = ar.customer_id AND ar.balance > 0 AND ar.deleted_at IS NULL AND ar.modo = ${modo}
       WHERE c.company_id = ${companyId} AND c.deleted_at IS NULL
     `);
 
@@ -565,7 +582,7 @@ export class FinancialRepository {
     const topCreditors = await db.execute(sql`
       SELECT s.id, s.name, s.rnc,
              COALESCE(SUM(ap.balance), 0)::float as pending_balance,
-             COALESCE(SUM(CASE WHEN ap.due_date < ${today} THEN ap.balance ELSE 0 END), 0)::float as overdue_balance
+             COALESCE(SUM(CASE WHEN ap.due_date < ${today}::date THEN ap.balance ELSE 0 END), 0)::float as overdue_balance
       FROM suppliers s
       JOIN accounts_payable ap ON s.id = ap.supplier_id
       WHERE s.company_id = ${companyId} AND ap.balance > 0 AND ap.deleted_at IS NULL AND s.deleted_at IS NULL AND ap.modo = ${modo}
@@ -590,8 +607,8 @@ export class FinancialRepository {
     // 5.5. Suplidores al día vs Suplidores morosos (counts)
     const supplierStatusCounts = await db.execute(sql`
       SELECT 
-        COUNT(DISTINCT CASE WHEN ap.due_date < ${today} THEN s.id END)::int as morosos_count,
-        COUNT(DISTINCT CASE WHEN ap.due_date >= ${today} AND ap.balance > 0 THEN s.id END)::int as al_dia_count
+        COUNT(DISTINCT CASE WHEN ap.due_date < ${today}::date THEN s.id END)::int as morosos_count,
+        COUNT(DISTINCT CASE WHEN ap.due_date >= ${today}::date AND ap.balance > 0 THEN s.id END)::int as al_dia_count
       FROM suppliers s
       LEFT JOIN accounts_payable ap ON s.id = ap.supplier_id AND ap.balance > 0 AND ap.deleted_at IS NULL AND ap.modo = ${modo}
       WHERE s.company_id = ${companyId} AND s.deleted_at IS NULL
@@ -600,23 +617,25 @@ export class FinancialRepository {
     // 6. Global summaries for CxC and CxP
     const [cxcSummary] = await db
       .select({
-        totalPending: sql<string>`COALESCE(SUM(balance), 0)`,
-        overdue: sql<string>`COALESCE(SUM(CASE WHEN due_date < ${today} THEN balance ELSE 0 END), 0)`
+        totalPending: sql<string>`COALESCE(SUM(${accountsReceivable.balance}), 0)`,
+        overdue: sql<string>`COALESCE(SUM(CASE WHEN ${vencimientoDeCxcSql(invoices.paymentDueDate, accountsReceivable.dueDate)} < ${today}::date THEN ${accountsReceivable.balance} ELSE 0 END), 0)`
       })
       .from(accountsReceivable)
+      .innerJoin(invoices, eq(invoices.id, accountsReceivable.invoiceId))
       .where(
         withTenantMode(
           accountsReceivable,
           ctx,
           sql`accounts_receivable.balance > 0`,
-          isNull(accountsReceivable.deletedAt)
+          isNull(accountsReceivable.deletedAt),
+          facturaEsDeudaSql(invoices.status, invoices.deletedAt)
         )
       );
 
     const [cxpSummary] = await db
       .select({
         totalPending: sql<string>`COALESCE(SUM(balance), 0)`,
-        overdue: sql<string>`COALESCE(SUM(CASE WHEN due_date < ${today} THEN balance ELSE 0 END), 0)`
+        overdue: sql<string>`COALESCE(SUM(CASE WHEN due_date < ${today}::date THEN balance ELSE 0 END), 0)`
       })
       .from(accountsPayable)
       .where(

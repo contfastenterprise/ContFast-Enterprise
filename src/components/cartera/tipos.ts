@@ -55,10 +55,15 @@ export const PALABRAS: Record<TipoCartera, {
  * El plazo de credito, y por que hace falta decirlo en pantalla.
  *
  * Los niveles de riesgo NO se cuentan desde que se emite el documento: se
- * cuentan desde que vence su plazo de credito, que en este sistema son 30 dias
- * (`invoiceDbBooker` los pone al crear la cuenta por cobrar). Sin este aviso,
- * un cliente que te debe una cantidad grande pero esta dentro de su plazo
- * aparece en verde y parece un error de la pantalla -- y no lo es.
+ * cuentan desde que VENCE. Sin este aviso, un cliente que te debe una cantidad
+ * grande pero esta dentro de su plazo aparece en verde y parece un error de la
+ * pantalla -- y no lo es.
+ *
+ * Lote 304: el aviso decia "el credito es de 30 dias", y no era cierto. El
+ * vencimiento de una factura es la fecha limite de pago PACTADA en ella (la que
+ * se declara a la DGII); solo las facturas que no la tienen usan la de la cuenta
+ * por cobrar, que el sistema ponia a un mes de la emision. `DIAS_CREDITO` queda
+ * como ese plazo por defecto, no como una regla.
  *
  * Se escribe UNA vez y se usa en la pantalla y en el estado de cuenta, para que
  * las dos digan exactamente lo mismo.
@@ -66,10 +71,12 @@ export const PALABRAS: Record<TipoCartera, {
 export const DIAS_CREDITO = 30;
 
 export const AVISO_CREDITO =
-  `El crédito es de ${DIAS_CREDITO} días. Los niveles de riesgo empiezan a contarse cuando ese ` +
-  'plazo vence, no desde que se emite el documento: quien debe dinero pero sigue dentro de sus ' +
-  `${DIAS_CREDITO} días aparece como riesgo bajo, y eso es correcto. El nivel lo marca el documento ` +
-  'más atrasado que siga con saldo, no un promedio.';
+  'Cada documento vence en su fecha límite de pago (la pactada en la factura; si no la tiene, ' +
+  'la de su cuenta, a un mes de la emisión). Los días de atraso y los tramos se cuentan desde ' +
+  'ese vencimiento, en hora de República Dominicana, no desde que se emite: quien debe dinero pero no ' +
+  'ha llegado a su vencimiento aparece como riesgo bajo, y eso es correcto. El nivel de cada ' +
+  'cliente o suplidor lo marca su documento más atrasado que siga con saldo, no un promedio. ' +
+  'Las facturas rechazadas por la DGII o dadas de baja no son deuda y no cuentan.';
 
 /** RD$ con dos decimales. Un importe sin decimales invita a leerlo mal. */
 export const dinero = (n: number, decimales = 2): string =>

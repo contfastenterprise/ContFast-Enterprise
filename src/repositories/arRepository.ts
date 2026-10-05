@@ -7,6 +7,7 @@ import { BankRepository } from '@/repositories/bankRepository';
 import { FinancialMovementService } from '@/services/financialMovementService';
 import { resolverCuentaPorMapeo, resolverCuentaDeBanco } from '@/services/accounting/resolverCuentas';
 import { entraPorBanco, motivoParaNoRegistrarCobro } from '@/services/cartera/cuentaDelCobro';
+import { facturaEsDeudaSql, vencimientoDeCxcSql } from '@/services/cartera/sqlDeCartera';
 
 export interface RegisterReceiptInput {
   companyId: string;
@@ -45,7 +46,9 @@ export class ArRepository {
       invoiceDate: invoices.createdAt,
       amount: accountsReceivable.amount,
       balance: accountsReceivable.balance,
-      dueDate: accountsReceivable.dueDate,
+      //  Lote 304: el vencimiento PACTADO en la factura (el que se declara a la DGII), y el de la
+      //  cuenta solo si la factura no lo tiene. Es el mismo que usa la antiguedad de saldos.
+      dueDate: vencimientoDeCxcSql(invoices.paymentDueDate, accountsReceivable.dueDate),
       status: accountsReceivable.status
     })
     .from(accountsReceivable)
@@ -55,9 +58,12 @@ export class ArRepository {
       eq(accountsReceivable.companyId, companyId),
       eq(accountsReceivable.modo, modo),
       sql`${accountsReceivable.balance} > 0`,
-      sql`${accountsReceivable.deletedAt} IS NULL`
+      sql`${accountsReceivable.deletedAt} IS NULL`,
+      //  Lote 304: una factura rechazada por la DGII o dada de baja no es deuda (E310000000029 sumaba
+      //  102.616,67 de mas a un cliente) y no se le puede aplicar un cobro.
+      facturaEsDeudaSql(invoices.status, invoices.deletedAt)
     ))
-    .orderBy(accountsReceivable.dueDate);
+    .orderBy(vencimientoDeCxcSql(invoices.paymentDueDate, accountsReceivable.dueDate));
 
     // Group by customer
     const grouped: Record<string, any> = {};

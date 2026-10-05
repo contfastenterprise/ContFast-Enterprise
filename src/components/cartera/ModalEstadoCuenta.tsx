@@ -8,6 +8,7 @@ import { CONFIG_RIESGO } from '@/services/cartera/riesgo';
 import type { FilaCartera, TipoCartera } from './tipos';
 import { AVISO_CREDITO, PALABRAS, dinero } from './tipos';
 import { abrirEstadoImpreso } from './estadoImpreso';
+import { clasesDeAtraso } from '@/services/cartera/reglasDeCartera';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/dialog';
@@ -131,10 +132,12 @@ export function ModalEstadoCuenta({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="p-3 rounded-xl bg-rose-50/70 border border-rose-200/80">
-              <span className="text-[11px] text-rose-700 font-medium block">Saldo pendiente</span>
-              <div className="text-lg font-bold text-rose-900 tabular-nums">{dinero(fila.saldo)}</div>
-              <span className="text-[10px] text-rose-600">{P.totalPie}</span>
+            {/* Lote 304: el saldo pendiente NO va en rojo. Deber no es estar atrasado: el rojo
+                se reserva para lo que lleva mas de 15 dias de atraso, como en la tabla. */}
+            <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200" data-saldo-modal>
+              <span className="text-[11px] text-neutral-600 font-medium block">Saldo pendiente</span>
+              <div className="text-lg font-bold text-neutral-900 tabular-nums">{dinero(fila.saldo)}</div>
+              <span className="text-[10px] text-neutral-500">{P.totalPie}</span>
             </div>
 
             {/* Las dos tarjetas del cupo SOLO existen si hay cupo. En suplidores
@@ -211,12 +214,12 @@ export function ModalEstadoCuenta({
                         <td className="py-2 px-3 text-right tabular-nums font-semibold text-neutral-900">{dinero(Number(d.saldo))}</td>
                         <td className="py-2 px-3 text-center">
                           {d.diasAtraso > 0 ? (
-                            <span className="inline-flex items-center gap-1 text-rose-700 font-semibold">
+                            <span className={`inline-flex items-center gap-1 font-semibold ${clasesDeAtraso(d.diasAtraso)}`} data-atraso-documento>
                               <AlertTriangle className="w-3 h-3" />
                               {d.diasAtraso} d.
                             </span>
                           ) : (
-                            <span className="text-emerald-700">Al día</span>
+                            <span className="text-emerald-700">Por vencer</span>
                           )}
                         </td>
                       </tr>

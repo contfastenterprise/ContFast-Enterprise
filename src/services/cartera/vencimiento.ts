@@ -37,7 +37,7 @@
  * lote entero (ver `docs/auditoria/fechas_barrido_src.md`).
  */
 import {
-  diaDe, diasEntreDias, hoyDia, formatDateDisplay, formatDateShort,
+  diaDe, diasEntreDias, diaRD, formatDateDisplay, formatDateShort,
 } from '@/utils/fechasLocales';
 
 /**
@@ -92,7 +92,10 @@ export function analizarVencimiento(
   fecha: string | Date | null | undefined,
   opciones: OpcionesVencimiento = {}
 ): Vencimiento {
-  const hoy = opciones.hoy ?? hoyDia();
+  // Lote 304: el dia por defecto es el de RD (`diaRD`), no el del proceso (`hoyDia`, que lee la
+  // hora LOCAL). En el navegador de RD dan lo mismo; en el servidor (Vercel, UTC) `hoyDia` es
+  // mañana desde las 20:00 de RD, y las acciones de CxC/CxP corren en el servidor.
+  const hoy = opciones.hoy ?? diaRD();
   const dia = diaDe(fecha);
   const saldada = opciones.saldo !== undefined && opciones.saldo <= TOLERANCIA;
 
@@ -145,7 +148,7 @@ export function repartirEnTramos<T>(
   elementos: readonly T[],
   saldoDe: (x: T) => number,
   vencimientoDe: (x: T) => string | Date | null | undefined,
-  hoy: string = hoyDia()
+  hoy: string = diaRD()
 ): SumaPorTramo {
   const suma = tramosEnCero();
   for (const e of elementos) {

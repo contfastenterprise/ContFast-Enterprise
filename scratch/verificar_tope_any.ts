@@ -79,7 +79,9 @@ ok('cartera/documentos: las filas en bruto tienen forma declarada',
    /export function normalizarFila\(bruta: FilaBruta \| null \| undefined, tipo: TipoCuenta/.test(doc)
    && /export const normalizarFilas = \(brutas: \(FilaBruta \| null \| undefined\)\[\] \| null \| undefined, tipo: TipoCuenta/.test(doc));
 ok('carteraRepository: armar recibe filas con forma declarada',
-   /private static armar\(\s*filas: FilaEntidadCartera\[\],/.test(rep));
+   //  Lote 304: armar recibe ahora los DOCUMENTOS (FilaDocumentoCartera) y no agregados; la
+   //  propiedad es la misma: forma declarada, sin `any`.
+   /private static armar\(\s*docs: FilaDocumentoCartera\[\],/.test(rep));
 {
   //  Lote 124. `parseFloat(String(x))` y no `Number(x)`: con null o undefined
   //  `parseFloat(x as any)` daba NaN y `Number(null)` da 0. El cambio tiene que

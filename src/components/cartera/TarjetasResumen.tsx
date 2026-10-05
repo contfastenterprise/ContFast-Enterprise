@@ -4,6 +4,7 @@ import React from 'react';
 import { DollarSign, Users, AlertTriangle, TrendingUp } from 'lucide-react';
 import type { FilaCartera, TipoCartera } from './tipos';
 import { PALABRAS, dineroCorto } from './tipos';
+import { sumarPorNivel } from '@/services/cartera/reglasDeCartera';
 
 export function TarjetasResumen({ filas, tipo }: { filas: FilaCartera[]; tipo: TipoCartera }) {
   const P = PALABRAS[tipo];
@@ -13,7 +14,11 @@ export function TarjetasResumen({ filas, tipo }: { filas: FilaCartera[]; tipo: T
   const hayCupo = filas.some((f) => f.cupoCredito !== null);
 
   const enRiesgo = filas.filter((f) => f.nivelRiesgo === 'alto' || f.nivelRiesgo === 'critico');
-  const saldoEnRiesgo = enRiesgo.reduce((a, f) => a + f.saldo, 0);
+  // Lote 304: lo que lleva MAS DE 15 DIAS de atraso, documento a documento. Antes se sumaba el
+  // saldo ENTERO de cada cliente en riesgo alto o critico, incluidas sus facturas aun por vencer:
+  // la tarjeta dice "mas de 15 dias de atraso" y metia dinero que no estaba atrasado ni un dia.
+  const porNivel = sumarPorNivel(filas);
+  const saldoEnRiesgo = porNivel.alto + porNivel.critico;
   const alDia = filas.filter((f) => f.nivelRiesgo === 'bajo');
 
   // LA MEDIA SOLO DE LOS QUE TIENEN VARIACION.

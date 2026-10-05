@@ -1,11 +1,11 @@
 'use server';
 
 import { db, accountsPayable, suppliers, supplierPayments, companies, companySettings, purchaseOrders, expenses, expenseTypes } from '@/db';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, sql } from 'drizzle-orm';
 import { exigirSesion } from './_sesion';
 import { enforcePermission } from '@/middleware/permissions';
 import type { ModoOperativo } from '@/services/dgii/modoPeticion';
-import { diaDe, hoyDia } from '@/utils/fechasLocales';
+import { diaDe, diaRD } from '@/utils/fechasLocales';
 import { repartirEnTramos, sumaVencida } from '@/services/cartera/vencimiento';
 
 export async function getPayablesDashboardData() {
@@ -66,13 +66,15 @@ export async function getPayablesDashboardData() {
       and(
         eq(accountsPayable.companyId, companyId),
         eq(accountsPayable.modo, modo as ModoOperativo),
-        isNull(accountsPayable.deletedAt)
+        isNull(accountsPayable.deletedAt),
+        // Lote 304: la CxP de una compra borrada no es deuda (la regla de la antiguedad de saldos).
+        sql`(${expenses.id} IS NULL OR ${expenses.deletedAt} IS NULL)`
       )
     );
 
   // Extraer los Pagos de este mes
   // Como texto: 'AAAA-MM-01' se compara con otro dia 'AAAA-MM-DD' sin mas.
-  const primerDiaDelMes = hoyDia().slice(0, 8) + '01';
+  const primerDiaDelMes = diaRD().slice(0, 8) + '01';
   
   const paymentsList = await db
     .select({
@@ -105,7 +107,8 @@ export async function getPayablesDashboardData() {
   let totalPorVencer = 0;
   let pagadoEsteMes = 0;
 
-  const hoy = hoyDia();
+  // Lote 304: el dia de RD; esto corre en el servidor (UTC), donde `hoyDia` era mañana desde las 20:00.
+  const hoy = diaRD();
 
   // Calcular métricas AP. Los tramos y el "esta vencido" los decide
   // `services/cartera/vencimiento`, no este fichero.

@@ -28,7 +28,7 @@
  * -- ese dia todavia se puede pagar -- y no construye ningun `Date` a partir
  * de la fecha (ver `utils/fechasLocales.ts`).
  */
-import { diaDe, diasDeAntiguedad, hoyDia } from '@/utils/fechasLocales';
+import { diaDe, diasDeAntiguedad, diaRD } from '@/utils/fechasLocales';
 import { analizarVencimiento, TOLERANCIA } from './vencimiento';
 
 // Se reexporta para no romper a quien ya la importaba de aqui. La define
@@ -100,7 +100,7 @@ const aNumero = (v: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-export function normalizarFila(bruta: FilaBruta | null | undefined, tipo: TipoCuenta, hoy: string = hoyDia()): FilaCuenta {
+export function normalizarFila(bruta: FilaBruta | null | undefined, tipo: TipoCuenta, hoy: string = diaRD()): FilaCuenta {
   const P = PALABRAS[tipo];
   const id = String(bruta?.id ?? '');
   const saldo = aNumero(bruta?.balance);
@@ -126,7 +126,7 @@ export function normalizarFila(bruta: FilaBruta | null | undefined, tipo: TipoCu
   };
 }
 
-export const normalizarFilas = (brutas: (FilaBruta | null | undefined)[] | null | undefined, tipo: TipoCuenta, hoy: string = hoyDia()): FilaCuenta[] =>
+export const normalizarFilas = (brutas: (FilaBruta | null | undefined)[] | null | undefined, tipo: TipoCuenta, hoy: string = diaRD()): FilaCuenta[] =>
   (Array.isArray(brutas) ? brutas : []).map(b => normalizarFila(b, tipo, hoy));
 
 /** Lo que se ve: saldadas fuera salvo que se pidan, y el texto buscado en documento o entidad. */

@@ -14,6 +14,9 @@ import { ModalEstadoCuenta } from '@/components/cartera/ModalEstadoCuenta';
 import { AVISO_CREDITO, PALABRAS, dineroCorto, type EstadisticaNivel, type FilaCartera, type TipoCartera } from '@/components/cartera/tipos';
 import { Button } from '@/components/ui/button';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { TramosDeAntiguedad } from '@/components/cartera/TramosDeAntiguedad';
+import { sumarPorNivel, sumarTramos } from '@/services/cartera/reglasDeCartera';
+import { diaRD } from '@/utils/fechasLocales';
 
 /** El esqueleto tiene la forma de lo que viene: tarjetas, dona y tabla. */
 function EsqueletoCartera() {
@@ -156,7 +159,12 @@ export default function CarteraPage() {
   }, [filas]);
 
   const saldoTotal = useMemo(() => filas.reduce((a, f) => a + f.saldo, 0), [filas]);
-  const saldoDe = (n: NivelRiesgo) => stats.find((s) => s.key === n)?.saldo ?? 0;
+  // Lote 304: las tres cifras del "Balance Operativo" son de DOCUMENTOS, no de clientes. Antes
+  // `saldoDe` sumaba el saldo ENTERO de cada cliente bajo su nivel: un cliente con una factura de
+  // 10 dias de atraso y cuatro por vencer ponia las cinco en "Atraso <= 15 dias".
+  const porNivel = useMemo(() => sumarPorNivel(filas), [filas]);
+  const tramos = useMemo(() => sumarTramos(filas), [filas]);
+  const saldoDe = (n: NivelRiesgo) => porNivel[n];
   const conAtraso = filas.filter((f) => f.diasAtraso > 0).length;
 
   const exportarCsv = () => {
@@ -165,7 +173,7 @@ export default function CarteraPage() {
       return;
     }
     const escapar = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const cabecera = 'Nombre,RNC_Cedula,Telefono,Correo,Riesgo,Dias_Atraso,Saldo,Cupo_Credito,Documentos_Pendientes\n';
+    const cabecera = 'Nombre,RNC_Cedula,Telefono,Correo,Riesgo,Dias_Atraso,Saldo,Por_Vencer,Vencido_1_30,Vencido_31_60,Vencido_61_90,Vencido_Mas_90,Cupo_Credito,Documentos_Pendientes\n';
     const cuerpo = filas
       .map((f) =>
         [
@@ -176,6 +184,8 @@ export default function CarteraPage() {
           escapar(CONFIG_RIESGO[f.nivelRiesgo].etiquetaCorta),
           f.diasAtraso,
           f.saldo.toFixed(2),
+          // Lote 304: los tramos, para que el CSV cuadre con Cuentas por Cobrar y por Pagar.
+          ...(['por-vencer', '1-30', '31-60', '61-90', '90+'] as const).map((t) => (f.tramos?.[t] ?? 0).toFixed(2)),
           // Vacio y no 0: el suplidor no tiene cupo, no tiene cupo cero.
           f.cupoCredito === null ? '' : f.cupoCredito.toFixed(2),
           f.documentosPendientes,
@@ -188,7 +198,7 @@ export default function CarteraPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `cartera_${tipo}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `cartera_${tipo}_${diaRD()}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -288,6 +298,8 @@ export default function CarteraPage() {
         <>
           <TarjetasResumen filas={filas} tipo={tipo} />
 
+          <TramosDeAntiguedad tramos={tramos} total={saldoTotal} />
+
           <section className="mb-4">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
               <div className="lg:col-span-5 flex justify-center">
@@ -323,21 +335,21 @@ export default function CarteraPage() {
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-3">
                     <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl">
-                      <span className="text-[11px] text-emerald-800 font-semibold block">Al día</span>
+                      <span className="text-[11px] text-emerald-800 font-semibold block">Por vencer</span>
                       <span className="text-base font-bold text-emerald-950 tabular-nums">{dineroCorto(saldoDe('bajo'))}</span>
-                      <span className="text-[10px] text-emerald-700 block mt-0.5">Todo dentro del plazo</span>
+                      <span className="text-[10px] text-emerald-700 block mt-0.5">Facturas que aún no vencen</span>
                     </div>
                     <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl">
                       <span className="text-[11px] text-amber-800 font-semibold block">En observación</span>
                       <span className="text-base font-bold text-amber-950 tabular-nums">{dineroCorto(saldoDe('medio'))}</span>
-                      <span className="text-[10px] text-amber-700 block mt-0.5">Atraso ≤ 15 días</span>
+                      <span className="text-[10px] text-amber-700 block mt-0.5">Facturas con 1 a 15 días de atraso</span>
                     </div>
                     <div className="p-3 bg-rose-50/70 border border-rose-200/80 rounded-xl col-span-2 sm:col-span-1">
                       <span className="text-[11px] text-rose-800 font-semibold block">Acción inmediata</span>
                       <span className="text-base font-bold text-rose-950 tabular-nums">
                         {dineroCorto(saldoDe('alto') + saldoDe('critico'))}
                       </span>
-                      <span className="text-[10px] text-rose-700 block mt-0.5">Más de 15 días de atraso</span>
+                      <span className="text-[10px] text-rose-700 block mt-0.5">Facturas con más de 15 días de atraso</span>
                     </div>
                   </div>
                 </div>
