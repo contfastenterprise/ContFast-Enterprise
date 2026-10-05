@@ -37,6 +37,10 @@
  * y una linea en facturacion, contabilidad, nomina, almacenes, usuarios y avisos. Sin
  * Administracion > Planes ni la asignacion de suscripciones (son del rol Sistemas).
  *
+ * LOTE 303 (version 3.3): Administracion > "Mi Suscripcion" enseña la MISMA tarjeta que
+ * Plan & Suscripcion (estado, dias, uso), el estado "Sin plan" entra en la tabla, y los
+ * mensajes de "sin plan" y "cancelado" remiten al administrador del sistema, no a soporte.
+ *
  * INDICE: los numeros de pagina se CALCULAN. Cada seccion empieza en pagina nueva, asi que
  * se dibuja cada una por separado con los mismos margenes, se cuentan sus paginas, y con eso
  * se escribe el indice antes de dibujar el documento entero. Si una seccion crece, el indice
@@ -48,7 +52,7 @@ const path = require('path');
 
 const RAIZ = path.join(__dirname, '..');
 const FECHA = 'Octubre 2026';
-const VERSION = '3.2';
+const VERSION = '3.3';
 
 // El logo del sistema, el mismo de la pantalla de acceso (`public/Logo.svg`), incrustado en el
 // HTML: Chromium no tiene que salir a buscarlo. La portada es blanca, asi que va directo:
@@ -682,7 +686,7 @@ seccion('configuracion', 'Configuración y administración', `
   <p>${b('Tienda')} configura la portada de la tienda en línea (sección «La tienda en línea»). ${b('Plan & Suscripción')} muestra el plan y su uso (sección siguiente).</p>
 
   <h3 class="subsection-title">Administración — ${ruta('Sistema', 'Administracion')}</h3>
-  <p>Pantalla <strong>Gestión de Acceso y Planes</strong>. ${b('Usuarios')}: ${b('Nuevo Usuario')} (nombre, correo, contraseña inicial de 6 caracteres o más, rol). Al editar, el campo de contraseña en blanco no la cambia; si se cambia, <strong>se cierran todas las sesiones de ese usuario</strong>. Un usuario se puede suspender y volver a activar, dentro del límite del plan. ${b('Roles del Sistema')} muestra los roles y su descripción, y ${b('Mi Suscripción')}, los límites del plan.</p>
+  <p>Pantalla <strong>Gestión de Acceso y Planes</strong>. ${b('Usuarios')}: ${b('Nuevo Usuario')} (nombre, correo, contraseña inicial de 6 caracteres o más, rol). Al editar, el campo de contraseña en blanco no la cambia; si se cambia, <strong>se cierran todas las sesiones de ese usuario</strong>. Un usuario se puede suspender y volver a activar, dentro del límite del plan. ${b('Roles del Sistema')} muestra los roles y su descripción, y ${b('Mi Suscripción')}, la misma tarjeta del plan que la pestaña ${b('Plan & Suscripción')} de Configuración: estado, días que quedan y uso (ver «Planes, prueba gratis y límites»).</p>
 `);
 
 // LOTE 302: planes y prueba gratis (lotes 299 y 300). Comprobado en
@@ -693,7 +697,7 @@ seccion('planes', 'Planes, prueba gratis y límites', `
   <p class="intro-lead">Cada empresa trabaja con un <strong>plan</strong> que fija cuántos e-CF puede emitir al mes, cuántos usuarios activos puede tener y cuántos almacenes. Mientras el plan está vigente todo funciona con normalidad; sin plan vigente, lo que crea o emite se detiene, pero nada de lo registrado se pierde.</p>
 
   <h3 class="subsection-title">Dónde se ve — ${ruta('Sistema', 'Configuración')} › pestaña ${b('Plan & Suscripción')}</h3>
-  <p>Solo Administración. La tarjeta «Plan y Suscripción» muestra:</p>
+  <p>Solo Administración. La misma tarjeta «Plan y Suscripción» sale también en ${ruta('Sistema', 'Administracion')} › ${b('Mi Suscripción')}: las dos pantallas dicen lo mismo del plan. La tarjeta muestra:</p>
   <ul>
     <li><strong>Plan Contratado:</strong> el nombre del plan y, a su lado, una etiqueta con su estado.</li>
     <li><strong>e-CF de este mes:</strong> «N de M», y debajo el porcentaje («x % · emitidos en PRODUCCIÓN»). La cifra se pone en ámbar al llegar al 80 % y en rojo al llegar al límite. Si el plan no tiene límite, sale «N (ilimitado)».</li>
@@ -708,8 +712,9 @@ seccion('planes', 'Planes, prueba gratis y límites', `
     ['<strong>Vencido</strong>', 'Pasó el último día del plan (o de la prueba) sin renovarse.'],
     ['<strong>Pago pendiente</strong>', 'El plan tiene un pago por regularizar.'],
     ['<strong>Cancelado</strong>', 'El plan se dio de baja.'],
+    ['<strong>Sin plan</strong>', 'La empresa no tiene ningún plan («Esta empresa no tiene un plan.»).'],
   ])}
-  <p>Solo <strong>Prueba</strong> y <strong>Activo</strong> son un plan vigente. Con cualquier otro estado, o si la empresa no tiene plan («Esta empresa no tiene un plan.»), la pantalla lo advierte en rojo y se aplica el bloqueo descrito más abajo. Un plan vale hasta el final de su último día, en hora de República Dominicana.</p>
+  <p>Solo <strong>Prueba</strong> y <strong>Activo</strong> son un plan vigente. Con cualquier otro estado, la pantalla lo advierte en rojo («El plan no está vigente. Mientras tanto no se pueden…») y se aplica el bloqueo descrito más abajo. Un plan vale hasta el final de su último día, en hora de República Dominicana.</p>
 
   <h3 class="subsection-title">La prueba gratis</h3>
   <ul>
@@ -746,9 +751,9 @@ seccion('planes', 'Planes, prueba gratis y límites', `
   <h3 class="subsection-title">Los mensajes que se ven</h3>
   <p>Cuando el plan impide una acción, la acción no se hace y la pantalla muestra el motivo. Los textos son estos («…» es el nombre del plan; N y M, las cifras del caso):</p>
   ${tabla(['Situación', 'Lo que dice la pantalla'], [
-    ['Sin plan', '«La empresa no tiene un plan vigente. Mientras tanto no se pueden emitir e-CF, calcular, aprobar ni pagar nóminas, ni crear asientos manuales, usuarios o almacenes. Consultar, imprimir y guardar borradores sigue funcionando. Contacte a soporte para activar un plan.»'],
+    ['Sin plan', '«La empresa no tiene un plan vigente. Mientras tanto no se pueden emitir e-CF, calcular, aprobar ni pagar nóminas, ni crear asientos manuales, usuarios o almacenes. Consultar, imprimir y guardar borradores sigue funcionando. Para activar un plan, consulte con el administrador del sistema.»'],
     ['Plan vencido', '«El … venció el dd-mm-aaaa. Mientras tanto no se pueden emitir e-CF, … Renueve el plan para continuar.» Si era la prueba: «La prueba gratis venció el dd-mm-aaaa. …»'],
-    ['Pago pendiente o plan cancelado', '«El … tiene un pago pendiente. … Renueve el pago para continuar.» / «El … está cancelado. … Contacte a soporte para activar un plan.»'],
+    ['Pago pendiente o plan cancelado', '«El … tiene un pago pendiente. … Renueve el pago para continuar.» / «El … está cancelado. … Para activar un plan, consulte con el administrador del sistema.»'],
     ['Límite de e-CF', '«Llegó al límite de e-CF de su plan este mes (N de M). No se pueden emitir más hasta el 1 de &lt;mes&gt; o hasta ampliar el plan; los borradores se pueden seguir guardando.»'],
     ['Límite de usuarios', '«Su plan permite N usuario(s) activo(s) y ya tiene N. Desactive otro usuario o amplíe el plan.»'],
     ['Límite de almacenes', '«Su plan permite N almacén(es) y ya tiene N. Amplíe el plan para crear otro.»'],
