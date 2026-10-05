@@ -194,7 +194,7 @@ seccion('inicio', 'El inicio y los avisos', `
 
   <h3 class="subsection-title">Avisos por correo, con informe en PDF</h3>
   <p>Los avisos <strong>graves y de advertencia</strong> se envían también por correo, en <strong>un solo mensaje con todos</strong> los pendientes. El asunto lleva el nombre de la empresa y cuántos son graves. Adjunta un <strong>informe en PDF</strong> con el formato de los documentos de la empresa (logo y datos fiscales), todos los avisos con su gravedad y un gráfico de <strong>compras y ventas de los últimos 14 días</strong>, con el día del informe destacado. Si el PDF no se pudiera generar, el correo sale igual con el texto. Cada aviso se envía una sola vez; se revisan al abrir el panel de inicio.</p>
-  <p>El destino se configura en ${ruta('Sistema', 'Ajustes')} › ${b('Configuración Empresa')} › «Avisos del sistema»: escriba el ${b('Correo de destino')} o marque ${b('Usar el correo de la empresa')}. <strong>Vacío significa que la empresa no recibe avisos por correo.</strong></p>
+  <p>El destino se configura en ${ruta('Sistema', 'Configuración')} › ${b('Configuración Empresa')} › «Avisos del sistema»: escriba el ${b('Correo de destino')} o marque ${b('Usar el correo de la empresa')}. <strong>Vacío significa que la empresa no recibe avisos por correo.</strong></p>
   ${nota('Los avisos ya no se envían por WhatsApp: ese canal se retiró.')}
 `);
 
@@ -270,7 +270,7 @@ seccion('inventario', 'Inventario: productos, precios y existencias', `
     `Revise «Artículos a Trasladar», escriba el motivo si quiere y pulse ${b('Confirmar Traslado')}.`,
   ])}
 
-  <h3 class="subsection-title">Ajustes de inventario — ${ruta('Inventario', 'Ajustes')}</h3>
+  <h3 class="subsection-title">Ajustes de inventario — ${ruta('Inventario', 'Ajustes de Inventario')}</h3>
   <p>Para cuadrar la existencia con un conteo físico: elija el almacén, busque el producto, escriba la ${b('Nueva Cantidad Física')} (la diferencia se calcula sola), el motivo — obligatorio — y pulse ${b('Aplicar Ajuste')}. Debajo, la tabla «Productos Disponibles» permite ajustes rápidos con ${b('Establecer cantidad')}.</p>
   ${nota('Un ajuste que sube existencia la mete sin costo y sin asiento contable. Cómo se valora un sobrante de conteo es una decisión del contador.', 'warn')}
 
@@ -305,7 +305,7 @@ seccion('conduces', 'Conduces: despachar lo facturado', `
 `);
 
 seccion('facturacion', 'Facturación electrónica (e-CF)', `
-  <p class="intro-lead">La pantalla <strong>Facturación e-CF</strong> (${ruta('Ingresos', 'Facturación e-CF')}) emite los comprobantes fiscales electrónicos a través de mSeller, que los firma y los transmite a la DGII.</p>
+  <p class="intro-lead">La pantalla <strong>Facturación e-CF</strong> (${ruta('Ingresos', 'Facturacion e-CF')}) emite los comprobantes fiscales electrónicos a través de mSeller, que los firma y los transmite a la DGII.</p>
 
   <h3 class="subsection-title">Tipos de comprobante</h3>
   ${tabla(['Código', 'Comprobante', 'Uso'], [
@@ -427,7 +427,7 @@ seccion('cobros', 'Cobros y cuentas por cobrar', `
   <h3 class="subsection-title">Estados de cuenta y reportes</h3>
   <ul>
     <li>${b('Estado de Cuenta y Abonos')}: elija el cliente y verá, en orden de fecha, cada factura y cada abono con el balance acumulado; ${b('Imprimir Estado')}.</li>
-    <li>${ruta('Ingresos', 'Cuentas por Cobrar')}: total por cobrar y balance vencido, filtro por cliente e ${b('Imprimir Reporte')}.</li>
+    <li>${ruta('Ingresos', 'Cuenta por Cobrar')}: total por cobrar y balance vencido, filtro por cliente e ${b('Imprimir Reporte')}.</li>
     <li><strong>Antigüedad de Saldos</strong> (clientes y suplidores): cada uno clasificado como «Al día», «En observación» o «Acción inmediata», ${b('Exportar CSV')} y el estado de cuenta de cada uno.</li>
     <li>${ruta('Finanzas', 'E.C. Clientes (CxC)')} y ${ruta('Finanzas', 'E.C. Suplidores (CxP)')}: el auxiliar completo, imprimible entero, solo pendientes o solo vencidos.</li>
   </ul>
@@ -455,12 +455,12 @@ seccion('compras', 'Compras, gastos y cuentas por pagar', `
   <h3 class="subsection-title">Cheques en garantía</h3>
   <p>En una compra a crédito marque ${b('Dejar Cheque en Garantía')} y complete el banco, el ${b('Número de Cheque *')}, el monto (si no coincide con el total se avisa), la ${b('Fecha de Cobro *')} y el beneficiario (el suplidor). La deuda se reconoce el día de la factura (en el 606 va como forma de pago 04), pero el dinero no sale del banco hasta que el cheque se cobra.</p>
   <ul>
-    <li><strong>Cobrarlo:</strong> cuando el banco lo pagó, en ${ruta('Egresos', 'Cuentas por Pagar')} › ${b('Cheques en Garantía')} marque los cheques, indique la fecha de cobro (no puede ser futura) y pulse ${b('Confirmar cobro')}; o en la pestaña ${b('Cheques')} de Compras, ${b('Aplicar')}. Se rebaja la deuda y se registra la salida del banco.</li>
+    <li><strong>Cobrarlo:</strong> cuando el banco lo pagó, en ${ruta('Egresos', 'Pagos a Suplidores')} › ${b('Cheques en Garantía')} marque los cheques, indique la fecha de cobro (no puede ser futura) y pulse ${b('Confirmar cobro')}; o en la pestaña ${b('Cheques')} de Compras, ${b('Aplicar')}. Se rebaja la deuda y se registra la salida del banco.</li>
     <li>El panel de inicio avisa desde <strong>3 días antes</strong> de la fecha de cobro.</li>
     <li>Un cheque no se puede cobrar contra una factura que ya no debe su importe (por ejemplo, si se pagó por otro medio): el sistema lo rechaza y dice el motivo.</li>
   </ul>
 
-  <h3 class="subsection-title">Pagar a un suplidor — ${ruta('Egresos', 'Cuentas por Pagar')}</h3>
+  <h3 class="subsection-title">Pagar a un suplidor — ${ruta('Egresos', 'Pagos a Suplidores')}</h3>
   <p>Pantalla <strong>Módulo de Cuentas por Pagar</strong>, pestañas ${b('Cuentas por Pagar (Facturas)')}, ${b('Cheques en Garantía')} e ${b('Historial de Pagos')}. Las facturas van agrupadas por suplidor; en cada una, ${b('Registrar Pago')}:</p>
   <ul>
     <li><strong>Transferencia Bancaria</strong> o <strong>Cheque Bancario</strong>: hay que elegir la cuenta bancaria de la que sale (con cheque, también número y beneficiario). El pago se asienta contra ese banco y el retiro queda en su libro, pendiente de conciliar. Con cheque puede marcarse «Cheque en Garantía (Post-fechado)»: no se aplica a la deuda hasta su fecha de cobro.</li>
@@ -546,7 +546,7 @@ seccion('herramientas', 'Herramientas y soporte', `
 `);
 
 seccion('configuracion', 'Configuración y administración', `
-  <h3 class="subsection-title">Ajustes del Sistema — ${ruta('Sistema', 'Ajustes')}</h3>
+  <h3 class="subsection-title">Ajustes del Sistema — ${ruta('Sistema', 'Configuración')}</h3>
   <p>Pestañas: ${b('Mi Perfil')} (su foto y sus datos), ${b('Configuración Empresa')}, ${b('Tienda')}, ${b('Cuentas Puente')}, ${b('Plan & Suscripción')} y ${b('Tipos de Gastos')}. Todas menos Mi Perfil son de Administración y Sistemas.</p>
   <h4 class="mini">Configuración Empresa</h4>
   <ul>
@@ -590,7 +590,7 @@ seccion('tienda', 'La tienda en línea', `
   <h3 class="subsection-title">Mi cotización</h3>
   <p>Muestra cada producto con su precio de hoy (siempre el del catálogo, nunca uno guardado en el navegador), la cantidad y el importe; abajo «Subtotal», «ITBIS (18 %)» y «Total». Si un producto ya no se vende, se avisa con su nombre y no suma. ${b('Imprimir cotización')} abre la impresión del navegador (desde ahí también se guarda en PDF): el papel lleva el nombre, RNC, teléfono, correo y dirección de la empresa, la fecha y la nota «Esta cotización no es una factura ni un comprobante fiscal».</p>
 
-  <h3 class="subsection-title">Configurar la portada — ${ruta('Sistema', 'Ajustes')} › pestaña ${b('Tienda')}</h3>
+  <h3 class="subsection-title">Configurar la portada — ${ruta('Sistema', 'Configuración')} › pestaña ${b('Tienda')}</h3>
   <p>Solo administración y sistemas. La tarjeta «Portada de la tienda» tiene un enlace ${b('Ver la tienda')} y cuatro campos; <strong>un campo vacío usa lo de siempre</strong>:</p>
   ${tabla(['Campo', 'Tope', 'Si se deja vacío'], [
     ['Anuncio de arriba', '120 caracteres, una línea', 'No hay barra de anuncio'],
