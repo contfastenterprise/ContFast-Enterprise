@@ -2529,6 +2529,61 @@ Además, fuera de la tabla:
   llevaba a la vez `hidden` y `sr-only`, que no tiene sentido.
   **No se miró en el navegador**: el cambio son dos atributos y un nombre accesible, que el banco lee en
   el HTML dibujado.
+- **Lote 288: el ticket de Soporte sale por correo; la pantalla lo fingía.**
+  `support/page.tsx` **simulaba** el envío: esperaba 1,2 s con un `setTimeout`, decía "Ticket de
+  soporte creado" y no mandaba nada — quien pedía ayuda creía haberla pedido. Decisión del dueño
+  (2026-10-04): que salga por correo, **al correo de la empresa** (el campo de Configuración >
+  Empresa, `companies.email`, de la empresa de la sesión). Se empezó con una variable de entorno
+  (`SOPORTE_CORREO`) y el dueño la cambió el mismo día: el buzón es de cada empresa y lo cambia ella,
+  sin tocar Vercel. Ahora `POST /api/v1/support/tickets` lo manda **por el mismo transporte de
+  siempre** (`getTransporter`/`getFromEmail` de `utils/mailer.ts`, el de las facturas y los avisos;
+  no se montó otro) y lo deja en `system_email_logs` con la fila de `filaDeRegistro` (lote 157):
+  contexto nuevo `soporte`, el identificador del ticket como referencia, empresa, modo y usuario,
+  **salga o falle**.
+  · **Sin correo de empresa, o mal escrito: 409 "Tu empresa no tiene un correo configurado en
+    Configuración > Empresa."**, y no se intenta nada: ni correo ni registro. La dirección se valida
+    con **la misma regla** con la que Configuración decide si ese campo sirve para los avisos
+    (`correoDeLaEmpresaParaAvisos`, lote 201). Ojo: el correo de la empresa vive en `companies`, no
+    en `company_settings` (que no tiene columna `email`).
+  · **El envío va DENTRO de la petición, a propósito** — no en `after()` (lote 199) ni en la cola.
+    Los avisos van fuera porque el panel no debe esperar al SMTP; aquí la pantalla tiene que poder
+    decir "enviado" **solo si salió**, y responder antes de saberlo sería la misma mentira con otro
+    mecanismo. SMTP caído: 502 con el motivo (`motivoParaLaPantalla`) y la fila en `failed`.
+  · El correo lleva un identificador corto (`SOP-XXXXXX`, sin 0/O ni 1/I: se dicta por teléfono),
+    la empresa, el usuario (nombre y correo) y la fecha **en hora de RD**; el **Reply-To** es el correo
+    del usuario, así que la respuesta le llega a él. **Todo lo que viene de fuera va escapado** en el
+    HTML (`escaparHtml`, también el nombre de la empresa y del usuario) y el asunto es **una línea**:
+    un salto se rechaza, no se limpia (inyección de cabeceras). Topes: asunto 120, descripción 4.000,
+    los mismos en el `maxLength` de la pantalla. Reglas puras en `services/soporte/ticketDeSoporte.ts`;
+    el envío, con sus dependencias inyectadas, en `enviarTicketDeSoporte.ts` (no arrastra `@/db` al
+    cargarse: lección del 178).
+  · **Permiso**: ninguno de módulo, a propósito — pedir ayuda lo puede cualquier usuario autenticado,
+    también al que le falta el permiso con el que tiene el problema. Va en `ABIERTAS_A_PROPOSITO` de
+    `permisosRutas.vitest.ts` (como la campana del 160), no en `PENDIENTES`. Empresa, destino y
+    usuario salen de la **sesión**, nunca del cuerpo.
+  · **Límite**: preset nuevo `soporte`, 5 tickets cada 10 minutos **por usuario**. Y no se abre sin
+    Redis: `standard` falla abierto cuando Redis no está — o sea, **siempre** desde el 22/09 —, así
+    que con él el límite no habría limitado nada. `soporte` usa el respaldo en memoria que ya tenía
+    `auth` (`CON_RESPALDO_EN_MEMORIA`); en memoria es por instancia, que basta para no servir de cañón
+    de correo.
+  · **La pantalla**: la acción sale a `support/enviarTicket.ts` para ejecutarla en el banco. Lee con
+    `leerRespuesta` (lote 227), la guarda contra el doble clic es un `useRef` (227 y 236), el botón
+    dice "Enviando...", con éxito enseña el identificador (aviso y una línea bajo el formulario) y
+    **lo escrito solo se borra si salió**: un fallo dice el motivo y conserva asunto y descripción.
+    Las tres etiquetas quedan unidas a su campo (`htmlFor`/`id`), que React Doctor marcaba en las
+    líneas tocadas.
+  Banco `verificar_soporte_por_correo.ts`: ejecuta el envío con el transporte, el registro y los
+  datos de la sesión sustituidos (ningún correo de verdad, ninguna base), la validación, el limitador
+  sin Redis y la acción de la pantalla contra un `fetch` sustituido (doble clic, 409, 502 con HTML,
+  sin red). 37 comprobaciones y tres invariantes, contraprueba **37 FALLA** contra `696854e`,
+  dieciocho mutantes y dieciocho muertos. **Una comprobación sobrevivió a la primera contraprueba**:
+  "el tope es de cada usuario" era cierta de balde antes del lote (sin freno, todo pasa); se fundió
+  con la del sexto ticket rechazado. **Y un mutante colgó el banco** en vez de hacerlo fallar: el
+  intervalo del limitador mantiene vivo el proceso, así que una promesa sin resolver no deja salir
+  nunca (la lección del 236, con otra causa); el banco lleva ahora un vigía que da FALLA a los 60 s.
+  **No se probó contra un SMTP de verdad** ni se miró la pantalla en el navegador: el primer ticket
+  del dueño es la prueba. **No hay nada que configurar en Vercel**: basta con que la empresa tenga su
+  correo en Configuración > Empresa.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás

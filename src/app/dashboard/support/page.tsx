@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   HelpCircle, MessageSquare, Send, Check, LifeBuoy,
   ChevronRight, RefreshCw, FileText, Search
@@ -10,11 +10,17 @@ import { Toaster, toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { TOPES_DEL_TICKET } from '@/services/soporte/ticketDeSoporte';
+import { enviarTicket } from './enviarTicket';
+
 export default function SupportPage() {
   const [submitting, setSubmitting] = useState(false);
   const [subject, setSubject] = useState('');
   const [category, setCategory] = useState('billing');
   const [message, setMessage] = useState('');
+  const [ultimoTicket, setUltimoTicket] = useState<string | null>(null);
+  //  Lote 288: la guarda contra el doble clic es un ref, no `submitting` (ver enviarTicket.ts).
+  const enCurso = useRef(false);
   
   // Mock knowledge base articles
   const articles = [
@@ -26,21 +32,23 @@ export default function SupportPage() {
 
   const handleSendTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitting(true);
-
-    try {
-      // Simulate ticket creation endpoint interaction or local logic
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      toast.success('Ticket de soporte creado', {
-        description: 'Nos comunicaremos con usted a la brevedad.',
-      });
-      setSubject('');
-      setMessage('');
-    } catch (error) {
-      toast.error('Error al enviar ticket');
-    } finally {
-      setSubmitting(false);
-    }
+    //  Lote 288: antes esto esperaba 1,2 s y decia "creado" sin mandar nada.
+    await enviarTicket({ subject, category, message }, {
+      //  Envuelto: `window.fetch` llamado como metodo de otro objeto lanza "Illegal invocation".
+      pedir: (url, init) => fetch(url, init),
+      enCurso,
+      alCambiarEnvio: setSubmitting,
+      alEnviar: (id) => {
+        setUltimoTicket(id);
+        toast.success(`Ticket ${id} enviado`, {
+          description: 'Le responderemos a su correo a la brevedad.',
+        });
+        //  Solo aqui se borra lo escrito: con un fallo se conserva para reintentar.
+        setSubject('');
+        setMessage('');
+      },
+      alFallar: (motivo) => toast.error('El ticket no se envió', { description: motivo }),
+    });
   };
 
   return (
@@ -67,8 +75,9 @@ export default function SupportPage() {
           <form onSubmit={handleSendTicket} className="space-y-4 pt-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Categoría del Problema</label>
+                <label htmlFor="soporte-categoria" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Categoría del Problema</label>
                 <select
+                  id="soporte-categoria"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="block w-full h-8 px-3 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none"
@@ -81,10 +90,12 @@ export default function SupportPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Asunto</label>
+                <label htmlFor="soporte-asunto" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Asunto</label>
                 <input
+                  id="soporte-asunto"
                   type="text"
                   required
+                  maxLength={TOPES_DEL_TICKET.asunto}
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="Resumen del problema..."
@@ -94,10 +105,12 @@ export default function SupportPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Descripción del Problema</label>
+              <label htmlFor="soporte-descripcion" className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Descripción del Problema</label>
               <textarea
+                id="soporte-descripcion"
                 required
                 rows={5}
+                maxLength={TOPES_DEL_TICKET.descripcion}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Detalle los pasos que causaron el inconveniente..."
@@ -105,14 +118,21 @@ export default function SupportPage() {
               />
             </div>
 
-            <div className="flex justify-end pt-2">
+            <div className="flex items-center justify-end gap-3 pt-2">
+              {ultimoTicket && (
+                <p role="status" className="text-xs text-slate-500 flex items-center gap-1">
+                  <Check className="h-3.5 w-3.5 text-emerald-600" />
+                  Último ticket enviado: <span className="font-semibold text-slate-800">{ultimoTicket}</span>
+                </p>
+              )}
               <Button
                 variant="primary"
                 type="submit"
                 disabled={submitting}
+                aria-busy={submitting}
               >
                 {submitting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Enviar Mensaje
+                {submitting ? 'Enviando...' : 'Enviar Mensaje'}
               </Button>
             </div>
           </form>

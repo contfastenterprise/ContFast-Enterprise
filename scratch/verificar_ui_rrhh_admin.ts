@@ -321,17 +321,23 @@ async function main() {
   });
 
   console.log('\n8) Lo que no cambia: textos, placeholder, title, avisos y API (invariante)\n');
+  //  Lote 288: se comparan los DOS commits del lote 274 y no la carpeta, como en los lotes 227,
+  //  230 y 237. Lo que vigila es que ESTE lote no cambiara un texto; un lote posterior que cambia
+  //  textos a proposito (el 288 quito la simulacion de Soporte) no es una regresion del 274.
+  const DESPUES = '0061e43' /* lote 274, commit fijo */;
   const cambiados: string[] = [];
   for (const f of FICHEROS) {
     let antes: string;
+    let ahora: string;
     try { antes = enCommit(BASE, f); } catch { cambiados.push(`${f}: no esta en ${BASE}`); continue; }
-    const a = textosDe(antes, false), d = textosDe(fuentes.get(f) ?? '', true);
+    try { ahora = enCommit(DESPUES, f); } catch { cambiados.push(`${f}: no esta en ${DESPUES}`); continue; }
+    const a = textosDe(antes, false), d = textosDe(ahora, true);
     const { faltan, sobran } = diferencia(a, d);
     //  Los title que pinta un IconButton a partir de su aria-label son añadidos, como el aria-label.
-    const sobranDeVerdad = sobran.filter((x) => !(x.startsWith('title:') && botones(fuentes.get(f) ?? '').some((b) => b.tag === 'IconButton' && !/\btitle=/.test(b.abre) && b.abre.includes(`aria-label="${x.slice(6)}"`))));
+    const sobranDeVerdad = sobran.filter((x) => !(x.startsWith('title:') && botones(ahora).some((b) => b.tag === 'IconButton' && !/\btitle=/.test(b.abre) && b.abre.includes(`aria-label="${x.slice(6)}"`))));
     if (faltan.length || sobranDeVerdad.length) cambiados.push(`${f.replace(/^src\//, '')}: faltan ${JSON.stringify(faltan)} sobran ${JSON.stringify(sobranDeVerdad)}`);
   }
-  invariante(`los ${FICHEROS.length} ficheros dicen lo mismo que en ${BASE}`, cambiados.length === 0, cambiados.slice(0, 4).join(' | '));
+  invariante(`los ${FICHEROS.length} ficheros dicen en ${DESPUES} lo mismo que en ${BASE}`, cambiados.length === 0, cambiados.slice(0, 4).join(' | '));
 
   console.log(`\n${fallos === 0 && rotas === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS, ${rotas} invariante(s) rota(s)`}\n`);
   process.exit(rotas > 0 ? 3 : fallos === 0 ? 0 : 1);
