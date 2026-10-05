@@ -69,6 +69,18 @@ El ciclo completo de un lote, sin saltarse pasos:
 
 7. **Commit.** Ver sección 5.
 
+**El manual de usuario va en el mismo lote** (regla del dueño, 2026-10-05: *"cada vez que se
+haga una actualización al sistema que requiera actualizar el manual, hazlo"*). Todo lote que
+cambie algo que el manual describe, o que debería describir —una pantalla, un rótulo, un botón,
+un mensaje, una regla visible, un bloqueo o un estado—, actualiza en ese mismo lote
+`scripts/generate-manual.js` y `manual_usuario_contfast.pdf`. Las reglas del manual son las de
+siempre: escrito para el usuario final (sin nombres de ficheros ni de funciones), con los rótulos
+copiados del código tal cual, sin las opciones del rol Sistemas, con la versión subida, y
+**mirando el PDF** (rasterizado con PyMuPDF) antes de entregar: el índice, las páginas nuevas y
+las cambiadas. Si un lote no lo requiere (bancos, un refactor sin efecto visible, datos), su
+entrada lo dice. **Por qué**: el manual se quedaba atrás y hubo que corregirlo después, en lotes
+propios (298, 302 y 305).
+
 ## 3. Cómo se escribe un banco que sirve
 
 Las trampas que han salido, todas reales, todas costaron un lote:
@@ -3603,6 +3615,34 @@ Además, fuera de la tabla:
   (`gancho_y_compras`, `p3_48`, `padron_de_rnc`) y bancos de integración que no están en la lista de
   deuda y necesitan base; 20 de integración que leen CxC, CxP o facturas, en verde en la desechable.
   **Para la carpeta del dueño**: `verificar_antiguedad_de_saldos_db.ts` a `deuda_bancos.txt`.
+- **Lote 305: el manual de usuario con la Antigüedad de Saldos del lote 304, versión 3.4.** Pedido del
+  dueño (2026-10-05). Solo `scripts/generate-manual.js`, el PDF y este documento: **31 páginas** (eran 30),
+  16 secciones. Cada dato se comprobó en el código (`antiguedad-saldos/page.tsx`, `components/cartera/*`,
+  `services/cartera/reglasDeCartera.ts`, `riesgo.ts`, `vencimiento.ts`, `tipos.ts`, el repositorio de la
+  cartera y la creación de la CxC en `invoiceDbBooker`), no en este documento.
+  · **Sección 9 (Cobros y cuentas por cobrar)**, donde ya vivía la línea de Antigüedad: la línea pasa a
+    remitir a una subsección nueva, «Antigüedad de Saldos», que dice dónde está y quién ve cada pestaña
+    («Clientes (por cobrar)» con permiso de cobros, «Suplidores (por pagar)» con el de proveedores); qué es
+    deuda (aceptadas y enviadas; fuera rechazadas, dadas de baja y borradores; el saldo es el neto tras
+    retenciones menos cobros y notas de crédito; la compra eliminada no cuenta; los cheques en garantía no
+    rebajan la CxP hasta cobrarse); el vencimiento pactado, el día de RD y que lo que vence hoy no está
+    vencido; las tarjetas, el bloque «Saldo por antigüedad», la dona y la leyenda, el «Balance Operativo»;
+    una tabla con los cuatro niveles copiados de `CONFIG_RIESGO` (Bajo Riesgo / Riesgo Medio / Alto Riesgo /
+    Crítico, con su criterio, días y color) y el **porqué de las dos sumas** (la dona clasifica clientes por
+    su factura más atrasada; «Cartera en Riesgo» y el «Balance Operativo» suman factura a factura); la tabla
+    con la línea «Vencido», ámbar de 1 a 15 y rojo desde 16, el estado de cuenta y el CSV con los tramos.
+  · **Lo que quedó falso**: la línea vieja decía que cada cliente salía como «Al día», «En observación» o
+    «Acción inmediata»; son los nombres de las tres cifras del «Balance Operativo», no del nivel del cliente.
+  · **Nota nueva** en la misma sección: una factura rechazada deja de contar como deuda en todas las
+    pantallas de cobros y vuelve sola si se acepta; para retirarla del todo, «Dar de baja» (lote 140).
+  · **Regla del dueño, escrita en la sección 2**: todo lote que cambie lo que el manual describe actualiza
+    el manual en el mismo lote.
+  **Se miró** con PyMuPDF: índice (pág. 2) y las páginas 16 y 17. La primera versión dejó una página 18 con
+  dos líneas sueltas (el CSV); se recortó la redacción —el CSV pasa a la frase de los botones— y la sección
+  volvió a dos páginas.
+  **Lo que no se pudo comprobar en el código**: que el total de la CxC sea exactamente «total menos
+  retenciones» en todas las facturas antiguas (la CxC se crea con `totalNet`, que es total − retenciones, y
+  el manual lo dice así); y la pantalla no se abrió en el navegador (exige la cuenta del dueño).
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -4792,5 +4832,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 303 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 305 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
