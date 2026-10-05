@@ -64,8 +64,10 @@ async function main() {
     && m.filaDeRegistro({ ...base, userId: '' }, { status: 'sent' })?.userId === null);
   ok('un error enorme se recorta, no revienta la fila',
     !!m && m.filaDeRegistro(base, { status: 'failed', errorMessage: 'x'.repeat(5000) })?.errorMessage?.length === m.MAX_ERROR);
-  ok('los contextos son los tres del sistema',
-    !!m && JSON.stringify(m.CONTEXTOS_CORREO) === JSON.stringify({ factura: 'factura', ordenSuplidor: 'orden_suplidor', sistema: 'sistema' }));
+  //  Lote 288: se añade `soporte` (el ticket de la pantalla de Soporte). Los tres de antes
+  //  siguen con su mismo valor: es lo que ya esta escrito en la columna `context`.
+  ok('los contextos son los del sistema (los tres de siempre, mas soporte desde el lote 288)',
+    !!m && JSON.stringify(m.CONTEXTOS_CORREO) === JSON.stringify({ factura: 'factura', ordenSuplidor: 'orden_suplidor', sistema: 'sistema', soporte: 'soporte' }));
 
   console.log('\n2) Lo que lee quien mira la factura\n');
   ok('enviado: lo dice con su fecha, en el formato de la pantalla',

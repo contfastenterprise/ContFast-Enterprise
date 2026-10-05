@@ -10,10 +10,17 @@ export const RATE_LIMIT_PRESETS: Record<string, RateLimitConfig> = {
   standard: { limit: 500, windowSeconds: 60 }, // 500 req/min for general API (increased to avoid dev 429s)
   auth: { limit: 5, windowSeconds: 60 },       // 5 req/min for login, forgot-password
   dgii: { limit: 20, windowSeconds: 60 },      // 20 req/min for DGII submissions
+  // Lote 288: tickets de soporte por usuario. Cada uno es un correo de verdad: sin tope,
+  // la ruta serviria de cañon de correo contra el buzon de soporte.
+  soporte: { limit: 5, windowSeconds: 600 },
 };
 
+// Los presets que NO se abren cuando Redis no esta (hoy, siempre: se retiro el 22/09).
+// Para el resto fallar abierto es lo prudente; para estos, abrir es quitar el freno.
+const CON_RESPALDO_EN_MEMORIA: ReadonlySet<string> = new Set(['auth', 'soporte']);
+
 // ---------------------------------------------------------------------------
-// In-memory fallback for the 'auth' preset only.
+// In-memory fallback for the 'auth' and 'soporte' presets (CON_RESPALDO_EN_MEMORIA).
 // Used when Redis is unavailable to prevent fail-open on authentication
 // endpoints (login, forgot-password, register). General API and DGII presets
 // keep fail-open to avoid degrading service when Redis is temporarily down.
@@ -60,7 +67,7 @@ if (typeof setInterval !== 'undefined') {
  * Returns true if the request is ALLOWED, and false if it is RATE LIMITED.
  *
  * Behavior when Redis is unavailable:
- *   - 'auth' preset  → uses in-memory fallback (fail-closed: still enforces limit)
+ *   - 'auth' / 'soporte' → in-memory fallback (fail-closed: still enforces limit)
  *   - other presets  → fail-open (allow) to avoid service degradation
  */
 export async function checkRateLimit(
@@ -73,8 +80,8 @@ export async function checkRateLimit(
   if (redisOffline) {
     // Auth endpoints are protected by an in-memory fallback to prevent brute-force
     // attacks even when Redis is down. Other presets degrade gracefully (fail-open).
-    if (preset === 'auth') {
-      return checkMemoryRateLimit(`mem:${key}`, preset);
+    if (CON_RESPALDO_EN_MEMORIA.has(preset)) {
+      return checkMemoryRateLimit(`mem:${preset}:${key}`, preset);
     }
     return true;
   }
@@ -145,10 +152,10 @@ export async function checkRateLimit(
 
     return true;
   } catch (error) {
-    // Redis query timed out or threw — fall back to memory for 'auth', fail-open for others
+    // Redis query timed out or threw — fall back to memory for 'auth'/'soporte', fail-open for others
     console.error(`[Rate Limit] Redis error for key ${key} (preset: ${preset}):`, error);
-    if (preset === 'auth') {
-      return checkMemoryRateLimit(`mem:${key}`, preset);
+    if (CON_RESPALDO_EN_MEMORIA.has(preset)) {
+      return checkMemoryRateLimit(`mem:${preset}:${key}`, preset);
     }
     return true;
   }

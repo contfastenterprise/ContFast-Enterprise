@@ -121,6 +121,9 @@ const ABIERTAS_A_PROPOSITO: Record<string, string> = {
   // dueno, 2026-09-18): son los avisos de SU empresa, como el panel. El
   // enlace de cada aviso lleva a su pantalla, y esa si pide permiso.
   'v1/notifications/route.ts': 'avisos de la propia empresa, para todos sus usuarios',
+  // Lote 288. Pedir ayuda lo puede cualquier usuario autenticado, tambien al que le
+  // falta el permiso con el que tiene el problema. Empresa y usuario salen de la sesion.
+  'v1/support/tickets/route.ts': 'ticket de soporte por correo, para cualquier usuario de la empresa',
 };
 
 function rutasApi(dir: string, acc: string[] = []): string[] {
