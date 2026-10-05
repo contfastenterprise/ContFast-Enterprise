@@ -47,8 +47,8 @@ const FECHA = 'Octubre 2026';
 const VERSION = '3.1';
 
 // El logo del sistema, el mismo de la pantalla de acceso (`public/Logo.svg`), incrustado en el
-// HTML: Chromium no tiene que salir a buscarlo. Va sobre una placa blanca porque la mitad del
-// logo es azul oscuro (#202739, #242476) y desaparecería sobre el fondo azul marino de la portada.
+// HTML: Chromium no tiene que salir a buscarlo. La portada es blanca, asi que va directo:
+// la mitad del logo es azul oscuro (#202739, #242476) y sobre fondo oscuro desapareceria.
 const LOGO_SVG = `data:image/svg+xml;base64,${fs.readFileSync(path.join(RAIZ, 'public', 'Logo.svg')).toString('base64')}`;
 
 // Por si algun dia vuelven las imagenes: una que no exista no tumba el manual.
@@ -82,20 +82,22 @@ const CSS = `
   }
   .cover-page {
     height: 100vh; display: flex; flex-direction: column; justify-content: space-between;
-    padding: 60px; background: linear-gradient(135deg, var(--azul-osc) 0%, var(--azul) 100%);
-    color: #fff; page-break-after: always;
+    padding: 60px; background: #fff;
+    color: var(--azul); page-break-after: always;
   }
-  .cover-header { font-size: 14px; font-weight: 700; letter-spacing: 3px; color: var(--oro); text-transform: uppercase; }
-  .cover-logo { align-self: flex-start; background: #fff; border-radius: 14px; padding: 18px 26px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
-  .cover-logo img { display: block; width: 260px; height: auto; }
+  .cover-header { font-size: 14px; font-weight: 700; letter-spacing: 3px; color: var(--oro-texto); text-transform: uppercase; }
+  /* Portada blanca (pedido del dueño): el logo va directo, sin placa. */
+  .cover-logo { align-self: flex-start; }
+  .cover-logo img { display: block; width: 300px; height: auto; }
   .cover-middle { margin-top: 60px; }
-  .cover-middle h1 { font-size: 40px; font-weight: 800; line-height: 1.15; margin: 0 0 16px; letter-spacing: -0.5px; }
-  .cover-middle h2 { font-size: 17px; font-weight: 400; margin: 0 0 30px; color: #cbd5e1; }
+  .cover-middle h1 { font-size: 40px; font-weight: 800; line-height: 1.15; margin: 0 0 16px; letter-spacing: -0.5px; color: var(--azul); }
+  .cover-middle h2 { font-size: 17px; font-weight: 400; margin: 0 0 30px; color: #475569; }
   .cover-divider { width: 80px; height: 5px; background: var(--oro); border-radius: 2px; }
-  .cover-meta { margin-top: 28px; font-size: 13px; color: #e2e8f0; }
-  .cover-meta strong { color: var(--oro); }
-  .cover-footer { font-size: 12px; color: #cbd5e1; line-height: 1.8; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 20px; display: flex; justify-content: space-between; }
+  .cover-meta { margin-top: 28px; font-size: 13px; color: #475569; }
+  /* El dorado de la marca sobre blanco da 2,4:1; para texto va el dorado de texto (lote 275). */
+  .cover-meta strong { color: var(--oro-texto); }
+  .cover-footer { font-size: 12px; color: #475569; line-height: 1.8; border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; justify-content: space-between; }
+  .cover-footer strong { color: var(--azul); }
 
   .page { padding: 0; page-break-after: always; }
   .page:last-child { page-break-after: avoid; }
