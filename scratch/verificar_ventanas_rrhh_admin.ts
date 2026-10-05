@@ -37,6 +37,7 @@ import { enCommit, huella, diferencia } from './huellaDePantalla';
 
 const raiz = resolve(__dirname, '..');
 const BASE = 'ab9e5fd' /* lote 276: commit fijo, la rama se borro al fusionar */;
+const DESPUES = '85d5dc1' /* lote 280: el commit de este banco (lo usa la invariante 7, desde el lote 290) */;
 let fallos = 0;
 let rotas = 0;
 const ok = (t: string, c: boolean, d = '') => { console.log(`${c ? '  OK  ' : ' FALLA'}  ${t}${d ? ` -- ${d}` : ''}`); if (!c) fallos++; };
@@ -198,10 +199,17 @@ async function main() {
   for (const f of FICHEROS) {
     let antes: string;
     try { antes = enCommit(BASE, f); } catch { cambiados.push(`${f}: no esta en ${BASE}`); continue; }
-    const { faltan, sobran } = diferencia(textos(antes), textos(fuentes.get(f) ?? ''));
+    //  Lote 290: comparaba contra la CARPETA, y el 290 toca a proposito la pantalla
+    //  de nomina (un `useState<string | null>` que la huella lee como texto). Como
+    //  en los lotes 227, 230 y 237, la equivalencia de ESTE lote se mide entre sus
+    //  dos commits (antes `ab9e5fd`, despues `85d5dc1`, el del lote 280): asi vale
+    //  para siempre y no se rompe con el siguiente cambio de esas pantallas.
+    let despues: string;
+    try { despues = enCommit(DESPUES, f); } catch { cambiados.push(`${f}: no esta en ${DESPUES}`); continue; }
+    const { faltan, sobran } = diferencia(textos(antes), textos(despues));
     if (faltan.length || sobran.length) cambiados.push(`${f.replace(/^src\//, '')}: faltan ${JSON.stringify(faltan)} sobran ${JSON.stringify(sobran)}`);
   }
-  invariante(`los ${FICHEROS.length} ficheros dicen lo mismo que en ${BASE}`, cambiados.length === 0, cambiados.join(' | '));
+  invariante(`los ${FICHEROS.length} ficheros dicen lo mismo en ${DESPUES} que en ${BASE}`, cambiados.length === 0, cambiados.join(' | '));
 
   console.log(`\n${fallos === 0 && rotas === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS, ${rotas} invariante(s) rota(s)`}\n`);
   process.exit(rotas > 0 ? 3 : fallos === 0 ? 0 : 1);

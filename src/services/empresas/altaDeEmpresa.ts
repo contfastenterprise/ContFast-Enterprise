@@ -31,6 +31,7 @@ import { companies, companySettings, roles, payrollConfigs, permissions, type Db
 import { seedRolePermissionsForCompany } from '@/middleware/permissions';
 import { DEFAULT_COMPANY_ROLES } from '@/utils/defaultRoles';
 import { AccountingRepository } from '@/repositories/accountingRepository';
+import { sembrarSalarioMinimo } from '@/services/nomina/salarioMinimoRepositorio';
 
 export interface EmpresaNueva {
   name: string;
@@ -113,6 +114,10 @@ export async function crearEmpresaConSuSiembra(tx: DbTransaction, datos: Empresa
     overtimeFestivaRate: '2.00',
     overtimeDobleRate: '2.00',
   });
+  // Lote 290: el salario minimo de los topes de la TSS, 10.000 (decision del
+  // contador). Va aparte porque su columna (migracion 0020) no esta en el
+  // esquema de Drizzle; sin la migracion no hace nada y el calculo usa 10.000.
+  await sembrarSalarioMinimo(empresa.id, tx);
 
   // 5. Catalogo de cuentas, cuentas puente, tipos de gasto y periodos
   await AccountingRepository.seedDefaultChartOfAccounts(empresa.id, tx);

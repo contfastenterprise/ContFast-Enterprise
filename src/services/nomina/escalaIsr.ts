@@ -8,8 +8,8 @@
  *  - la escala vive aqui (de aqui la toman `run-migration.ts`, la semilla de la
  *    base desechable y el guion de datos que la carga en las bases existentes);
  *  - el calculo de la nomina NO lleva ningun tramo escrito: lee la tabla, y si
- *    no hay escala del AÑO de la nomina se niega (`motivoSinEscala`) en vez de
- *    calcular 0 ("nada estatico", lote 171).
+ *    no hay NINGUNA escala del año de la nomina o anterior se niega
+ *    (`motivoSinEscala`) en vez de calcular 0 ("nada estatico", lote 171).
  *
  * `isr_brackets` es GLOBAL (sin `company_id`): la escala es de la ley, la misma
  * para las seis empresas. Por eso no se siembra al crear una empresa.
@@ -29,11 +29,14 @@
  *   | 867.123,01 en adelante        | 79.776,00 + 25 % del excedente de 867.123,01      |
  *
  * VIGENCIA: año fiscal 2026. La misma DGII avisa de que las modificaciones de
- * la Ley 30-26 (art. 10) a los tramos rigen a partir del año fiscal 2027. Por eso
- * el calculo busca la escala del AÑO EXACTO de la nomina y no "la ultima que
- * haya": una nomina de 2027 con la escala de 2026 retendria con tramos
- * derogados sin avisar. La de 2027 se añade aqui, con su fuente, cuando la DGII
- * la publique.
+ * la Ley 30-26 (art. 10) a los tramos rigen a partir del año fiscal 2027. La
+ * primera version de este lote exigia por eso la escala del AÑO EXACTO; el
+ * contador decidio otra cosa (via el dueño, 2026-10-04): "por ahora seguiremos
+ * con la escala de 2026". Regla (`escalaParaLaNomina`): la del año de la nomina
+ * si esta cargada; si no, la MAS RECIENTE ANTERIOR, y el calculo y la pantalla
+ * AVISAN de que año se uso (`avisoDeEscala`), sin negarse. Solo se niega si no
+ * hay ninguna del año o anterior. La de 2027 se añade aqui, con su fuente,
+ * cuando la DGII la publique.
  *
  * El `desde` de cada tramo es el "excedente de" que publica la DGII (416.220,01,
  * no 416.220,00): el calculo resta `desde`, asi que se transcribe tal cual.
@@ -85,10 +88,30 @@ export function anioDeLaNomina(periodEnd: string): number {
   return anio;
 }
 
-/** El mensaje cuando la tabla no tiene la escala del año de la nomina. */
+/** El mensaje cuando la tabla no tiene ninguna escala del año de la nomina ni anterior. */
 export function motivoSinEscala(anio: number): string {
-  return `Falta la escala del ISR de ${anio}: la tabla de tramos del ISR de asalariados no tiene ese año, `
+  return `Falta la escala del ISR de ${anio}: la tabla de tramos del ISR de asalariados no tiene ese año ni ninguno anterior, `
     + 'y calcular la nómina sin ella retendría un ISR de 0. Hay que cargar la escala vigente de la DGII antes de calcular.';
+}
+
+/**
+ * Que escala usa una nomina, de las cargadas en la tabla: la de su año si esta;
+ * si no, la mas reciente ANTERIOR (decision del contador, 2026-10-04). Una
+ * posterior nunca. `null` si no hay ninguna del año o anterior (se niega).
+ */
+export function escalaParaLaNomina(aniosCargados: readonly number[], anioNomina: number): number | null {
+  let elegido: number | null = null;
+  for (const a of aniosCargados) {
+    if (a <= anioNomina && (elegido === null || a > elegido)) elegido = a;
+  }
+  return elegido;
+}
+
+/** El aviso cuando la escala usada no es la del año de la nomina; `null` si lo es. */
+export function avisoDeEscala(anioUsado: number, anioNomina: number): string | null {
+  if (anioUsado === anioNomina) return null;
+  return `ISR calculado con la escala de ${anioUsado}: la de ${anioNomina} no está cargada en el sistema. `
+    + `Revísela cuando la DGII publique la de ${anioNomina}.`;
 }
 
 /** Una fila de `isr_brackets` tal como llega de la base (los `decimal` como texto). */

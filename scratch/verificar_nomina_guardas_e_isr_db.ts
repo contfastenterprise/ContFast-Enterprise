@@ -9,8 +9,10 @@
  *  · recalcular una nomina APROBADA da 409 y no cambia ni el estado ni el detalle;
  *  · aprobar un borrador sin detalle, o una calculada sin lineas, da 409;
  *  · con la tabla de tramos vacia, calcular se niega (409, "Falta la escala del
- *    ISR de 2026") y no deja nada a medias; y una nomina de 2027 no se calcula
- *    con la escala de 2026.
+ *    ISR de 2026") y no deja nada a medias; y una nomina de 2025 (sin escala de
+ *    su año ni anterior) tampoco. (Segunda parte del lote: una de 2027 SI se
+ *    calcula con la de 2026, avisando -- decision del contador; lo comprueba
+ *    `verificar_nomina_decisiones_contador_db.ts`.)
  */
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'banco-lote-290-jwt';
 process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'banco-lote-290-refresh';
@@ -148,7 +150,7 @@ async function main() {
   const E4 = [
     'tabla vacia: crear una nomina se niega (409, "Falta la escala del ISR de 2026") y no queda ninguna nomina a medias',
     'tabla vacia: recalcular por la ruta da 409 y el detalle de la nomina no se toca',
-    'una nomina de 2027 no se calcula con la escala de 2026 (409, "de 2027")',
+    'una nomina de 2025 (sin escala de su año ni anterior) se niega (409, "de 2025")',
   ];
   const guardadas = await todas(sql`SELECT year, from_amount, to_amount, fixed_amount, percentage FROM isr_brackets`);
   await seccion(E4, async () => {
@@ -170,15 +172,15 @@ async function main() {
     ok(E4[1], r.estado === 409 && /Falta la escala del ISR de 2026/.test(r.cuerpo.error?.message ?? '') && JSON.stringify(await detalle(id)) === det0 && det0 !== '[]',
       `${r.estado} ${r.cuerpo.error?.message ?? ''}`);
 
-    // Se repone la escala de 2026 y se pide 2027.
+    // Se repone la escala de 2026 y se pide 2025: no hay escala de ese año ni anterior.
     for (const f of guardadas) {
       await db.execute(sql`INSERT INTO isr_brackets (year, from_amount, to_amount, fixed_amount, percentage) VALUES (${f.year}, ${f.from_amount}, ${f.to_amount}, ${f.fixed_amount}, ${f.percentage})`);
     }
     let err27: { status?: number; message?: string } = {};
     try {
-      await HRRepository.createPayroll(A, 'PRODUCCION', { periodStart: '2027-01-01', periodEnd: '2027-01-31', paymentDate: '2027-01-31', frequency: 'mensual', createdBy: USER });
+      await HRRepository.createPayroll(A, 'PRODUCCION', { periodStart: '2025-12-01', periodEnd: '2025-12-31', paymentDate: '2025-12-31', frequency: 'mensual', createdBy: USER });
     } catch (e) { err27 = e as { status?: number; message?: string }; }
-    ok(E4[2], guardadas.length > 0 && err27.status === 409 && /^Falta la escala del ISR de 2027/.test(err27.message ?? ''), `${err27.status} ${err27.message ?? '(no lanzo)'}`);
+    ok(E4[2], guardadas.length > 0 && err27.status === 409 && /^Falta la escala del ISR de 2025/.test(err27.message ?? ''), `${err27.status} ${err27.message ?? '(no lanzo)'}`);
   });
 
   return fin();

@@ -40,7 +40,10 @@ ok("0 ocurrencias de ': any' (15 antes, incluyendo las 2 de la misma linea en lo
   `quedan ${(hrCrudo.match(/: any/g) || []).length}`);
 
 ok("importa DbTransaction de '@/db' (linea separada)",
-  /import type \{ DbTransaction \} from '@\/db';/.test(hr));
+  //  Lote 290: el import gano `DbOTx` (la lectura de los años de la escala del
+  //  ISR) y esta comprobacion copiaba la linea entera (la trampa de la seccion 7).
+  //  Lo que vigila es que el tipo venga de '@/db' como `import type`.
+  /import type \{[^}]*\bDbTransaction\b[^}]*\} from '@\/db';/.test(hr));
 
 ok('recalculatePayrollTx: tx tipado DbTransaction (sin default -- los dos callers pasan una tx real)',
   /private static async recalculatePayrollTx\(tx: DbTransaction, payrollId: string, companyId: string, modo: Modo\) \{/.test(hr));

@@ -12,6 +12,7 @@ import { db } from '../../src/db';
 import { payrollConfigs, isrBrackets } from '../../src/db/schema';
 import { ESCALAS_ISR_ASALARIADOS, filasDeLaEscala } from '../../src/services/nomina/escalaIsr';
 import { AccountingRepository } from '../../src/repositories/accountingRepository';
+import { sembrarSalarioMinimo } from '../../src/services/nomina/salarioMinimoRepositorio';
 import { exigirBaseDesechable } from './candado';
 
 const EMPRESAS = [
@@ -40,6 +41,8 @@ async function main() {
         overtimeFestivaRate: '2.00',
         overtimeDobleRate: '2.00',
       });
+      // Lote 290: el salario minimo de los topes de la TSS, como `altaDeEmpresa`.
+      await sembrarSalarioMinimo(empresa, tx);
       await AccountingRepository.seedDefaultChartOfAccounts(empresa, tx);
       await AccountingRepository.seedDefaultExpenseTypes(empresa, tx);
       // Desde enero de 2026 y no desde hoy: los bancos fechan sus movimientos

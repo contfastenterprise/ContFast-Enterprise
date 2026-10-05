@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { HRRepository } from '@/repositories/hrRepository';
 import { z } from 'zod';
+import { leerSalarioMinimo, guardarSalarioMinimo } from '@/services/nomina/salarioMinimoRepositorio';
+import { MOTIVO_SIN_COLUMNA_SALARIO_MINIMO } from '@/services/nomina/topesTss';
 
 const configSchema = z.object({
   afpEmployee: z.number().nonnegative(),
@@ -14,6 +16,9 @@ const configSchema = z.object({
   overtimeNocturnaRate: z.number().nonnegative(),
   overtimeFestivaRate: z.number().nonnegative(),
   overtimeDobleRate: z.number().nonnegative(),
+  // Lote 290: el salario minimo de los topes de la TSS (columna fuera de Drizzle,
+  // migracion 0020). Opcional: quien no lo manda no lo cambia.
+  salarioMinimoTss: z.number().positive('El salario mínimo de los topes tiene que ser mayor que cero').max(10_000_000).optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -25,12 +30,14 @@ export async function GET(req: NextRequest) {
 
     const config = await HRRepository.getPayrollConfig(session.companyId);
     const brackets = await HRRepository.getIsrBrackets();
+    const salarioMinimoTss = await leerSalarioMinimo(session.companyId);
 
     return NextResponse.json({
       success: true,
       data: {
         config,
         brackets,
+        salarioMinimoTss,
       },
     });
   } catch (error: unknown) {
@@ -51,14 +58,27 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ success: false, error: { message: parsed.error.issues[0].message } }, { status: 400 });
     }
 
+    // Lote 290: el salario minimo va aparte (su columna no esta en Drizzle). Sin la
+    // migracion 0020 solo se admite el de por defecto, y se dice ANTES de escribir nada.
+    const { salarioMinimoTss, ...tasas } = parsed.data;
+    if (salarioMinimoTss !== undefined) {
+      const actual = await leerSalarioMinimo(session.companyId);
+      if (!actual.hayColumna && salarioMinimoTss !== actual.valor) {
+        return NextResponse.json({ success: false, error: { code: 'NOMINA_NO_PERMITIDA', message: MOTIVO_SIN_COLUMNA_SALARIO_MINIMO } }, { status: 409 });
+      }
+    }
+
     const oldConfig = await HRRepository.getPayrollConfig(session.companyId);
     
     // Convert to strings for database decimal columns
     const stringifiedData = Object.fromEntries(
-      Object.entries(parsed.data).map(([key, val]) => [key, val.toString()])
+      Object.entries(tasas).map(([key, val]) => [key, val.toString()])
     );
 
     const config = await HRRepository.updatePayrollConfig(session.companyId, stringifiedData);
+    if (salarioMinimoTss !== undefined && (await leerSalarioMinimo(session.companyId)).hayColumna) {
+      await guardarSalarioMinimo(session.companyId, salarioMinimoTss);
+    }
 
     await HRRepository.logAudit(
       session.companyId, session.modo,

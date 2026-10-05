@@ -32,6 +32,8 @@ export default function PayrollPage() {
   const [selectedPayroll, setSelectedPayroll] = useState<Payroll | null>(null);
   const [payrollDetailsList, setPayrollDetailsList] = useState<any[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  // Lote 290: aviso cuando el ISR se calcula con la escala de otro año.
+  const [avisoIsr, setAvisoIsr] = useState<string | null>(null);
 
   // Modals state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -70,12 +72,17 @@ export default function PayrollPage() {
 
   const handleSelectPayroll = async (payroll: Payroll) => {
     setSelectedPayroll(payroll);
+    setAvisoIsr(null);
     setLoadingDetails(true);
     try {
       const res = await fetch(`/api/v1/hr/payroll?id=${payroll.id}`);
       const data = await res.json();
       if (data.success) {
         setPayrollDetailsList(data.data.details);
+        // Lote 290: el estado de la base, no el de la lista (tras crear, la lista
+        // traia 'draft' y no se ofrecia aprobar).
+        if (data.data.payroll) setSelectedPayroll(data.data.payroll);
+        setAvisoIsr(data.data.avisoIsr ?? null);
       }
     } catch (e) {
       toast.error('Error al cargar detalles de la nómina');
@@ -96,6 +103,7 @@ export default function PayrollPage() {
       const data = await res.json();
       if (data.success) {
         toast.success('Nómina creada y calculada correctamente.');
+        if (data.aviso) toast.warning(data.aviso, { duration: 10000 });
         setShowCreateModal(false);
         fetchPayrolls();
         // Open details for the newly created payroll
@@ -121,6 +129,7 @@ export default function PayrollPage() {
       const data = await res.json();
       if (data.success) {
         toast.success('Nómina recalculada exitosamente', { id: toastId });
+        if (data.aviso) toast.warning(data.aviso, { duration: 10000 });
         if (selectedPayroll && selectedPayroll.id === id) {
           handleSelectPayroll(selectedPayroll);
         }
@@ -398,6 +407,12 @@ export default function PayrollPage() {
                 )}
               </div>
             </div>
+
+            {avisoIsr && (
+              <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+                {avisoIsr}
+              </p>
+            )}
 
             {loadingDetails ? (
               <div className="flex h-[20vh] items-center justify-center">

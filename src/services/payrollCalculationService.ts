@@ -25,8 +25,11 @@ export interface IsrBracket {
 }
 
 export class PayrollCalculationService {
-  // TSS constant for minimum wage in DR
-  public static readonly SALARIO_MINIMO_TSS = 16262.50;
+  // Lote 290: aqui estaba `SALARIO_MINIMO_TSS = 16262.50`, fijado en el codigo.
+  // El salario minimo de los topes es dato de la empresa
+  // (`payroll_configs.salario_minimo_tss`, decision del contador del
+  // 2026-10-04: RD$10.000,00) y llega en `calculateDetails({ salarioMinimoTss })`.
+  // Ver `services/nomina/topesTss.ts`.
 
   /**
    * Helper to round numbers to exactly 2 decimals
@@ -127,6 +130,12 @@ export class PayrollCalculationService {
     otherDeductions?: number;
     isrBrackets: IsrBracket[];
     config: PayrollConfig;
+    /**
+     * Salario minimo MENSUAL de los topes de la TSS. Obligatorio, a proposito:
+     * el calculo no lleva ninguno escrito; quien llama lo lee de la empresa
+     * (`leerSalarioMinimo`, 10.000 por defecto).
+     */
+    salarioMinimoTss: number;
   }) {
     const baseSalary = Number(params.baseSalary);
     const frequency = params.frequency || 'mensual';
@@ -145,25 +154,34 @@ export class PayrollCalculationService {
     const grossSalary = this.round(baseSalary + overtimeAmount + bonusAmount + commissionAmount);
 
     // 2. Cotizable TSS Salary (del periodo)
+    // Lote 290 -- DECISION DEL CONTADOR (via el dueño, 2026-10-04): la base
+    // cotizable de la TSS (y del Infotep del empleador) es salario + comisiones;
+    // las horas extra y los bonos NO cotizan. Confirmado, no es un descuido.
     const cotizableSalary = this.round(baseSalary + commissionAmount);
 
+    // Topes de la TSS en salarios minimos, con el de la empresa (lote 290).
+    const salarioMinimo = Number(params.salarioMinimoTss);
+    if (!(salarioMinimo > 0)) throw new Error('Falta el salario mínimo de los topes de la TSS.');
+
     // 3. AFP limits (20 times minimum wage)
-    const afpLimit = (20 * this.SALARIO_MINIMO_TSS) / factorPeriodo;
+    const afpLimit = (20 * salarioMinimo) / factorPeriodo;
     const afpBase = Math.min(cotizableSalary, afpLimit);
     const afpEmployee = this.round(afpBase * Number(config.afpEmployee || 0.0287));
     const afpEmployer = this.round(afpBase * Number(config.afpEmployer || 0.0710));
 
     // 4. SFS limits (10 times minimum wage)
-    const sfsLimit = (10 * this.SALARIO_MINIMO_TSS) / factorPeriodo;
+    const sfsLimit = (10 * salarioMinimo) / factorPeriodo;
     const sfsBase = Math.min(cotizableSalary, sfsLimit);
     const sfsEmployee = this.round(sfsBase * Number(config.sfsEmployee || 0.0304));
     const sfsEmployer = this.round(sfsBase * Number(config.sfsEmployer || 0.0709));
 
-    // 5. INFOTEP 
+    // 5. INFOTEP
+    // Lote 290 -- DECISION DEL CONTADOR (2026-10-04): el Infotep del 0,5 % del
+    // EMPLEADO (sobre bonificaciones) NO se calcula. Solo el 1 % del empleador.
     const infotepEmployer = this.round(cotizableSalary * Number(config.infotepEmployer || 0.0100));
 
     // 6. SRL (Riesgo Laboral)
-    const srlLimit = (4 * this.SALARIO_MINIMO_TSS) / factorPeriodo;
+    const srlLimit = (4 * salarioMinimo) / factorPeriodo;
     const srlBase = Math.min(cotizableSalary, srlLimit);
     const riskEmployer = this.round(srlBase * Number(config.riskEmployer || 0.0110));
 

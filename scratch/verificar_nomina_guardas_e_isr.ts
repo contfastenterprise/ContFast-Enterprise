@@ -177,7 +177,8 @@ async function main() {
     afpEmployee: 0.0287, sfsEmployee: 0.0304, afpEmployer: 0.071, sfsEmployer: 0.0709, infotepEmployer: 0.01,
     riskEmployer: 0.011, overtimeDiurnaRate: 1.35, overtimeNocturnaRate: 1.85, overtimeFestivaRate: 2, overtimeDobleRate: 2,
   };
-  // [sueldo del PERIODO, frecuencia, AFP, SFS, ISR, neto] -- a mano.
+  // [sueldo del PERIODO, frecuencia, AFP, SFS, ISR, neto] -- a mano. Salario minimo de los
+  // topes 10.000 (contador, 2026-10-04): ninguno de estos llega al tope.
   const ejemplos: [number, 'mensual' | 'quincenal', number, number, number, number, string][] = [
     [10000, 'quincenal', 287, 304, 0, 9409, 'la nomina medida (Latin Doors, 15-30/07): 18.818 x 24 = 225.816 al año, exento'],
     [50000, 'mensual', 1435, 1520, 1854.0, 45191, '47.045 x 12 = 564.540: 15 %'],
@@ -189,11 +190,11 @@ async function main() {
   for (const [sueldo, frec, afp, sfs, isr, neto, como] of ejemplos) {
     intenta(`${frec} ${sueldo.toFixed(2)}: AFP ${afp}, SFS ${sfs}, ISR ${isr.toFixed(2)}, neto ${neto} (${como})`, () => {
       if (!tramos) return false;
-      const r = P.calculateDetails({ baseSalary: sueldo, frequency: frec, isrBrackets: tramos, config });
+      const r = P.calculateDetails({ baseSalary: sueldo, frequency: frec, isrBrackets: tramos, config, salarioMinimoTss: 10000 });
       return r.afp === afp && r.sfs === sfs && r.isr === isr && r.netSalary === neto;
     }, () => {
       if (!tramos) return sinS;
-      const r = P.calculateDetails({ baseSalary: sueldo, frequency: frec, isrBrackets: tramos, config });
+      const r = P.calculateDetails({ baseSalary: sueldo, frequency: frec, isrBrackets: tramos, config, salarioMinimoTss: 10000 });
       return `afp ${r.afp} sfs ${r.sfs} isr ${r.isr} neto ${r.netSalary}`;
     });
   }
@@ -223,11 +224,17 @@ async function main() {
   ok('eliminar usa la misma regla (no una copia de los estados)',
     /motivoParaNoEliminar\(payroll\.status\)/.test(borrar) && !/'draft'/.test(borrar));
 
-  const iEscala = recalc.search(/\.where\(eq\(isrBrackets\.year, payrollYear\)\)/);
-  ok('la escala es la del año EXACTO de la nomina (no "la ultima hasta ese año")',
-    iEscala > 0 && /const payrollYear = anioDeLaNomina\(end\);/.test(recalc) && !/isrBrackets\.year\}\s*<=/.test(recalc) && !/getFullYear/.test(recalc));
-  ok('escala vacia: recalcular se niega con `motivoSinEscala` (409), antes de calcular nada',
-    /if \(brackets\.length === 0\) throw new NominaNoPermitidaError\(motivoSinEscala\(payrollYear\)\);/.test(recalc)
+  // Re-anclado en la segunda parte del lote: el contador decidio usar la escala
+  // del año o la MAS RECIENTE ANTERIOR (ya no "el año exacto"). Lo que esto
+  // vigila sigue siendo lo mismo: el año sale del texto de la fecha y la escala
+  // se elige con una regla, no con una consulta escrita a mano. La regla nueva
+  // la vigila `verificar_nomina_decisiones_contador.ts`.
+  ok('el año de la nomina sale del texto de la fecha y la escala la elige la regla pura (no `getFullYear`)',
+    /const payrollYear = anioDeLaNomina\(end\);/.test(recalc) && /escalaParaLaNomina\(aniosCargados, payrollYear\)/.test(recalc)
+      && /\.where\(eq\(isrBrackets\.year, anioDeEscala\)\)/.test(recalc) && !/getFullYear/.test(recalc));
+  ok('sin escala: recalcular se niega con `motivoSinEscala` (409), antes de calcular nada',
+    /if \(anioDeEscala === null\) throw new NominaNoPermitidaError\(motivoSinEscala\(payrollYear\)\);/.test(recalc)
+      && /if \(brackets\.length === 0\) throw new NominaNoPermitidaError\(motivoSinEscala\(payrollYear\)\);/.test(recalc)
       && recalc.indexOf('motivoSinEscala(payrollYear)') < recalc.indexOf('PayrollCalculationService.calculateDetails('));
 
   const ruta = sinComentarios(leer('src/app/api/v1/hr/payroll/route.ts'));

@@ -15,7 +15,7 @@ import {
   payrollConfigs,
   auditLogs,
 } from '@/db';
-import type { DbTransaction } from '@/db';
+import type { DbTransaction, DbOTx } from '@/db';
 import { eq, and, isNull, sql, desc, or, between, like, inArray } from 'drizzle-orm';
 import { PayrollCalculationService } from '@/services/payrollCalculationService';
 import {
@@ -24,7 +24,8 @@ import {
   motivoParaNoAprobar,
   motivoParaNoEliminar,
 } from '@/services/nomina/estadoDeNomina';
-import { anioDeLaNomina, motivoSinEscala } from '@/services/nomina/escalaIsr';
+import { anioDeLaNomina, motivoSinEscala, escalaParaLaNomina, avisoDeEscala } from '@/services/nomina/escalaIsr';
+import { leerSalarioMinimo } from '@/services/nomina/salarioMinimoRepositorio';
 
 /**
  * Entorno de trabajo. El proyecto separa PRODUCCION de PRUEBA en las tablas
@@ -325,16 +326,16 @@ export class HRRepository {
         .returning();
 
       // 2. Perform initial calculations
-      await this.recalculatePayrollTx(tx, payroll.id, companyId, modo);
+      const { avisoIsr } = await this.recalculatePayrollTx(tx, payroll.id, companyId, modo);
 
-      return payroll;
+      // Lote 290: `status` el de despues de calcular (el `returning` traia 'draft'),
+      // y el aviso de la escala del ISR si no es la del año.
+      return { ...payroll, status: 'calculated', avisoIsr };
     });
   }
 
   static async recalculatePayroll(payrollId: string, companyId: string, modo: Modo) {
-    return db.transaction(async (tx) => {
-      await this.recalculatePayrollTx(tx, payrollId, companyId, modo);
-    });
+    return db.transaction(async (tx) => this.recalculatePayrollTx(tx, payrollId, companyId, modo));
   }
 
   private static async recalculatePayrollTx(tx: DbTransaction, payrollId: string, companyId: string, modo: Modo) {
@@ -394,20 +395,29 @@ export class HRRepository {
       throw new Error('Configuración de nómina incompleta. Por favor, guarde la Configuración de RRHH antes de generar una nómina.');
     }
 
-    // Lote 290: la escala del AÑO de la nomina, y solo esa. Antes se tomaba "la
-    // ultima que hubiera hasta ese año" y, si no habia ninguna, se calculaba con
-    // la tabla vacia: ISR 0 en silencio (asi estaba PRODUCCION). Y la ultima
-    // anterior tampoco vale: la Ley 30-26 cambia los tramos desde 2027, y una
-    // nomina de 2027 con la escala de 2026 retendria con tramos derogados.
+    // Lote 290: la escala del ISR. Antes, sin ninguna cargada, se calculaba con
+    // la tabla vacia: ISR 0 en silencio (asi estaba PRODUCCION). Ahora, con la
+    // regla de `escalaParaLaNomina` (decision del contador, 2026-10-04): la del
+    // año de la nomina si esta; si no, la mas reciente ANTERIOR, avisando de que
+    // año se uso; y sin ninguna del año o anterior, se niega (409).
     // El año se lee del texto de la fecha (`new Date(end).getFullYear()` lo
     // corria al año anterior el 1 de enero en UTC-4).
     const payrollYear = anioDeLaNomina(end);
+    const aniosCargados = await this.aniosDeEscalaIsr(tx, payrollYear);
+    const anioDeEscala = escalaParaLaNomina(aniosCargados, payrollYear);
+    if (anioDeEscala === null) throw new NominaNoPermitidaError(motivoSinEscala(payrollYear));
+    const avisoIsr = avisoDeEscala(anioDeEscala, payrollYear);
     const brackets = await tx
       .select()
       .from(isrBrackets)
-      .where(eq(isrBrackets.year, payrollYear))
+      .where(eq(isrBrackets.year, anioDeEscala))
       .orderBy(isrBrackets.fromAmount);
+    // Segunda barrera (no deberia ocurrir: el año salio de la propia tabla).
     if (brackets.length === 0) throw new NominaNoPermitidaError(motivoSinEscala(payrollYear));
+
+    // Lote 290: el salario minimo de los topes de la TSS, el de la empresa
+    // (10.000 por defecto mientras falte la migracion 0020 o el valor).
+    const salarioMinimo = await leerSalarioMinimo(companyId, tx);
 
     // 5. Traer horas extra, ingresos y deducciones del periodo para TODOS los
     //    empleados de golpe.
@@ -523,6 +533,7 @@ export class HRRepository {
           overtimeFestivaRate: Number(config.overtimeFestivaRate),
           overtimeDobleRate: Number(config.overtimeDobleRate),
         },
+        salarioMinimoTss: salarioMinimo.valor,
       });
 
       // Insert payroll details row
@@ -553,6 +564,31 @@ export class HRRepository {
       .update(payrolls)
       .set({ status: 'calculated' })
       .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), eq(payrolls.modo, modo)));
+
+    // Lote 290: el aviso de la escala (null si es la del año), para la respuesta.
+    return { avisoIsr };
+  }
+
+  /** Los años con escala del ISR cargada, hasta `hasta` (inclusive). */
+  private static async aniosDeEscalaIsr(tx: DbOTx, hasta: number): Promise<number[]> {
+    const filas = await tx
+      .selectDistinct({ year: isrBrackets.year })
+      .from(isrBrackets)
+      .where(sql`${isrBrackets.year} <= ${hasta}`);
+    return filas.map((f) => f.year);
+  }
+
+  /**
+   * Lote 290: el aviso de la escala del ISR para una nomina ABIERTA (la pantalla
+   * lo enseña en el detalle). `null` si se calcula con la escala de su año, si
+   * no hay ninguna (eso ya lo dice el 409 al calcular) o si la nomina ya no se
+   * recalcula: de una aprobada, lo que cuenta es con que se calculo.
+   */
+  static async avisoDeEscalaIsr(payroll: { status: string; periodEnd: string }): Promise<string | null> {
+    if (motivoParaNoRecalcular(payroll.status) !== null) return null;
+    const anio = anioDeLaNomina(payroll.periodEnd);
+    const usado = escalaParaLaNomina(await this.aniosDeEscalaIsr(db, anio), anio);
+    return usado === null ? null : avisoDeEscala(usado, anio);
   }
 
   static async approvePayroll(payrollId: string, companyId: string, modo: Modo, userId: string) {
