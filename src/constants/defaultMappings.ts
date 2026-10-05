@@ -16,10 +16,14 @@ import { RouteMapping } from '@/types/rbac';
 //  "Configuración" (/dashboard/settings) y "Cuenta por Cobrar" (/dashboard/receivables-report,
 //  en singular, como en la base). Esta lista es lo que ve el menu antes de que llegue la
 //  respuesta de la base (`rbacContext`) y lo que nace en una base nueva (`seed-routes`), asi
-//  que tiene que decir lo mismo que la base. Lo que NO se toco, a proposito, porque es
-//  permiso y no nombre: el `module` de /dashboard/financial/accounts-receivable y
-//  accounts-payable (aqui `caja`; en la base `cobros` y `proveedores`) y las dos filas de
-//  /dashboard/antiguedad-saldos, que estan en la base y no aqui. Lo vigila
+//  que tiene que decir lo mismo que la base.
+//
+//  LOTE 289: y los PERMISOS tambien, decidido por el dueño (2026-10-04). El `module` de
+//  /dashboard/financial/accounts-receivable pasa de `caja` a `cobros` y el de
+//  accounts-payable de `caja` a `proveedores`, como en la base; y entran las dos filas de
+//  /dashboard/antiguedad-saldos (una por modulo). La siembra es ahora igual a la base fila
+//  por fila. Los `id` de aqui no llegan a la base (`seed-routes` y la reparacion de
+//  `auth/route-mappings` ponen un uuid); solo tienen que ser unicos. Lo vigila
 //  `scratch/verificar_menu_como_la_base.ts`.
 export const DEFAULT_ROUTE_MAPPINGS: RouteMapping[] = [
   // 1. Principal
@@ -59,13 +63,17 @@ export const DEFAULT_ROUTE_MAPPINGS: RouteMapping[] = [
   
   // 6. Finanzas
   { id: '36', routePattern: '/dashboard/financial%', module: 'contabilidad', action: 'read', isMenuItem: true, displayName: 'Dashboard Financiero', groupName: 'Finanzas', iconName: 'PieChart', orderIndex: 5, createdAt: new Date(), updatedAt: new Date() },
-  { id: '37a', routePattern: '/dashboard/financial/accounts-receivable%', module: 'caja', action: 'read', isMenuItem: true, displayName: 'Cuentas por Cobrar', groupName: 'Finanzas', iconName: 'Banknote', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
+  { id: '37a', routePattern: '/dashboard/financial/accounts-receivable%', module: 'cobros', action: 'read', isMenuItem: true, displayName: 'Cuentas por Cobrar', groupName: 'Finanzas', iconName: 'Banknote', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
   { id: '37', routePattern: '/dashboard/financial/customers%', module: 'contabilidad', action: 'read', isMenuItem: true, displayName: 'E.C. Clientes (CxC)', groupName: 'Finanzas', iconName: 'HandCoins', orderIndex: 15, createdAt: new Date(), updatedAt: new Date() },
-  { id: '38a', routePattern: '/dashboard/financial/accounts-payable%', module: 'caja', action: 'read', isMenuItem: true, displayName: 'Cuentas por Pagar', groupName: 'Finanzas', iconName: 'Receipt', orderIndex: 20, createdAt: new Date(), updatedAt: new Date() },
+  { id: '38a', routePattern: '/dashboard/financial/accounts-payable%', module: 'proveedores', action: 'read', isMenuItem: true, displayName: 'Cuentas por Pagar', groupName: 'Finanzas', iconName: 'Receipt', orderIndex: 20, createdAt: new Date(), updatedAt: new Date() },
   { id: '38', routePattern: '/dashboard/financial/suppliers%', module: 'contabilidad', action: 'read', isMenuItem: true, displayName: 'E.C. Suplidores (CxP)', groupName: 'Finanzas', iconName: 'Receipt', orderIndex: 25, createdAt: new Date(), updatedAt: new Date() },
   { id: '19', routePattern: '/dashboard/bank%', module: 'banco', action: 'read', isMenuItem: true, displayName: 'Cuentas Bancarias', groupName: 'Finanzas', iconName: 'Landmark', orderIndex: 30, createdAt: new Date(), updatedAt: new Date() },
   { id: '20', routePattern: '/dashboard/accounting%', module: 'contabilidad', action: 'read', isMenuItem: true, displayName: 'Contabilidad', groupName: 'Finanzas', iconName: 'BookOpen', orderIndex: 40, createdAt: new Date(), updatedAt: new Date() },
   { id: '21', routePattern: '/dashboard/reports%', module: 'reportes', action: 'read', isMenuItem: true, displayName: 'Reportes', groupName: 'Finanzas', iconName: 'PieChart', orderIndex: 50, createdAt: new Date(), updatedAt: new Date() },
+  //  Lote 289: dos filas para la MISMA pantalla, a proposito (lote 190): una por modulo,
+  //  para que la vea quien lleva los cobros y quien lleva los suplidores.
+  { id: '40a', routePattern: '/dashboard/antiguedad-saldos%', module: 'cobros', action: 'read', isMenuItem: true, displayName: 'Antigüedad de Saldos', groupName: 'Finanzas', iconName: 'PieChart', orderIndex: 51, createdAt: new Date(), updatedAt: new Date() },
+  { id: '40b', routePattern: '/dashboard/antiguedad-saldos%', module: 'proveedores', action: 'read', isMenuItem: true, displayName: 'Antigüedad de Saldos', groupName: 'Finanzas', iconName: 'PieChart', orderIndex: 51, createdAt: new Date(), updatedAt: new Date() },
   
   // 7. Recursos Humanos
   { id: '22', routePattern: '/dashboard/hr', module: 'nomina', action: 'read', isMenuItem: true, displayName: 'Dashboard RRHH', groupName: 'Recursos Humanos', iconName: 'LayoutDashboard', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
@@ -80,7 +88,7 @@ export const DEFAULT_ROUTE_MAPPINGS: RouteMapping[] = [
   // 8. Herramientas
   { id: '29', routePattern: '/dashboard/tools/desglose/ventanas%', module: 'facturacion', action: 'read', isMenuItem: true, displayName: 'Desglose Ventanas', groupName: 'Herramientas', iconName: 'Calculator', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
   { id: '30', routePattern: '/dashboard/tools/glass-cutting%', module: 'facturacion', action: 'read', isMenuItem: true, displayName: 'Corte de Vidrio', groupName: 'Herramientas', iconName: 'Layers', orderIndex: 20, createdAt: new Date(), updatedAt: new Date() },
-  { id: '35', routePattern: '/dashboard/tools/desglose/puertas%', module: 'facturacion', action: 'read', isMenuItem: true, displayName: 'Desglose Puertas Comerciales', groupName: 'Herramientas', iconName: 'DoorOpen', orderIndex: 15, createdAt: new Date(), updatedAt: new Date() },
+  { id: '29b', routePattern: '/dashboard/tools/desglose/puertas%', module: 'facturacion', action: 'read', isMenuItem: true, displayName: 'Desglose Puertas Comerciales', groupName: 'Herramientas', iconName: 'DoorOpen', orderIndex: 15, createdAt: new Date(), updatedAt: new Date() },
   { id: '35c', routePattern: '/dashboard/tools/qr-store%', module: 'catalogo', action: 'read', isMenuItem: true, displayName: 'QR Tienda Online', groupName: 'Herramientas', iconName: 'QrCode', orderIndex: 25, createdAt: new Date(), updatedAt: new Date() },
   
   // 9. Sistema
