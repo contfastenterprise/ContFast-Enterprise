@@ -322,13 +322,22 @@ async function main() {
 
   console.log('\n8) Lo que no cambia: textos, placeholder, title, avisos y API (invariante)\n');
   const cambiados: string[] = [];
+  //  Lote 287: el registro se reescribio A PROPOSITO (la empresa se registra con su
+  //  nombre y su RNC; lo vigila verificar_registro_con_empresa.ts). Para el, la huella de
+  //  "despues" se toma del commit del lote 274 (0061e43) y no de la carpeta: asi la
+  //  equivalencia del 274 sigue valiendo (lotes 227, 230 y 237). El acceso se sigue
+  //  leyendo de la carpeta y solo se le toleran, por nombre, los dos textos del enlace
+  //  "¿No tienes cuenta? Regístrate" que añade el 287.
+  const DESPUES_FIJO: Record<string, string> = { 'src/app/auth/register/page.tsx': '0061e43' };
+  const AÑADIDOS_287: Record<string, string[]> = { 'src/app/auth/login/page.tsx': ['texto:¿No tienes cuenta?', 'texto:Regístrate'] };
   for (const f of FICHEROS) {
     let antes: string;
     try { antes = enCommit(BASE, f); } catch { cambiados.push(`${f}: no esta en ${BASE}`); continue; }
-    const a = textosDe(antes, false), d = textosDe(fuentes.get(f) ?? '', true);
+    const despues = DESPUES_FIJO[f] ? enCommit(DESPUES_FIJO[f], f) : (fuentes.get(f) ?? '');
+    const a = textosDe(antes, false), d = textosDe(despues, true);
     const { faltan, sobran } = diferencia(a, d);
     //  Los title que pinta un IconButton a partir de su aria-label son añadidos, como el aria-label.
-    const sobranDeVerdad = sobran.filter((x) => !(x.startsWith('title:') && botones(fuentes.get(f) ?? '').some((b) => b.tag === 'IconButton' && !/\btitle=/.test(b.abre) && b.abre.includes(`aria-label="${x.slice(6)}"`))));
+    const sobranDeVerdad = sobran.filter((x) => !(AÑADIDOS_287[f] ?? []).includes(x)).filter((x) => !(x.startsWith('title:') && botones(fuentes.get(f) ?? '').some((b) => b.tag === 'IconButton' && !/\btitle=/.test(b.abre) && b.abre.includes(`aria-label="${x.slice(6)}"`))));
     if (faltan.length || sobranDeVerdad.length) cambiados.push(`${f.replace(/^src\//, '')}: faltan ${JSON.stringify(faltan)} sobran ${JSON.stringify(sobranDeVerdad)}`);
   }
   invariante(`los ${FICHEROS.length} ficheros dicen lo mismo que en ${BASE}`, cambiados.length === 0, cambiados.slice(0, 4).join(' | '));

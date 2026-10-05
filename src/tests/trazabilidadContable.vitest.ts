@@ -147,7 +147,17 @@ describe('JRN-11 · los períodos contables se siembran, no se improvisan', () =
       'src/app/api/v1/auth/register/route.ts',
       'src/app/api/v1/setup/confirm/route.ts',
     ];
-    const sinSembrar = rutas.filter((r) => !leer(r).includes('sembrarPeriodosContables'));
+    // Lote 287: admin/companies y auth/register comparten el alta
+    // (services/empresas/altaDeEmpresa.ts). Vale si la ruta siembra, o si importa y
+    // LLAMA al alta compartida y esta siembra.
+    const alta = leer('src/services/empresas/altaDeEmpresa.ts');
+    const siembra = (r: string) => {
+      const f = leer(r);
+      if (f.includes('sembrarPeriodosContables')) return true;
+      return /from '@\/services\/empresas\/altaDeEmpresa'/.test(f) && /\bcrearEmpresaConSuSiembra\(tx,/.test(f)
+        && /AccountingRepository\.sembrarPeriodosContables\(/.test(alta);
+    };
+    const sinSembrar = rutas.filter((r) => !siembra(r));
     expect(
       sinSembrar,
       'Una empresa que nace sin períodos no puede asentar nada, y el error que ve el usuario ' +
