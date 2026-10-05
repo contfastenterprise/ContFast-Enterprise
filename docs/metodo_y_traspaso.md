@@ -2662,6 +2662,109 @@ Además, fuera de la tabla:
   `main` en que se comprobaron), como en los lotes 227 y 230; un mutante que vuelve a leer `HEAD` los
   rompe. Los otros tres rojos (`gancho_y_compras`, `p3_48`, `padron_de_rnc`) son los falsos conocidos
   de un worktree.
+- **Lote 289: los permisos de la siembra del menú, iguales a la base — y una guarda que solo leía
+  una fila.** Decisión del dueño (2026-10-04) sobre lo que el 286 dejó fuera por ser permiso: en
+  `src/constants/defaultMappings.ts`, `/dashboard/financial/accounts-receivable` pasa de `caja` a
+  **`cobros`**, `accounts-payable` de `caja` a **`proveedores`**, y entran las **dos** filas de
+  `/dashboard/antiguedad-saldos` (`cobros` y `proveedores`, lote 190) con nombre, grupo, icono,
+  orden (51), acción e `is_menu_item` de la base. Los valores son los medidos y congelados en el
+  286; no hizo falta volver a la base. **La siembra es ahora igual a la base fila por fila, con
+  repetidos.** Ids nuevos `40a` y `40b`, y de paso el `'35'` doble del 286 se deshace (Desglose
+  Puertas pasa a `29b`): los ids de la siembra no llegan a la base (`seed-routes` y la reparación
+  ponen un uuid), solo tienen que ser únicos.
+  **Lo que salió al mirar quién lee dos filas con la misma ruta**: el menú (`buildSidebar`, una
+  entrada por fila; el sidebar y `unaEntradaPorRuta` quitan la repetida), `seed-routes` (inserta
+  todas) y la reparación de faltantes (una ruta ausente entra con todas sus filas) las admitían.
+  **`canAccessRoute` no**: se quedaba con la PRIMERA fila que casaba. Con las filas de PRODUCCIÓN,
+  a `compras` (solo `proveedores`) o a `facturacion` (solo `cobros`) el menú le ofrecía Antigüedad
+  de Saldos y la guarda de rutas lo mandaba a /403 **según el orden en que la base devolviera las
+  filas** — ejecutado: con un orden entra uno, con el contrario el otro. Ahora decide el patrón más
+  específico (el más largo, como antes) con **todas** sus filas: basta el permiso de una
+  (`src/utils/filasDeLaRuta.ts`, puro, y `rbacContext` lo llama). `RbacService.resolveRoutePermission`
+  tiene la misma forma pero **no lo llama nadie**: se deja, anotado aquí.
+  **Lo que NO se cambió, a propósito**: la reparación de `auth/route-mappings` sigue comparando por
+  RUTA y no por ruta + módulo. Corre sola y alcanza a las seis empresas; comparando también el
+  módulo, AÑADIRÍA permisos en cuanto base y siembra discreparan. Una ruta a la que le falta una de
+  sus filas no se repara sola (comentario en la ruta).
+  **Quién entra (`canAccessRoute`) y quién lo ve en el menú, con la siembra y los permisos por
+  defecto de cada rol** (sistemas y administración, todo, antes y después):
+  CxC de Finanzas — antes entraban facturacion y cajero (`caja`), ahora contabilidad, facturacion y
+  banco (`cobros`); en el menú, contabilidad pasa a verla (la restricción de `/dashboard/financial`
+  ya la limitaba a contabilidad). CxP — antes facturacion y cajero, ahora contabilidad, banco y
+  compras; mismo cambio en el menú. Antigüedad de Saldos — antes, sin fila, entraba todo el mundo y
+  no salía en el menú de nadie; ahora entran y la ven contabilidad, facturacion, banco y compras, y
+  ni cajero ni recursos_humanos. **Con la base de PRODUCCIÓN nada de esto cambia** (ya tenía esos
+  módulos), salvo el /403 por orden de filas, que se cierra.
+  Banco `verificar_permisos_como_la_base.ts` (siembra, regla y `buildSidebar` ejecutados): 18
+  comprobaciones y tres invariantes, contraprueba **18 FALLA** contra `bac5a91`, diez mutantes y
+  diez muertos — **uno sobrevivió primero**: quitar la guarda de longitud (gana el último patrón
+  que casa en vez del más largo) pasaba, porque en la siembra `/dashboard/financial%` va antes que
+  CxC; ahora se prueba en los dos órdenes. Y `verificar_menu_como_la_base.ts` cambia sus dos
+  invariantes tolerantes por la igualdad completa (ok: falla contra `bac5a91`), y "ningún nombre del
+  menú repetido" pasa a contarse por **pantalla**: antigüedad son dos filas de la misma.
+- **Lote 287: el registro público crea la empresa con SU nombre y SU RNC.** Decisión del dueño
+  (2026-10-04): el registro (`/auth/register`) **sigue abierto**, para que un cliente nuevo se dé
+  de alta solo, pero la empresa ya no nace como "Empresa Demo S.R.L." con RNC 101001001 y
+  "Servicios Generales", escritos en la ruta. **Medido**: nunca se había usado (0 empresas "Empresa
+  Demo"), así que no hay datos que tocar. Y el defecto era peor de lo que parecía: la **segunda**
+  persona que se registrara chocaba con el índice único de `companies.rnc` (500), y la primera
+  tenía una empresa con un RNC que no es el suyo, el que sale impreso en cada factura.
+  · **La pantalla** pide "Tu empresa" (RNC o cédula, razón social, actividad opcional) y "Tu
+    cuenta". "Buscar DGII" es el `BotonBuscarDgii` del lote 210 y rellena la razón social del
+    padrón (lote 198). La consulta de siempre exige sesión, así que hay una **puerta pública**,
+    `GET /api/v1/auth/register/rnc/[rnc]`, que llama al mismo `DGIIService.lookupRNC`: límite
+    `auth` (el único que cuenta sin Redis) con **su propia clave**, y **no dice si ese RNC ya es
+    cliente de ContFast** (sería un listado gratis); eso solo se sabe al registrarse. El formulario
+    va aparte (`components/FormularioDeRegistro.tsx`) con el estilo del acceso (lote 173): dorado
+    `#c5a059`, sin `required`, cada campo con su etiqueta, `aria-invalid` y el rechazo dentro del
+    formulario con `role="alert"`. Fuera los `amber-500`.
+  · **Una sola regla de RNC** (`services/empresas/rncDeLaEmpresa.ts`, pura): la forma es la del
+    padrón (`rncBuscable`: 9 u 11 dígitos, se guarda sin guiones), y "ya registrado" mira **todas**
+    las empresas comparando sin guiones — Administración guardaba lo que se escribiera, y un
+    "101-00100-1" cabía en las 11 posiciones. La usan **las dos** altas: Administración pasa de 400
+    a **409** y deja de admitir RNC con guiones o de 10 dígitos. Dos altas a la vez con el mismo RNC
+    chocan con el índice al insertar, y eso también es 409 (`esRncRepetidoEnLaBase`, que sigue la
+    `cause` de Drizzle y exige el **nombre** del índice: un 23505 del correo no es un RNC repetido).
+  · **F0-02 sigue cerrado, y más**: el RNC de la empresa nueva viaja en **`rncEmpresa`**, a
+    propósito; `rnc` sigue significando "unirme a una empresa existente" y se rechaza con 403. Ahora
+    se mira en el **cuerpo crudo y antes de validar**: antes, `{ rnc }` solo daba 400 por los campos
+    que faltaban y el 403 dependía de que el resto viniera bien. Un RNC con empresa da 409 y nunca
+    acceso: el mensaje dice a quién pedir un usuario.
+  · **Una sola alta** (`services/empresas/altaDeEmpresa.ts`): el cuerpo que vivía en
+    `admin/companies` se mueve tal cual y lo llaman las dos rutas. Al registro le faltaban **los
+    ajustes de la empresa** (`company_settings`: entorno PRUEBA, formato de impresión, mSeller), **la
+    configuración de nómina** y **los permisos del sistema**. Y ahora empresa, usuario y auditoría
+    van en **una transacción** (todas las siembras aceptan `tx`): si algo falla a medias, no queda
+    una empresa sin nadie que pueda entrar. `completarCuentasDelSistema` no hace falta — es para
+    empresas antiguas; `seedDefaultChartOfAccounts` ya siembra desde `CUENTAS_DEL_SISTEMA`.
+    **`setup/confirm`** (el asistente de la primera instalación) conserva su alta propia: no se tocó.
+  · **El acceso lleva al registro**: "¿No tienes cuenta? Regístrate" bajo el formulario. Hasta
+    ahora la página existía sin un solo enlace.
+  Dos bancos. `verificar_registro_con_empresa.ts` (reglas ejecutadas, el formulario dibujado): 35
+  comprobaciones, contraprueba **35 FALLA**. `verificar_registro_con_empresa_db.ts` (**integración**,
+  base desechable: las rutas de verdad, también la de Administración con cabeceras firmadas): 10
+  comprobaciones y un invariante (`rnc` con el cuerpo completo ya daba 403), contraprueba **10
+  FALLA**. Diecisiete mutantes y diecisiete muertos (`scratch/mutantes_registro_con_empresa.py`,
+  que resiembra la base antes de cada uno). **Una comprobación sobrevivió primero**: "si falla a
+  medias no queda empresa" miraba el RNC enviado, que el código viejo ni usaba; ahora exige además
+  que el MISMO registro entre después (prueba que la empresa llegó a crearse y se deshizo). Y **un
+  mutante obligó a apretar el banco**: comparar el RNC con guiones en "ya registrado" sobrevivía,
+  porque ninguna empresa sembrada los llevaba; el banco mete una empresa "de antes" con guiones.
+  **Re-anclados**, porque la siembra ya no se escribe en la ruta: `verificar_periodos_futuros` y
+  `trazabilidadContable.vitest.ts` (la ruta siembra, o importa y LLAMA al alta compartida y esta
+  siembra) y `verificar_p1_24` (el registro ya no siembra permisos con `db` suelto, sino con la
+  `tx`; el parámetro sigue aceptando `db`). Y el barrido cazó `verificar_ui_rrhh_admin` (lote 274),
+  cuya huella de 71 ficheros incluye las dos pantallas de acceso: el registro se compara ahora con el
+  commit del 274 (`0061e43`), como en los lotes 227, 230 y 237, y al acceso solo se le toleran **por
+  nombre** los dos textos del enlace — un mutante que cambia "¿Olvidó su contraseña?" lo sigue rompiendo.
+  **Se miró en el navegador** (`next dev` en el 3287, con la base desechable): las dos secciones, el
+  botón dorado, "Buscar DGII" junto al RNC, y a 375 px sin desborde; en el acceso, el enlace bajo el
+  formulario. **No se completó el alta desde la pantalla**: la base desechable es COMPARTIDA y otra
+  sesión la estaba recreando a la vez (la consulta del padrón falló con `relation "rnc_padron" does
+  not exist` a mitad), así que el alta de punta a punta la da el banco de integración, no el navegador.
+  **Trampa del entorno**: `preview_start` desde un worktree arrancó el `dev` de la carpeta del DUEÑO
+  (el `.claude/launch.json` de allí, puerto 3000); se paró en el acto. En un worktree, el `dev` se
+  lanza a mano con `node node_modules/next/dist/bin/next dev -p <otro>` y se navega a esa URL.
 - **Lote 291: "Valor de Inventario" vale el inventario, y "Excel" que baja un CSV dice "CSV".** Pedido
   del dueño (2026-10-04), encima del 285 (sin fusionar). La tarjeta de Productos sumaba `cost` de la
   **página visible** (15 productos) **sin multiplicar por la existencia**: la cifra cambiaba al pasar
