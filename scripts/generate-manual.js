@@ -26,6 +26,13 @@
  *   reventaba antes de generar nada. Los ficheros se dejan en `public/` (no se borran); si
  *   algun dia hay capturas reales, se vuelven a poner con `imagen('<fichero>', '<pie>')`.
  *
+ * LOTE 296 (version 3.1): la nomina completa (calcular, aprobar con su asiento, pagar), lo
+ * que quedo falso desde el 283 (soporte por correo, registro publico, tarjetas de productos,
+ * rotulos CSV, tienda, menu) y, por decision del dueño, NADA de lo que solo hace el rol
+ * Sistemas (cambiar de empresa, empresas, sesiones, editar secuencias, modo, mSeller) ni
+ * nada tecnico (guiones, migraciones). Donde una pantalla necesita eso, se dice "consulte
+ * con el administrador del sistema".
+ *
  * INDICE: los numeros de pagina se CALCULAN. Cada seccion empieza en pagina nueva, asi que
  * se dibuja cada una por separado con los mismos margenes, se cuentan sus paginas, y con eso
  * se escribe el indice antes de dibujar el documento entero. Si una seccion crece, el indice
@@ -37,7 +44,7 @@ const path = require('path');
 
 const RAIZ = path.join(__dirname, '..');
 const FECHA = 'Octubre 2026';
-const VERSION = '3.0';
+const VERSION = '3.1';
 
 // Por si algun dia vuelven las imagenes: una que no exista no tumba el manual.
 function imagen(fichero, pie) {
@@ -142,17 +149,26 @@ seccion('primeros-pasos', 'Primeros pasos: acceso, panel y menú', `
     `Escriba su ${b('Correo Electrónico')} y su ${b('Contraseña')} (el ojo la muestra u oculta) y pulse ${b('Acceder al Sistema')}. Si algo falla, el motivo aparece dentro del formulario.`,
     `Tras <strong>15 minutos sin actividad</strong> la sesión se cierra sola: «Su sesión ha expirado por inactividad.»`,
   ])}
+  <h4 class="mini">¿No tiene cuenta? Registrar una empresa nueva</h4>
+  <p>Bajo el formulario de acceso está ${b('Regístrate')} («¿No tienes cuenta? Regístrate»). El registro crea a la vez una empresa nueva y su primera cuenta:</p>
+  ${pasos([
+    `En «Tu empresa» escriba el ${b('RNC o cédula')} y pulse ${b('Buscar DGII')}: la ${b('Razón social')} se completa sola desde el padrón de la DGII (si no aparece, escríbala a mano). La ${b('Actividad económica (opcional)')} puede quedar en blanco.`,
+    `En «Tu cuenta» escriba su ${b('Nombre completo')}, ${b('Correo electrónico')}, ${b('Contraseña')} y ${b('Confirmar contraseña')}, y pulse ${b('Crear empresa y cuenta')}.`,
+    `Al terminar: «Tu empresa y tu cuenta están creadas. Ya puedes iniciar sesión.»`,
+  ])}
+  ${nota('Si el RNC ya tiene una empresa en ContFast, el registro se rechaza: «Ya hay una empresa registrada con ese RNC o cédula. Si trabajas en ella, pide a su administrador que te cree un usuario.» El registro nunca da acceso a una empresa que ya existe.')}
+
   <h4 class="mini">¿Olvidó su contraseña?</h4>
   <p>En la pantalla de acceso pulse ${b('¿Olvidó su contraseña?')}, escriba el correo de su cuenta y pulse ${b('Enviarme el enlace')}. La respuesta es siempre la misma, exista o no la cuenta.</p>
   <ul>
-    <li><strong>Administración y Sistemas</strong> reciben un correo «Restablecer su contraseña» con un enlace. El enlace vale <strong>60 minutos</strong> y sirve una sola vez; pedir otro anula el anterior. Abra el enlace, escriba la ${b('Contraseña nueva')} dos veces (mínimo 6 caracteres) y pulse ${b('Guardar contraseña')}. Todas las sesiones que tenía abiertas se cierran.</li>
+    <li><strong>Administración</strong> recibe un correo «Restablecer su contraseña» con un enlace. El enlace vale <strong>60 minutos</strong> y sirve una sola vez; pedir otro anula el anterior. Abra el enlace, escriba la ${b('Contraseña nueva')} dos veces (mínimo 6 caracteres) y pulse ${b('Guardar contraseña')}. Todas las sesiones que tenía abiertas se cierran.</li>
     <li><strong>El resto de usuarios</strong> no reciben correo: la contraseña se la cambia un administrador desde ${ruta('Sistema', 'Administracion')} › ${b('Usuarios')}. Al cambiarla, se cierran las sesiones de ese usuario.</li>
   </ul>
 
   <h3 class="subsection-title">La barra de arriba</h3>
   <div class="grid-2">
-    <div class="feature-card"><h4>La empresa</h4><p>El nombre (y el logo) de la empresa en la que trabaja. Solo el rol <strong>Sistemas</strong> puede pulsarlo para cambiar de empresa (lista «Seleccionar Empresa»); para los demás es solo el nombre.</p></div>
-    <div class="feature-card"><h4>El punto de entorno</h4><p>Un punto junto a la campana. <strong>Verde = Producción</strong>: lo que emita tiene validez fiscal. <strong>Ámbar = Pruebas</strong>: las operaciones son fiscalmente nulas. Pase el ratón por encima para leerlo. En modo prueba además aparece arriba la franja «MODO PRUEBA (SANDBOX) - OPERACIONES FISCALMENTE NULAS».</p></div>
+    <div class="feature-card"><h4>La empresa</h4><p>El nombre (y el logo) de la empresa en la que trabaja. Confírmelo antes de emitir: cada empresa tiene sus propios datos.</p></div>
+    <div class="feature-card"><h4>El punto de entorno</h4><p>Un punto junto a la campana. <strong>Verde = Producción</strong>: lo que emita tiene validez fiscal. <strong>Ámbar = Pruebas</strong>: las operaciones son fiscalmente nulas. Pase el ratón por encima para leerlo. El modo no lo cambia el usuario: si hace falta, consulte con el administrador del sistema. En modo prueba además aparece arriba la franja «MODO PRUEBA (SANDBOX) - OPERACIONES FISCALMENTE NULAS».</p></div>
     <div class="feature-card"><h4>La campana de avisos</h4><p>El número rojo son los avisos <em>sin leer</em>. Al abrirla, la cabecera dice «N sin leer · M vigentes» y la lista separa «Sin leer» de «Leídos — siguen pendientes». Leer no resuelve: el aviso sigue hasta que se atiende, y entonces se cierra solo. Pulsar un aviso lleva a donde se resuelve. ${b('Marcar todo leído')} apaga el número.</p></div>
     <div class="feature-card"><h4>Su avatar</h4><p>Muestra su nombre y su rol, y la opción ${b('Cerrar Sesión')}. Se cierra con Escape o pulsando fuera.</p></div>
   </div>
@@ -168,11 +184,11 @@ seccion('primeros-pasos', 'Primeros pasos: acceso, panel y menú', `
 
   <h3 class="subsection-title">Roles</h3>
   ${tabla(['Rol', 'Qué hace'], [
-    ['<strong>Sistemas</strong>', 'Acceso técnico total: cambia de empresa, edita secuencias SACF, nombre y RNC de la empresa, credenciales de mSeller, sesiones activas y planes.'],
     ['<strong>Administración</strong>', 'Opera toda la empresa: ventas, compras, pagos, caja (ve el saldo esperado), contabilidad, configuración, usuarios. Aplica descuentos y escribe la tasa del dólar.'],
     ['<strong>Facturación</strong>', 'Trabaja en Facturación: no entra al panel de inicio ni a la Central e-CF.'],
     ['<strong>Otros roles</strong>', 'Lo que su rol permita módulo por módulo. Quien no es administración cuenta la caja «a ciegas» y no aplica descuentos.'],
   ])}
+  <p>La configuración técnica de la plataforma (el modo Pruebas/Producción, la conexión con la facturación electrónica, la corrección de secuencias ya registradas y el alta de empresas) no la hace el usuario: para cualquier cambio de ese tipo, consulte con el administrador del sistema.</p>
 `);
 
 seccion('inicio', 'El inicio y los avisos', `
@@ -188,7 +204,7 @@ seccion('inicio', 'El inicio y los avisos', `
     ['Conduce sin despachar', 'El conduce de una factura emitida sigue en borrador; dice qué mercancía falta.', 'Se aprueba el conduce.'],
     ['606 / 607 pendiente', 'El mes cerrado no está marcado como presentado (plazo: día 15).', 'Se marca como presentado.'],
     ['Períodos contables', 'Quedan menos de 45 días con período abierto.', 'Se abren los siguientes meses.'],
-    ['Padrón de RNC', 'El padrón tiene 30 días o más.', 'Se vuelve a cargar el padrón.'],
+    ['Padrón de RNC', 'El padrón de la DGII cargado en el sistema tiene 30 días o más.', 'Se actualiza el padrón (consulte con el administrador del sistema).'],
   ])}
   <p>Cada aviso trae un botón que lleva a resolverlo (por ejemplo ${b('Ir a Caja')} o ${b('Abrir períodos')}).</p>
 
@@ -210,7 +226,7 @@ seccion('contactos', 'Clientes y suplidores', `
   </ul>
 
   <h3 class="subsection-title">Clientes</h3>
-  <p><strong>Gestión de Clientes</strong>: RNC (opcional para consumidor final), nombre, contacto, límite de crédito y tipo de precio que se le aplica por defecto. Botón ${b('Registrar Cliente')} (al editar, ${b('Guardar Cambios')}). En la lista, ${b('Ver Historial')} abre la ficha del cliente con lo facturado, el balance y lo pagado, y las pestañas ${b('Facturas e-CF')} e ${b('Historial de Pagos')}.</p>
+  <p><strong>Gestión de Clientes</strong>: RNC (opcional para consumidor final), nombre, contacto, límite de crédito y el ${b('Tipo de Precio')} que se le aplica por defecto. Cada opción dice su margen sobre la venta: «Precio 1 (Base, margen 25 % sobre la venta)», «Precio 2 (Consumidor Final, margen 20 % sobre la venta)», «Precio 3 (Mayorista, margen 15 % sobre la venta)» y «Precio 4 (Proveedor, margen 10 % sobre la venta)». Botón ${b('Registrar Cliente')} (al editar, ${b('Guardar Cambios')}). En la lista, ${b('Ver Historial')} abre la ficha del cliente con lo facturado, el balance y lo pagado, y las pestañas ${b('Facturas e-CF')} e ${b('Historial de Pagos')}.</p>
 
   <h3 class="subsection-title">Suplidores</h3>
   <p><strong>Gestión de Suplidores</strong>: RNC o cédula (opcional) con ${b('Buscar DGII')}, nombre o razón social, correo, teléfono y dirección. Botón ${b('Registrar Suplidor')}.</p>
@@ -220,10 +236,16 @@ seccion('inventario', 'Inventario: productos, precios y existencias', `
   <p class="intro-lead">El grupo ${b('Inventario')} del menú reúne el catálogo, los precios, los códigos de barra, los almacenes y todo lo que mueve existencia.</p>
 
   <h3 class="subsection-title">Cómo se registra en todo el sistema: pestañas «Registrar»</h3>
-  <p>Las pantallas que dan de alta registros (productos, almacenes, categorías, conduces, clientes, suplidores, retenciones, cuentas bancarias, empleados, novedades de nómina, empresas y pedidos a suplidor) trabajan igual: arriba a la derecha hay dos pestañas, la lista (por ejemplo ${b('Catálogo')}) y ${b('Registrar')}. El formulario ocupa la página entera; al editar un registro la segunda pestaña pasa a decir ${b('Editando')}. Los botones de la lista (imprimir, buscar, etc.) están en la barra de la propia lista, nunca junto a las pestañas.</p>
+  <p>Las pantallas que dan de alta registros (productos, almacenes, categorías, conduces, clientes, suplidores, retenciones, cuentas bancarias, empleados, novedades de nómina y pedidos a suplidor) trabajan igual: arriba a la derecha hay dos pestañas, la lista (por ejemplo ${b('Catálogo')}) y ${b('Registrar')}. El formulario ocupa la página entera; al editar un registro la segunda pestaña pasa a decir ${b('Editando')}. Los botones de la lista (imprimir, buscar, etc.) están en la barra de la propia lista, nunca junto a las pestañas.</p>
 
   <h3 class="subsection-title">Productos — ${ruta('Inventario', 'Productos')}</h3>
-  <p>La pantalla se llama <strong>Catálogo de Productos</strong>. En la lista se busca por código, nombre o código de barras y se filtra por categoría. Por fila: ${b('Ver Inventario')} (existencia por almacén, con sus mínimos y máximos), ${b('Editar')} e ${b('Imprimir Etiquetas')}. En la barra de la lista: ${b('Precios en dólares')}, ${b('Gestión de Códigos')} e ${b('Imprimir')}, que ofrece ${b('Imprimir Normal')}, ${b('Imprimir con Stock')} e ${b('Imprimir Etiquetas')}.</p>
+  <p>La pantalla se llama <strong>Catálogo de Productos</strong>. Arriba hay tres tarjetas:</p>
+  <ul>
+    <li><strong>Total en Catálogo:</strong> cuántos productos hay.</li>
+    <li><strong>Valor de Inventario (a costo promedio):</strong> todo el catálogo —no solo la página que se ve—, la existencia de cada almacén multiplicada por su costo promedio, que es el costo con el que la contabilidad registra las entradas y las salidas. No es un precio de venta. Una existencia sin costo promedio cuenta como 0, y la tarjeta lo dice («7 existencias sin costo promedio cuentan como 0»).</li>
+    <li><strong>Stock Bajo:</strong> cuántos productos tienen algún almacén en su mínimo o por debajo; es la misma regla que las Sugerencias de Reorden. Solo cuentan los productos con un mínimo puesto. Si la cifra no se pudo calcular, las tarjetas muestran «—».</li>
+  </ul>
+  <p>En la lista se busca por código, nombre o código de barras y se filtra por categoría. Por fila: ${b('Ver Inventario')} (existencia por almacén, con sus mínimos y máximos), ${b('Editar')} e ${b('Imprimir Etiquetas')}. En la barra de la lista: ${b('Precios en dólares')}, ${b('Gestión de Códigos')} e ${b('Imprimir')}, que ofrece ${b('Imprimir Normal')}, ${b('Imprimir con Stock')} e ${b('Imprimir Etiquetas')}.</p>
   <h4 class="mini">Registrar un producto</h4>
   <p>Pulse ${b('Registrar')}. El formulario va por pasos — 1 <em>Qué es</em>, 2 <em>Precios y existencia</em>, 3 <em>Códigos de barra</em> — con ${b('Atrás')} y ${b('Siguiente')}. Si prefiere ver todo junto, ${b('Ver todo de una vez')} lo pone en dos columnas (y ${b('Ver por pasos')} lo devuelve). Se puede guardar desde cualquier paso con ${b('Registrar Producto')} (al editar, ${b('Guardar Cambios')}); si falta algo, el formulario salta al primer paso con error y dice «Revisa los campos marcados».</p>
   ${pasos([
@@ -249,7 +271,7 @@ seccion('inventario', 'Inventario: productos, precios y existencias', `
   <h3 class="subsection-title">Precios en dólares</h3>
   <p>Para los productos que se compran en dólares. Se abre con ${b('Precios en dólares')} en la barra del catálogo y se sale con ${b('Volver al catálogo')}.</p>
   ${pasos([
-    `<strong>La tasa del día.</strong> Arriba se ve la ${b('Tasa vigente')} (y cuántos días lleva sin tocarse). Escriba la tasa de hoy y pulse ${b('Guardar y aplicar precios')}: se guarda la tasa y se actualizan en el acto el costo y los precios de todos los productos que siguen al dólar. Solo administración y sistemas escriben la tasa; los demás ven «La tasa la escribe administración.»`,
+    `<strong>La tasa del día.</strong> Arriba se ve la ${b('Tasa vigente')} (y cuántos días lleva sin tocarse). Escriba la tasa de hoy y pulse ${b('Guardar y aplicar precios')}: se guarda la tasa y se actualizan en el acto el costo y los precios de todos los productos que siguen al dólar. Solo Administración escribe la tasa; los demás ven «La tasa la escribe administración.»`,
     `<strong>Atar productos.</strong> En «Añadir productos que se compran en dólares» busque por nombre o código y marque uno o varios (también ${b('Marcar los N')}); lo marcado se conserva entre búsquedas. Escriba el ${b('Costo en US$')} y pulse ${b('Añadir')} (con varios, ${b('Añadir N productos')}): todos reciben el mismo costo. Atar no cambia ningún precio todavía.`,
     `<strong>La tabla</strong> (15 productos por página) muestra el costo y el precio en US$ — editables con el lápiz —, el costo y los cuatro precios en pesos, y la variación. El <em>precio en US$</em> es opcional: si lo tiene, el precio base pasa a ser <em>precio US$ × tasa</em>; los demás precios conservan su margen sobre el costo.`,
     `${b('Aplicar precios')} sirve para lo que cambia sin tocar la tasa (el costo o el precio en dólares de un producto): pide confirmación y aplica a los marcados.`,
@@ -260,7 +282,7 @@ seccion('inventario', 'Inventario: productos, precios y existencias', `
   <p>Pantalla <strong>Gestión Unificada de Códigos</strong>: totales con y sin código, filtros ${b('Todos')}, ${b('Con Código')} y ${b('Sin Código')}. ${b('Autogenerar Faltantes')} asigna códigos a todos los productos que no tienen (pide confirmación). Por fila, ${b('Editar o Generar Código')}. ${b('Imprimir Etiquetas')} abre la ventana de etiquetas: modo de selección (producto único, seleccionados, por categoría o todo el catálogo), tamaño (30×20, 50×25, 50×30, 60×40 mm o personalizado), cantidad por producto, campos visibles (marca, nombre, precio, SKU, código, QR), formato del código y vista previa; ${b('Mandar a Imprimir')} abre el PDF.</p>
 
   <h3 class="subsection-title">Almacenes y categorías</h3>
-  <p><strong>Gestión de Almacenes</strong> (pestañas ${b('Almacenes')} / ${b('Registrar')}): código, nombre, dirección y estado. Un almacén se ${b('Deshabilitar')} / ${b('Habilitar')}; borrarlo para siempre solo lo puede el rol Sistemas. <strong>Categorías</strong> (pestañas ${b('Categorías')} / ${b('Registrar')}): nombre, descripción y estado.</p>
+  <p><strong>Gestión de Almacenes</strong> (pestañas ${b('Almacenes')} / ${b('Registrar')}): código, nombre, dirección y estado. Un almacén se ${b('Deshabilitar')} / ${b('Habilitar')}. <strong>Categorías</strong> (pestañas ${b('Categorías')} / ${b('Registrar')}): nombre, descripción y estado.</p>
 
   <h3 class="subsection-title">Traslados — ${ruta('Inventario', 'Traslados')}</h3>
   ${pasos([
@@ -323,7 +345,7 @@ seccion('facturacion', 'Facturación electrónica (e-CF)', `
   ${pasos([
     `<strong>El comprobante:</strong> tipo de e-CF y método de pago — ${b('Efectivo / Caja')}, ${b('Crédito')} (pide la fecha límite pactada con el cliente) o ${b('Transferencia Bancaria')} (banco y número de referencia). Una venta en efectivo exige tener la <strong>caja abierta</strong>.`,
     `<strong>El cliente:</strong> búsquelo por razón social. Si no existe, regístrelo ahí mismo con ${b('Buscar DGII')} y ${b('Registrar Cliente')}.`,
-    `<strong>Los artículos:</strong> ${b('Agregar Fila')}, elija el producto y el nivel de precio (Base, Consumidor, Mayorista o Proveedor); el precio también se puede escribir. ${b('Desc. Unit.')} es un descuento en pesos <em>por unidad</em> (solo administración y sistemas). ITBIS 18 %, 16 %, Exento o Tasa 0 % de exportación. Si un producto no tiene existencia, se avisa pero se puede emitir: lo que no se podrá es aprobar el conduce hasta que entre mercancía.`,
+    `<strong>Los artículos:</strong> ${b('Agregar Fila')}, elija el producto y el nivel de precio (Base, Consumidor, Mayorista o Proveedor); el precio también se puede escribir. ${b('Desc. Unit.')} es un descuento en pesos <em>por unidad</em> (solo Administración). ITBIS 18 %, 16 %, Exento o Tasa 0 % de exportación. Si un producto no tiene existencia, se avisa pero se puede emitir: lo que no se podrá es aprobar el conduce hasta que entre mercancía.`,
     `<strong>Revisar y emitir:</strong> el resumen con un enlace «editar» por apartado, las notas de la factura y los totales. Pulse ${b('Emitir e Imprimir')} y confirme. La flecha del botón ofrece ${b('Solo Guardar')} (emite sin imprimir).`,
   ])}
   ${nota('<strong>No se vende por debajo del costo, contando el descuento.</strong> Si el precio menos el descuento por unidad queda por debajo del costo del producto, el precio se pone en rojo y la factura no se emite: «Con el descuento queda por debajo del costo (mínimo: RD$ X por unidad).» Justo en el costo sí se permite.', 'warn')}
@@ -358,6 +380,7 @@ seccion('ecf', 'Central e-CF, notas de crédito y débito', `
   <ul>
     <li>${b('CONSULTAR DGII')} pregunta a la DGII (vía mSeller) el estado de <strong>todo lo que cumple el filtro</strong>, no solo la página que se ve, y dice cuántos se consultaron y cuántos cambiaron de estado. Lo aceptado y lo dado de baja no se consulta. Solo consulta: nunca reenvía.</li>
     <li>${b('RECARGAR LISTA')} vuelve a leer la lista guardada; no pregunta nada a la DGII.</li>
+    <li>El filtro por tipo nombra cada comprobante como la DGII, por ejemplo «e-46 Exportaciones» y «e-47 Pagos al Exterior»; al registrar una secuencia, «E46 — Comprobante Electrónico para Exportaciones» y «E47 — Comprobante Electrónico para Pagos al Exterior».</li>
     <li>Marcando varias filas aparece una barra con ${b('Consultar DGII')} para esas.</li>
     <li>Si hay comprobantes sin respuesta hace rato, un aviso dice cuántos y cuánto lleva el más antiguo; ${b('Ver cuáles son')} los filtra. Un comprobante «Enviado» sí salió: no se reenvía.</li>
   </ul>
@@ -380,7 +403,7 @@ seccion('ecf', 'Central e-CF, notas de crédito y débito', `
   </ul>
 
   <h3 class="subsection-title">Cola DGII y Secuencias SACF</h3>
-  <p>${b('Cola DGII')} muestra los envíos en curso, con ${b('Actualizar')} y ${b('Reintentar todos')}. En ${b('Secuencias SACF')} se registran las autorizaciones de numeración de la DGII con ${b('Nueva Autorización')} y se activan o desactivan; editar una secuencia es exclusivo del rol Sistemas. Al llegar al 90 % de una secuencia, se avisa para pedir una nueva.</p>
+  <p>${b('Cola DGII')} muestra los envíos en curso, con ${b('Actualizar')} y ${b('Reintentar todos')}. En ${b('Secuencias SACF')} se registran las autorizaciones de numeración de la DGII con ${b('Nueva Autorización')} y se activan o desactivan. Para corregir una secuencia ya registrada, consulte con el administrador del sistema. Al llegar al 90 % de una secuencia, se avisa para pedir una nueva.</p>
 `);
 
 seccion('caja', 'Caja: apertura, arqueo y cierre', `
@@ -394,8 +417,8 @@ seccion('caja', 'Caja: apertura, arqueo y cierre', `
   ])}
 
   <h3 class="subsection-title">Durante el turno</h3>
-  <p>Las ventas y cobros en efectivo, los pagos a suplidores en efectivo y las compras en efectivo se anotan solos en la sesión. Para otros movimientos, ${b('Entrada de Efectivo')} o ${b('Salida de Efectivo')}, con monto y concepto. La tabla «Movimientos de Caja» lista todo; el botón de exportar descarga un <strong>CSV</strong> (fecha y hora, tipo, concepto, referencia y monto con signo) que abre en Excel.</p>
-  <p><strong>Arqueo a ciegas:</strong> solo Administración y Sistemas ven el «Balance Actual» de la caja. El resto ve «Se ve al cerrar la caja»: quien cuenta el dinero no sabe cuánto debería haber.</p>
+  <p>Las ventas y cobros en efectivo, los pagos a suplidores en efectivo y las compras en efectivo se anotan solos en la sesión. Para otros movimientos, ${b('Entrada de Efectivo')} o ${b('Salida de Efectivo')}, con monto y concepto. La tabla «Movimientos de Caja» lista todo; el icono «Exportar» descarga un <strong>CSV</strong> (fecha y hora, tipo, concepto, referencia y monto con signo) que abre en Excel; el total neto en caja solo va en el fichero de quien puede ver el saldo.</p>
+  <p><strong>Arqueo a ciegas:</strong> solo Administración ve el «Balance Actual» de la caja. El resto ve «Se ve al cerrar la caja»: quien cuenta el dinero no sabe cuánto debería haber.</p>
 
   <h3 class="subsection-title">Arqueo y cierre</h3>
   ${pasos([
@@ -406,7 +429,7 @@ seccion('caja', 'Caja: apertura, arqueo y cierre', `
   <p>Si hay diferencia, el cierre <strong>se registra igual</strong> y queda pendiente de aprobación: «Hay diferencia: el cierre queda registrado y pendiente de aprobación de un supervisor.» El panel de inicio avisa del faltante o sobrante hasta que un supervisor, en ${b('Histórico de Cierres')}, pulsa ${b('Dar por revisada la diferencia')}. El cierre no hace ningún asiento por la diferencia: a qué cuenta va un faltante lo decide el contador.</p>
 
   <h3 class="subsection-title">Histórico de Cierres</h3>
-  <p>Cada cierre con su apertura, terminal, esperado, real y diferencia, y las acciones ${b('Ver Detalle')}, ${b('Reimprimir')} y ${b('Dar por revisada la diferencia')}. Se filtra por fecha y estado, y ${b('EXPORTAR XLS')} descarga la lista (en formato CSV, que Excel abre).</p>
+  <p>Cada cierre con su apertura, terminal, esperado, real y diferencia, y las acciones ${b('Ver Detalle')}, ${b('Reimprimir')} y ${b('Dar por revisada la diferencia')}. Se filtra por fecha y estado, y ${b('EXPORTAR CSV')} descarga la lista en un fichero CSV, que Excel abre.</p>
 `);
 
 seccion('cobros', 'Cobros y cuentas por cobrar', `
@@ -428,7 +451,8 @@ seccion('cobros', 'Cobros y cuentas por cobrar', `
   <ul>
     <li>${b('Estado de Cuenta y Abonos')}: elija el cliente y verá, en orden de fecha, cada factura y cada abono con el balance acumulado; ${b('Imprimir Estado')}.</li>
     <li>${ruta('Ingresos', 'Cuenta por Cobrar')}: total por cobrar y balance vencido, filtro por cliente e ${b('Imprimir Reporte')}.</li>
-    <li><strong>Antigüedad de Saldos</strong> (clientes y suplidores): cada uno clasificado como «Al día», «En observación» o «Acción inmediata», ${b('Exportar CSV')} y el estado de cuenta de cada uno.</li>
+    <li>${ruta('Finanzas', 'Cuentas por Cobrar')} y ${ruta('Finanzas', 'Cuentas por Pagar')}: la lista de saldos de clientes y de suplidores; el botón ${b('CSV')} la descarga en un fichero que Excel abre.</li>
+    <li>${ruta('Finanzas', 'Antigüedad de Saldos')} (clientes y suplidores): cada uno clasificado como «Al día», «En observación» o «Acción inmediata», ${b('Exportar CSV')} y el estado de cuenta de cada uno.</li>
     <li>${ruta('Finanzas', 'E.C. Clientes (CxC)')} y ${ruta('Finanzas', 'E.C. Suplidores (CxP)')}: el auxiliar completo, imprimible entero, solo pendientes o solo vencidos.</li>
   </ul>
 `);
@@ -520,19 +544,86 @@ seccion('finanzas', 'Bancos y contabilidad', `
 `);
 
 seccion('rrhh', 'Recursos humanos y nómina', `
-  <p class="intro-lead">El grupo ${b('Recursos Humanos')} calcula la nómina con las retenciones de ley (TSS e ISR) y las prestaciones del Código de Trabajo.</p>
+  <p class="intro-lead">El grupo ${b('Recursos Humanos')} calcula la nómina con las retenciones de ley (TSS e ISR), la aprueba con su asiento contable y la paga desde un banco o desde la caja.</p>
   ${tabla(['Pantalla', 'Para qué'], [
     ['Dashboard RRHH', 'Empleados, costo mensual de nómina, aportes TSS del patrono, ISR retenido, vacaciones disponibles.'],
     ['Empleados', `Pestañas lista / ${b('Registrar')}: datos personales y laborales (contrato, frecuencia de pago, estado).`],
     ['Departamentos', 'Departamentos y cargos, cada lista con su botón Agregar.'],
-    ['Nominas', `${b('Generar Nómina')} (frecuencia y período); en el detalle ${b('Recalcular Todo')}, ${b('Aprobar Nómina')} y los volantes de pago.`],
+    ['Nominas', 'El ciclo de la nómina: generar, calcular, aprobar y pagar (ver abajo).'],
     ['Horas Extras y Adicionales', 'Pestañas Horas Extras, Ingresos Adicionales y Deducciones; lo que se registra es del tipo de la pestaña elegida.'],
     ['Vacaciones', 'Días generados, tomados y disponibles por empleado, según la escala del Art. 177 del Código de Trabajo.'],
     ['Liquidacion y Prestaciones', 'Preaviso, cesantía y vacaciones no tomadas, y el Salario de Navidad (doble sueldo), con impresión.'],
-    ['Configuracion de Ley', 'Porcentajes de TSS y de horas extras, tramos del ISR y topes de AFP, SFS y riesgos laborales.'],
+    ['Configuracion de Ley', 'Porcentajes de la TSS y de las horas extras, el salario mínimo de los topes de la TSS y la escala del ISR vigente (esta última, solo para consultar).'],
   ])}
-  ${nota('<strong>La nómina no genera asientos contables.</strong> Aprobarla cambia su estado y marca como procesadas las novedades del período, pero sueldos, TSS e ISR retenido no entran solos al libro mayor: el contador los registra con un asiento manual.', 'warn')}
-  <p>Los porcentajes y topes legales se mantienen en ${b('Configuracion de Ley')}; ${b('Restablecer')} vuelve a los valores de fábrica. Revíselos cuando cambien las tasas de la TSS o la escala del ISR.</p>
+
+  <h3 class="subsection-title">El ciclo de una nómina — ${ruta('Recursos Humanos', 'Nominas')}</h3>
+  <p>La pantalla <strong>Procesamiento de Nóminas</strong> lista las nóminas con su período, fecha de pago y estado. Por fila, el icono ${b('Ver Volantes')} abre el detalle y el icono ${b('Eliminar')} borra una nómina que aún no se ha aprobado. Una nómina pasa por estos estados:</p>
+  ${tabla(['Estado', 'Qué se puede hacer'], [
+    ['<strong>Calculada</strong>', `Revisar los volantes, ${b('Recalcular Todo')}, ${b('Aprobar Nómina')} o eliminarla.`],
+    ['<strong>Aprobada</strong>', `Sus importes quedan fijos y su asiento de devengo, registrado. Se puede ${b('Pagar nómina')}.`],
+    ['<strong>Pagada</strong>', 'Muestra su pago y el asiento del pago, y ya no admite cambios. En pantalla este estado aparece en inglés: «PAID».'],
+  ])}
+
+  <h4 class="mini">1. Generar y calcular</h4>
+  ${pasos([
+    `Pulse ${b('Generar Nómina')}. En la ventana «Generar Nómina de Período» elija la ${b('Frecuencia de la Nómina')} (Mensual, Quincenal o Semanal) y escriba la ${b('Fecha de Inicio del Período')}, la ${b('Fecha de Fin del Período')} y la ${b('Fecha Estimada de Pago')}.`,
+    `Pulse ${b('Generar y Calcular')}: «Nómina creada y calculada correctamente.» Se abre el detalle con un volante por empleado activo de esa frecuencia: salario base, horas extras, bonos y comisiones, AFP, SFS, ISR, otras deducciones y neto.`,
+    `Si algo cambió después (un empleado, una novedad del período), pulse ${b('Recalcular Todo')}. Solo se recalcula una nómina en borrador o calculada: una aprobada ya tiene sus importes fijos.`,
+  ])}
+  <p>${b('Imprimir Todos los Volantes')} saca los volantes de pago de todos los empleados.</p>
+
+  <h4 class="mini">2. Aprobar: el asiento de devengo</h4>
+  <p>${b('Aprobar Nómina')} solo aparece en una nómina <strong>calculada y con detalle</strong>. Pide confirmación («¿Está seguro de aprobar esta nómina? Esto bloqueará los montos y procesará todos los adicionales y descuentos del período.») y, al aceptar: «Nómina aprobada y asentada en el libro diario.»</p>
+  <p>Al aprobar, el sistema registra <strong>un asiento contable</strong> por la nómina entera, con la fecha del <strong>fin del período</strong> y los importes ya calculados en los volantes:</p>
+  ${tabla(['Debe (gasto de la empresa)', 'Haber (lo que se queda debiendo)'], [
+    ['Sueldos y Salarios — el bruto de los empleados', 'Sueldos por Pagar — el neto que se pagará a los empleados'],
+    ['Aportes Patronales TSS (AFP, SFS, SRL) — lo que aporta la empresa', 'TSS por Pagar (AFP, SFS, SRL) — lo retenido al empleado más lo que aporta la empresa'],
+    ['Aporte Infotep — lo que paga la empresa (1 % por defecto)', 'ISR Retenido a Asalariados (IR-3) — el ISR retenido'],
+    ['', 'Infotep por Pagar'],
+    ['', 'Otras deducciones de nómina — las demás deducciones de los empleados'],
+  ])}
+  <p>Las cuentas son las que la empresa tiene enlazadas en ${ruta('Sistema', 'Configuración')} › ${b('Cuentas Puente')}, bloque «Nómina». Una línea sin importe (por ejemplo, un ISR de 0) no sale en el asiento. Tras aprobar, el detalle de la nómina muestra el asiento —fecha, descripción, cada cuenta con su debe y su haber, y el total— con el enlace ${b('Ver en el Libro Diario')}.</p>
+
+  <h4 class="mini">3. Pagar</h4>
+  <p>En una nómina aprobada aparece ${b('Pagar nómina')}. Se paga <strong>el neto de todos los empleados, de una vez</strong>:</p>
+  ${pasos([
+    `En «De dónde sale el dinero» elija ${b('Transferencia')}, ${b('Cheque')} o ${b('Efectivo (caja)')}.`,
+    `Con transferencia o cheque, elija la ${b('Cuenta bancaria')} y escriba la ${b('Referencia de la transferencia')} o el ${b('Número del cheque')}. Es obligatorio: sin él, el retiro no se encuentra en el estado de cuenta al conciliar. Con efectivo, el dinero sale de la <strong>sesión de caja abierta</strong>.`,
+    `Revise la ${b('Fecha del pago')} (viene la de hoy y no puede ser futura) y pulse ${b('Pagar RD$ …')}: «Nómina pagada: el asiento y el movimiento quedaron registrados.»`,
+  ])}
+  <p>El pago registra su propio asiento, con la fecha del pago: <strong>debe Sueldos por Pagar / haber</strong> la cuenta contable del banco elegido o la Caja. Un pago por banco queda en el libro de ese banco como <strong>retiro pendiente de conciliar</strong>; uno en efectivo queda en la sesión de caja. La nómina pasa a pagada y su detalle muestra «Pagada el …», de dónde salió el dinero, el importe, quién lo registró y el asiento del pago.</p>
+  ${nota('<strong>La TSS, el IR-3 y el Infotep no se pagan aquí.</strong> Se pagan desde ' + ruta('Finanzas', 'Cuentas Bancarias') + ' › ' + b('Registrar Movimiento') + ' (tipo «Egreso (Transferencia)» o «Egreso (Retiro)»), eligiendo como ' + b('Cuenta Contable (Contrapartida)') + ' la cuenta por pagar que corresponde: TSS por Pagar, ISR Retenido a Asalariados por Pagar o Infotep por Pagar.')}
+
+  <h4 class="mini">Cuando el sistema se niega, y por qué</h4>
+  <p>Si algo impide un paso, la nómina <strong>no cambia</strong> y la pantalla dice el motivo: al generar o recalcular, en un aviso; al aprobar, además queda a la vista en el detalle; al pagar, dentro de la ventana de pago, que no se cierra.</p>
+  ${tabla(['Situación', 'Lo que dice la pantalla', 'Qué hacer'], [
+    ['No hay escala del ISR para el año de la nómina ni para uno anterior', '«Falta la escala del ISR de 2026: … Hay que cargar la escala vigente de la DGII antes de calcular.»', 'Consulte con el administrador del sistema.'],
+    ['Falta enlazar una cuenta de nómina', '«No se puede aprobar la nómina: la empresa no tiene enlazada la cuenta de nómina "…", y sin ella no se puede registrar su asiento. Enlácela en Configuración &gt; Cuentas Puente (bloque Nómina)…»', 'Enlazarla en Cuentas Puente, bloque «Nómina». Si la cuenta no aparece, consulte con el administrador del sistema.'],
+    ['El fin del período cae en un período contable cerrado o sin abrir', '«…en esa fecha no hay un período contable abierto, porque está cerrado o no se ha abierto todavía…»', 'Si no se ha abierto: ábralo en Contabilidad › Períodos Contables y vuelva a aprobar. Si está cerrado: <strong>la nómina no se aprueba en el sistema; el contador la asienta a mano</strong>.'],
+    ['El día del pago cae en un período cerrado o sin abrir', '«No se puede pagar la nómina con fecha …: en esa fecha no hay un período contable abierto…»', 'Elegir la fecha real del pago, o abrir el período.'],
+    ['La nómina ya está pagada', '«Esta nómina ya está pagada: no se paga dos veces.»', 'Nada: el pago ya consta en su detalle.'],
+    ['Pago en efectivo sin caja abierta', '«No hay una caja abierta para registrar el efectivo. Abra caja primero…»', 'Abrir la caja en el Módulo de Caja, o pagar por banco.'],
+    ['Aprobar una nómina sin empleados calculados', '«No se puede aprobar una nómina sin detalle…»', 'Recalcularla o eliminarla.'],
+  ])}
+  ${nota('Una nómina que se aprobó antes de que el sistema registrara este asiento lo dice en su detalle («Esta nómina se aprobó sin registrar asiento contable: su devengo lo asienta el contador a mano.») y no se puede pagar desde aquí: su devengo y su pago los asienta el contador.', 'warn')}
+
+  <h3 class="subsection-title">La escala del ISR</h3>
+  <p>El ISR de cada empleado se calcula sobre su sueldo menos AFP y SFS, llevado a un año. La escala vigente es la de <strong>2026</strong>, publicada por la DGII (Ley 11-92, art. 296, modificado por la Ley 30-26, art. 10):</p>
+  ${tabla(['Renta neta anual', 'ISR'], [
+    ['Hasta RD$ 416,220.00', 'Exento'],
+    ['RD$ 416,220.01 a RD$ 624,329.00', '15 % del excedente de RD$ 416,220.01'],
+    ['RD$ 624,329.01 a RD$ 867,123.00', 'RD$ 31,216.00 + 20 % del excedente de RD$ 624,329.01'],
+    ['RD$ 867,123.01 en adelante', 'RD$ 79,776.00 + 25 % del excedente de RD$ 867,123.01'],
+  ])}
+  <p>La escala se consulta en ${ruta('Recursos Humanos', 'Configuracion de Ley')} («Escala de ISR Anual (DGII)»). Si el año de la nómina no tiene escala propia, se usa la más reciente anterior y la pantalla avisa: «ISR calculado con la escala de 2026: la de 2027 no está cargada en el sistema. Revísela cuando la DGII publique la de 2027.»</p>
+
+  <h3 class="subsection-title">Topes y aportes de la TSS</h3>
+  <ul>
+    <li>En ${ruta('Recursos Humanos', 'Configuracion de Ley')} › «Topes de la TSS» está el ${b('Salario mínimo para los topes (RD$ mensual)')}, que viene en <strong>RD$ 10,000.00</strong>. Con él se calculan los topes de cotización: AFP hasta 20 salarios mínimos, SFS hasta 10 y riesgo laboral hasta 4. Si el campo aparece bloqueado, consulte con el administrador del sistema.</li>
+    <li><strong>Las horas extras y los bonos no cotizan a la TSS</strong>: la AFP y el SFS se calculan sobre el salario.</li>
+    <li>El 0,5 % de Infotep a cargo del empleado <strong>no se calcula</strong>; el aporte de la empresa, sí.</li>
+    <li>Los porcentajes (AFP, SFS, riesgo laboral, Infotep) y los recargos de horas extras se cambian en la misma pantalla con ${b('Guardar Cambios')}; ${b('Restablecer')} vuelve a los valores de fábrica.</li>
+  </ul>
 `);
 
 seccion('herramientas', 'Herramientas y soporte', `
@@ -542,22 +633,31 @@ seccion('herramientas', 'Herramientas y soporte', `
     <li><strong>Corte de Vidrio:</strong> con el tamaño de la lámina y los cortes requeridos, calcula cuántas planchas hacen falta y cómo acomodar las piezas.</li>
     <li><strong>QR Tienda Online:</strong> el código QR de la tienda en línea, con colores, logo y resolución; ${b('Descargar PNG/SVG')}, ${b('Copiar Enlace')} e ${b('Imprimir')}.</li>
   </ul>
-  ${nota('La pantalla «Soporte y Centro de Ayuda» tiene preguntas frecuentes. Su formulario de ticket todavía no envía el mensaje a nadie: para soporte, contacte directamente al equipo técnico.', 'warn')}
+
+  <h3 class="subsection-title">Soporte y Centro de Ayuda</h3>
+  <p>La pantalla tiene preguntas frecuentes y el formulario «Enviar Ticket de Soporte»:</p>
+  ${pasos([
+    `Elija la ${b('Categoría del Problema')} (Facturación e-CF, Módulo de Caja, Bancos y Cuentas o Configuración / Empresa), escriba el ${b('Asunto')} (una línea) y la ${b('Descripción del Problema')}.`,
+    `Pulse ${b('Enviar Mensaje')}. El ticket sale por correo <strong>al correo de la empresa</strong>, el que está en ${ruta('Sistema', 'Configuración')} › ${b('Configuración Empresa')}, con un número del tipo <strong>SOP-XXXXXX</strong>, su nombre y su correo. La respuesta le llega a su correo.`,
+    `Si salió: «Ticket SOP-… enviado», y debajo del formulario queda «Último ticket enviado: SOP-…». Lo escrito se borra solo cuando el ticket salió; si falla, la pantalla dice el motivo y conserva lo escrito para reintentar.`,
+  ])}
+  ${nota('Si la empresa no tiene un correo configurado, el ticket no sale y la pantalla lo dice: «Tu empresa no tiene un correo configurado en Configuración &gt; Empresa.»', 'warn')}
 `);
 
 seccion('configuracion', 'Configuración y administración', `
   <h3 class="subsection-title">Ajustes del Sistema — ${ruta('Sistema', 'Configuración')}</h3>
-  <p>Pestañas: ${b('Mi Perfil')} (su foto y sus datos), ${b('Configuración Empresa')}, ${b('Tienda')}, ${b('Cuentas Puente')}, ${b('Plan & Suscripción')} y ${b('Tipos de Gastos')}. Todas menos Mi Perfil son de Administración y Sistemas.</p>
+  <p>Pestañas: ${b('Mi Perfil')} (su foto y sus datos), ${b('Configuración Empresa')}, ${b('Tienda')}, ${b('Cuentas Puente')}, ${b('Plan & Suscripción')} y ${b('Tipos de Gastos')}. Todas menos Mi Perfil son de Administración.</p>
   <h4 class="mini">Configuración Empresa</h4>
   <ul>
-    <li><strong>Identidad Fiscal:</strong> nombre comercial, RNC, dirección, teléfono, correo y logo (sale en facturas y reportes). Nombre y RNC solo los cambia Sistemas una vez guardados.</li>
+    <li><strong>Identidad Fiscal:</strong> nombre comercial, RNC, dirección, teléfono, correo y logo (sale en facturas y reportes). Una vez guardados, el nombre y el RNC no se cambian desde aquí: consulte con el administrador del sistema. <strong>El correo de la empresa</strong> es también al que llegan los tickets de Soporte.</li>
     <li><strong>Avisos del sistema:</strong> el correo de destino de los avisos, o la casilla ${b('Usar el correo de la empresa')}. Vacío = sin avisos por correo.</li>
-    <li><strong>Integración mSeller API:</strong> las credenciales de facturación electrónica (se guardan cifradas y no se vuelven a mostrar).</li>
-    <li><strong>Parámetros Operativos:</strong> ${b('Modo del sistema')} (Pruebas o Producción), formato de impresión predeterminado (Carta, Ticket 80 mm o 58 mm) y copias, conduces automáticos, límites y códigos de barra (tipo, prefijo y longitud).</li>
+    <li><strong>Integración mSeller API:</strong> la conexión con la facturación electrónica. Aquí solo se consulta; para cualquier cambio, consulte con el administrador del sistema.</li>
+    <li><strong>Parámetros Operativos:</strong> formato de impresión predeterminado (Carta, Ticket 80 mm o 58 mm) y copias, conduces automáticos, límites y códigos de barra (tipo, prefijo y longitud). Se ve también el ${b('Modo del sistema')} (Pruebas o Producción), que no cambia el usuario.</li>
   </ul>
   <p>Al terminar, ${b('Guardar Cambios')}.</p>
   <h4 class="mini">Cuentas Puente</h4>
-  <p>Aquí el contador elige a qué cuenta del catálogo va cada asiento automático. Están agrupadas en cinco bloques: <strong>Caja, bancos y tarjetas · Clientes y ventas · Inventario y costo · Compras y proveedores · Impuestos y retenciones</strong>, cada uno con una línea que dice qué alimenta. El sistema no lleva códigos de cuenta fijos: si una cuenta no es la correcta, se corrige aquí. ${b('Guardar Cuentas Puente')}.</p>
+  <p>Aquí el contador elige a qué cuenta del catálogo va cada asiento automático. Están agrupadas en seis bloques: <strong>Caja, bancos y tarjetas · Clientes y ventas · Inventario y costo · Compras y proveedores · Impuestos y retenciones · Nómina</strong>, cada uno con una línea que dice qué alimenta. El sistema no lleva códigos de cuenta fijos: si una cuenta no es la correcta, se corrige aquí. ${b('Guardar Cuentas Puente')}.</p>
+  <p>El bloque <strong>Nómina</strong> («Sueldos, aportes a la TSS, Infotep y retenciones de ISR de los empleados: lo que la nómina asienta al aprobarse y paga después») tiene ocho cuentas: <em>Sueldos y Salarios</em>, <em>Aportes Patronales TSS (AFP, SFS, SRL)</em> y <em>Aporte Infotep</em> (gastos); <em>Sueldos por Pagar</em>, <em>TSS por Pagar (AFP, SFS, SRL)</em>, <em>ISR Retenido a Asalariados (IR-3)</em>, <em>Infotep por Pagar</em> y <em>Otras deducciones de nómina</em> (lo que se debe). Si falta enlazar alguna de las que el asiento necesita, la nómina no se puede aprobar.</p>
   <h4 class="mini">Tipos de Gastos</h4>
   <p>Los tipos del 606. Los códigos 01 a 10 son estándar de la DGII y solo se pueden desactivar; ${b('Crear Tipo de Gasto')} añade otros (código de 2 dígitos).</p>
   <h4 class="mini">Tienda y Plan</h4>
@@ -567,10 +667,8 @@ seccion('configuracion', 'Configuración y administración', `
   <p>Pantalla <strong>Gestión de Acceso y Planes</strong>:</p>
   <ul>
     <li>${b('Usuarios')}: ${b('Nuevo Usuario')} (nombre, correo, contraseña inicial de 6 caracteres o más, rol). Al editar, el campo de contraseña en blanco no la cambia; si se cambia, <strong>se cierran todas las sesiones de ese usuario</strong>. Un usuario se puede suspender y volver a activar.</li>
-    <li>${b('Sesiones Activas')} (solo Sistemas): ver y cerrar sesiones a distancia.</li>
-    <li>${b('Roles del Sistema')} y ${b('Mi Suscripción')}.</li>
+    <li>${b('Roles del Sistema')} (los roles y su descripción) y ${b('Mi Suscripción')} (el plan contratado).</li>
   </ul>
-  <p><strong>Empresas</strong> (${ruta('Sistema', 'Empresas')}, solo Sistemas): pestañas de lista y ${b('Registrar')}; por empresa, gestionar su suscripción, limpiar sus datos de prueba (hay que escribir el nombre para confirmar) o desactivarla.</p>
 `);
 
 seccion('tienda', 'La tienda en línea', `
@@ -583,7 +681,7 @@ seccion('tienda', 'La tienda en línea', `
     <li><strong>Menú:</strong> «Todos los productos», las categorías con más productos y «Promociones» solo si hay alguna oferta.</li>
     <li><strong>Portada:</strong> el anuncio de arriba (si hay), título, texto e imagen configurables, «Compra por categoría» y «Nuestros productos».</li>
     <li><strong>Catálogo:</strong> filtro por categoría, búsqueda por nombre y ${b('Ordenar por:')} Relevancia, Precio: menor a mayor, Precio: mayor a menor o Nombre: A a Z. Los precios se muestran sin ITBIS («+ ITBIS»); si hay oferta, sale la etiqueta «Oferta» con el precio anterior tachado.</li>
-    <li><strong>Ficha del producto:</strong> foto, precio, descripción, cantidad y ${b('Añadir a mi cotización')}.</li>
+    <li><strong>Ficha del producto:</strong> foto, precio, descripción, cantidad y ${b('Añadir a mi cotización')}. Debajo lo dice la propia ficha: «Tu cotización se guarda en este navegador para imprimirla o guardarla en PDF.» No se envía a la empresa.</li>
     <li><strong>Favoritos:</strong> el corazón guarda el producto en ese navegador (en otro dispositivo se empieza sin favoritos).</li>
   </ul>
 
@@ -591,7 +689,7 @@ seccion('tienda', 'La tienda en línea', `
   <p>Muestra cada producto con su precio de hoy (siempre el del catálogo, nunca uno guardado en el navegador), la cantidad y el importe; abajo «Subtotal», «ITBIS (18 %)» y «Total». Si un producto ya no se vende, se avisa con su nombre y no suma. ${b('Imprimir cotización')} abre la impresión del navegador (desde ahí también se guarda en PDF): el papel lleva el nombre, RNC, teléfono, correo y dirección de la empresa, la fecha y la nota «Esta cotización no es una factura ni un comprobante fiscal».</p>
 
   <h3 class="subsection-title">Configurar la portada — ${ruta('Sistema', 'Configuración')} › pestaña ${b('Tienda')}</h3>
-  <p>Solo administración y sistemas. La tarjeta «Portada de la tienda» tiene un enlace ${b('Ver la tienda')} y cuatro campos; <strong>un campo vacío usa lo de siempre</strong>:</p>
+  <p>Solo Administración. La tarjeta «Portada de la tienda» tiene un enlace ${b('Ver la tienda')} y cuatro campos; <strong>un campo vacío usa lo de siempre</strong>:</p>
   ${tabla(['Campo', 'Tope', 'Si se deja vacío'], [
     ['Anuncio de arriba', '120 caracteres, una línea', 'No hay barra de anuncio'],
     ['Título', '80 caracteres, una línea', '«Bienvenido a &lt;empresa&gt;»'],
