@@ -25,6 +25,10 @@
 import fs from 'fs';
 import path from 'path';
 import { leerPantallaDeCaja } from './pantallaDeCaja';
+import { leerPantallaDeNomina } from './pantallaDeNomina';
+//  Lote 294: la pagina de nomina esta partida (hooks/ y components/); se lee la pantalla entera.
+const leerF = (f: string): string =>
+  f === 'src/app/dashboard/hr/payroll/page.tsx' ? leerPantallaDeNomina(path.join(__dirname, '..')) : fs.readFileSync(f, 'utf8');
 
 let fallos = 0;
 function ok(t: string, x: boolean): void {
@@ -137,13 +141,13 @@ const MEZCLADOS = [
 //  se cumpliria por vacio.
 for (const f of MEZCLADOS) {
   if (!fs.existsSync(f)) throw new Error(`No existe ${f}: la lista de ficheros mezclados quedo obsoleta.`);
-  if (!/toLocaleString/.test(fs.readFileSync(f, 'utf8'))) {
+  if (!/toLocaleString/.test(leerF(f))) {
     throw new Error(`${f} ya no tiene ningun toLocaleString de importe: revisa la lista.`);
   }
 }
 ok(`los ${MEZCLADOS.length} ficheros que mezclan fechas e importes convirtieron SOLO las fechas`,
    MEZCLADOS.every(f => {
-     const t = fs.readFileSync(f, 'utf8');
+     const t = leerF(f);
      return /format(Date|DateTime|Time)Display\s*\(/.test(t) && /toLocaleString\s*\(/.test(t);
    }));
 ok(`ningun importe acabo pasando por un formateador de fecha  (importes: ${numeros.length})`,
@@ -223,7 +227,7 @@ if (manipulan.length) for (const f of manipulan) console.log(`        ${f}`);
 console.log('\nE. UNAS CUANTAS PANTALLAS, UNA A UNA');
 // ─────────────────────────────────────────────────────────────────────────
 const tiene = (f: string, t: string): boolean =>
-  fs.existsSync(f) && fs.readFileSync(f, 'utf8').includes(t);
+  fs.existsSync(f) && leerF(f).includes(t);
 
 ok('CxC: el vencimiento de la factura',
    tiene('src/app/dashboard/receivables/page.tsx', 'formatDateDisplay(inv.dueDate)'));

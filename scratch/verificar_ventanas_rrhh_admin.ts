@@ -34,6 +34,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
 import { join, resolve } from 'path';
 import { enCommit, huella, diferencia } from './huellaDePantalla';
+import { leerPantallaDeNomina } from './pantallaDeNomina';
 
 const raiz = resolve(__dirname, '..');
 const BASE = 'ab9e5fd' /* lote 276: commit fijo, la rama se borro al fusionar */;
@@ -143,7 +144,8 @@ async function main() {
   for (const f of FICHEROS) if (!existsSync(resolve(raiz, f))) throw new Error(`Precondicion: no esta ${f}`);
   //  Precondicion valida en los dos estados: la ventana comun existe (la trae la base).
   if (!/export function Modal\b/.test(leer('src/components/ui/dialog.tsx'))) throw new Error('Precondicion: no esta el Modal comun');
-  const fuentes = new Map(FICHEROS.map((f) => [f, leer(f)] as const));
+  //  Lote 294: la pagina de nomina esta partida (hooks/ y components/); se lee la pantalla entera.
+  const fuentes = new Map(FICHEROS.map((f) => [f, f === 'src/app/dashboard/hr/payroll/page.tsx' ? leerPantallaDeNomina(raiz).replace(/\r\n/g, '\n') : leer(f)] as const));
 
   console.log('\n1) Ningun `fixed inset-0` de ventana en el grupo\n');
   const sueltas = barrido().filter((f) => /fixed inset-0/.test(sinComentarios(leer(f))));
