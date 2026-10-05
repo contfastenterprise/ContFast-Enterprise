@@ -17,6 +17,14 @@ export async function GET(req: NextRequest) {
     let mappings = await db.select().from(routeMappings);
 
     // Auto-reconciliation of missing default route mappings (self-healing)
+    //
+    //  LOTE 289: se compara por RUTA, no por ruta + modulo, a proposito. Una ruta que no
+    //  esta en la base entra con TODAS sus filas de la siembra (antiguedad-saldos: las
+    //  dos). Pero si la base ya tiene la ruta con otro modulo, aqui no se añade nada:
+    //  comparar tambien el modulo haria que esta reparacion, que corre sola y alcanza a
+    //  las seis empresas (la tabla no tiene `company_id`), AÑADIERA permisos en cuanto la
+    //  base y la siembra discreparan. Una ruta a la que le falta una de sus filas no se
+    //  repara sola; se arregla a mano.
     const missingMappings = DEFAULT_ROUTE_MAPPINGS.filter(
       (def) => !mappings.some((m) => m.routePattern === def.routePattern)
     );

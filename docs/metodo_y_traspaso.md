@@ -2662,6 +2662,46 @@ Además, fuera de la tabla:
   `main` en que se comprobaron), como en los lotes 227 y 230; un mutante que vuelve a leer `HEAD` los
   rompe. Los otros tres rojos (`gancho_y_compras`, `p3_48`, `padron_de_rnc`) son los falsos conocidos
   de un worktree.
+- **Lote 289: los permisos de la siembra del menú, iguales a la base — y una guarda que solo leía
+  una fila.** Decisión del dueño (2026-10-04) sobre lo que el 286 dejó fuera por ser permiso: en
+  `src/constants/defaultMappings.ts`, `/dashboard/financial/accounts-receivable` pasa de `caja` a
+  **`cobros`**, `accounts-payable` de `caja` a **`proveedores`**, y entran las **dos** filas de
+  `/dashboard/antiguedad-saldos` (`cobros` y `proveedores`, lote 190) con nombre, grupo, icono,
+  orden (51), acción e `is_menu_item` de la base. Los valores son los medidos y congelados en el
+  286; no hizo falta volver a la base. **La siembra es ahora igual a la base fila por fila, con
+  repetidos.** Ids nuevos `40a` y `40b`, y de paso el `'35'` doble del 286 se deshace (Desglose
+  Puertas pasa a `29b`): los ids de la siembra no llegan a la base (`seed-routes` y la reparación
+  ponen un uuid), solo tienen que ser únicos.
+  **Lo que salió al mirar quién lee dos filas con la misma ruta**: el menú (`buildSidebar`, una
+  entrada por fila; el sidebar y `unaEntradaPorRuta` quitan la repetida), `seed-routes` (inserta
+  todas) y la reparación de faltantes (una ruta ausente entra con todas sus filas) las admitían.
+  **`canAccessRoute` no**: se quedaba con la PRIMERA fila que casaba. Con las filas de PRODUCCIÓN,
+  a `compras` (solo `proveedores`) o a `facturacion` (solo `cobros`) el menú le ofrecía Antigüedad
+  de Saldos y la guarda de rutas lo mandaba a /403 **según el orden en que la base devolviera las
+  filas** — ejecutado: con un orden entra uno, con el contrario el otro. Ahora decide el patrón más
+  específico (el más largo, como antes) con **todas** sus filas: basta el permiso de una
+  (`src/utils/filasDeLaRuta.ts`, puro, y `rbacContext` lo llama). `RbacService.resolveRoutePermission`
+  tiene la misma forma pero **no lo llama nadie**: se deja, anotado aquí.
+  **Lo que NO se cambió, a propósito**: la reparación de `auth/route-mappings` sigue comparando por
+  RUTA y no por ruta + módulo. Corre sola y alcanza a las seis empresas; comparando también el
+  módulo, AÑADIRÍA permisos en cuanto base y siembra discreparan. Una ruta a la que le falta una de
+  sus filas no se repara sola (comentario en la ruta).
+  **Quién entra (`canAccessRoute`) y quién lo ve en el menú, con la siembra y los permisos por
+  defecto de cada rol** (sistemas y administración, todo, antes y después):
+  CxC de Finanzas — antes entraban facturacion y cajero (`caja`), ahora contabilidad, facturacion y
+  banco (`cobros`); en el menú, contabilidad pasa a verla (la restricción de `/dashboard/financial`
+  ya la limitaba a contabilidad). CxP — antes facturacion y cajero, ahora contabilidad, banco y
+  compras; mismo cambio en el menú. Antigüedad de Saldos — antes, sin fila, entraba todo el mundo y
+  no salía en el menú de nadie; ahora entran y la ven contabilidad, facturacion, banco y compras, y
+  ni cajero ni recursos_humanos. **Con la base de PRODUCCIÓN nada de esto cambia** (ya tenía esos
+  módulos), salvo el /403 por orden de filas, que se cierra.
+  Banco `verificar_permisos_como_la_base.ts` (siembra, regla y `buildSidebar` ejecutados): 18
+  comprobaciones y tres invariantes, contraprueba **18 FALLA** contra `bac5a91`, diez mutantes y
+  diez muertos — **uno sobrevivió primero**: quitar la guarda de longitud (gana el último patrón
+  que casa en vez del más largo) pasaba, porque en la siembra `/dashboard/financial%` va antes que
+  CxC; ahora se prueba en los dos órdenes. Y `verificar_menu_como_la_base.ts` cambia sus dos
+  invariantes tolerantes por la igualdad completa (ok: falla contra `bac5a91`), y "ningún nombre del
+  menú repetido" pasa a contarse por **pantalla**: antigüedad son dos filas de la misma.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás

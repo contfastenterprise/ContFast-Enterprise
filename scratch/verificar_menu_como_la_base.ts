@@ -12,9 +12,12 @@
  * no tiene `company_id`: es la misma para las seis empresas. Si el dueño renombra algo en
  * la base, este banco no lo sabra hasta que se vuelva a medir y se actualice `MEDIDA`.
  *
- * Lo que se alinea: NOMBRE, GRUPO e `is_menu_item`. Lo que NO (y va de invariante, para
- * que nadie lo "arregle" de pasada): el `module` de dos rutas y las dos filas de
- * `antiguedad-saldos`, que son PERMISOS, no nombres.
+ * Lo que se alinea: NOMBRE, GRUPO e `is_menu_item`. El lote 286 dejo fuera, por ser
+ * PERMISOS, el `module` de dos rutas y las dos filas de `antiguedad-saldos`; el lote 289
+ * (decision del dueño, 2026-10-04) las iguala, y desde entonces este banco exige la
+ * igualdad COMPLETA: siembra igual a la base fila por fila, con repetidos. El detalle de
+ * los permisos (quien entra y quien lo ve en el menu) lo ejecuta
+ * `verificar_permisos_como_la_base.ts`.
  *
  * Se ejecuta con: npx tsx scratch/verificar_menu_como_la_base.ts
  */
@@ -76,14 +79,6 @@ const MEDIDA: Fila[] = [
   ['/dashboard/admin', 'Administracion', 'Sistema', 'administracion', 'read', true, 'Shield', 40],
 ];
 
-/** Diferencias de PERMISO conocidas y dejadas a proposito (no son de este lote). */
-const MODULO_DISTINTO_A_PROPOSITO: Record<string, [siembra: string, base: string]> = {
-  '/dashboard/financial/accounts-receivable%': ['caja', 'cobros'],
-  '/dashboard/financial/accounts-payable%': ['caja', 'proveedores'],
-};
-/** Rutas que estan en la base y no en la siembra (dos filas, una por modulo: lote 190). */
-const SOLO_EN_LA_BASE = ['/dashboard/antiguedad-saldos%'];
-
 let fallos = 0;
 let rotas = 0;
 const ok = (t: string, c: boolean) => { console.log(`${c ? '  OK  ' : ' FALLA'}  ${t}`); if (!c) fallos++; };
@@ -121,7 +116,10 @@ async function main() {
   ok(`toda fila de la siembra coincide con la base en nombre, grupo, menu, icono y orden${distintas.length ? ` (distintas: ${distintas.join(', ')})` : ''}`, distintas.length === 0);
 
   //  3. Ningun nombre del menu repetido en la siembra (el defecto que el lote 190 cerro en la base).
-  const delMenu = siembra.filter((s) => s.isMenuItem).map((s) => s.displayName);
+  //  Por PANTALLA, no por fila: antiguedad-saldos son dos filas de la misma pantalla (lote
+  //  190), y el menu y el buscador ya pintan una (`unaEntradaPorRuta`). Lo que el 190 cerro
+  //  fue un mismo nombre para DOS pantallas distintas.
+  const delMenu = [...new Map(siembra.filter((s) => s.isMenuItem).map((s) => [s.routePattern, s.displayName])).values()];
   const repetidos = delMenu.filter((n, i) => delMenu.indexOf(n) !== i);
   ok(`ningun nombre del menu repetido en la siembra${repetidos.length ? ` (${repetidos.join(', ')})` : ''}`, repetidos.length === 0);
 
@@ -146,18 +144,20 @@ async function main() {
   const ecfBase = enLaBase('/dashboard/ecf%')[0];
   ok('menuLateral.vitest.ts pone Comprobantes Fiscales en su grupo de la base', ecf[1] === ecfBase[1] && ecf[2] === ecfBase[2]);
 
+  //  7. Lote 289: la igualdad COMPLETA. Cada fila entera (ruta, nombre, grupo, modulo,
+  //  accion, menu, icono y orden), contada con sus repetidos: antiguedad-saldos son DOS filas
+  //  en la base y tienen que ser dos aqui, no una ni tres.
+  const clave = (f: Fila) => JSON.stringify(f);
+  const comoFila = (s: Siembra): Fila => [s.routePattern, s.displayName, s.groupName, s.module, s.action, s.isMenuItem, s.iconName, s.orderIndex];
+  const contar = (filas: Fila[]) => filas.reduce((m, f) => m.set(clave(f), (m.get(clave(f)) ?? 0) + 1), new Map<string, number>());
+  const cuentaBase = contar(MEDIDA);
+  const cuentaSiembra = contar(siembra.map(comoFila));
+  const sobran = [...cuentaSiembra].filter(([k, n]) => (cuentaBase.get(k) ?? 0) !== n).map(([k]) => JSON.parse(k)[0] as string);
+  const faltan = [...cuentaBase].filter(([k, n]) => (cuentaSiembra.get(k) ?? 0) !== n).map(([k]) => JSON.parse(k)[0] as string);
+  ok(`siembra igual a la base en TODO, fila por fila y con repetidos${sobran.length + faltan.length ? ` (solo en la siembra: ${[...new Set(sobran)].join(', ') || '-'}; solo en la base: ${[...new Set(faltan)].join(', ') || '-'})` : ''}`,
+    sobran.length === 0 && faltan.length === 0 && siembra.length === MEDIDA.length);
+
   //  INVARIANTES: lo que el lote NO toca. Ciertos antes y despues.
-  const modulosDistintos = siembra.filter((s) => {
-    const b = enLaBase(s.routePattern);
-    return b.length > 0 && !b.some((f) => f[3] === s.module && f[4] === s.action);
-  }).map((s) => s.routePattern).sort();
-  invariante('el modulo y la accion de la siembra no cambian: solo difieren las dos rutas conocidas',
-    JSON.stringify(modulosDistintos) === JSON.stringify(Object.keys(MODULO_DISTINTO_A_PROPOSITO).sort())
-    && Object.entries(MODULO_DISTINTO_A_PROPOSITO).every(([r, [s, b]]) => deLaSiembra(r)?.module === s && enLaBase(r)[0][3] === b));
-  const soloBase = [...new Set(MEDIDA.map((f) => f[0]).filter((r) => !deLaSiembra(r)))];
-  const soloSiembra = siembra.map((s) => s.routePattern).filter((r) => enLaBase(r).length === 0);
-  invariante('las mismas rutas en los dos lados, salvo antiguedad-saldos (solo en la base)',
-    JSON.stringify(soloBase) === JSON.stringify(SOLO_EN_LA_BASE) && soloSiembra.length === 0);
   invariante('BI y el Agente siguen fuera del menu (lote 208)',
     deLaSiembra('/dashboard/bi%')?.isMenuItem === false && deLaSiembra('/dashboard/proposals%')?.isMenuItem === false);
 
