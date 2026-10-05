@@ -3448,6 +3448,42 @@ Además, fuera de la tabla:
   (192) y `verificar_selector_en_cabecera` (193), que además exigían `entorno !== 'PROD'` en el menú para
   el hueco. El banco del lote gana cuatro comprobaciones (sin franja, mismo hueco en contenido y menú, sin
   el estado), con contraprueba 6 FALLA contra la primera mitad del lote y mutantes muertos.
+- **Lote 302: el manual de usuario con los planes y la prueba gratis, versión 3.2.** Pedido del dueño
+  (2026-10-05). Solo `scripts/generate-manual.js` y el PDF: **30 páginas, 16 secciones** (eran 27 y 15).
+  Cada dato se comprobó en el código (`services/suscripcion/planVigente.ts`, `periodoDePrueba.ts`,
+  `settings/components/PlanYSuscripcion.tsx`, `avisoDelPanel.ts` y las rutas que llaman a la regla), no en
+  este documento.
+  · **Sección 15 nueva, «Planes, prueba gratis y límites»**, después de Configuración: qué enseña la
+    pestaña «Plan & Suscripción» (estado, «Quedan N días», «e-CF de este mes» N de M con su porcentaje y el
+    color al 80 % y al 100 %, usuarios activos y almacenes contra su límite, «Planes Disponibles»); una tabla
+    con los seis rótulos del estado (Prueba, Activo, Por empezar, Vencido, Pago pendiente, Cancelado) y que
+    solo los dos primeros son vigentes; la prueba gratis (30 días desde el registro, el Plan Básico: 100 /
+    2 / 1); qué cuenta para el límite de e-CF (PRODUCCIÓN, salidos a la DGII, rechazados incluidos; ni
+    borradores ni PRUEBA; mes calendario de RD; un rechazado reenviado no cuenta dos veces); usuarios
+    (también reactivar) y almacenes (cuentan los deshabilitados); el vencimiento (aviso desde 5 días antes,
+    en el panel y por correo) con una tabla de lo que se bloquea y lo que sigue; y los mensajes reales de
+    los cinco bloqueos (más pago pendiente y cancelado), copiados del código y recortados con «…» donde
+    repiten el párrafo de lo bloqueado.
+  · **Una línea donde la acción se bloquea**: Facturación (una nota antes de la del costo), asiento
+    manual, nómina (calcular, recalcular, aprobar y pagar; eliminar no), almacenes, usuarios, y dos filas
+    en la tabla de avisos del inicio (plan y e-CF del mes).
+  · **Sin nada del rol Sistemas**: ni Administración > Planes ni la casilla «Plan de prueba» ni asignar
+    suscripciones. Contratar, cambiar o renovar: «consulte con el administrador del sistema».
+  · **Lote 301 (cabecera en PRUEBA)**: el manual no describía la barra negra; solo el punto y la franja
+    «MODO PRUEBA (SANDBOX)…», que se quedan. Nada que cambiar.
+  **Se miró** con PyMuPDF: índice, inicio, Facturación, nómina, Configuración y las tres páginas de Planes.
+  Mirarlo cazó tres cosas que el índice no ve: las filas nuevas de avisos empujaban la nota de WhatsApp a
+  una página 6 sola (se quedaron en dos filas cortas); Configuración pasaba a dos páginas por una viñeta
+  (Administración pasa a un párrafo, como en el 296); y el párrafo de «Los mensajes que se ven» se quedaba
+  solo al pie de una página con su tabla en la siguiente (van juntos, `page-break-inside: avoid`).
+  **Desfase del código visto y no tocado**: Administración › «Mi Suscripción» (lo que ve quien no es
+  Sistemas) sigue rotulando «Plan de Suscripción Activo» y «Suscripción Activa» aunque el plan esté vencido,
+  y sin plan dice «No se encontró una suscripción activa» — la pantalla de antes del 299. El manual la
+  menciona solo por sus límites y remite a «Plan & Suscripción». **Y un matiz**: los mensajes de «sin plan»
+  dicen «Contacte a soporte»; el manual los copia así y añade «consulte con el administrador del sistema».
+  **Trampa repetida**: `sed -i` en Git Bash pasó el guion de CRLF a LF entero sin avisar; se devolvió con
+  Python. Y un guion de Python con `"\n"` escrito desde Bash metió saltos de línea reales en las cadenas:
+  se usa `chr(10)`.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -4637,5 +4673,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 298 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 302 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
