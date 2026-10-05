@@ -210,11 +210,18 @@ function main() {
     'src/app/dashboard/purchases/page.tsx': { faltan: ['texto:Cerrar Ventana'], sobran: ['texto:Lector OCR (Subir Factura)'] },
   };
   const quitar = (xs: string[], ys: string[]) => { const r = [...xs]; for (const y of ys) { const i = r.indexOf(y); if (i >= 0) r.splice(i, 1); else r.push(`(anotado y no visto) ${y}`); } return r; };
+  //  LOTE 285: se comparan DOS COMMITS, no la carpeta (como en los lotes 227 y 230). El 285 cambia a
+  //  proposito un texto del historico de caja ("EXPORTAR XLS" -> "EXPORTAR CSV"); la prueba de este
+  //  lote -- y de lo anotado del 279 -- sigue siendo la misma entre 57f741d y 696854e, el ultimo main
+  //  en que se comprobo.
+  const DESPUES = '696854e';
   const distintos: string[] = [];
   for (const f of FICHEROS) {
     let antes = '';
+    let despues = '';
     try { antes = enCommit(BASE, f); } catch { distintos.push(`${f}: no existe en ${BASE}`); continue; }
-    let { faltan, sobran } = diferencia(visible(antes), visible(fuentes.get(f)!));
+    try { despues = enCommit(DESPUES, f); } catch { continue; }
+    let { faltan, sobran } = diferencia(visible(antes), visible(despues));
     if (ANOTADOS[f]) { faltan = quitar(faltan, ANOTADOS[f].faltan); sobran = quitar(sobran, ANOTADOS[f].sobran); }
     if (faltan.length || sobran.length) distintos.push(`${f.split('/').slice(-2).join('/')}: faltan ${JSON.stringify(faltan.slice(0, 2))} sobran ${JSON.stringify(sobran.slice(0, 2))}`);
   }
