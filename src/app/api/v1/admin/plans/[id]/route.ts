@@ -4,6 +4,7 @@ import { checkRateLimit } from '@/middleware/rateLimiter';
 import { db, plans } from '@/db';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { FaltaMigracionPlanDePrueba, hayColumnaPlanDePrueba, marcarPlanDePrueba, planesMarcados } from '@/services/suscripcion/planDePrueba';
 
 const updatePlanSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').optional(),
@@ -13,6 +14,8 @@ const updatePlanSchema = z.object({
   maxUsers: z.number().int().min(-1).optional(),
   maxWarehouses: z.number().int().min(-1).optional(), // Lote 299: -1 = ilimitado
   active: z.boolean().optional(),
+  // Lote 300: la casilla "Plan de prueba" (columna de la 0022, fuera del esquema de Drizzle).
+  esPlanDePrueba: z.boolean().optional(),
 });
 
 export async function PUT(
@@ -73,10 +76,24 @@ export async function PUT(
     if (parsed.data.maxWarehouses !== undefined) updateData.maxWarehouses = parsed.data.maxWarehouses;
     if (parsed.data.active !== undefined) updateData.active = parsed.data.active;
 
-    const [updatedPlan] = await db.update(plans)
-      .set(updateData)
-      .where(eq(plans.id, id))
-      .returning();
+    // Lote 300: sin la 0022 no se puede marcar; se dice antes de cambiar nada.
+    if (parsed.data.esPlanDePrueba && !(await hayColumnaPlanDePrueba(db))) {
+      return NextResponse.json(
+        { success: false, error: { code: 'MIGRACION_PENDIENTE', message: new FaltaMigracionPlanDePrueba().message } },
+        { status: 409 }
+      );
+    }
+
+    // En UNA transaccion: el plan y, si se marca, desmarcar el anterior.
+    const updatedPlan = await db.transaction(async (tx) => {
+      const [actualizado] = await tx.update(plans)
+        .set(updateData)
+        .where(eq(plans.id, id))
+        .returning();
+      if (parsed.data.esPlanDePrueba !== undefined) await marcarPlanDePrueba(tx, id, parsed.data.esPlanDePrueba);
+      const marcados = await planesMarcados(tx);
+      return { ...actualizado, esPlanDePrueba: marcados?.has(id) ?? false };
+    });
 
     return NextResponse.json({ success: true, data: updatedPlan }, { headers: resHeaders });
   } catch (err: unknown) {

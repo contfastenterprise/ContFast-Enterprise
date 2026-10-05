@@ -5,6 +5,9 @@ import { db, plans } from '@/db';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { enforcePermission } from '@/middleware/permissions';
+import {
+  FaltaMigracionPlanDePrueba, MIGRACION_PLAN_DE_PRUEBA, hayColumnaPlanDePrueba, marcarPlanDePrueba, planesMarcados,
+} from '@/services/suscripcion/planDePrueba';
 
 const createPlanSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
@@ -15,6 +18,8 @@ const createPlanSchema = z.object({
   // Lote 299: -1 es ilimitado tambien aqui, como en e-CF y usuarios (la pantalla ya lo enseñaba).
   maxWarehouses: z.number().int('Debe ser entero').min(-1, 'Debe ser -1 (ilimitado) o mayor'),
   active: z.boolean().optional().default(true),
+  // Lote 300: la casilla "Plan de prueba" (columna de la 0022, fuera del esquema de Drizzle).
+  esPlanDePrueba: z.boolean().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -38,7 +43,14 @@ export async function GET(req: NextRequest) {
     await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'administracion', 'read');
 
     const allPlans = await db.select().from(plans).orderBy(plans.price);
-    return NextResponse.json({ success: true, data: allPlans }, { headers: resHeaders });
+    // Lote 300: cual es el plan de prueba. `null` = la base no tiene la 0022 y la
+    // pantalla ofrece la casilla deshabilitada, con el motivo.
+    const marcados = await planesMarcados(db);
+    return NextResponse.json({
+      success: true,
+      data: allPlans.map((p) => ({ ...p, esPlanDePrueba: marcados?.has(p.id) ?? false })),
+      planDePrueba: { disponible: marcados !== null, migracion: MIGRACION_PLAN_DE_PRUEBA },
+    }, { headers: resHeaders });
   } catch (err: unknown) {
     console.error('Error listing plans:', err);
     return NextResponse.json({ success: false, error: { code: 'SERVER_ERROR', message: (err as Error).message } }, { status: 500 });
@@ -79,7 +91,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const [newPlan] = await db.insert(plans).values({
+    // Lote 300: sin la 0022 no se puede marcar; se dice antes de crear nada.
+    if (parsed.data.esPlanDePrueba && !(await hayColumnaPlanDePrueba(db))) {
+      return NextResponse.json(
+        { success: false, error: { code: 'MIGRACION_PENDIENTE', message: new FaltaMigracionPlanDePrueba().message } },
+        { status: 409 }
+      );
+    }
+
+    // En UNA transaccion: el plan y, si se marca, desmarcar el anterior.
+    const newPlan = await db.transaction(async (tx) => {
+    const [creado] = await tx.insert(plans).values({
       name: parsed.data.name,
       description: parsed.data.description,
       price: parsed.data.price.toString(), // DB DECIMAL stores as string in Drizzle mapping
@@ -89,6 +111,9 @@ export async function POST(req: NextRequest) {
       active: parsed.data.active,
       updatedAt: new Date(),
     }).returning();
+    if (parsed.data.esPlanDePrueba) await marcarPlanDePrueba(tx, creado.id, true);
+    return { ...creado, esPlanDePrueba: parsed.data.esPlanDePrueba === true };
+    });
 
     return NextResponse.json({ success: true, data: newPlan }, { status: 201, headers: resHeaders });
   } catch (err: unknown) {
