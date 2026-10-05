@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { leerRespuesta } from '@/utils/leerRespuesta';
 import { esAdministracion, esSistemas } from '@/utils/rolMatch';
 import { correoValido } from '@/services/avisos/avisoPorCorreo';
+import type { PlanParaLaPantalla } from '@/services/suscripcion/planVigente';
 
 export function useAjustes(cargarPuentes: () => Promise<void>) {
   const [loading, setLoading] = useState(true);
@@ -43,15 +44,8 @@ export function useAjustes(cargarPuentes: () => Promise<void>) {
   /** El ambiente elegido ya tiene su clave de API guardada. */
   const claveYaConfigurada = entornosMseller.includes(credencialesEntorno);
   const [showMsellerPassword, setShowMsellerPassword] = useState(false);
-  const [subscription, setSubscription] = useState<{
-    id: string;
-    status: string;
-    currentPeriodEnd: string;
-    planName: string;
-    maxEcfLimit: number;
-    maxUsers: number;
-    maxWarehouses: number;
-  } | null>(null);
+  // Lote 299: el plan con su estado y su uso del mes (la misma cuenta que las guardas).
+  const [subscription, setSubscription] = useState<PlanParaLaPantalla | null>(null);
   const [availablePlans, setAvailablePlans] = useState<any[]>([]);
 
   // Editable

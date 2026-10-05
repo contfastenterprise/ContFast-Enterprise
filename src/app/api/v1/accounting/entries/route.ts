@@ -5,7 +5,8 @@ import { enforcePermission } from '@/middleware/permissions';
 import { db, journalEntries, journalEntryLines, chartOfAccounts, auditLogs } from '@/db';
 import { eq, and, isNull, gte, lte, desc, count, inArray } from 'drizzle-orm';
 import { AccountRepository } from '@/repositories/accountRepository';
-import { hasActivePlan } from '@/utils/subscriptionHelper';
+import { bloqueoSinPlanVigente } from '@/services/suscripcion/planRepositorio';
+import { cuerpoDelBloqueo } from '@/services/suscripcion/planVigente';
 
 const createJournalEntrySchema = z.object({
   date: z.string().refine((val) => !isNaN(Date.parse(val)), {
@@ -159,13 +160,10 @@ export async function POST(req: NextRequest) {
     // Enforce "contabilidad:write" permission
     await enforcePermission(auth.userId, auth.role, auth.roleId, auth.companyId, 'contabilidad', 'write');
 
-    // Enforce active plan subscription
-    const active = await hasActivePlan(auth.companyId);
-    if (!active) {
-      return NextResponse.json(
-        { success: false, error: { code: 'PLAN_REQUIRED', message: 'Se requiere un plan activo y vigente para generar entradas de diario.' } },
-        { status: 403, headers: resHeaders }
-      );
+    // Lote 299: plan vigente con la regla unica (`trialing` incluido), mismo `code`.
+    const bloqueoDelPlan = await bloqueoSinPlanVigente(auth.companyId);
+    if (bloqueoDelPlan) {
+      return NextResponse.json(cuerpoDelBloqueo(bloqueoDelPlan), { status: bloqueoDelPlan.status, headers: resHeaders });
     }
 
     const body = await req.json();

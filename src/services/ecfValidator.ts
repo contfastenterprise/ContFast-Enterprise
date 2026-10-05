@@ -20,8 +20,10 @@
  * sistema, con un error que habla de renovar un SACF que no hacia falta.
  */
 
-import { db, ecfSequences, subscriptions, plans, invoices } from '@/db';
-import { eq, and, isNull, desc, count, gte, lte } from 'drizzle-orm';
+import { db, ecfSequences } from '@/db';
+import { eq, and, isNull, desc } from 'drizzle-orm';
+import { bloqueoDeEmision } from '@/services/suscripcion/planRepositorio';
+import { PlanNoPermiteError, type BloqueoDelPlan } from '@/services/suscripcion/planVigente';
 import { DGIIService } from '@/services/dgii/rncLookup';
 import { exigeVencimientoSecuencia } from '@/services/dgii/tiposComprobante';
 
@@ -33,7 +35,7 @@ export interface EcfValidationResult {
 }
 
 export interface EcfValidationError {
-  code: 'CONTRIBUTOR_INACTIVE' | 'NO_ACTIVE_SEQUENCE' | 'SEQUENCE_EXHAUSTED' | 'SEQUENCE_EXPIRED' | 'DGII_LOOKUP_FAILED' | 'NO_ACTIVE_SUBSCRIPTION' | 'SUBSCRIPTION_LIMIT_EXCEEDED';
+  code: 'CONTRIBUTOR_INACTIVE' | 'NO_ACTIVE_SEQUENCE' | 'SEQUENCE_EXHAUSTED' | 'SEQUENCE_EXPIRED' | 'DGII_LOOKUP_FAILED';
   message: string;
 }
 
@@ -169,55 +171,20 @@ export class EcfValidator {
   }
 
   /**
-   * 5. Verify SaaS subscription active status and monthly e-CF emission limits.
+   * 5. El plan de la empresa. LOTE 299: ya no cuenta por su cuenta.
+   *
+   * Aqui habia un SEGUNDO contador de e-CF, distinto del de la ruta: contaba
+   * PRODUCCION sobre el periodo entero de la suscripcion (no por mes), no miraba
+   * si estaba vencida y no admitia `trialing`. Ahora pregunta a la regla unica
+   * (`services/suscripcion/planVigente.ts`), la misma de todas las puertas. Las
+   * rutas ya la han pasado; esto es la segunda barrera para quien llame a
+   * `InvoiceService.issueInvoice` por otro camino.
+   *
+   * Quitar esta llamada es un MUTANTE EQUIVALENTE para los bancos: por las rutas
+   * la guarda de la ruta para antes, y hoy no hay otro camino a la emision.
    */
-  static async validateSubscription(companyId: string): Promise<EcfValidationError | null> {
-    const [sub] = await db
-      .select({
-        status: subscriptions.status,
-        currentPeriodStart: subscriptions.currentPeriodStart,
-        currentPeriodEnd: subscriptions.currentPeriodEnd,
-        maxEcfLimit: plans.maxEcfLimit,
-      })
-      .from(subscriptions)
-      .innerJoin(plans, eq(subscriptions.planId, plans.id))
-      .where(and(eq(subscriptions.companyId, companyId), eq(subscriptions.status, 'active')))
-      .limit(1);
-
-    if (!sub) {
-      return {
-        code: 'NO_ACTIVE_SUBSCRIPTION',
-        message: 'La empresa no cuenta con una suscripción SaaS activa. Active un plan para poder emitir comprobantes e-CF.'
-      };
-    }
-
-    if (sub.maxEcfLimit !== -1) {
-      const [usage] = await db
-        .select({ count: count() })
-        .from(invoices)
-        .where(
-          and(
-            eq(invoices.companyId, companyId),
-            // El limite del plan cuenta comprobantes REALES. Sin este filtro,
-            // practicar en PRUEBA consumia la cuota pagada. Se fija a
-            // PRODUCCION a proposito y no al entorno de la sesion: el limite es
-            // comercial, sobre lo que de verdad se emite a la DGII.
-            eq(invoices.modo, 'PRODUCCION'),
-            gte(invoices.createdAt, sub.currentPeriodStart),
-            lte(invoices.createdAt, sub.currentPeriodEnd)
-          )
-        );
-
-      const currentCount = Number(usage?.count || 0);
-      if (currentCount >= sub.maxEcfLimit) {
-        return {
-          code: 'SUBSCRIPTION_LIMIT_EXCEEDED',
-          message: `Límite de plan excedido. Ha emitido ${currentCount} de sus ${sub.maxEcfLimit} comprobantes e-CF autorizados para este período.`
-        };
-      }
-    }
-
-    return null;
+  static async validateSubscription(companyId: string, modo: 'PRODUCCION' | 'PRUEBA'): Promise<BloqueoDelPlan | null> {
+    return bloqueoDeEmision(companyId, modo);
   }
 
   /**
@@ -239,12 +206,11 @@ export class EcfValidator {
     const errors: EcfValidationError[] = [];
 
     // 0. SaaS Subscription check
-    const subError = await EcfValidator.validateSubscription(companyId);
-    if (subError) {
-      errors.push(subError);
-      // If no subscription, we block immediately
-      return { valid: false, errors };
-    }
+    // Lote 299: un bloqueo del plan se LANZA con su codigo y su estado (403/409), el
+    // mismo que dan las rutas, en vez de mezclarse con los errores del comprobante
+    // y salir como un 422 de validacion.
+    const bloqueoDelPlan = await EcfValidator.validateSubscription(companyId, modo);
+    if (bloqueoDelPlan) throw new PlanNoPermiteError(bloqueoDelPlan);
 
     // 1. Contributor status
     const rncError = await EcfValidator.validateContributorStatus(companyRnc, strictRncLookup);

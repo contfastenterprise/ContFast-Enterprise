@@ -7,8 +7,10 @@ import { checkRateLimit } from '@/middleware/rateLimiter';
 import { withIdempotency } from '@/lib/idempotency';
 import { InvoiceService } from '@/services/invoiceService';
 import { InvoiceRepository } from '@/repositories/invoiceRepository';
-import { db, invoices, subscriptions, plans, warehouses, products, customers, quotes, cashSessions, retentions } from '@/db';
-import { eq, and, count, gte, lte, inArray, isNull } from 'drizzle-orm';
+import { db, invoices, warehouses, products, customers, quotes, cashSessions, retentions } from '@/db';
+import { eq, and, inArray, isNull } from 'drizzle-orm';
+import { bloqueoDeEmision } from '@/services/suscripcion/planRepositorio';
+import { cuerpoDelBloqueo } from '@/services/suscripcion/planVigente';
 
 /**
  * Cuanto puede durar la emision en la plataforma.
@@ -257,42 +259,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check invoice limits from subscription (only count production invoices)
-    const subscriptionInfo = await db
-      .select({ maxEcfLimit: plans.maxEcfLimit })
-      .from(subscriptions)
-      .innerJoin(plans, eq(subscriptions.planId, plans.id))
-      .where(and(eq(subscriptions.companyId, auth.companyId), eq(subscriptions.status, 'active')))
-      .limit(1);
-
-    if (subscriptionInfo.length > 0) {
-      const maxEcfLimit = subscriptionInfo[0].maxEcfLimit;
-      if (maxEcfLimit !== -1) {
-        // Count existing invoices for this month in this environment mode
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-        
-        const checkInvoices = await db
-          .select({ value: count() })
-          .from(invoices)
-          .where(
-            and(
-              eq(invoices.companyId, auth.companyId),
-              eq(invoices.modo, auth.modo),
-              gte(invoices.createdAt, startOfMonth),
-              lte(invoices.createdAt, endOfMonth)
-            )
-          );
-          
-        const currentCount = checkInvoices[0]?.value || 0;
-        if (currentCount >= maxEcfLimit) {
-          return NextResponse.json(
-            { success: false, error: { code: 'FORBIDDEN', message: `Límite alcanzado: Tu plan actual solo permite emitir hasta ${maxEcfLimit} comprobante(s) por mes.` } }, 
-            { status: 403, headers: resHeaders }
-          );
-        }
-      }
+    // LOTE 299: el plan, con la regla UNICA (`services/suscripcion/planVigente.ts`).
+    //
+    // Aqui habia un contador propio que contaba por el modo de la SESION (PRUEBA
+    // tambien), por el mes de la hora del SERVIDOR (UTC) y todos los estados
+    // (borradores incluidos), y que sin suscripcion `active` no limitaba nada. Y
+    // `EcfValidator` tenia OTRO, distinto. Ahora: sin plan vigente no se emite
+    // (403 `SIN_PLAN` / `PLAN_VENCIDO`), y en PRODUCCION, al 100 % del mes de RD,
+    // tampoco (409 `LIMITE_ECF`). Va antes de firmar y transmitir.
+    const bloqueoDelPlan = await bloqueoDeEmision(auth.companyId, auth.modo);
+    if (bloqueoDelPlan) {
+      return NextResponse.json(cuerpoDelBloqueo(bloqueoDelPlan), { status: bloqueoDelPlan.status, headers: resHeaders });
     }
 
     // Auditoria P1-11: un reintento de red o doble clic en esta ruta

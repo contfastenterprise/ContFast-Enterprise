@@ -5,6 +5,8 @@ import { diaRD } from '@/utils/fechasLocales';
 import { NominaNoPermitidaError } from '@/services/nomina/estadoDeNomina';
 import { validarPeticionDePago, type PeticionDePago } from '@/services/nomina/pagoDeNomina';
 import { hayTablaDePagos, pagarNomina, pagoDeLaNomina } from '@/services/nomina/pagarNomina';
+import { bloqueoSinPlanVigente } from '@/services/suscripcion/planRepositorio';
+import { cuerpoDelBloqueo } from '@/services/suscripcion/planVigente';
 
 /**
  * Lote 295 (el "lote D" de `docs/diseno_asientos_nomina.md`): pagar una nomina
@@ -34,6 +36,12 @@ export async function POST(req: NextRequest, segmentData: { params: Promise<{ id
     }
     const denegado = await requirePermission(session, 'nomina', 'write');
     if (denegado) return denegado;
+
+    // Lote 299: pagar la nomina asienta y mueve el banco: exige plan vigente.
+    const bloqueoDelPlan = await bloqueoSinPlanVigente(session.companyId);
+    if (bloqueoDelPlan) {
+      return NextResponse.json(cuerpoDelBloqueo(bloqueoDelPlan), { status: bloqueoDelPlan.status });
+    }
 
     const { id } = await segmentData.params;
     const body = (await req.json().catch(() => null)) as PeticionDePago | null;

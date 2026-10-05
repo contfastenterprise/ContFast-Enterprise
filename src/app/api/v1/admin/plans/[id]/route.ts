@@ -11,7 +11,7 @@ const updatePlanSchema = z.object({
   price: z.number().min(0, 'El precio no puede ser negativo').optional(),
   maxEcfLimit: z.number().int().min(-1).optional(),
   maxUsers: z.number().int().min(-1).optional(),
-  maxWarehouses: z.number().int().min(1).optional(),
+  maxWarehouses: z.number().int().min(-1).optional(), // Lote 299: -1 = ilimitado
   active: z.boolean().optional(),
 });
 

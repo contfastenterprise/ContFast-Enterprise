@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
 import { enforcePermission } from '@/middleware/permissions';
 import { AdminRepository } from '@/repositories/adminRepository';
+import { PlanNoPermiteError, cuerpoDelBloqueo } from '@/services/suscripcion/planVigente';
 import { db, roles } from '@/db';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
@@ -89,6 +90,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data: newUser }, { status: 201 });
   } catch (err: unknown) {
+    // Lote 299: el limite del plan sale con su `code` (403/409), como en el resto de puertas.
+    if (err instanceof PlanNoPermiteError) {
+      return NextResponse.json(cuerpoDelBloqueo(err), { status: err.status });
+    }
     const e = err as Error & { status?: number; code?: string };
     return NextResponse.json({ success: false, error: { message: e.message } }, { status: e.status || 400 });
   }
@@ -115,6 +120,9 @@ export async function PATCH(req: NextRequest) {
     const result = await AdminRepository.toggleUserStatus(body.userId, session.companyId, session.role);
     return NextResponse.json({ success: true, data: result });
   } catch (err: unknown) {
+    if (err instanceof PlanNoPermiteError) {
+      return NextResponse.json(cuerpoDelBloqueo(err), { status: err.status });
+    }
     return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 400 });
   }
 }

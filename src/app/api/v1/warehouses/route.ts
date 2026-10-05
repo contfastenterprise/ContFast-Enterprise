@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/db';
-import { warehouses, subscriptions, plans } from '@/db/schema';
-import { eq, and, count } from 'drizzle-orm';
+import { warehouses } from '@/db/schema';
+import { eq, and } from 'drizzle-orm';
+import { exigirAltaDeAlmacen } from '@/services/suscripcion/planRepositorio';
+import { PlanNoPermiteError, cuerpoDelBloqueo } from '@/services/suscripcion/planVigente';
 import { verifyAuth } from '@/middleware/auth';
 import { isAdminOrSistemas } from '@/middleware/permissions';
 import { v4 as uuidv4 } from 'uuid';
@@ -57,33 +59,6 @@ export async function POST(req: NextRequest) {
     }
     const { name, code, address, status } = parsed.data;
 
-    // Check warehouse limits from subscription
-    const subscriptionInfo = await db
-      .select({ maxWarehouses: plans.maxWarehouses })
-      .from(subscriptions)
-      .innerJoin(plans, eq(subscriptions.planId, plans.id))
-      .where(and(eq(subscriptions.companyId, companyId), eq(subscriptions.status, 'active')))
-      .limit(1);
-
-    if (subscriptionInfo.length > 0) {
-      const maxWarehouses = subscriptionInfo[0].maxWarehouses;
-      if (maxWarehouses !== -1) {
-        // Count existing warehouses
-        const checkWarehouses = await db
-          .select({ value: count() })
-          .from(warehouses)
-          .where(eq(warehouses.companyId, companyId));
-          
-        const currentCount = checkWarehouses[0]?.value || 0;
-        if (currentCount >= maxWarehouses) {
-          return NextResponse.json(
-            { error: `Límite alcanzado: Tu plan actual solo permite hasta ${maxWarehouses} almacén(es).` }, 
-            { status: 403 }
-          );
-        }
-      }
-    }
-
     // Comprobar que el código no exista
     const existing = await db.select().from(warehouses).where(
       and(eq(warehouses.companyId, companyId), eq(warehouses.code, code))
@@ -93,17 +68,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'A warehouse with this code already exists' }, { status: 400 });
     }
 
-    const newWarehouse = await db.insert(warehouses).values({
-      id: uuidv4(),
-      companyId,
-      name,
-      code,
-      address,
-      status: status || 'active',
-    }).returning();
+    // LOTE 299: el plan, con la regla unica, y la cuenta DENTRO de la transaccion
+    // que inserta, bajo el candado de la empresa. Antes: sin suscripcion `active` no
+    // habia limite, y dos altas a la vez contaban las dos N-1 y pasaban las dos.
+    const newWarehouse = await db.transaction(async (tx) => {
+      await exigirAltaDeAlmacen(tx, companyId);
+      return await tx.insert(warehouses).values({
+        id: uuidv4(),
+        companyId,
+        name,
+        code,
+        address,
+        status: status || 'active',
+      }).returning();
+    });
 
     return NextResponse.json({ data: newWarehouse[0] }, { status: 201 });
   } catch (error) {
+    // Lote 299: el bloqueo del plan, con su `code` (403/409) como en todas las puertas.
+    if (error instanceof PlanNoPermiteError) {
+      return NextResponse.json(cuerpoDelBloqueo(error), { status: error.status });
+    }
     console.error('Error creating warehouse:', error);
     return NextResponse.json({ error: 'Failed to create warehouse' }, { status: 500 });
   }

@@ -102,7 +102,12 @@ async function main() {
   console.log('\n4) El limite del plan cuenta solo comprobantes reales\n');
 
   const val = fuente('src/services/ecfValidator.ts');
-  ok('el conteo de uso fija PRODUCCION', /eq\(invoices\.modo, 'PRODUCCION'\)/.test(val));
+  //  Lote 299: el validador ya no cuenta: delega en la regla unica del plan, y la cuenta
+  //  vive en `services/suscripcion/planRepositorio.ts`. La PROPIEDAD es la misma: lo que
+  //  cuenta para el limite fija PRODUCCION, este donde este.
+  ok('el conteo de uso fija PRODUCCION', /eq\(invoices\.modo, 'PRODUCCION'\)/.test(val)
+    || (/return bloqueoDeEmision\(companyId,\s*modo\)/.test(val)
+      && /eq\(invoices\.modo,\s*'PRODUCCION'\)/.test(fuente('src/services/suscripcion/planRepositorio.ts'))));
   ok('y la secuencia usa el modo de la sesion', /eq\(ecfSequences\.modo, modo\)/.test(val));
 
   console.log('\n5) Inventario en la ficha de producto: sin almacenes duplicados\n');

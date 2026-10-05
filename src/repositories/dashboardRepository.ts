@@ -21,6 +21,7 @@ import {
   type DeclaracionPendiente,
 } from '@/services/dgii/declaracionesPendientes';
 import { declaracionesDgii } from '@/db';
+import { avisosDelPlanDeLaEmpresa } from '@/services/suscripcion/planRepositorio';
 
 interface DashboardAlert {
   id: string;
@@ -31,7 +32,9 @@ interface DashboardAlert {
       //  que aparezca uno sin severidad ni orden.
       | 'caja_con_diferencia' | 'declaracion_pendiente' | 'padron_viejo'
       //  LOTE 221: un conduce de una factura emitida que sigue en borrador.
-      | 'conduce_sin_despachar';
+      | 'conduce_sin_despachar'
+      //  LOTE 299: el plan (vence, vencio) y el cupo de e-CF del mes (80 %, 100 %).
+      | 'plan_por_vencer' | 'plan_vencido' | 'ecf_cerca_del_limite' | 'ecf_en_el_limite';
   title: string;
   description: string;
   actionText: string;
@@ -436,13 +439,23 @@ export class DashboardRepository {
     });
     if (avisoPadron) alertsDetails.push(avisoPadron);
 
+    //  LOTE 299: EL PLAN. Aviso 5 dias antes de vencer y al vencer (o sin plan
+    //  vigente), y en PRODUCCION, al 80 % y al 100 % de los e-CF del mes de RD. La
+    //  regla es la MISMA que bloquea la emision (`services/suscripcion/planVigente.ts`),
+    //  asi que el aviso no puede decir una cosa y la guarda otra. Claves estables:
+    //  `sincronizarAvisos` los cierra solos al renovar o al empezar el mes siguiente.
+    const avisosPlan = await avisosDelPlanDeLaEmpresa(companyId, modo);
+    for (const a of avisosPlan) {
+      alertsDetails.push({ ...a, type: a.type as DashboardAlert['type'] });
+    }
+
     return {
       invoicesToday,
       invoicesTodayAmount,
       invoicesTodayChangePct,
       pendingDgii,
       monthlySales,
-      alertCount: alertCount + dueGuaranteeChecksCount + avisoPeriodos + cajasSinCerrar.length + declaracionesPorPresentar.length,
+      alertCount: alertCount + dueGuaranteeChecksCount + avisoPeriodos + cajasSinCerrar.length + declaracionesPorPresentar.length + avisosPlan.length,
       totalInvoices,
       monthlyGoal: 2000000, // Fixed for now
       dueGuaranteeChecksCount,

@@ -184,7 +184,9 @@ export default function WarehousesPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al guardar');
+      // Lote 299: el bloqueo del plan llega como `{ error: { code, message } }`; los
+      // demas errores de esta ruta, como texto.
+      if (!res.ok) throw new Error(data.error?.message || data.error || 'Error al guardar');
 
       toast.success(currentWarehouse ? 'Almacén actualizado' : 'Almacén creado');
       setIsModalOpen(false);

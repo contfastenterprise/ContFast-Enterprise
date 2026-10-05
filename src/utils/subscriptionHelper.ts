@@ -1,21 +1,13 @@
-import { db, subscriptions } from '@/db';
-import { eq, and, gte } from 'drizzle-orm';
+import { bloqueoSinPlanVigente } from '@/services/suscripcion/planRepositorio';
 
 /**
- * Verifica si una empresa tiene un plan (suscripción) activo y vigente.
+ * Si una empresa tiene un plan vigente.
+ *
+ * LOTE 299: delega en la regla unica (`services/suscripcion/planVigente.ts`). Antes
+ * miraba solo `status = 'active'` y el instante de fin, asi que una prueba gratis
+ * (`trialing`) bloqueaba la nomina y los asientos. Ya no lo usa ninguna ruta (dan el
+ * motivo con `bloqueoSinPlanVigente`); se queda para quien lo importe por fuera.
  */
 export async function hasActivePlan(companyId: string): Promise<boolean> {
-  const activeSub = await db
-    .select({ id: subscriptions.id })
-    .from(subscriptions)
-    .where(
-      and(
-        eq(subscriptions.companyId, companyId),
-        eq(subscriptions.status, 'active'),
-        gte(subscriptions.currentPeriodEnd, new Date())
-      )
-    )
-    .limit(1);
-
-  return activeSub.length > 0;
+  return (await bloqueoSinPlanVigente(companyId)) === null;
 }

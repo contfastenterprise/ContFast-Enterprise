@@ -1,9 +1,11 @@
 import type { ModoOperativo } from '@/services/dgii/modoPeticion';
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/middleware/auth';
-import { db, companies, companySettings, subscriptions, plans, msellerApiKeys, auditLogs } from '@/db';
+import { db, companies, companySettings, plans, msellerApiKeys, auditLogs } from '@/db';
+import { usoDelPlan } from '@/services/suscripcion/planRepositorio';
+import { planParaLaPantalla } from '@/services/suscripcion/planVigente';
 import { entornosConCredenciales } from '@/services/dgii/credenciales';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { encryptAsync } from '@/utils/encryption';
 import { enforcePermission } from '@/middleware/permissions';
@@ -96,21 +98,11 @@ export async function GET(req: NextRequest) {
     // lo pueda decir. Solo los nombres: aqui no sale ningun secreto.
     const entornosMseller = await entornosConCredenciales(session.companyId);
 
-    // Fetch active subscription for the company
-    const [sub] = await db
-      .select({
-        id: subscriptions.id,
-        status: subscriptions.status,
-        currentPeriodEnd: subscriptions.currentPeriodEnd,
-        planName: plans.name,
-        maxEcfLimit: plans.maxEcfLimit,
-        maxUsers: plans.maxUsers,
-        maxWarehouses: plans.maxWarehouses,
-      })
-      .from(subscriptions)
-      .innerJoin(plans, eq(subscriptions.planId, plans.id))
-      .where(and(eq(subscriptions.companyId, session.companyId), eq(subscriptions.status, 'active')))
-      .limit(1);
+    // Lote 299: el plan con la regla UNICA y su uso, contado como lo cuentan las
+    // guardas (e-CF de PRODUCCION que salieron a la DGII en el mes de RD). Antes solo
+    // se leia una suscripcion `active`: una prueba gratis o un plan vencido salian
+    // como "no se encontró una suscripción activa", sin decir cual ni cuando vencio.
+    const sub = planParaLaPantalla(await usoDelPlan(session.companyId));
 
     // Fetch all active plans from database
     const activePlans = await db
