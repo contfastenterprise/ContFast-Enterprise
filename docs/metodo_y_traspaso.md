@@ -2529,6 +2529,35 @@ Además, fuera de la tabla:
   llevaba a la vez `hidden` y `sr-only`, que no tiene sentido.
   **No se miró en el navegador**: el cambio son dos atributos y un nombre accesible, que el banco lee en
   el HTML dibujado.
+- **Lote 286: la siembra del menú dice lo mismo que la base.** Lo advirtió el agente del manual
+  (lote 283): copió los nombres del menú de `src/constants/defaultMappings.ts`, la siembra de
+  `route_mappings`, y la base podía tener otros. **Medido en PRODUCCIÓN, solo lectura**
+  (`scratch/_to_delete/medir_menu_286.ts`, dentro de una transacción `read only`): 50 filas, y **los
+  renombres del lote 190 SÍ están aplicados** — `/dashboard/ap` es "Pagos a Suplidores", el ajuste
+  de inventario "Ajustes de Inventario" y `/dashboard/settings` "Configuración" —, más uno que nadie
+  había anotado: `/dashboard/receivables-report` es **"Cuenta por Cobrar"**, en singular (así ya no
+  choca con "Cuentas por Cobrar" de Finanzas). La siembra seguía con los cuatro nombres viejos. No es
+  cosmético: es lo que el menú pinta mientras llega la respuesta de la base (`rbacContext`) y lo que
+  nace en una base nueva (`seed-routes.ts`).
+  **Alineado** (solo nombres): esos cuatro en la siembra; el manual (`scripts/generate-manual.js`,
+  sus `ruta(grupo, nombre)`: los cuatro y "Facturacion e-CF", que el manual escribía con tilde y el
+  menú no — PDF regenerado, 23 páginas); el botón de la alerta de BI que lleva a los ajustes ("Ver
+  Ajustes de Inventario"); y `menuLateral.vitest.ts`, que dice usar "el menú real" y ponía
+  Comprobantes Fiscales en Ingresos (es de Sistema; la restricción de `facturacion` va por ruta, así
+  que la prueba no cambia). El buscador Ctrl+K y las pestañas del inicio no escriben nombres del
+  menú: los leen de `route_mappings`.
+  **Dejado, a propósito, porque es permiso y no nombre**: el `module` de
+  `/dashboard/financial/accounts-receivable` y `accounts-payable` (siembra `caja`; base `cobros` y
+  `proveedores`), y las dos filas de `/dashboard/antiguedad-saldos` (`cobros` y `proveedores`, lote
+  190), que están en la base y **no en la siembra**: una base nueva nace sin esa pantalla en el menú.
+  Las dos cosas son del dueño. Tampoco se tocaron los títulos de las pantallas ("Módulo de Cuentas
+  por Pagar" en `/dashboard/ap`, "Ajustes del Sistema" en `/dashboard/settings`), que no son el menú.
+  Banco `verificar_menu_como_la_base.ts`, con la medición **congelada dentro** (fecha incluida; si el
+  dueño renombra algo en la base hay que volver a medir): 9 comprobaciones y tres invariantes (módulos
+  y acciones sin tocar salvo las dos rutas conocidas, las mismas rutas en los dos lados salvo
+  antigüedad de saldos, BI y el Agente fuera del menú), contraprueba **9 FALLA** contra `696854e`,
+  doce mutantes y doce muertos — incluido "corregir" el módulo de CxC en la siembra, que rompe un
+  invariante: el día que se alinee el permiso, será a propósito.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás

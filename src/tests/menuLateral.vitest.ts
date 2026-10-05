@@ -59,7 +59,7 @@ const MAPEOS: RouteMapping[] = [
   menu('/dashboard/warehouses%', 'catalogo', 'Almacenes', 'Inventario'),
   menu('/dashboard/inventory/movements%', 'catalogo', 'Movimientos', 'Inventario'),
   menu('/dashboard/invoices%', 'facturacion', 'Facturacion e-CF', 'Ingresos'),
-  menu('/dashboard/ecf%', 'facturacion', 'Comprobantes Fiscales', 'Ingresos'),
+  menu('/dashboard/ecf%', 'facturacion', 'Comprobantes Fiscales', 'Sistema'),
   menu('/dashboard', 'caja', 'Inicio', 'Principal'),
 ];
 

@@ -86,7 +86,7 @@ export default function BIAlerts({ generalData, productsData, inventoryData, cus
       title: `${excessItems.length} Productos con Exceso de Stock`,
       description: `Hay ${excessItems.length} artículos cuyas existencias exceden el stock máximo sugerido, inmovilizando capital de trabajo.`,
       items: excessItems.slice(0, 5).map((i: any) => `${i.name} (Stock: ${i.stock} / Máx: ${i.maxStock})`),
-      actionText: 'Ver Ajustes',
+      actionText: 'Ver Ajustes de Inventario',
       actionLink: '/dashboard/inventory/adjustments'
     });
   }
