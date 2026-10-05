@@ -1,12 +1,16 @@
 import { StorefrontProductService } from '@/services/storefront/productService';
 import { StorefrontCompanyService } from '@/services/storefront/companyService';
-import Link from 'next/link';
+import clsx from 'clsx';
 import { SlidersHorizontal } from 'lucide-react';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { categoriasConProductos, leerOrden, ordenarProductos } from '@/services/storefront/catalogo';
 import { RejillaDeProductos } from '@/components/storefront/TarjetaProducto';
 import { ListaDeFiltros, MenuDeOrden } from '@/components/storefront/FiltrosCatalogo';
+import { EnlaceTienda } from '@/components/storefront/BotonTienda';
+import { FOCO_TIENDA } from '@/components/storefront/botonTiendaVariantes';
+import EstadoVacio from '@/components/storefront/EstadoVacio';
+import TituloDeSeccion from '@/components/storefront/TituloDeSeccion';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,12 +60,11 @@ export default async function StorefrontProductsPage({
 
   return (
     <div className="mx-auto max-w-[1400px] px-4 pb-20 pt-12 sm:px-6 lg:px-10">
-      <h1 className="text-3xl font-medium uppercase tracking-[0.12em] text-slate-900">{titulo}</h1>
-      {actual.q && <p className="mt-2 text-sm text-slate-500">Resultados para “{actual.q}”</p>}
+      <TituloDeSeccion titulo={titulo} descripcion={actual.q && <>Resultados para “{actual.q}”</>} />
 
       <div className="relative mt-8 flex items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <details key={`filtrar-${clave}`} className="lg:hidden">
-          <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold uppercase tracking-[0.15em] text-slate-900 [&::-webkit-details-marker]:hidden">
+          <summary className={clsx('flex cursor-pointer list-none items-center gap-2 rounded-sm text-sm font-semibold uppercase tracking-[0.15em] text-slate-900 [&::-webkit-details-marker]:hidden', FOCO_TIENDA)}>
             <SlidersHorizontal className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
             Filtrar
           </summary>
@@ -82,14 +85,9 @@ export default async function StorefrontProductsPage({
 
         <section aria-label="Productos">
           {ordenados.length === 0 ? (
-            <div className="py-20 text-center">
-              <p className="text-lg text-slate-900">No se encontraron productos</p>
-              <p className="mt-2 text-sm text-slate-500">Prueba con otra categoría o con otra búsqueda.</p>
-              <Link href={`/${empresaSlug}/productos`}
-                className="mt-8 inline-block rounded-full bg-[#001e40] px-8 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-white hover:bg-[#00142a]">
-                Ver todo el catálogo
-              </Link>
-            </div>
+            <EstadoVacio titulo="No se encontraron productos" texto="Prueba con otra categoría o con otra búsqueda.">
+              <EnlaceTienda href={`/${empresaSlug}/productos`}>Ver todo el catálogo</EnlaceTienda>
+            </EstadoVacio>
           ) : (
             <RejillaDeProductos productos={ordenados} empresaSlug={empresaSlug} columnas={3} />
           )}

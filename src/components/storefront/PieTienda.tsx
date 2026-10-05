@@ -6,9 +6,10 @@
 import Link from 'next/link';
 import { Phone, Mail, MapPin, LogIn } from 'lucide-react';
 import type { EnlaceDelMenu } from './CabeceraTienda';
+import { FOCO_TIENDA } from './botonTiendaVariantes';
 
 const titulo = 'mb-4 text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-900';
-const enlace = 'text-sm text-slate-600 hover:text-slate-900 hover:underline underline-offset-4';
+const enlace = `rounded-sm text-sm text-slate-600 hover:text-slate-900 hover:underline underline-offset-4 ${FOCO_TIENDA}`;
 
 export default function PieTienda({ empresaSlug, empresa, enlaces }: {
   empresaSlug: string;
@@ -24,11 +25,11 @@ export default function PieTienda({ empresaSlug, empresa, enlaces }: {
           <ul className="mt-4 space-y-2 text-sm text-slate-600">
             {empresa.phone && (
               <li className="flex items-center gap-2"><Phone className="h-4 w-4 shrink-0" aria-hidden="true" />
-                <a href={`tel:${empresa.phone.replace(/[^\d+]/g, '')}`} className="hover:underline underline-offset-4">{empresa.phone}</a></li>
+                <a href={`tel:${empresa.phone.replace(/[^\d+]/g, '')}`} className={`rounded-sm hover:underline underline-offset-4 ${FOCO_TIENDA}`}>{empresa.phone}</a></li>
             )}
             {empresa.email && (
               <li className="flex items-center gap-2"><Mail className="h-4 w-4 shrink-0" aria-hidden="true" />
-                <a href={`mailto:${empresa.email}`} className="break-all hover:underline underline-offset-4">{empresa.email}</a></li>
+                <a href={`mailto:${empresa.email}`} className={`break-all rounded-sm hover:underline underline-offset-4 ${FOCO_TIENDA}`}>{empresa.email}</a></li>
             )}
             {empresa.address && (
               <li className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /><span>{empresa.address}</span></li>

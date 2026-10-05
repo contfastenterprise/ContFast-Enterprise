@@ -15,6 +15,12 @@ import CatalogAddButton from './CatalogAddButton';
 import { inicialesDe, precioDeTienda, precioVigente, tieneOferta } from '@/services/storefront/catalogo';
 import type { StorefrontProduct } from '@/services/storefront/productService';
 
+/**
+ * El foco del enlace del nombre se dibuja en su `before:`, que cubre la tarjeta entera (lote 282):
+ * con el anillo en el texto, quien navega con Tab veia un subrayado y nada mas.
+ */
+const FOCO_EN_LA_TARJETA = 'focus-visible:outline-none focus-visible:before:ring-2 focus-visible:before:ring-[#001e40] focus-visible:before:ring-offset-2';
+
 /** Donde falta la foto (hoy, en todos): la inicial del producto sobre gris. */
 export function MarcadorDeProducto({ nombre, categoria, grande = false }: { nombre: string; categoria: string | null; grande?: boolean }) {
   return (
@@ -22,7 +28,7 @@ export function MarcadorDeProducto({ nombre, categoria, grande = false }: { nomb
       <span className={grande ? 'text-7xl font-light tracking-[0.2em] text-slate-300' : 'text-5xl font-light tracking-[0.2em] text-slate-300'}>
         {inicialesDe(nombre)}
       </span>
-      {categoria && <span className="text-[10px] font-medium uppercase tracking-[0.25em] text-slate-400">{categoria}</span>}
+      {categoria && <span className="text-[10px] font-medium uppercase tracking-[0.25em] text-slate-600">{categoria}</span>}
     </div>
   );
 }
@@ -32,14 +38,14 @@ export function PrecioDeTienda({ producto, grande = false }: { producto: Storefr
   return (
     <p className={grande ? 'flex flex-wrap items-baseline gap-x-3 text-2xl' : 'flex flex-wrap items-baseline gap-x-2 text-[15px]'}>
       {oferta && (
-        <span className="text-slate-400 line-through">
+        <span className="text-slate-500 line-through">
           <span className="sr-only">Antes </span>{precioDeTienda(producto.price)}
         </span>
       )}
       <span className={oferta ? 'text-red-600' : 'text-slate-900'}>
         {oferta && <span className="sr-only">Ahora </span>}{precioDeTienda(precioVigente(producto))}
       </span>
-      <span className="text-[11px] uppercase tracking-wider text-slate-400">+ ITBIS</span>
+      <span className="text-[11px] uppercase tracking-wider text-slate-500">+ ITBIS</span>
     </p>
   );
 }
@@ -71,7 +77,7 @@ export default function TarjetaProducto({ producto, empresaSlug }: { producto: S
       <h3 className="mt-4 text-[15px] leading-snug text-slate-900">
         <Link
           href={`/${empresaSlug}/productos/${producto.slug}`}
-          className="before:absolute before:inset-0 before:z-10 hover:underline underline-offset-4 focus-visible:outline-none focus-visible:underline"
+          className={`before:absolute before:inset-0 before:z-10 hover:underline underline-offset-4 focus-visible:underline ${FOCO_EN_LA_TARJETA}`}
         >
           {producto.name}
         </Link>
