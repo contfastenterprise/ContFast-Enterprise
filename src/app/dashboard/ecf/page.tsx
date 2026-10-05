@@ -1709,6 +1709,10 @@ export default function ECFPage() {
             type="button"
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
+            //  LOTE 284: el rotulo se esconde en el movil (`hidden sm:inline`) y la pestaña queda como un
+            //  icono suelto; el nombre va tambien aqui, y `aria-pressed` dice cual esta elegida.
+            aria-label={tab.label}
+            aria-pressed={activeTab === tab.id}
             className={`relative flex items-center justify-center gap-2 px-4 py-2 text-xs rounded-lg font-bold transition ${activeTab === tab.id
               ? 'text-primary'
               : 'text-slate-500 hover:text-primary hover:bg-white/50 rounded-t-xl'

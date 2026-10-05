@@ -2475,6 +2475,29 @@ Además, fuera de la tabla:
   cuanto alguien hiciera `git fetch --prune` o clonara. Pasan a commits fijos (`57f741d`, `ab9e5fd`), y
   los dos de Ventas comparan los dos commits de su lote (`87d0e73`, `ef2039b`) y no la carpeta, porque el
   260 cambia a propósito rótulos de e-CF.
+- **Lote 284: los 19 botones "sin nombre" eran 3, y los tres eran del MOVIL.** Pedido del dueño
+  (2026-10-04): revisar los 19 de solo icono sin nombre que dejó el trinquete del lote 270. El lote 274
+  los atribuyó "casi todos" a la tienda pública, y **era falso**: mirados uno a uno, ninguno era de la
+  tienda y **18 de 19 eran falsos positivos** — el recuento no veía el texto que llega por variable
+  (`{tab.label}`, `{alert.actionText}`) ni el que va dentro de un fragmento
+  (`<><Send /> Enviarme el enlace</>`). Y al revés, no veía los de verdad: un texto que EXISTE pero va
+  **escondido en el móvil** (`<span className="hidden sm:inline">`), que en un teléfono deja un icono
+  suelto que un lector de pantalla anuncia como "botón", sin decir cuál:
+  · las cuatro pestañas de la **Central e-CF** — ahora con `aria-label={tab.label}` y `aria-pressed`;
+  · **"Anterior" y "Siguiente" de la paginación compartida**, la que usan diecisiete pantallas — ahora
+    "Página anterior" y "Página siguiente". El texto sigue a la vista en pantalla grande.
+  El recuento nuevo (`scratch/botonesSinNombre.ts`) separa el texto que se ve siempre, el que solo se ve
+  en el móvil (`sm:hidden`) y el que solo se ve en el escritorio (`hidden sm:inline`): un botón tiene
+  nombre si lo tiene en TODA anchura (los "Ver todo" / "Todo" alternados de productos, compras y
+  facturas, sí). Cuenta también los `<Button>`, y da por nombrado lo que no sabe leer (un envoltorio que
+  reenvía `{...props}`): si duda, no acusa. **Techo 0.** El trinquete viejo del 270 (`iconoSinNombre`)
+  se queda como está — no estorba y lo puede tocar otra rama —; el que vale es este.
+  Banco `verificar_iconos_con_nombre.ts` (la herramienta ejecutada con diez casos escritos a propósito,
+  como invariantes; la paginación dibujada): 5 comprobaciones, contraprueba **5 FALLA**, doce mutantes —
+  once muertos y uno **equivalente, quitado**: una guarda de `sr-only` que solo actuaba si una clase
+  llevaba a la vez `hidden` y `sr-only`, que no tiene sentido.
+  **No se miró en el navegador**: el cambio son dos atributos y un nombre accesible, que el banco lee en
+  el HTML dibujado.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3664,5 +3687,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 281 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 284 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
