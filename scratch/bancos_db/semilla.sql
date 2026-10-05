@@ -73,3 +73,14 @@ INSERT INTO employees (id, company_id, employee_code, first_name, last_name, ced
   ('eeee0000-0000-0000-0000-00000000000b', '11111111-1111-1111-1111-111111111111', 'A-02', 'Luis', 'Gomez', '00100000002', '1988-05-10', 'indefinido', 'mensual', 40000, '2022-03-01'),
   ('eeee0000-0000-0000-0000-00000000000c', '11111111-1111-1111-1111-111111111111', 'A-03', 'Sara', 'Diaz', '00100000003', '1995-07-20', 'indefinido', 'quincenal', 35000, '2025-06-01'),
   ('eeee0000-0000-0000-0000-00000000000d', '22222222-2222-2222-2222-222222222222', 'B-01', 'Beto', 'Ruiz', '00100000004', '1985-11-30', 'indefinido', 'mensual', 45000, '2019-09-01');
+
+-- Planes (lote 300): los tres de PRODUCCION, con sus nombres y limites (medidos
+-- el 2026-10-05). Toda alta de empresa crea ahora su prueba gratis con los
+-- limites del "Plan Básico" y FALLA si no lo encuentra, asi que sin estas filas
+-- los bancos que dan de alta empresas (registro, Administracion) no podrian.
+-- La semilla NO da suscripcion a Alfa ni a Beta: como las cinco empresas de
+-- PRODUCCION sin plan, son las que el guion `prueba_gratis_empresas.ts` atiende.
+INSERT INTO plans (id, name, price, max_ecf_limit, max_users, max_warehouses, active) VALUES
+  ('f1a40000-0000-0000-0000-000000000001', 'Plan Básico', 2000, 100, 2, 1, true),
+  ('f1a40000-0000-0000-0000-000000000002', 'Plan Profesional', 3500, 500, 5, 2, true),
+  ('f1a40000-0000-0000-0000-000000000003', 'Plan Corporativo', 6000, 2000, 15, 5, true);

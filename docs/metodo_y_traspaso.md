@@ -3250,6 +3250,45 @@ Además, fuera de la tabla:
   página de Soporte dibujada y mirada. **Regla que deja**: un lote que cambia lo que ve el usuario deja
   el manual desfasado aunque no lo toque; al cerrar un tramo, se busca en `generate-manual.js` lo que
   el tramo cambió.
+- **Lote 300: toda empresa nueva nace con una prueba gratis de 30 días.** Decisión del dueño
+  (2026-10-05): una suscripción `trialing` de 30 días desde la alta, con los límites del **Plan
+  Básico**. **Medido antes (PRODUCCIÓN, solo lectura, `medir_300.ts`)**: tres planes (Básico 100 e-CF /
+  2 usuarios / 1 almacén; Profesional 500/5/2; Corporativo 2000/15/5), una sola suscripción (Latin
+  Doors, Corporativo, activa, puesta a mano) y **cinco empresas sin ninguna** (Artalum, D'JIMENEZ,
+  Empresa de Prueba, J'EDWARD, UltraElec): ninguna alta la creaba. `subscriptions` no tiene ningún
+  índice único que choque (solo la clave y un índice simple por empresa).
+  · **Una función**, `services/suscripcion/pruebaGratis.ts` (`crearPruebaGratis(tx, empresa)`), dentro
+    de la transacción que le pasen; la regla pura en `periodoDePrueba.ts`. **Inicio**: la medianoche del
+    día de RD de la alta (una alta a las 21:00 de RD ya es mañana en UTC: la trampa del 174). **Fin**: el
+    último instante del día 30 (inicio + 30 días − 1 ms), la misma convención de cierre que la fila de
+    Latin Doors (`2027-01-01T03:59:59.999Z`, el 31/12 a las 23:59:59.999 de RD).
+  · **El plan se busca por NOMBRE** ("Plan Básico", sin mayúsculas ni espacios de los bordes): `plans` no
+    tiene campo de código y su `id` cambia de una base a otra. **El riesgo, dicho**: renombrar el plan en
+    Administración > Planes rompe las altas. **Y si no existe, la alta FALLA entera**
+    (`PlanDePruebaNoExiste`, que nombra el plan): seguir sin prueba dejaría una empresa sin suscripción —
+    justo lo que el lote cierra — y nadie se enteraría. No se crea el plan desde el código: precio y
+    límites son decisión comercial.
+  · **Si la empresa ya tiene cualquier suscripción** (también cancelada), no crea otra; antes de mirar
+    bloquea la empresa (`FOR UPDATE`).
+  · La llaman `crearEmpresaConSuSiembra` (registro público y Administración) y **`setup/confirm`**, que da
+    de alta por su cuenta — después de sembrar los planes, para que el Básico exista en una base nueva.
+  · `scratch/bancos_db/semilla.sql` trae ahora los tres planes de PRODUCCIÓN: sin ellos, ninguna alta
+    funciona en la base desechable.
+  **No toca** la regla de plan vigente ni las guardas de los límites (lote 299, otra sesión).
+  Dos bancos. `verificar_prueba_gratis.ts` (las fechas ejecutadas, con una alta a las 21:00 de RD del
+  31/10, y el cableado de las tres altas): 15, contraprueba **15 FALLA**. `verificar_prueba_gratis_db.ts`
+  (**integración**: las dos rutas de verdad, la función repetida y a la vez, la alta que falla después
+  de crear la prueba, la alta sin Plan Básico, y el guion de datos en sus tres pasos): 9, contraprueba **9
+  FALLA**. Once mutantes y once muertos — **uno sobrevivió primero al banco de base**: quitar el `FOR
+  UPDATE`, porque las dos llamadas "a la vez" terminaban una antes de empezar la otra; ahora la primera
+  deja su transacción abierta mientras la segunda mira. **Trampa del banco**: un `timestamp` sin zona
+  leído en crudo llega como "2026-10-05 04:00:00" y `new Date` lo toma como hora LOCAL; se pide con
+  `to_char(..., 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`. Y la del lote 212 otra vez, en el lanzador de
+  mutantes: `$s` y `$S` son la misma variable en PowerShell.
+  **Para el dueño: lanzar** `npx tsx --env-file=.env scratch/_to_delete/prueba_gratis_empresas.ts`
+  (ensayo: debe nombrar las cinco y dejar fuera a Latin Doors) y, si cuadra, lo mismo con `--aplicar`.
+  Crea la prueba de 30 días **desde el día en que se lance**, en una transacción, y lanzarlo otra vez no
+  cambia nada. Y `verificar_prueba_gratis_db.ts` a `deuda_bancos.txt` en su carpeta.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás

@@ -24,7 +24,8 @@
  *
  * `setup/confirm` (el asistente de la primera instalacion) tiene su propia alta y
  * no se toca en este lote: siembra planes, roles y permisos por su cuenta, y es
- * otra conversacion.
+ * otra conversacion. (Lote 300: la prueba gratis si la crea, con la MISMA
+ * funcion, `crearPruebaGratis`.)
  */
 import { sql, count } from 'drizzle-orm';
 import { companies, companySettings, roles, payrollConfigs, permissions, type DbOTx, type DbTransaction } from '@/db';
@@ -32,6 +33,7 @@ import { seedRolePermissionsForCompany } from '@/middleware/permissions';
 import { DEFAULT_COMPANY_ROLES } from '@/utils/defaultRoles';
 import { AccountingRepository } from '@/repositories/accountingRepository';
 import { sembrarSalarioMinimo } from '@/services/nomina/salarioMinimoRepositorio';
+import { crearPruebaGratis } from '@/services/suscripcion/pruebaGratis';
 
 export interface EmpresaNueva {
   name: string;
@@ -84,6 +86,12 @@ export async function crearEmpresaConSuSiembra(tx: DbTransaction, datos: Empresa
     msellerUrl: 'https://ecf.api.mseller.app/v1',
     autoDeliveryNotes: false,
   });
+
+  // 2b. Lote 300: la prueba gratis (30 dias, limites del Plan Basico; decision
+  //     del dueno, 2026-10-05). En ESTA transaccion: si la siembra de abajo
+  //     falla, la prueba cae con la empresa; si falta el Plan Basico, lanza y
+  //     cae la alta entera (ver `pruebaGratis.ts`).
+  await crearPruebaGratis(tx, empresa.id);
 
   // 3. Roles globales (se siembran si no hay ninguno)
   const checkRoles = await tx.select({ value: count() }).from(roles);
