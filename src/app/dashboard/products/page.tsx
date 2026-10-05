@@ -37,6 +37,7 @@ import { SearchBar } from '@/components/ui/search-bar';
 import { Pagination } from '@/components/ui/pagination';
 import { useConfirm } from '@/providers/confirm-provider';
 import { formatDateDisplay } from '@/utils/fechasLocales';
+import { leerRespuesta } from '@/utils/leerRespuesta';
 
 
 interface Product {
@@ -283,10 +284,24 @@ export default function ProductsPage() {
     }
   };
 
+  // LOTE 285: la tarjeta "Stock Bajo" pintaba un `0` escrito a mano. Ahora lo cuenta el servidor
+  // sobre el catalogo entero (la lista solo trae una pagina), con la regla de reorden. `null` es
+  // "no se sabe": la tarjeta dice "—" en vez de un cero que se lee como "todo bien".
+  const [stockBajo, setStockBajo] = useState<number | null>(null);
+  const fetchStockBajo = async () => {
+    try {
+      const leido = await leerRespuesta<{ data: { total: number } }>(await fetch('/api/v1/products/stock-bajo'));
+      setStockBajo(leido.bien ? leido.cuerpo.data.total : null);
+    } catch {
+      setStockBajo(null);
+    }
+  };
+
   useEffect(() => {
     fetchProducts('', selectedCategory, 1);
     fetchCategories();
     fetchWarehouses();
+    fetchStockBajo();
   }, []);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -521,6 +536,7 @@ export default function ProductsPage() {
         // La pagina en la que estabas: sin ella, `fetchProducts` cae a la 1 y
         // editar un producto de la pagina 4 te devolvia al principio.
         fetchProducts(search, selectedCategory, page);
+        fetchStockBajo();
       } else {
         // El servidor manda `fields` cuando el fallo es de validacion: lo que
         // el esquema no pudo ver desde aqui -- un SKU repetido, por ejemplo --
@@ -599,6 +615,7 @@ export default function ProductsPage() {
         if (invData.success) {
           setInventoryLevels(invData.data);
         }
+        fetchStockBajo();
       } else {
         toast.error(data.error?.message || 'Error al actualizar');
       }
@@ -635,6 +652,7 @@ export default function ProductsPage() {
         if (invData.success) {
           setInventoryLevels(invData.data);
         }
+        fetchStockBajo();
       } else {
         toast.error(data.error?.message || 'Error al actualizar límites');
       }
@@ -1414,8 +1432,10 @@ export default function ProductsPage() {
         {/* Card 3: Stock Bajo (Amber) */}
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow">
           <div className="absolute top-0 right-0 p-4 opacity-10 text-amber-600 group-hover:scale-110 transition-transform"><AlertTriangle className="h-16 w-16" /></div>
+          {/* LOTE 285: pintaba `0` siempre. Productos con algun almacen en su minimo o por debajo
+              (la regla de reorden, `estaBajoElMinimo`). */}
           <p className="text-amber-800 text-sm font-semibold mb-1">Stock Bajo</p>
-          <p className="text-3xl font-bold text-amber-950 font-display">0</p>
+          <p className="text-3xl font-bold text-amber-950 font-display">{stockBajo ?? '—'}</p>
         </div>
       </div>
 
