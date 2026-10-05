@@ -4,8 +4,12 @@
  * Pedido del dueño (2026-10-05): *"cuando esta en modo prueba el header no debe
  * cambiar el color"*. Hasta 0203b76 la barra era negra en PRUEBA
  * (`bg-zinc-950 text-white border-red-500/20 shadow-md`) y el degradado celeste en
- * PRODUCCION. Ahora lleva el de PRODUCCION en los dos; lo unico que cambia con la
- * franja es la POSICION (`top-11`, para no taparla).
+ * PRODUCCION. Ahora lleva el de PRODUCCION en los dos.
+ *
+ * Y despues, en el mismo lote, el dueño retiro la franja rayada de MODO PRUEBA ("hay
+ * un indicador que dice cuando esta en prueba o produccion"): la barra va siempre en
+ * `top-0` y el contenido y el menu dejan el mismo hueco (`pt-14`) en los dos entornos.
+ * El entorno lo dice el punto junto a la campana (`InsigniaEntorno`).
  *
  * Lo que se comprueba:
  *   1. la regla (`src/app/dashboard/barraSuperior.ts`) EJECUTADA: mismas clases de
@@ -16,8 +20,9 @@
  *   4. el cableado: `ClientLayout` usa la regla y dentro del `<nav>` nada mas mira el
  *      entorno, salvo el punto de `InsigniaEntorno`; las piezas de la barra (selector
  *      de empresa, campana, avatar) no conocen el entorno.
- * Invariantes (ciertas antes y despues): la franja de PRUEBA sigue, con su texto y su
- * desplazamiento del contenido; el punto del entorno sigue junto a la campana y
+ *   5. sin franja: ni su advertencia ni su degradado, la barra en `top-0`, el contenido y el
+ *      menu con el mismo hueco en los dos entornos, y sin el estado que solo la servia.
+ * Invariantes (ciertas antes y despues): el punto del entorno sigue junto a la campana y
  * distingue los dos entornos.
  *
  * Se corre con: node node_modules/tsx/dist/cli.mjs scratch/verificar_cabecera_sin_color_de_prueba.ts
@@ -74,18 +79,18 @@ async function main() {
   const paletaProduccion = mProd[1];
 
   const R: AnyRec | null = existsSync(resolve(raiz, RUTA_REGLA)) ? await import('../src/app/dashboard/barraSuperior') : null;
-  const regla = (conFranja: boolean): string => { if (!R) throw new Error('no esta barraSuperior.ts'); return R.clasesDeLaBarra(conFranja); };
+  //  La regla ya no recibe nada: ni el entorno ni la franja (que se retiro). Antes de este
+  //  lote no existia; con el parametro de la primera mitad del lote, `regla()` daria la
+  //  posicion `top-0` igual, asi que lo que vigila el no-parametro es la comprobacion 5.
+  const regla = (_prueba?: boolean): string => { if (!R) throw new Error('no esta barraSuperior.ts'); return R.clasesDeLaBarra(); };
 
   console.log('\n1) La regla: el mismo color en PRUEBA y en PRODUCCION\n');
-  intenta('fondo, texto, borde y sombra iguales en los dos entornos',
-    () => sinPosicion(regla(true)) === sinPosicion(regla(false)), R ? `${sinPosicion(regla(true))} | ${sinPosicion(regla(false))}` : '');
-  intenta('y son los de PRODUCCION de la base, uno por uno',
-    () => sinPosicion(regla(true)) === sinPosicion(paletaProduccion) && sinPosicion(regla(false)) === sinPosicion(paletaProduccion));
-  intenta('en PRUEBA no queda nada del negro (zinc, texto blanco, borde rojo, sombra fuerte)',
-    () => !/\b(bg-zinc-\d+|text-white|border-red-[\w/]+|shadow-md)\b/.test(regla(true)), R ? regla(true) : '');
-  intenta('con la franja la barra baja a top-11 (no la tapa); sin ella, top-0',
-    () => tokens(regla(true)).includes('top-11') && !tokens(regla(true)).includes('top-0')
-      && tokens(regla(false)).includes('top-0') && !tokens(regla(false)).includes('top-11'));
+  intenta('fondo, texto, borde y sombra: los de PRODUCCION de la base, uno por uno',
+    () => sinPosicion(regla()) === sinPosicion(paletaProduccion), R ? sinPosicion(regla()) : '');
+  intenta('no queda nada del negro (zinc, texto blanco, borde rojo, sombra fuerte)',
+    () => !/\b(bg-zinc-\d+|text-white|border-red-[\w/]+|shadow-md)\b/.test(regla()), R ? regla() : '');
+  intenta('la barra va arriba del todo (top-0), sin franja que esquivar',
+    () => tokens(regla()).includes('top-0') && !tokens(regla()).some((t) => /^top-(?!0$)/.test(t)));
 
   console.log('\n2) Contraste del texto de la barra (AA) en PRUEBA\n');
   intenta('el texto contra cada parada del degradado, al menos 4,5:1', () => {
@@ -127,14 +132,14 @@ async function main() {
   //  escrito a mano al lado: la regla tiene que ser la unica que pinta la barra.
   const apertura = nav.slice(0, nav.indexOf(')}>') + 3);
   ok('y el <nav> la usa para su clase, sin colores escritos al lado',
-    /clasesDeLaBarra\(activeEnvironment === 'PRUEBA'\)/.test(apertura)
+    /clasesDeLaBarra\(\)/.test(apertura)
     && !/\b(bg|text|border|from|via|to)-(?!b\b)[a-z]+-\d/.test(apertura));
   //  ATADA a la marca positiva: sin la regla, "no hay zinc" no dice nada.
   ok('dentro del <nav> no queda ningun color del negro',
     nombra(nav, 'clasesDeLaBarra') && !/zinc-9\d\d|text-white|border-red-500/.test(nav));
-  ok('dentro del <nav>, el entorno solo lo miran la regla (posicion) y el punto del entorno', (() => {
+  ok('dentro del <nav>, el entorno solo lo mira el punto del entorno', (() => {
     const resto = nav
-      .replace(/clasesDeLaBarra\(activeEnvironment === 'PRUEBA'\)/, '')
+      .replace(/clasesDeLaBarra\(\)/, '')
       .replace(/<InsigniaEntorno entorno=\{entorno\} \/>/, '');
     return nombra(nav, 'clasesDeLaBarra') && !nombra(resto, 'activeEnvironment') && !nombra(resto, 'entorno') && !/'PRUEBA'/.test(resto);
   })());
@@ -144,13 +149,20 @@ async function main() {
       return !nombra(s, 'entorno') && !nombra(s, 'activeEnvironment') && !nombra(s, 'dgiiEnv') && !/'PRUEBA'|'TEST'/.test(s);
     }));
 
-  console.log('\n5) Lo que no cambia (invariantes)\n');
-  const iFranja = codigo.indexOf("activeEnvironment === 'PRUEBA' && (");
-  const franja = iFranja > -1 ? codigo.slice(iFranja, codigo.indexOf(')}', iFranja)) : '';
-  invariante('la franja rayada sigue, solo en PRUEBA, con su advertencia',
-    /MODO PRUEBA \(SANDBOX\) - OPERACIONES FISCALMENTE NULAS/.test(franja) && /repeating-linear-gradient/.test(franja) && iFranja < iNav);
-  invariante('el contenido sigue bajando con la franja (pt-24 en PRUEBA, pt-14 sin ella)',
-    /activeEnvironment === 'PRUEBA' \? 'pt-24' : 'pt-14'/.test(codigo));
+  console.log('\n5) Sin la franja de MODO PRUEBA (decision del dueño)\n');
+  const sidebar = sinComentarios(leer('src/components/ui/new-app-sidebar.tsx'));
+  //  Las negaciones van ATADAS a la marca positiva (la regla usada en el <nav>): en un
+  //  fichero que no tuviera nada, "no hay franja" seria cierto de balde.
+  ok('no queda la franja: ni su advertencia ni su degradado rayado',
+    nombra(nav, 'clasesDeLaBarra') && !/FISCALMENTE NULAS|MODO PRUEBA \(SANDBOX\)/.test(codigo) && !/repeating-linear-gradient/.test(codigo));
+  ok('el contenido deja el mismo hueco en los dos entornos (pt-14, sin pt-24)',
+    /'pt-14'/.test(codigo) && !/pt-24/.test(codigo));
+  ok('y el menu lateral tambien (su hueco ya no mira el entorno)',
+    /const topOffset = 'pt-14';/.test(sidebar) && !/pt-24/.test(sidebar));
+  ok('fuera el estado que solo servia a la franja (activeEnvironment)',
+    nombra(nav, 'clasesDeLaBarra') && !nombra(codigo, 'activeEnvironment') && !nombra(codigo, 'setActiveEnvironment'));
+
+  console.log('\n6) Lo que no cambia (invariantes)\n');
   invariante('el punto del entorno sigue junto a la campana',
     /<InsigniaEntorno entorno=\{entorno\} \/>\s*<CampanaAvisos \/>/.test(nav)
     && /import InsigniaEntorno from '@\/components\/ui\/insignia-entorno'/.test(codigo));

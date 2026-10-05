@@ -3438,6 +3438,16 @@ Además, fuera de la tabla:
   `pagada_y_soporte`, `modo_certificacion` —su trinquete de `=== 'PRUEBA'` no sube: la
   comparación sigue siendo una—, `gating_ui`, `ui_rrhh_admin`, `menu_activo_centrado`) siguen en
   verde sin tocarlos.
+  **Y en el mismo lote, la franja de MODO PRUEBA se retira** (decisión del dueño, 2026-10-05: *"puedes
+  quitar la franja ... ya que hay un indicador que dice cuando está en prueba o producción"*). El lote
+  192 la había dejado como advertencia legal; el dueño decidió que basta el punto del entorno junto a la
+  campana, cuyo globo dice la consecuencia ("lo que emita no vale ante la DGII"). Sin franja, la barra va
+  siempre en `top-0` (`clasesDeLaBarra()` ya no recibe nada), el contenido y el menú lateral dejan el
+  mismo hueco (`pt-14`) en los dos entornos, y se va `activeEnvironment`, que solo servía a la franja.
+  Dos bancos la exigían como **precondición** y se reescriben, no se borran: `verificar_entorno_y_sesion`
+  (192) y `verificar_selector_en_cabecera` (193), que además exigían `entorno !== 'PROD'` en el menú para
+  el hueco. El banco del lote gana cuatro comprobaciones (sin franja, mismo hueco en contenido y menú, sin
+  el estado), con contraprueba 6 FALLA contra la primera mitad del lote y mutantes muertos.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás

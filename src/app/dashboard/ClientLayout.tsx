@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Shield, PanelLeftClose, PanelLeftOpen, Menu } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Toaster, toast } from 'sonner';
 import clsx from 'clsx';
@@ -93,7 +93,9 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
   const [logoUrl, setLogoUrl] = useState<string | null>(initialSettings?.logoUrl || null);
   const [companyName, setCompanyName] = useState<string>(initialSettings?.companyName || '');
   const [entorno, setEntorno] = useState<'TEST' | 'CERT' | 'PROD'>('TEST');
-  const [activeEnvironment, setActiveEnvironment] = useState<'PRODUCCION' | 'PRUEBA'>('PRODUCCION');
+  //  LOTE 301: fuera `activeEnvironment`. Solo lo leian la franja de MODO PRUEBA y los
+  //  huecos que le hacian sitio, y la franja se retiro (decision del dueño). El entorno
+  //  que se ENSEÑA es `entorno`, el del punto junto a la campana.
   const [companies, setCompanies] = useState<any[]>([]);
   const [switching, setSwitching] = useState(false);
   const [loadingInit, setLoadingInit] = useState(false);
@@ -140,10 +142,7 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
       const savedEnv = getCookie('cf_environment');
       if (savedEnv !== targetEnv) {
         document.cookie = `cf_environment=${targetEnv}; path=/; max-age=31536000; SameSite=Strict`;
-        setActiveEnvironment(targetEnv);
         window.location.reload();
-      } else {
-        setActiveEnvironment(targetEnv);
       }
     }
   }, [initialSettings]);
@@ -358,23 +357,17 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
       <div className="font-body-md text-on-surface custom-scrollbar overflow-x-hidden min-h-screen bg-background">
         <Toaster position="top-right" richColors />
   
-        {/* Environment Stripe */}
-        {activeEnvironment === 'PRUEBA' && (
-          <div className="w-full h-11 bg-[repeating-linear-gradient(45deg,#ef4444,#ef4444_15px,#f97316_15px,#f97316_30px)] text-white flex items-center justify-center fixed top-0 left-0 z-[60] shadow-md border-b-2 border-red-700 select-none">
-            <span className="font-label-md text-sm font-extrabold flex items-center gap-2 uppercase tracking-widest text-white drop-shadow-md">
-              <Shield className="h-5 w-5 animate-pulse text-white" />
-              MODO PRUEBA (SANDBOX) - OPERACIONES FISCALMENTE NULAS
-            </span>
-          </div>
-        )}
-  
+        {/* LOTE 301: fuera la franja rayada de MODO PRUEBA (decision del dueño, 2026-10-05).
+            El entorno lo dice el punto de al lado de la campana (`InsigniaEntorno`), con su
+            globo: "Pruebas -- lo que emita no vale ante la DGII". */}
+
         {/* TopNavBar
             LOTE 301: el mismo color en PRUEBA que en PRODUCCION (pedido del dueño).
             El entorno ya lo dicen la franja de arriba y el punto junto a la campana;
             de PRUEBA solo queda la posicion, debajo de la franja. Ver barraSuperior.ts. */}
         <nav className={clsx(
           "backdrop-blur-md flex justify-between items-center w-full px-4 md:px-6 h-14 fixed left-0 z-50 border-b transition duration-300",
-          clasesDeLaBarra(activeEnvironment === 'PRUEBA')
+          clasesDeLaBarra()
         )}>
           <div className="flex items-center gap-3 min-w-0">
             {/* Mobile hamburger */}
@@ -463,7 +456,7 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
         <div
           className={clsx(
             'flex flex-col min-h-screen transition-[padding] duration-300 ease-in-out',
-            activeEnvironment === 'PRUEBA' ? 'pt-24' : 'pt-14',
+            'pt-14',
             sidebarCollapsed ? 'md:ml-[70px]' : 'md:ml-[260px]'
           )}
         >
