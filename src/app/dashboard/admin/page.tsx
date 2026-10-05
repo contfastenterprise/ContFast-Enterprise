@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Fragment } from 'react';
-import { Shield, ShieldCheck, Plus, RefreshCw, CheckCircle2, Users as UsersIcon, KeyRound, Lock, UserCheck, UserX, UserSquare, CreditCard, Award, Zap, FileText, Layers, Calendar, Pencil, Ban, ChevronDown, ChevronRight } from 'lucide-react';
+import { Shield, ShieldCheck, Plus, RefreshCw, CheckCircle2, Users as UsersIcon, KeyRound, Lock, UserCheck, UserX, UserSquare, CreditCard, Zap, Calendar, Pencil, Ban, ChevronDown, ChevronRight } from 'lucide-react';
 import { Modal } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import clsx from 'clsx';
@@ -10,6 +10,8 @@ import AvatarUploader from '@/components/ui/AvatarUploader';
 import { useConfirm } from '@/providers/confirm-provider';
 import { esAdminOSistemas, esSistemas } from '@/utils/rolMatch';
 import { formatDateDisplay, formatTimeDisplay } from '@/utils/fechasLocales';
+import { TarjetaDelPlan } from '@/components/suscripcion/TarjetaDelPlan';
+import type { PlanParaLaPantalla } from '@/services/suscripcion/planVigente';
 
 import { Button, IconButton } from '@/components/ui/button';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
@@ -59,15 +61,7 @@ export default function AdminPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   // Lote 300: si la base tiene la 0022 (la casilla "Plan de prueba").
   const [estadoPrueba, setEstadoPrueba] = useState<EstadoPlanDePrueba>(SIN_DATOS_PLAN_DE_PRUEBA);
-  const [subscription, setSubscription] = useState<{
-    id: string;
-    status: string;
-    currentPeriodEnd: string;
-    planName: string;
-    maxEcfLimit: number;
-    maxUsers: number;
-    maxWarehouses: number;
-  } | null>(null);
+  const [subscription, setSubscription] = useState<PlanParaLaPantalla | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
@@ -721,84 +715,11 @@ export default function AdminPage() {
             )}
 
             {activeTab === 'plans' && currentUserRole !== 'sistemas' && (
-              <div className="max-w-3xl">
-                {subscription ? (
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-fade-in">
-                    <div className="bg-[#003366] px-6 py-8 text-white relative">
-                      <div className="absolute top-0 right-0 p-8 opacity-10">
-                        <Award className="w-32 h-32" />
-                      </div>
-                      <p className="text-xs uppercase tracking-widest font-bold text-slate-300">Plan de Suscripción Activo</p>
-                      <h3 className="text-2xl font-display font-bold mt-2">{subscription.planName}</h3>
-                      <div className="mt-4 flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                          Suscripción Activa
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="p-6 space-y-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
-                          <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                            <FileText className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Límite e-CF</p>
-                            <p className="text-lg font-bold text-slate-800 mt-1">
-                              {subscription.maxEcfLimit === -1 ? 'Ilimitado' : `${subscription.maxEcfLimit} / mes`}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
-                          <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                            <UsersIcon className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Límite de Usuarios</p>
-                            <p className="text-lg font-bold text-slate-800 mt-1">
-                              {subscription.maxUsers === -1 ? 'Ilimitado' : `${subscription.maxUsers}`}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
-                          <div className="p-2 bg-violet-50 text-violet-600 rounded-lg">
-                            <Layers className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Límite de Almacenes</p>
-                            <p className="text-lg font-bold text-slate-800 mt-1">
-                              {subscription.maxWarehouses === -1 ? 'Ilimitado' : `${subscription.maxWarehouses}`}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50 rounded-xl p-4 border border-slate-100">
-                        <div className="flex items-center gap-2 text-slate-600">
-                          <Calendar className="w-4 h-4 text-slate-400" />
-                          <span className="text-xs font-semibold">
-                            Vencimiento / Renovación:{' '}
-                            <span className="text-slate-800 font-bold">
-                              {formatDateDisplay(subscription.currentPeriodEnd)}
-                            </span>
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-slate-500 font-medium italic">
-                          Para modificar su plan o límites, contacte a soporte.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center animate-fade-in">
-                    <p className="text-sm text-slate-500 font-medium">No se encontró una suscripción activa para esta empresa.</p>
-                    <p className="text-xs text-slate-400 mt-1">Por favor, póngase en contacto con soporte técnico para activar su plan.</p>
-                  </div>
-                )}
+              //  Lote 303: la MISMA tarjeta que Configuracion > Plan & Suscripcion, con los
+              //  datos de la misma ruta (`admin/settings` -> `planParaLaPantalla`). Antes era
+              //  la pantalla de antes del lote 299 y rotulaba "Suscripción Activa" un plan vencido.
+              <div className="max-w-3xl animate-fade-in">
+                <TarjetaDelPlan plan={subscription} />
               </div>
             )}
           </div>
