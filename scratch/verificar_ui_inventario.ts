@@ -222,7 +222,11 @@ async function main() {
   for (const f of todos) {
     let antes: string;
     try { antes = enBase(f); } catch { continue; }
-    const ahora = leer(f);
+    //  LOTE 285: DOS COMMITS, no la carpeta (como en los lotes 227 y 230). El 285 pide a proposito una
+    //  ruta nueva desde productos (`/api/v1/products/stock-bajo`, la tarjeta "Stock Bajo"); la prueba de
+    //  este lote sigue siendo la misma entre 57f741d y 696854e, el ultimo main en que se comprobo.
+    let ahora: string;
+    try { ahora = execFileSync('git', ['show', `696854e:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 }).replace(/\r\n/g, '\n'); } catch { continue; }
     const deProp = textosDePropiedad(ahora);
     const d = diferencia(visibles(antes), [...visibles(ahora), ...deProp]);
     //  Lo que sobra solo vale si es un texto de propiedad que ya estaba escrito en el fichero de antes.

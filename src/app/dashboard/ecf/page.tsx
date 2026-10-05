@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { TIPOS_COMPROBANTE } from '@/services/dgii/tiposComprobante';
+import { ETIQUETAS_DE_TIPO, opcionesDeSecuencia, opcionesDelFiltro } from './opcionesDeTipo';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ErrorDeCarga, motivoDeCarga } from '@/components/ui/estado-carga';
 import {
@@ -135,25 +135,13 @@ interface PaginationMeta {
  * Exterior" (es Exportaciones) y el 47 "Exportacion" (es Pagos al Exterior).
  *
  * Los de la serie B (01-17) son la numeracion anterior, que no es e-CF y no
- * vive en ese modulo; se quedan aqui.
+ * vive en ese modulo.
+ *
+ * LOTE 285: el mapa se arreglo, pero los DESPLEGABLES seguian escritos a mano y con el 46 y el 47
+ * cruzados otra vez. La serie B, el mapa y las opciones viven ahora en `./opcionesDeTipo.ts`, que
+ * las deriva del catalogo; esta pagina no escribe ningun nombre de tipo.
  */
-const NCF_B_LABELS: Record<string, string> = {
-  '01': 'Factura de Crédito Fiscal',
-  '02': 'Factura de Consumo',
-  '03': 'Nota de Débito',
-  '04': 'Nota de Crédito',
-  '11': 'Comprobante de Compras',
-  '13': 'Comprobante para Gastos Menores',
-  '14': 'Comprobante de Regímenes Especiales',
-  '15': 'Comprobante Gubernamental',
-  '16': 'Comprobante de Exportación',
-  '17': 'Comprobante para Pagos al Exterior',
-};
-
-const ECF_TYPE_LABELS: Record<string, string> = {
-  ...NCF_B_LABELS,
-  ...Object.fromEntries(TIPOS_COMPROBANTE.map((t) => [t.codigo, t.nombre])),
-};
+const ECF_TYPE_LABELS = ETIQUETAS_DE_TIPO;
 
 const ECF_TYPE_DESCRIPTIONS: Record<string, string> = {
   // Electronic & Traditional matching pairs
@@ -353,33 +341,11 @@ function NewSequenceModal({ open, onClose, onSuccess }: NewSeqModalProps) {
                 onChange={(e) => setForm((f) => ({ ...f, ecfType: e.target.value }))}
                 className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 h-8 text-xs text-primary focus:border-[#C5A059] focus:ring-1 focus:ring-[#C5A059]/20 outline-none transition-colors"
               >
-                {isElectronic ? (
-                  <>
-                    <option value="31">E31 — Factura de Crédito Fiscal Electrónica</option>
-                    <option value="32">E32 — Factura de Consumo Electrónica</option>
-                    <option value="33">E33 — Nota de Débito Electrónica</option>
-                    <option value="34">E34 — Nota de Crédito Electrónica</option>
-                    <option value="41">E41 — Comprobante de Compras Electrónico</option>
-                    <option value="43">E43 — Comprobante para Gastos Menores Electrónico</option>
-                    <option value="44">E44 — Comprobante para Regímenes Especiales Electrónico</option>
-                    <option value="45">E45 — Comprobante Gubernamental Electrónico</option>
-                    <option value="46">E46 — Comprobante para Pagos al Exterior Electrónico</option>
-                    <option value="47">E47 — Comprobante de Exportación Electrónico</option>
-                  </>
-                ) : (
-                  <>
-                    <option value="01">B01 — Factura de Crédito Fiscal</option>
-                    <option value="02">B02 — Factura de Consumo</option>
-                    <option value="03">B03 — Nota de Débito</option>
-                    <option value="04">B04 — Nota de Crédito</option>
-                    <option value="11">B11 — Comprobante de Compras</option>
-                    <option value="13">B13 — Comprobante para Gastos Menores</option>
-                    <option value="14">B14 — Comprobante de Regímenes Especiales</option>
-                    <option value="15">B15 — Comprobante Gubernamental</option>
-                    <option value="16">B16 — Comprobante de Exportación</option>
-                    <option value="17">B17 — Comprobante para Pagos al Exterior</option>
-                  </>
-                )}
+                {/* LOTE 285: del catalogo (los diez electronicos) y de NCF_B (la serie B). El 46 y
+                    el 47 estaban cruzados aqui. */}
+                {opcionesDeSecuencia(isElectronic).map((o) => (
+                  <option key={o.valor} value={o.valor}>{o.rotulo}</option>
+                ))}
               </select>
               {ECF_TYPE_DESCRIPTIONS[form.ecfType] && (
                 <p className="mt-2 text-xs text-slate-500 italic bg-slate-100 p-2 rounded-lg border border-slate-200">
@@ -936,11 +902,10 @@ function ComprobantesTab() {
             className="rounded-lg border border-slate-200 bg-slate-50 text-slate-800 px-3 py-1.5 h-8 text-xs focus:outline-none focus:ring-1 focus:ring-[#c5a059]/20 focus:border-[#c5a059] transition appearance-none cursor-pointer"
           >
             <option value="">Todos los tipos</option>
-            {TIPOS_COMPROBANTE.filter(t => t.emitible).map(t => (
-              <option key={t.codigo} value={t.codigo}>e-{t.codigo} {t.corto}</option>
+            {/* LOTE 285: el 46 salia dos veces y el 47 con el nombre del 46. Del catalogo. */}
+            {opcionesDelFiltro().map(o => (
+              <option key={o.valor} value={o.valor}>{o.rotulo}</option>
             ))}
-            <option value="46">e-46 Pagos al Exterior</option>
-            <option value="47">e-47 Exportación</option>
           </select>
           <select
             value={filters.status}
