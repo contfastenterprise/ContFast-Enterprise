@@ -154,7 +154,9 @@ async function main() {
     ]);
     return [n === 2 && contar([]) === 0, `${n}`];
   });
-  const ruta = sinComentarios(leer('src/app/api/v1/products/stock-bajo/route.ts'));
+  //  LOTE 291: la ruta del 285 (`products/stock-bajo`) se amplio a `products/resumen` (stock bajo + valor
+  //  del inventario). Se mira la que exista: la propiedad es que el conteo use la regla, no el nombre.
+  const ruta = sinComentarios(leer('src/app/api/v1/products/resumen/route.ts') || leer('src/app/api/v1/products/stock-bajo/route.ts'));
   ok('la ruta del conteo usa la regla (importada y llamada) y no la reescribe',
     /import \{ contarProductosConStockBajo \} from '@\/services\/inventario\/existencia';/.test(ruta)
     && /contarProductosConStockBajo\(niveles\)/.test(ruta) && !/<=/.test(ruta));
@@ -166,11 +168,18 @@ async function main() {
   const prod = sinComentarios(leer('src/app/dashboard/products/page.tsx'));
   const tarjeta = (() => { const i = prod.indexOf('>Stock Bajo</p>'); return i < 0 ? '' : prod.slice(i, prod.indexOf('</div>', i)); })();
   ok('la tarjeta pinta lo contado, no un 0 fijo ("—" si no se sabe)',
-    /\{stockBajo \?\? '—'\}/.test(tarjeta) && !/>\s*0\s*<\/p>/.test(tarjeta), tarjeta.replace(/\s+/g, ' ').slice(0, 160));
+    /\{(stockBajo|resumen\?\.stockBajo) \?\? '—'\}/.test(tarjeta) && !/>\s*0\s*<\/p>/.test(tarjeta), tarjeta.replace(/\s+/g, ' ').slice(0, 160));
   ok('  y lo pide a la ruta mirando el estado (leerRespuesta), al entrar y tras cambiar existencias o minimos',
-    /import \{ leerRespuesta \} from '@\/utils\/leerRespuesta';/.test(prod)
-    && /leerRespuesta<[^>]*>\(await fetch\('\/api\/v1\/products\/stock-bajo'\)\)/.test(prod)
-    && (prod.match(/\bfetchStockBajo\(\);/g) ?? []).length >= 4);
+    (/import \{ leerRespuesta \} from '@\/utils\/leerRespuesta';/.test(prod)
+      && /leerRespuesta<[^>]*>\(await fetch\('\/api\/v1\/products\/stock-bajo'\)\)/.test(prod)
+      && (prod.match(/\bfetchStockBajo\(\);/g) ?? []).length >= 4)
+    //  LOTE 291: la peticion vive en `resumenDelCatalogo.ts` (la ejecuta el banco del 291); aqui, que la
+    //  pagina la importe y la llame en los mismos cuatro momentos, y que el modulo lea el estado.
+    || (/import \{[^}]*\bpedirResumenDelCatalogo\b[^}]*\} from '\.\/resumenDelCatalogo';/.test(prod)
+      && /setResumen\(await pedirResumenDelCatalogo\(\)\)/.test(prod)
+      && (prod.match(/\bfetchResumen\(\);/g) ?? []).length >= 4
+      && /leerRespuesta<[^;]*?>\(await pedir\('\/api\/v1\/products\/resumen'\)\)/.test(
+        sinComentarios(leer('src/app/dashboard/products/resumenDelCatalogo.ts')))));
   const reorden = sinComentarios(leer('src/app/api/v1/inventory/reorder-suggestions/route.ts'));
   invariante('reorden sigue con la misma regla (minimo > 0 y cantidad <= minimo)',
     /gt\(sql`CAST\(\$\{inventoryLevels\.minStock\} AS numeric\)`, 0\)/.test(reorden)
