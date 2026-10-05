@@ -10,6 +10,9 @@
 import { useState } from 'react';
 import { Plus, Minus } from 'lucide-react';
 import { toast } from 'sonner';
+import clsx from 'clsx';
+import { BotonTienda } from './BotonTienda';
+import { FOCO_TIENDA } from './botonTiendaVariantes';
 
 interface AddToCartProps {
   productId: string;
@@ -29,7 +32,7 @@ export default function AddToCartClient({ productId, name, price, imageUrl, chil
 
   const handleAddToCart = () => {
     try {
-      // Usaremos localStorage de forma provisional hasta que el usuario inicie sesión
+      //  La cotizacion vive en el navegador del visitante: la tienda no tiene cuentas (lote 233).
       const currentCart: Renglon[] = JSON.parse(localStorage.getItem('storefront_cart') || '[]');
 
       const existingItemIndex = currentCart.findIndex((item) => item.productId === productId);
@@ -40,7 +43,7 @@ export default function AddToCartClient({ productId, name, price, imageUrl, chil
         currentCart.push({
           productId,
           name,
-          price, // Ojo: en Phase 7 este precio se ignorará por seguridad, pero sirve para la UI temporal
+          price, // No manda: la cotizacion toma el precio del catalogo en cada visita (lote 233).
           quantity,
           imageUrl,
           addedAt: new Date().toISOString()
@@ -66,26 +69,27 @@ export default function AddToCartClient({ productId, name, price, imageUrl, chil
         <p id="etiqueta-cantidad" className="mb-2 text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-900">Cantidad</p>
         <div role="group" aria-labelledby="etiqueta-cantidad" className="inline-flex items-center border border-slate-300">
           <button type="button" onClick={decrement} aria-label="Una menos" disabled={quantity <= 1}
-            className="flex h-11 w-11 items-center justify-center text-slate-600 transition-colors hover:text-slate-900 disabled:opacity-30">
-            <Minus className="h-4 w-4" />
+            className={clsx('flex h-11 w-11 items-center justify-center text-slate-600 transition-colors hover:text-slate-900 disabled:opacity-30', FOCO_TIENDA)}>
+            <Minus className="h-4 w-4" aria-hidden="true" />
           </button>
           <span className="w-12 text-center text-base text-slate-900" aria-live="polite">{quantity}</span>
           <button type="button" onClick={increment} aria-label="Una más"
-            className="flex h-11 w-11 items-center justify-center text-slate-600 transition-colors hover:text-slate-900">
-            <Plus className="h-4 w-4" />
+            className={clsx('flex h-11 w-11 items-center justify-center text-slate-600 transition-colors hover:text-slate-900', FOCO_TIENDA)}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       </div>
 
       <div className="flex items-center gap-3">
-        <button type="button" onClick={handleAddToCart}
-          className="h-12 flex-1 rounded-full bg-[#001e40] px-6 text-sm font-semibold uppercase tracking-[0.15em] text-white transition-colors hover:bg-[#00142a] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#001e40] focus-visible:ring-offset-2">
+        <BotonTienda type="button" tamano="lg" onClick={handleAddToCart} className="flex-1 px-6">
           Añadir a mi cotización
-        </button>
+        </BotonTienda>
         {children}
       </div>
+      {/* Lote 282: decia "Al enviar tu cotización…", y desde el lote 233 la cotizacion no se envia:
+          se arma en el navegador y se imprime o se guarda en PDF. */}
       <p className="text-xs text-slate-500">
-        Al enviar tu cotización validamos el inventario y el tiempo de entrega.
+        Tu cotización se guarda en este navegador para imprimirla o guardarla en PDF. El inventario y el tiempo de entrega se confirman al hacer el pedido.
       </p>
     </div>
   );

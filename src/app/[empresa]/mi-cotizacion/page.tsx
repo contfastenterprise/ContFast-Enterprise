@@ -3,6 +3,7 @@ import { StorefrontProductService } from '@/services/storefront/productService';
 import { StorefrontCompanyService } from '@/services/storefront/companyService';
 import { precioVigente } from '@/services/storefront/catalogo';
 import ProductRecommendations from '@/components/storefront/ProductRecommendations';
+import TituloDeSeccion from '@/components/storefront/TituloDeSeccion';
 import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 
@@ -36,8 +37,7 @@ export default async function MiCotizacionPage({ params }: { params: Promise<{ e
 
   return (
     <div className="mx-auto max-w-[1400px] px-4 pb-20 pt-12 sm:px-6 lg:px-10 print:p-0">
-      <h1 className="text-3xl font-medium uppercase tracking-[0.12em] text-slate-900 print:hidden">Mi cotización</h1>
-      <p className="mt-2 text-sm text-slate-500 print:hidden">Los precios son los de hoy y no incluyen el ITBIS hasta el total.</p>
+      <TituloDeSeccion titulo="Mi cotización" descripcion="Los precios son los de hoy y no incluyen el ITBIS hasta el total." className="print:hidden" />
 
       <CartPageClient
         empresaSlug={empresaSlug}

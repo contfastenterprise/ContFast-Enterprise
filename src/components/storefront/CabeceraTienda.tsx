@@ -19,11 +19,13 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { Search, Menu, X, Heart, ShoppingBag } from 'lucide-react';
 import clsx from 'clsx';
 import CartBadgeClient from './CartBadgeClient';
+import { BotonTienda } from './BotonTienda';
+import { FOCO_TIENDA } from './botonTiendaVariantes';
 import { useFavoritos } from './useFavoritos';
 
 export type EnlaceDelMenu = { href: string; etiqueta: string };
 
-const icono = 'relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full text-slate-900 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#001e40]';
+const icono = `relative flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full text-slate-900 transition-colors hover:bg-slate-100 ${FOCO_TIENDA}`;
 
 /**
  * Los enlaces del menu, con el de la pagina actual subrayado: misma ruta y
@@ -75,7 +77,7 @@ function Favoritos({ empresaSlug }: { empresaSlug: string }) {
   const n = listo ? lista.length : 0;
   return (
     <Link href={`/${empresaSlug}/favoritos`} className={icono} aria-label={n > 0 ? `Favoritos (${n})` : 'Favoritos'}>
-      <Heart className="h-5 w-5" strokeWidth={1.5} />
+      <Heart className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
       {n > 0 && (
         <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#001e40] px-1 text-[10px] font-bold text-white" aria-hidden="true">
           {n > 99 ? '99+' : n}
@@ -117,16 +119,16 @@ export default function CabeceraTienda({ empresaSlug, nombre, logoUrl, enlaces }
           <div className="flex items-center">
             <button type="button" onClick={() => setCajon((v) => !v)} className={clsx(icono, 'md:hidden')}
               aria-expanded={cajon} aria-controls="menu-tienda-movil" aria-label={cajon ? 'Cerrar menú' : 'Abrir menú'}>
-              {cajon ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              {cajon ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
             </button>
             <button type="button" onClick={() => setBuscando((v) => !v)} aria-expanded={buscando} aria-controls="buscador-tienda"
-              className="hidden items-center gap-2 text-sm uppercase tracking-[0.15em] text-slate-900 hover:opacity-70 md:flex">
-              <Search className="h-5 w-5" strokeWidth={1.5} />
+              className={clsx('hidden items-center gap-2 rounded-sm text-sm uppercase tracking-[0.15em] text-slate-900 hover:opacity-70 md:flex', FOCO_TIENDA)}>
+              <Search className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
               Buscar
             </button>
           </div>
 
-          <Link href={`/${empresaSlug}`} className="flex items-center justify-center px-2 hover:opacity-80">
+          <Link href={`/${empresaSlug}`} className={clsx('flex min-w-0 items-center justify-center rounded-sm px-2 hover:opacity-80', FOCO_TIENDA)}>
             {logoUrl ? (
               <img src={logoUrl} alt={nombre} className="h-10 w-auto max-w-[220px] object-contain md:h-12" />
             ) : (
@@ -135,12 +137,13 @@ export default function CabeceraTienda({ empresaSlug, nombre, logoUrl, enlaces }
           </Link>
 
           <div className="flex items-center justify-end gap-0.5">
-            <button type="button" onClick={() => setBuscando((v) => !v)} className={clsx(icono, 'md:hidden')} aria-label="Buscar productos">
-              <Search className="h-5 w-5" strokeWidth={1.5} />
+            <button type="button" onClick={() => setBuscando((v) => !v)} className={clsx(icono, 'md:hidden')} aria-label="Buscar productos"
+              aria-expanded={buscando} aria-controls="buscador-tienda">
+              <Search className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
             </button>
             <Favoritos empresaSlug={empresaSlug} />
             <Link href={`/${empresaSlug}/mi-cotizacion`} className={icono} aria-label="Mi cotización">
-              <ShoppingBag className="h-5 w-5" strokeWidth={1.5} />
+              <ShoppingBag className="h-5 w-5" strokeWidth={1.5} aria-hidden="true" />
               <CartBadgeClient />
             </Link>
           </div>
@@ -148,7 +151,7 @@ export default function CabeceraTienda({ empresaSlug, nombre, logoUrl, enlaces }
 
         <nav aria-label="Catálogo" className="hidden justify-center pb-4 md:flex">
           <MenuDeEnlaces enlaces={enlaces} claseLista="flex flex-wrap items-center justify-center gap-x-10 gap-y-2"
-            claseEnlace={(a) => clsx('text-[13px] uppercase tracking-[0.18em] text-slate-900 underline-offset-8 hover:underline', a && 'underline')} />
+            claseEnlace={(a) => clsx('rounded-sm text-[13px] uppercase tracking-[0.18em] text-slate-900 underline-offset-8 hover:underline', FOCO_TIENDA, a && 'underline')} />
         </nav>
       </div>
 
@@ -156,12 +159,12 @@ export default function CabeceraTienda({ empresaSlug, nombre, logoUrl, enlaces }
         <div id="buscador-tienda" className="border-t border-slate-200 bg-white">
           <form action={`/${empresaSlug}/productos`} method="GET" role="search" className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4">
             <label htmlFor="buscar-en-tienda" className="sr-only">Buscar productos</label>
-            <Search className="h-5 w-5 shrink-0 text-slate-400" aria-hidden="true" />
+            <Search className="hidden h-5 w-5 shrink-0 text-slate-500 sm:block" aria-hidden="true" />
             <input ref={campo} id="buscar-en-tienda" name="q" type="search" placeholder="¿Qué estás buscando?"
-              className="w-full border-0 border-b border-slate-300 bg-transparent py-2 text-base text-slate-900 outline-none placeholder:text-slate-400 focus:border-slate-900" />
-            <button type="submit" className="rounded-full bg-[#001e40] px-5 py-2 text-xs font-semibold uppercase tracking-wider text-white hover:bg-[#00142a]">
+              className="w-full min-w-0 border-0 border-b border-slate-300 bg-transparent py-2 text-base text-slate-900 outline-none placeholder:text-slate-500 focus:border-slate-900 focus-visible:border-b-2" />
+            <BotonTienda type="submit" tamano="sm" className="shrink-0">
               Buscar
-            </button>
+            </BotonTienda>
           </form>
         </div>
       )}
@@ -169,7 +172,7 @@ export default function CabeceraTienda({ empresaSlug, nombre, logoUrl, enlaces }
       {cajon && (
         <nav id="menu-tienda-movil" aria-label="Catálogo" className="border-t border-slate-200 bg-white md:hidden">
           <MenuDeEnlaces enlaces={enlaces} claseLista="flex flex-col px-4 py-2" alPulsar={() => setCajon(false)}
-            claseEnlace={(a) => clsx('block border-b border-slate-100 py-3 text-sm uppercase tracking-[0.15em] text-slate-900', a && 'font-semibold')} />
+            claseEnlace={(a) => clsx('block border-b border-slate-100 py-3 text-sm uppercase tracking-[0.15em] text-slate-900', FOCO_TIENDA, a && 'font-semibold')} />
         </nav>
       )}
     </header>

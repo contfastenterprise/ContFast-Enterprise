@@ -2,6 +2,7 @@
 
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { BotonTienda } from './BotonTienda';
 
 interface CatalogAddButtonProps {
   productId: string;
@@ -41,20 +42,22 @@ export default function CatalogAddButton({ productId, name, price, imageUrl }: C
     }
   };
 
-  //  Lote 231: el boton de Spree, fino y en mayusculas; se rellena de azul
-  //  marino al pasar. Dice QUE producto anade: en la rejilla hay 87 iguales.
+  //  Lote 231: el boton de Spree, fino y en mayusculas; se rellena al pasar.
+  //  Dice QUE producto anade: en la rejilla hay 87 iguales.
+  //  Lote 282: el contorno de la tienda (`BotonTienda`), el mismo de la portada y la cotizacion.
   return (
-    <button
+    <BotonTienda
       type="button"
+      variante="contorno"
+      tamano="xs"
       onClick={(e) => {
         e.preventDefault(); // Por si está envuelto en un Link
         handleAddToCart();
       }}
       aria-label={`Añadir ${name} a mi cotización`}
-      className="inline-flex items-center gap-1.5 rounded-full border border-slate-900 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-900 transition-colors hover:border-[#001e40] hover:bg-[#001e40] hover:text-white active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#001e40] focus-visible:ring-offset-2"
     >
       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
       Cotizar
-    </button>
+    </BotonTienda>
   );
 }

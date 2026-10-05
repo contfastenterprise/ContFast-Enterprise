@@ -35,7 +35,10 @@ function contarAMano(): { primario: number; secundario: number; documento: numbe
     for (const n of readdirSync(d)) {
       const p = join(d, n);
       if (statSync(p).isDirectory()) { if (!p.includes('prueba-ui')) andar(p); continue; }
-      if (!p.endsWith('.tsx') || p.includes(join('components', 'ui', 'button.tsx'))) continue;
+      //  Los COMPONENTES de boton no son botones a mano: su `<button>` pinta `{children}`, que el
+      //  recuento no sabe leer. El de la tienda (lote 282) se salta por lo mismo que el del panel.
+      if (!p.endsWith('.tsx') || p.includes(join('components', 'ui', 'button.tsx'))
+        || p.includes(join('components', 'storefront', 'BotonTienda.tsx'))) continue;
       const s = readFileSync(p, 'utf8');
       const re = /<button\b/g;
       let m: RegExpExecArray | null;
