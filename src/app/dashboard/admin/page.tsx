@@ -13,6 +13,8 @@ import { formatDateDisplay, formatTimeDisplay } from '@/utils/fechasLocales';
 
 import { Button, IconButton } from '@/components/ui/button';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+import { CasillaPlanDePrueba, InsigniaPlanDePrueba } from './components/PlanDePrueba';
+import { SIN_DATOS_PLAN_DE_PRUEBA, cuerpoDelPlan, estadoPlanDePrueba, type EstadoPlanDePrueba } from './planDePrueba';
 interface User {
   id: string;
   name: string;
@@ -42,6 +44,8 @@ interface Plan {
   maxUsers: number;
   maxWarehouses: number;
   active: boolean;
+  /** Lote 300: la casilla "Plan de prueba" (falsa si la base no tiene la 0022). */
+  esPlanDePrueba?: boolean;
 }
 
 export default function AdminPage() {
@@ -53,6 +57,8 @@ export default function AdminPage() {
   const [expandedDays, setExpandedDays] = useState<Record<string, boolean>>({});
   const [roles, setRoles] = useState<Role[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
+  // Lote 300: si la base tiene la 0022 (la casilla "Plan de prueba").
+  const [estadoPrueba, setEstadoPrueba] = useState<EstadoPlanDePrueba>(SIN_DATOS_PLAN_DE_PRUEBA);
   const [subscription, setSubscription] = useState<{
     id: string;
     status: string;
@@ -106,7 +112,8 @@ export default function AdminPage() {
     maxEcfLimit: 100,
     maxUsers: 5,
     maxWarehouses: 1,
-    active: true
+    active: true,
+    esPlanDePrueba: false
   });
 
   useEffect(() => {
@@ -142,7 +149,7 @@ export default function AdminPage() {
 
       if (pRes) {
         const pData = await pRes.json();
-        if (pData.success) setPlans(pData.data);
+        if (pData.success) { setPlans(pData.data); setEstadoPrueba(estadoPlanDePrueba(pData)); }
       }
 
       if (sRes) {
@@ -306,7 +313,8 @@ export default function AdminPage() {
         maxEcfLimit: plan.maxEcfLimit,
         maxUsers: plan.maxUsers,
         maxWarehouses: plan.maxWarehouses,
-        active: plan.active
+        active: plan.active,
+        esPlanDePrueba: plan.esPlanDePrueba === true
       });
     } else {
       setPlanForm({
@@ -316,7 +324,8 @@ export default function AdminPage() {
         maxEcfLimit: 100,
         maxUsers: 5,
         maxWarehouses: 1,
-        active: true
+        active: true,
+        esPlanDePrueba: false
       });
     }
     setShowPlanModal(true);
@@ -332,14 +341,14 @@ export default function AdminPage() {
         res = await fetch(`/api/v1/admin/plans/${selectedPlan.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(planForm)
+          body: JSON.stringify(cuerpoDelPlan(planForm, estadoPrueba))
         });
       } else {
         // Create Plan
         res = await fetch('/api/v1/admin/plans', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(planForm)
+          body: JSON.stringify(cuerpoDelPlan(planForm, estadoPrueba))
         });
       }
 
@@ -663,6 +672,7 @@ export default function AdminPage() {
                         <div className="flex justify-between items-start mb-4">
                           <div>
                             <h3 className="font-bold text-lg text-[#003366]">{plan.name}</h3>
+                            {plan.esPlanDePrueba && <div className="mt-1"><InsigniaPlanDePrueba /></div>}
                             <p className="text-xs text-slate-500 mt-1 max-w-[200px]">{plan.description || 'Sin descripción'}</p>
                           </div>
                           <span className={clsx(
@@ -1006,6 +1016,7 @@ export default function AdminPage() {
                   <input type="checkbox" id="planActive" checked={planForm.active} onChange={e => setPlanForm({ ...planForm, active: e.target.checked })} className="h-4 w-4 border-slate-200 rounded text-primary focus:ring-primary" />
                   <label htmlFor="planActive" className="text-xs font-bold text-slate-700 cursor-pointer">Plan Habilitado para Contratación</label>
                 </div>
+                <CasillaPlanDePrueba marcado={planForm.esPlanDePrueba} estado={estadoPrueba} alCambiar={(v) => setPlanForm({ ...planForm, esPlanDePrueba: v })} />
                 <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
                   <Button variant="secondary" type="button" onClick={() => setShowPlanModal(false)} className="flex">
                     Cancelar

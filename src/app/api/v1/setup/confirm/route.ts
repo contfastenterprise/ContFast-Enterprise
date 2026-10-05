@@ -7,6 +7,8 @@ import { encryptAsync } from '@/utils/encryption';
 import { createSession } from '@/middleware/auth';
 import { seedRolePermissionsForCompany } from '@/middleware/permissions';
 import { AccountingRepository } from '@/repositories/accountingRepository';
+import { crearPruebaGratis } from '@/services/suscripcion/pruebaGratis';
+import { marcarPlanDePruebaInicial } from '@/services/suscripcion/planDePrueba';
 import { count, and, eq } from 'drizzle-orm';
 
 const confirmSchema = z.object({
@@ -120,6 +122,9 @@ export async function POST(req: NextRequest) {
             active: true,
           }
         ]);
+        // Lote 300: con la 0022 aplicada, la prueba usa el plan MARCADO, y uno
+        // recien sembrado no lo esta. Se marca el Basico, como hace la 0022.
+        await marcarPlanDePruebaInicial(tx);
       }
 
       // 2.1. Create company
@@ -131,6 +136,12 @@ export async function POST(req: NextRequest) {
           businessActivity: company.businessActivity,
         })
         .returning({ id: companies.id, name: companies.name });
+
+      // 2.2. Lote 300: la prueba gratis (30 dias, Plan Basico), con la misma
+      //      funcion que las demas altas y en esta transaccion. Va DESPUES de
+      //      sembrar los planes (2.0): asi el Plan Basico existe aunque la base
+      //      este recien creada.
+      await crearPruebaGratis(tx, newCompany.id);
 
       // 2.3. Create company settings
       await tx.insert(companySettings).values({
