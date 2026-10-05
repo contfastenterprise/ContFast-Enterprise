@@ -171,7 +171,11 @@ async function main() {
   ok('el detalle lleva sus acciones (AccionesDeLaNomina, donde ira "Pagar") y sus volantes, solo cuando ya cargo',
     /<AccionesDeLaNomina h=\{h\} \/>/.test(detalle)
       && /\{loadingDetails \? \([\s\S]*?\) : \(\s*<VolantesDeLaNomina h=\{h\} \/>\s*\)\}/.test(detalle));
-  const conEstado = ficheros.filter((f) => !/hooks\/useNominas\.ts$/.test(f) && /\buse(State|Effect)\b/.test(sinComentarios(leer(f))));
+  //  Lote 295: las piezas que trajo EL CORTE (las que existen en ${CORTE}). Una pieza que llega
+  //  despues con su propio formulario -- `PagarNomina`, la ventana del pago, que guarda lo que se
+  //  escribe en ella -- no es estado del corte que se quedo fuera del hook.
+  const delCorte = (f: string) => { try { execFileSync('git', ['cat-file', '-e', `${CORTE}:${f}`], { cwd: raiz, stdio: 'ignore' }); return true; } catch { return false; } };
+  const conEstado = ficheros.filter((f) => delCorte(f) && !/hooks\/useNominas\.ts$/.test(f) && /\buse(State|Effect)\b/.test(sinComentarios(leer(f))));
   ok('nadie mas que el hook guarda estado (no hay una copia del estado en una pieza)', conEstado.length === 0 && existsSync(join(raiz, DIR_NOMINA, 'hooks/useNominas.ts')), conEstado.join(', '));
 
   console.log('\n4) Ejecutado: las llamadas que se encadenan\n');

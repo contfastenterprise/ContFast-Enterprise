@@ -3163,6 +3163,22 @@ Además, fuera de la tabla:
   **Para el dueño**: aplicar la 0021 cuando quiera pagar nóminas desde el sistema
   (`npx tsx --env-file=.env scratch/_to_delete/aplicar_migracion.ts drizzle/0021_pagos_de_nomina.sql --aplicar`),
   y `verificar_nomina_pago_db.ts` a `deuda_bancos.txt` en su carpeta.
+  **La conexión, hecha por el principal al juntar las ramas** (el 295 no podía tocar la página: el
+  294 la estaba partiendo a la vez). «Pagar nómina» va en `AccionesDeLaNomina`, con el neto del
+  detalle (`netoEnCentavos`), y solo con el detalle ya cargado; el pago se pinta en
+  `DetalleDeLaNomina`. El hook pide el pago (`GET …/pay`) **solo de una pagada**, lo limpia al abrir
+  otra, y `alPagar` hace lo mismo que aprobar: recarga la lista y relee el detalle. Banco
+  `verificar_nomina_pago_conectado.ts`: 11 comprobaciones, contraprueba **11 FALLA** — las cuatro
+  negaciones ("no se ofrece en una calculada…") salían en OK de balde antes del botón y se ataron a
+  la marca positiva —, ocho mutantes y ocho muertos.
+  **Dos bancos que la pieza nueva rompía, sin regresión**: `verificar_partir_nomina` (294: "nadie
+  más que el hook guarda estado") mira ahora solo las piezas del corte (las que existen en `97bdf14`),
+  porque `PagarNomina` guarda su propio formulario a propósito; y `verificar_ventanas_rrhh_admin` (280)
+  exige **al menos** las ventanas del lote, y el import del `Modal` común **en cada fichero** que pinta
+  uno — con la pantalla partida, el import de `PagarNomina` tapaba que `GenerarNomina` dejara de
+  importarlo (un mutante sobrevivía). **Y el heredoc volvió a meter un carácter de retroceso en una
+  expresión** (sección 4): el banco salió en rojo con 0 OK y los "mutantes muertos" no valían; se
+  rehízo desde un guion escrito a fichero, y se cuentan los OK.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás

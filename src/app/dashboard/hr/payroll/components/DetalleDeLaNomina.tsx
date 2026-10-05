@@ -7,12 +7,13 @@
 import { RefreshCw } from 'lucide-react';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 import { AsientoDeLaNomina } from './AsientoDeLaNomina';
+import { PagoDeLaNomina } from './PagoDeLaNomina';
 import type { EstadoNominas } from '../hooks/useNominas';
 import { AccionesDeLaNomina } from './AccionesDeLaNomina';
 import { VolantesDeLaNomina } from './VolantesDeLaNomina';
 
 export function DetalleDeLaNomina({ h }: { h: EstadoNominas }) {
-  const { selectedPayroll, loadingDetails, avisoIsr, asiento, motivoRechazo } = h;
+  const { selectedPayroll, loadingDetails, avisoIsr, asiento, motivoRechazo, pago } = h;
   //  Solo se pinta con una nomina elegida (la pagina lo decide); esto lo dice al compilador.
   if (!selectedPayroll) return null;
 
@@ -40,6 +41,9 @@ export function DetalleDeLaNomina({ h }: { h: EstadoNominas }) {
         {!loadingDetails && (
           <AsientoDeLaNomina status={selectedPayroll.status} asiento={asiento} motivoRechazo={motivoRechazo} />
         )}
+
+        {/* Lote 295: el pago y su asiento, en una nomina pagada. */}
+        {!loadingDetails && <PagoDeLaNomina status={selectedPayroll.status} pago={pago} />}
 
         {loadingDetails ? (
           <div className="flex h-[20vh] items-center justify-center">
