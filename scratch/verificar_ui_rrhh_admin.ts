@@ -321,26 +321,26 @@ async function main() {
   });
 
   console.log('\n8) Lo que no cambia: textos, placeholder, title, avisos y API (invariante)\n');
+  //  Lote 288: se comparan los DOS commits del lote 274 y no la carpeta, como en los lotes 227,
+  //  230 y 237. Lo que vigila es que ESTE lote no cambiara un texto; un lote posterior que cambia
+  //  textos a proposito (el 288 quito la simulacion de Soporte) no es una regresion del 274.
+  const DESPUES = '0061e43' /* lote 274, commit fijo */;
   const cambiados: string[] = [];
-  //  Lote 287: el registro se reescribio A PROPOSITO (la empresa se registra con su
-  //  nombre y su RNC; lo vigila verificar_registro_con_empresa.ts). Para el, la huella de
-  //  "despues" se toma del commit del lote 274 (0061e43) y no de la carpeta: asi la
-  //  equivalencia del 274 sigue valiendo (lotes 227, 230 y 237). El acceso se sigue
-  //  leyendo de la carpeta y solo se le toleran, por nombre, los dos textos del enlace
-  //  "¿No tienes cuenta? Regístrate" que añade el 287.
-  const DESPUES_FIJO: Record<string, string> = { 'src/app/auth/register/page.tsx': '0061e43' };
-  const AÑADIDOS_287: Record<string, string[]> = { 'src/app/auth/login/page.tsx': ['texto:¿No tienes cuenta?', 'texto:Regístrate'] };
+  //  Lote 287: el registro y el acceso cambian a proposito, y por eso mismo la comparacion es
+  //  entre los dos commits del 274 (lo de arriba): ni la reescritura del registro ni el enlace
+  //  "Regístrate" entran en ella.
   for (const f of FICHEROS) {
     let antes: string;
+    let ahora: string;
     try { antes = enCommit(BASE, f); } catch { cambiados.push(`${f}: no esta en ${BASE}`); continue; }
-    const despues = DESPUES_FIJO[f] ? enCommit(DESPUES_FIJO[f], f) : (fuentes.get(f) ?? '');
-    const a = textosDe(antes, false), d = textosDe(despues, true);
+    try { ahora = enCommit(DESPUES, f); } catch { cambiados.push(`${f}: no esta en ${DESPUES}`); continue; }
+    const a = textosDe(antes, false), d = textosDe(ahora, true);
     const { faltan, sobran } = diferencia(a, d);
     //  Los title que pinta un IconButton a partir de su aria-label son añadidos, como el aria-label.
-    const sobranDeVerdad = sobran.filter((x) => !(AÑADIDOS_287[f] ?? []).includes(x)).filter((x) => !(x.startsWith('title:') && botones(fuentes.get(f) ?? '').some((b) => b.tag === 'IconButton' && !/\btitle=/.test(b.abre) && b.abre.includes(`aria-label="${x.slice(6)}"`))));
+    const sobranDeVerdad = sobran.filter((x) => !(x.startsWith('title:') && botones(ahora).some((b) => b.tag === 'IconButton' && !/\btitle=/.test(b.abre) && b.abre.includes(`aria-label="${x.slice(6)}"`))));
     if (faltan.length || sobranDeVerdad.length) cambiados.push(`${f.replace(/^src\//, '')}: faltan ${JSON.stringify(faltan)} sobran ${JSON.stringify(sobranDeVerdad)}`);
   }
-  invariante(`los ${FICHEROS.length} ficheros dicen lo mismo que en ${BASE}`, cambiados.length === 0, cambiados.slice(0, 4).join(' | '));
+  invariante(`los ${FICHEROS.length} ficheros dicen en ${DESPUES} lo mismo que en ${BASE}`, cambiados.length === 0, cambiados.slice(0, 4).join(' | '));
 
   console.log(`\n${fallos === 0 && rotas === 0 ? 'TODO CORRECTO' : `${fallos} FALLIDAS, ${rotas} invariante(s) rota(s)`}\n`);
   process.exit(rotas > 0 ? 3 : fallos === 0 ? 0 : 1);
