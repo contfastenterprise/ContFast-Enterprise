@@ -3179,6 +3179,34 @@ Además, fuera de la tabla:
   importarlo (un mutante sobrevivía). **Y el heredoc volvió a meter un carácter de retroceso en una
   expresión** (sección 4): el banco salió en rojo con 0 OK y los "mutantes muertos" no valían; se
   rehízo desde un guion escrito a fichero, y se cuentan los OK.
+- **Lote 297: la nómina pagada se lee en español, y Soporte tiene entrada.** Dos fallos que
+  encontró el agente del manual de nómina (2026-10-05).
+  · **"PAID" en el detalle y "paid" en la lista.** La lista traducía a mano solo "Aprobada" y
+    "Calculada" (y el resto salía crudo y en ámbar, el color de lo pendiente); el detalle hacía
+    `status.toUpperCase()`. Con el pago del lote 295, `paid` dejó de ser teórico. Ahora los dos
+    leen **una** regla, `etiquetaDelEstado` (`services/nomina/estadoDeNomina.ts`): el mismo
+    `NOMBRES` de `nombreDelEstado` con mayúscula inicial — Borrador, Calculada, Aprobada, Pagada,
+    Cancelada, los cinco del esquema —. La insignia de la lista (móvil y escritorio) es **una**
+    pieza, `payroll/components/InsigniaDeEstado.tsx`, con un color por estado (gris, azul, verde,
+    turquesa, rosa; un estado desconocido, ámbar). **Lo guardado no cambia**: `paid` sigue siendo
+    `paid` en la base.
+  · **`/dashboard/support` (lote 288) no tenía entrada.** Va como enlace en el **menú del avatar**
+    (`menu-del-usuario.tsx`, lote 192), encima de "Cerrar Sesión": `Link` de Next con
+    `role="menuitem"` e icono `LifeBuoy`; se llega con Tab, se abre con Enter y al pulsarlo el menú
+    se cierra (Escape y pulsar fuera, como antes). **No va en el menú lateral, a propósito**: ese
+    menú sale de `route_mappings`, que no tiene `company_id` — una fila sería un cambio de DATOS en
+    las seis empresas y una decisión de permisos —, y la ruta no pide permiso de módulo (no está en
+    `STATIC_ROUTE_MAPPINGS` del proxy), así que la entrada tampoco debe depender de uno.
+  Banco `verificar_pagada_y_soporte.ts`: **ejecuta** la regla con los estados de la columna
+  `payrolls.status` (leídos del esquema, acotado a esa tabla: `hr.ts` tiene otras columnas `status`)
+  y **dibuja** la lista, el detalle y el menú del avatar **abierto** (sustituyendo `useState` del
+  React CommonJS durante el dibujo, la trampa del lote 230). 27 comprobaciones, contraprueba **27
+  FALLA** (contra `git show 0b6ec60:`), catorce mutantes y catorce muertos. Las negaciones ("no sale
+  PAID") van atadas a la marca positiva ("sale Pagada").
+  **Ningún banco del menú del avatar hubo que re-anclar**: `verificar_entorno_y_sesion` y
+  `verificar_selector_en_cabecera` miran propiedades (Escape, capa de fuera, cerrar sesión al final
+  y fuera del botón del avatar) y siguen en verde; también los de nómina y del menú lateral. Los
+  `_db` de nómina no se corrieron (el lote solo AÑADE una función pura al módulo que comparten).
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás

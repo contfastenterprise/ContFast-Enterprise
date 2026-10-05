@@ -40,6 +40,21 @@ export function nombreDelEstado(status: string): string {
   return NOMBRES[status] ?? status;
 }
 
+/**
+ * Lote 297: el estado como ROTULO (insignia de la lista, cabecera del detalle):
+ * el mismo nombre de `nombreDelEstado`, con mayuscula inicial.
+ *
+ * Por que: la lista traducia a mano solo "aprobada" y "calculada" y el resto
+ * salia crudo ("paid"); el detalle hacia `status.toUpperCase()` ("PAID"). Con
+ * el pago de la nomina (lote 295) `paid` dejo de ser teorico. Ahora las dos
+ * pantallas leen esta funcion, y los nombres viven en un solo sitio (`NOMBRES`).
+ * Lo guardado no cambia: `paid` sigue siendo `paid` en la base.
+ */
+export function etiquetaDelEstado(status: string): string {
+  const nombre = nombreDelEstado(status);
+  return nombre.charAt(0).toUpperCase() + nombre.slice(1);
+}
+
 /** `null` si se puede recalcular; si no, el motivo para la pantalla. */
 export function motivoParaNoRecalcular(status: string): string | null {
   if (ABIERTOS.includes(status)) return null;

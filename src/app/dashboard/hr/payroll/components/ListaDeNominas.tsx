@@ -9,6 +9,7 @@ import { formatDateDisplay } from '@/utils/fechasLocales';
 import { Pagination } from '@/components/ui/pagination';
 import { Button, IconButton } from '@/components/ui/button';
 import { accionesDeNomina } from '@/services/nomina/estadoDeNomina';
+import { InsigniaDeEstado } from './InsigniaDeEstado';
 import type { EstadoNominas } from '../hooks/useNominas';
 
 export function ListaDeNominas({ h }: { h: EstadoNominas }) {
@@ -41,14 +42,7 @@ export function ListaDeNominas({ h }: { h: EstadoNominas }) {
                       Hasta {formatDateDisplay(pr.periodEnd)}
                     </span>
                   </div>
-                  <span className={`inline-flex px-2 py-0.5 rounded text-[9px] font-bold uppercase ${pr.status === 'approved' 
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                    : pr.status === 'calculated' 
-                      ? 'bg-blue-50 text-[#003366] border border-blue-200' 
-                      : 'bg-amber-50 text-amber-700 border border-amber-200'
-                    }`}>
-                    {pr.status === 'approved' ? 'Aprobada' : pr.status === 'calculated' ? 'Calculada' : pr.status}
-                  </span>
+                  <InsigniaDeEstado status={pr.status} tamano="sm" />
                 </div>
 
                 <div className="flex flex-col gap-1 text-xs text-slate-600">
@@ -109,14 +103,7 @@ export function ListaDeNominas({ h }: { h: EstadoNominas }) {
                     </td>
                     <td className="px-4 py-2.5 align-middle text-xs font-mono font-bold text-[#003366]">{formatDateDisplay(pr.paymentDate)}</td>
                     <td className="px-4 py-2.5 align-middle text-center">
-                      <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase ${pr.status === 'approved' 
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                        : pr.status === 'calculated' 
-                          ? 'bg-blue-50 text-[#003366] border border-blue-200' 
-                          : 'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}>
-                        {pr.status === 'approved' ? 'Aprobada' : pr.status === 'calculated' ? 'Calculada' : pr.status}
-                      </span>
+                      <InsigniaDeEstado status={pr.status} tamano="md" />
                     </td>
                     <td className="px-4 py-2.5 align-middle text-xs text-slate-500">{formatDateDisplay(pr.createdAt)}</td>
                     <td className="px-4 py-2.5 align-middle text-right">

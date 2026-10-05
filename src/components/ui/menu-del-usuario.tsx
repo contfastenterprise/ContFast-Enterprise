@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { LogOut } from 'lucide-react';
+import Link from 'next/link';
+import { LifeBuoy, LogOut } from 'lucide-react';
 import clsx from 'clsx';
 import Avatar from '@/components/ui/Avatar';
 
@@ -98,6 +99,22 @@ export default function MenuDelUsuario({
                 {rol || 'Sin rol'}
               </div>
             </div>
+            {/*  Lote 297: la pantalla de Soporte (lote 288) existia y nadie llegaba a
+                 ella. Va AQUI y no en el menu lateral: la ruta no pide permiso de
+                 modulo (`ABIERTAS_A_PROPOSITO`), asi que la entrada tampoco debe
+                 depender de uno; y el menu lateral sale de `route_mappings`, que no
+                 tiene `company_id` -- una fila nueva seria un cambio de DATOS en las
+                 seis empresas. Es un enlace (`Link`): se llega con Tab y se abre con
+                 Enter, como cualquier enlace; al pulsarlo el menu se cierra.  */}
+            <Link
+              href="/dashboard/support"
+              role="menuitem"
+              onClick={() => setAbierto(false)}
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 text-[13px] font-bold text-on-surface hover:bg-slate-500/10 transition-colors"
+            >
+              <LifeBuoy className="w-[17px] h-[17px] shrink-0" strokeWidth={1.5} aria-hidden="true" />
+              Soporte
+            </Link>
             <button
               type="button"
               role="menuitem"
