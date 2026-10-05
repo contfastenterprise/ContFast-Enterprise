@@ -41,6 +41,10 @@
  * Plan & Suscripcion (estado, dias, uso), el estado "Sin plan" entra en la tabla, y los
  * mensajes de "sin plan" y "cancelado" remiten al administrador del sistema, no a soporte.
  *
+ * LOTE 305 (version 3.4): Antiguedad de Saldos tal como quedo en el lote 304 (que cuenta como
+ * deuda, el vencimiento pactado, los tramos, los niveles y sus colores, dona contra tarjetas,
+ * la tabla y el CSV), y la nota de que una factura rechazada deja de contar como deuda.
+ *
  * INDICE: los numeros de pagina se CALCULAN. Cada seccion empieza en pagina nueva, asi que
  * se dibuja cada una por separado con los mismos margenes, se cuentan sus paginas, y con eso
  * se escribe el indice antes de dibujar el documento entero. Si una seccion crece, el indice
@@ -52,7 +56,7 @@ const path = require('path');
 
 const RAIZ = path.join(__dirname, '..');
 const FECHA = 'Octubre 2026';
-const VERSION = '3.3';
+const VERSION = '3.4';
 
 // El logo del sistema, el mismo de la pantalla de acceso (`public/Logo.svg`), incrustado en el
 // HTML: Chromium no tiene que salir a buscarlo. La portada es blanca, asi que va directo:
@@ -473,8 +477,38 @@ seccion('cobros', 'Cobros y cuentas por cobrar', `
     <li>${b('Estado de Cuenta y Abonos')}: elija el cliente y verá, en orden de fecha, cada factura y cada abono con el balance acumulado; ${b('Imprimir Estado')}.</li>
     <li>${ruta('Ingresos', 'Cuenta por Cobrar')}: total por cobrar y balance vencido, filtro por cliente e ${b('Imprimir Reporte')}.</li>
     <li>${ruta('Finanzas', 'Cuentas por Cobrar')} y ${ruta('Finanzas', 'Cuentas por Pagar')}: la lista de saldos de clientes y de suplidores; el botón ${b('CSV')} la descarga en un fichero que Excel abre.</li>
-    <li>${ruta('Finanzas', 'Antigüedad de Saldos')} (clientes y suplidores): cada uno clasificado como «Al día», «En observación» o «Acción inmediata», ${b('Exportar CSV')} y el estado de cuenta de cada uno.</li>
+    <li>${ruta('Finanzas', 'Antigüedad de Saldos')}: lo que deben los clientes y lo que se debe a los suplidores, repartido por días de atraso (ver más abajo).</li>
     <li>${ruta('Finanzas', 'E.C. Clientes (CxC)')} y ${ruta('Finanzas', 'E.C. Suplidores (CxP)')}: el auxiliar completo, imprimible entero, solo pendientes o solo vencidos.</li>
+  </ul>
+  ${nota(`Una factura <strong>rechazada por la DGII</strong> deja de contar como deuda del cliente en todas las pantallas de cobros (Cuentas por Cobrar, reportes, estados de cuenta, Antigüedad de Saldos y el panel financiero). Si se corrige y la DGII la acepta, vuelve a contar sola. Para retirarla del todo, también de la contabilidad, se da de baja desde la Central e-CF (${b('Dar de baja')}).`)}
+
+  <h3 class="subsection-title">Antigüedad de Saldos — ${ruta('Finanzas', 'Antigüedad de Saldos')}</h3>
+  <p>Una pantalla para <strong>consultar</strong>: los cobros y los pagos se registran en sus pantallas (el botón ${b('Ir a Cuentas por Cobrar')} o ${b('Ir a Cuentas por Pagar')} lleva a ellas). Tiene dos pestañas, ${b('Clientes (por cobrar)')} y ${b('Suplidores (por pagar)')}; cada persona ve solo la que le corresponde: la de clientes, quien lleva los cobros; la de suplidores, quien lleva los suplidores. Arriba, ${b('Actualizar')} y ${b('Exportar CSV')}, que descarga la lista (Excel la abre) con el riesgo, los días de atraso, el saldo y sus cinco tramos.</p>
+  <h4 class="mini">Qué cuenta como deuda</h4>
+  <ul>
+    <li><strong>Clientes:</strong> solo las facturas <strong>aceptadas</strong> por la DGII o <strong>enviadas</strong> (esperando respuesta). No cuentan las rechazadas, las dadas de baja ni los borradores. El saldo de cada factura es lo que queda por cobrar: el total (menos las retenciones que hace el cliente), menos lo cobrado y menos sus notas de crédito.</li>
+    <li><strong>Suplidores:</strong> el saldo de cada compra a crédito. Una compra eliminada no cuenta. Los <strong>cheques en garantía</strong> pendientes no rebajan lo que se debe hasta que el banco los cobra. Solo salen quienes tienen saldo pendiente.</li>
+  </ul>
+  <h4 class="mini">El vencimiento y los días de atraso</h4>
+  <p>Cada factura vence en la <strong>fecha límite de pago pactada</strong> en ella (la que sale impresa y se declara a la DGII); si no la tiene, en la de su cuenta por cobrar, a un mes de la emisión. Los días de atraso se cuentan desde ese vencimiento, no desde la emisión, y con el día de <strong>República Dominicana</strong>. <strong>Lo que vence hoy todavía no está vencido</strong>: se atrasa a partir de mañana. Por eso quien debe mucho sin haber llegado a su vencimiento sale como riesgo bajo, y es correcto (lo recuerda el aviso azul de la pantalla).</p>
+  <h4 class="mini">Lo que se ve, de arriba abajo</h4>
+  <ul>
+    <li><strong>Tarjetas:</strong> «Cartera por Cobrar» (o «Cuentas por Pagar»), el total; «Total clientes» y cuántos están al día; <strong>«Cartera en Riesgo»</strong>, la suma de las facturas con <strong>más de 15 días de atraso</strong> (entre paréntesis, cuántos clientes están en Alto Riesgo o Crítico); y «Facturación Prom.» (variación del último mes).</li>
+    <li><strong>«Saldo por antigüedad»:</strong> el saldo repartido en «Por vencer», «1 a 30 días», «31 a 60 días», «61 a 90 días» y «Más de 90 días» de atraso, cada uno con su porcentaje, y el «Total». Son los mismos tramos de Cuentas por Cobrar y por Pagar, así que las cifras se pueden comparar.</li>
+    <li><strong>«Distribución de Riesgo»</strong> (la dona) y la leyenda <strong>«Niveles de Riesgo»</strong>: cuántos clientes hay en cada nivel, con su porcentaje y su saldo. Pulsar un nivel filtra la tabla; ${b('Restablecer')} o ${b('Ver todos')} quita el filtro.</li>
+    <li><strong>«Balance Operativo»:</strong> tres cifras, «Por vencer» (facturas que aún no vencen), «En observación» (facturas con 1 a 15 días de atraso) y «Acción inmediata» (facturas con más de 15 días de atraso).</li>
+  </ul>
+  ${tabla(['Nivel', 'Días de atraso', 'Color'], [
+    ['Bajo Riesgo — «Al día / Solvente»', 'Ninguno: todo dentro de su plazo', 'Verde'],
+    ['Riesgo Medio — «Atraso ≤ 15 días»', '1 a 15', 'Ámbar'],
+    ['Alto Riesgo — «Atraso de 16 a 45 días»', '16 a 45', 'Naranja (el texto del atraso, en rojo)'],
+    ['Crítico — «Atraso de más de 45 días»', 'Más de 45', 'Rojo'],
+  ])}
+  <p><strong>Dos formas de sumar, a propósito.</strong> La dona y la leyenda clasifican <strong>clientes</strong>: el nivel de un cliente lo marca su factura <strong>más atrasada</strong> que siga con saldo, y su saldo entero va a ese nivel. «Cartera en Riesgo» y el «Balance Operativo» suman <strong>factura por factura</strong>: un cliente con una factura de 10 días de atraso y otras cuatro por vencer está en Riesgo Medio, pero en «En observación» solo cuenta esa factura.</p>
+  <h4 class="mini">La tabla y el estado de cuenta</h4>
+  <ul>
+    <li>Una fila por cliente o suplidor: nombre y cuántas facturas tiene sin saldar, RNC/cédula, teléfono, correo, la facturación de los últimos meses, el «Saldo Pendiente» y su icono de riesgo con los días de atraso. Bajo el saldo, la línea <strong>«Vencido»</strong> dice cuánto está vencido. El atraso sale en <strong>ámbar de 1 a 15 días</strong> y en <strong>rojo desde 16 días</strong>. Se busca por nombre, RNC/cédula, teléfono o correo, y se ordena pulsando «Nombre», «Saldo Pendiente» o «Riesgo».</li>
+    <li>${b('Ver')} abre el estado de cuenta: el «Saldo pendiente» (sin color de alarma: deber no es estar atrasado), el cupo si lo tiene, y los «Documentos sin saldar» con fecha, vencimiento, monto, saldo y atraso. ${b('Imprimir estado')} o el icono de la impresora sacan el estado de cuenta en PDF.</li>
   </ul>
 `);
 
