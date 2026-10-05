@@ -3179,6 +3179,42 @@ Además, fuera de la tabla:
   importarlo (un mutante sobrevivía). **Y el heredoc volvió a meter un carácter de retroceso en una
   expresión** (sección 4): el banco salió en rojo con 0 OK y los "mutantes muertos" no valían; se
   rehízo desde un guion escrito a fichero, y se cuentan los OK.
+- **Lote 296: el manual de usuario con la nómina entera, versión 3.1.** Pedido del dueño
+  (2026-10-05). Solo `scripts/generate-manual.js` y el PDF: 27 páginas, 15 secciones. Cada dato se
+  comprobó en el código, no en este documento.
+  · **Nómina (sección 12), reescrita**: generar y calcular, recalcular (solo borrador o calculada),
+    aprobar (solo calculada con detalle) con **el asiento de devengo** —las ocho cuentas, fecha del
+    fin del período, visor con «Ver en el Libro Diario»—, **pagar** (transferencia, cheque o
+    efectivo; referencia obligatoria fuera del efectivo; caja abierta; retiro pendiente de
+    conciliar) y pagada. Tabla de rechazos con los mensajes reales (escala del ISR, cuenta sin
+    enlazar, período cerrado —«el contador la asienta a mano»—, ya pagada, sin caja, sin detalle).
+    La escala del ISR de 2026 con su fuente y el aviso de la escala de otro año; topes de la TSS con
+    el salario mínimo de 10.000; horas extra y bonos fuera de la TSS; el 0,5 % de Infotep del
+    empleado no se calcula; la TSS, el IR-3 y el Infotep se pagan desde Bancos contra su cuenta por
+    pagar. Fuera el aviso «la nómina no genera asientos». Cuentas Puente pasa a seis bloques, con
+    el de Nómina y sus ocho cuentas (por nombre, sin códigos, como pide el lote 171).
+  · **Lo que quedó falso desde el 283**: Soporte manda el ticket al correo de la empresa con su
+    `SOP-…` (288); el registro público con «Buscar DGII» y el rechazo del RNC repetido (287); las
+    tarjetas «Valor de Inventario (a costo promedio)» y «Stock Bajo» (285, 291); «EXPORTAR CSV» del
+    histórico de caja y «CSV» de las tablas de CxC/CxP (285, 291); los rótulos del «Tipo de Precio»
+    del cliente; e-46 y e-47 con su nombre; la ficha de la tienda («se guarda en este navegador»);
+    Antigüedad de Saldos en Finanzas.
+  · **A mitad de lote, el dueño: «genéralo sin especificar opciones para el usuario del sistema».**
+    Se QUITÓ todo lo que el código reserva al rol `sistemas` (`esSistemas`, `currentUserRole ===
+    'sistemas'`): cambiar de empresa, la fila «Sistemas» de la tabla de roles, la pantalla Empresas,
+    «Sesiones Activas», editar una secuencia SACF, borrar un almacén para siempre, cambiar el modo
+    Pruebas/Producción, la integración mSeller y cambiar nombre y RNC ya guardados; y las menciones
+    «administración y sistemas» pasan a «Administración». Donde la pantalla lo necesita: «consulte
+    con el administrador del sistema» (el padrón de RNC, la escala del ISR que falta, el salario
+    mínimo bloqueado, una cuenta que no existe). El mensaje real de la cuenta sin enlazar termina
+    en «o pida que se lance el guion…»: se cita cortado, sin esa frase.
+  **Se miró**: el PDF rasterizado con PyMuPDF; portada, índice, las cuatro páginas de nómina y las
+  que cambiaron. Salió una página 27 con una sola viñeta (el final de Configuración): se juntaron
+  dos viñetas de Administración y el manual volvió a 27. La tabla de rechazos de nómina salta
+  entera a la página siguiente (`page-break-inside: avoid`) y deja hueco al pie de la 22: aceptado.
+  **Desfases del código vistos y no tocados**: el estado «pagada» sale sin traducir («PAID» en el
+  detalle, «paid» en la lista: `ListaDeNominas` solo traduce aprobada y calculada) — el manual lo
+  dice tal cual —; y la pantalla de Soporte no tiene entrada en la siembra del menú ni enlace en el código.
 - **Lote 297: la nómina pagada se lee en español, y Soporte tiene entrada.** Dos fallos que
   encontró el agente del manual de nómina (2026-10-05).
   · **"PAID" en el detalle y "paid" en la lista.** La lista traducía a mano solo "Aprobada" y
@@ -4396,5 +4432,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 284 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 296 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
