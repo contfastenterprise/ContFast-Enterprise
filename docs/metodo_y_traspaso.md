@@ -2540,6 +2540,60 @@ Además, fuera de la tabla:
   cuanto alguien hiciera `git fetch --prune` o clonara. Pasan a commits fijos (`57f741d`, `ab9e5fd`), y
   los dos de Ventas comparan los dos commits de su lote (`87d0e73`, `ef2039b`) y no la carpeta, porque el
   260 cambia a propósito rótulos de e-CF.
+- **Lote 283: el manual de usuario, al día.** Pedido del dueño (2026-10-04). `scripts/generate-manual.js`
+  y `manual_usuario_contfast.pdf` no se tocaban desde el 2026-07-26 (`9bba628`), unos 150 lotes atrás, y
+  **el guion ni arrancaba**: leía `public/dashboard_main_mockup.jpg`, que no existe. Reescrito entero contra
+  el **código** de cada pantalla —no contra este documento—, con cinco agentes en paralelo que copiaron los
+  rótulos tal cual (ventas, compras y finanzas, inventario, marco y administración, tienda). Quince
+  secciones por módulos del menú, versión 3.0, octubre 2026, 23 páginas.
+  · **Retirado**: el módulo de documentos, WhatsApp, cuentas e inicio de sesión de la tienda, la leyenda
+    "pendiente de la DGII" en el papel, "Sincronizar DGII", el modal de productos, la cola Redis "auto-curativa",
+    la pantalla de transición tras el login y las cuentas contables con código fijo de los ejemplos (2101-01,
+    1101-02: no existen; las elige el contador en Cuentas Puente).
+  · **Corregido**: altas en pestañas «Registrar», caja (arqueo ciego, desglose, aprobar la diferencia), origen
+    del pago en compras, cobros y pagos con banco, límite de las notas de crédito, 606/607, margen sobre el
+    precio de venta, costo con descuento, roles (solo Sistemas cambia de empresa).
+  · **Añadido**: campana y correo de avisos con informe PDF, recuperar contraseña, cheques en garantía y su
+    cobro, conduces (faltante, despachar lo disponible, filtros), precios en dólares y tasa desde compras y
+    facturación, borradores con aviso de precios, foto y descripción, tienda y su portada, períodos («Abrir
+    próximos 12 meses»), dar de baja un rechazado, padrón de RNC, menú (favoritos, Ctrl+K), exportar caja.
+  **Sin imágenes, a propósito**: las once `public/*_mockup.jpg` no son capturas de ContFast (otras marcas
+  —NAVISTAR, FinanzaPro, GlobalSolutions, Acme, Onyx, e-CF Innova—, interfaz en inglés, importes en $) y
+  contradicen el texto. Se quedan en `public/`; la lista va en la cabecera del guion.
+  **El índice se calcula**: cada sección se dibuja sola, se cuentan sus páginas (`/Type /Page` en el PDF) y
+  el guion se niega si el documento entero no da el total esperado. **Se miró**: el PDF se rasterizó con
+  pdf.js página a página; de mirarlo salió que el texto justificado abría huecos alrededor de los rótulos.
+  **Desfases del código que el manual no copia, para lotes aparte**: el «Tipo de Precio» del cliente aún
+  dice «Base +25%» (recargo, anterior al 265); la tarjeta «Stock Bajo» de productos es un 0 fijo; la ficha
+  de la tienda dice «Al enviar tu cotización…» y la cotización ya no se envía (233); el formulario de
+  Soporte simula el envío y no manda nada; la Central e-CF rotula al revés el 46 y el 47; el histórico de
+  caja dice «EXPORTAR XLS» y baja un CSV; la nómina no asienta (175); `/auth/register` sigue abierta sin
+  enlace; el padrón de RNC se carga con un guion, sin pantalla.
+  **Al cambiar un rótulo en una pantalla, el manual se queda atrás**: hay que tocar el guion y regenerar
+  (`node scripts/generate-manual.js`).
+- **Lote 284: los 19 botones "sin nombre" eran 3, y los tres eran del MOVIL.** Pedido del dueño
+  (2026-10-04): revisar los 19 de solo icono sin nombre que dejó el trinquete del lote 270. El lote 274
+  los atribuyó "casi todos" a la tienda pública, y **era falso**: mirados uno a uno, ninguno era de la
+  tienda y **18 de 19 eran falsos positivos** — el recuento no veía el texto que llega por variable
+  (`{tab.label}`, `{alert.actionText}`) ni el que va dentro de un fragmento
+  (`<><Send /> Enviarme el enlace</>`). Y al revés, no veía los de verdad: un texto que EXISTE pero va
+  **escondido en el móvil** (`<span className="hidden sm:inline">`), que en un teléfono deja un icono
+  suelto que un lector de pantalla anuncia como "botón", sin decir cuál:
+  · las cuatro pestañas de la **Central e-CF** — ahora con `aria-label={tab.label}` y `aria-pressed`;
+  · **"Anterior" y "Siguiente" de la paginación compartida**, la que usan diecisiete pantallas — ahora
+    "Página anterior" y "Página siguiente". El texto sigue a la vista en pantalla grande.
+  El recuento nuevo (`scratch/botonesSinNombre.ts`) separa el texto que se ve siempre, el que solo se ve
+  en el móvil (`sm:hidden`) y el que solo se ve en el escritorio (`hidden sm:inline`): un botón tiene
+  nombre si lo tiene en TODA anchura (los "Ver todo" / "Todo" alternados de productos, compras y
+  facturas, sí). Cuenta también los `<Button>`, y da por nombrado lo que no sabe leer (un envoltorio que
+  reenvía `{...props}`): si duda, no acusa. **Techo 0.** El trinquete viejo del 270 (`iconoSinNombre`)
+  se queda como está — no estorba y lo puede tocar otra rama —; el que vale es este.
+  Banco `verificar_iconos_con_nombre.ts` (la herramienta ejecutada con diez casos escritos a propósito,
+  como invariantes; la paginación dibujada): 5 comprobaciones, contraprueba **5 FALLA**, doce mutantes —
+  once muertos y uno **equivalente, quitado**: una guarda de `sr-only` que solo actuaba si una clase
+  llevaba a la vez `hidden` y `sr-only`, que no tiene sentido.
+  **No se miró en el navegador**: el cambio son dos atributos y un nombre accesible, que el banco lee en
+  el HTML dibujado.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -3729,5 +3783,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 281 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 284 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
