@@ -18,6 +18,13 @@ import {
 import type { DbTransaction } from '@/db';
 import { eq, and, isNull, sql, desc, or, between, like, inArray } from 'drizzle-orm';
 import { PayrollCalculationService } from '@/services/payrollCalculationService';
+import {
+  NominaNoPermitidaError,
+  motivoParaNoRecalcular,
+  motivoParaNoAprobar,
+  motivoParaNoEliminar,
+} from '@/services/nomina/estadoDeNomina';
+import { anioDeLaNomina, motivoSinEscala } from '@/services/nomina/escalaIsr';
 
 /**
  * Entorno de trabajo. El proyecto separa PRODUCCION de PRUEBA en las tablas
@@ -344,8 +351,17 @@ export class HRRepository {
       .select()
       .from(payrolls)
       .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), eq(payrolls.modo, modo), isNull(payrolls.deletedAt)))
-      .limit(1);
+      .limit(1)
+      // Lote 290: bloqueada, para que un recalculo y una aprobacion a la vez
+      // no pasen las dos su guarda (la aprobacion tambien bloquea la fila).
+      .for('update');
     if (!payroll) throw new Error('Payroll period not found');
+
+    // Lote 290: una nomina aprobada (o pagada) ya no se rehace. Antes esto no
+    // miraba el estado y la devolvia a `calculated` con el detalle nuevo. Va
+    // ANTES de borrar nada.
+    const noRecalcular = motivoParaNoRecalcular(payroll.status);
+    if (noRecalcular) throw new NominaNoPermitidaError(noRecalcular);
 
     // 2. Clear existing details
     await tx
@@ -378,21 +394,20 @@ export class HRRepository {
       throw new Error('Configuración de nómina incompleta. Por favor, guarde la Configuración de RRHH antes de generar una nómina.');
     }
 
-    const payrollYear = new Date(end).getFullYear();
-    const [latestYearRecord] = await tx
-      .select({ year: isrBrackets.year })
-      .from(isrBrackets)
-      .where(sql`${isrBrackets.year} <= ${payrollYear}`)
-      .orderBy(desc(isrBrackets.year))
-      .limit(1);
-
-    const targetYear = latestYearRecord ? latestYearRecord.year : payrollYear;
-
+    // Lote 290: la escala del AÑO de la nomina, y solo esa. Antes se tomaba "la
+    // ultima que hubiera hasta ese año" y, si no habia ninguna, se calculaba con
+    // la tabla vacia: ISR 0 en silencio (asi estaba PRODUCCION). Y la ultima
+    // anterior tampoco vale: la Ley 30-26 cambia los tramos desde 2027, y una
+    // nomina de 2027 con la escala de 2026 retendria con tramos derogados.
+    // El año se lee del texto de la fecha (`new Date(end).getFullYear()` lo
+    // corria al año anterior el 1 de enero en UTC-4).
+    const payrollYear = anioDeLaNomina(end);
     const brackets = await tx
       .select()
       .from(isrBrackets)
-      .where(eq(isrBrackets.year, targetYear))
+      .where(eq(isrBrackets.year, payrollYear))
       .orderBy(isrBrackets.fromAmount);
+    if (brackets.length === 0) throw new NominaNoPermitidaError(motivoSinEscala(payrollYear));
 
     // 5. Traer horas extra, ingresos y deducciones del periodo para TODOS los
     //    empleados de golpe.
@@ -546,11 +561,21 @@ export class HRRepository {
         .select()
         .from(payrolls)
         .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), eq(payrolls.modo, modo), isNull(payrolls.deletedAt)))
-        .limit(1);
+        .limit(1)
+        // Lote 290: bloqueada; dos aprobaciones (o aprobar y recalcular) a la
+        // vez no pasan las dos la guarda.
+        .for('update');
       if (!payroll) throw new Error('Nómina no encontrada');
-      if (payroll.status !== 'calculated' && payroll.status !== 'draft') {
-        throw new Error('Solo se pueden aprobar nóminas calculadas o borradores');
-      }
+
+      // Lote 290: el detalle se lee ANTES de decidir. Antes se admitia aprobar
+      // un `draft`, o sea una nomina sin importes; y una calculada sin ninguna
+      // linea (ningun empleado activo con esa frecuencia) tambien pasaba.
+      const details = await tx
+        .select()
+        .from(payrollDetails)
+        .where(and(eq(payrollDetails.payrollId, payrollId), eq(payrollDetails.companyId, companyId), eq(payrollDetails.modo, modo)));
+      const noAprobar = motivoParaNoAprobar(payroll.status, details.length);
+      if (noAprobar) throw new NominaNoPermitidaError(noAprobar);
 
       const start = payroll.periodStart;
       const end = payroll.periodEnd;
@@ -569,11 +594,7 @@ export class HRRepository {
       // ingresos y deducciones pendientes de ese periodo en toda la base: las
       // de las demas empresas y las de los empleados que no entran en esta
       // nomina (otra frecuencia de pago, o de alta posterior). Esos conceptos
-      // desaparecian sin llegar a pagarse a nadie.
-      const details = await tx
-        .select()
-        .from(payrollDetails)
-        .where(and(eq(payrollDetails.payrollId, payrollId), eq(payrollDetails.companyId, companyId), eq(payrollDetails.modo, modo)));
+      // desaparecian sin llegar a pagarse a nadie. (El detalle se lee arriba.)
       const employeeIds: string[] = details.map((d) => d.employeeId);
 
       if (employeeIds.length > 0) {
@@ -646,9 +667,9 @@ export class HRRepository {
       .where(and(eq(payrolls.id, payrollId), eq(payrolls.companyId, companyId), eq(payrolls.modo, modo), isNull(payrolls.deletedAt)))
       .limit(1);
     if (!payroll) throw new Error('Nómina no encontrada');
-    if (payroll.status !== 'draft' && payroll.status !== 'calculated') {
-      throw new Error('No se pueden eliminar nóminas aprobadas o pagadas');
-    }
+    // Lote 290: la misma regla de estados que recalcular y aprobar.
+    const noEliminar = motivoParaNoEliminar(payroll.status);
+    if (noEliminar) throw new NominaNoPermitidaError(noEliminar);
 
     return db.transaction(async (tx) => {
       await tx

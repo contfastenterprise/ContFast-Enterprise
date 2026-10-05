@@ -2623,6 +2623,60 @@ Además, fuera de la tabla:
   antigüedad de saldos, BI y el Agente fuera del menú), contraprueba **9 FALLA** contra `696854e`,
   doce mutantes y doce muertos — incluido "corregir" el módulo de CxC en la siembra, que rompe un
   invariante: el día que se alinee el permiso, será a propósito.
+- **Lote 290: las guardas de la nómina y la escala del ISR** (lote A de
+  `docs/diseno_asientos_nomina.md`, que el dueño mandó empezar el 2026-10-04). Sin cuentas, asientos
+  ni pagos: eso son los lotes B, C y D.
+  **Medido antes (PRODUCCIÓN, solo lectura, `medir_isr_290.ts`)**: `isr_brackets` tiene **0 filas**;
+  es **global** (sin `company_id`), con `year`, `from_amount`, `to_amount`, `fixed_amount` y
+  `percentage`, y solo su clave primaria. Hay una nómina (Latin Doors, quincenal, 15–30/07,
+  `calculated`, 1 línea) y **no se toca**: su estado es del dueño.
+  · **Una regla de estados, una** (`services/nomina/estadoDeNomina.ts`, pura): recalcular solo
+    `draft`/`calculated` (antes rehacía una **aprobada** y la devolvía a `calculated`), aprobar solo
+    `calculated` **con detalle** (antes aprobaba un `draft` sin importes) y eliminar, la de siempre.
+    El repositorio la aplica con la fila bloqueada (`for update`) y antes de borrar nada; la ruta
+    contesta `NominaNoPermitidaError` con **409** y el motivo (antes todo era 500); la pantalla
+    ofrece los botones con la misma regla (`accionesDeNomina`) y enseña el motivo de un rechazo.
+  · **La escala, en una constante con su fuente** (`services/nomina/escalaIsr.ts`): la de 2026 de la
+    DGII (CA687 del 16/01/2026; Ley 11-92 art. 296, mod. por la Ley 30-26 art. 10): exento hasta
+    416.220,00; 15 % del excedente de 416.220,01 hasta 624.329,00; 31.216,00 + 20 % del excedente de
+    624.329,01 hasta 867.123,00; 79.776,00 + 25 % del excedente de 867.123,01. La toman
+    `run-migration.ts` (que la tenía escrita a mano), la semilla de la base desechable y el guion de
+    datos. **Como es global, no se siembra al crear una empresa.**
+  · **Sin escala del año, calcular se NIEGA** (409, «Falta la escala del ISR de 2026: …»), crear
+    incluido, y no queda nada a medias. Se eligió negarse y no avisar: un aviso deja una nómina con
+    ISR 0 lista para aprobar (y, desde el lote C, para asentar). `calculateIsr` además lanza con la
+    escala vacía (segunda barrera). **La escala es la del año EXACTO**: antes se tomaba «la última
+    hasta ese año», y la propia DGII avisa de que la Ley 30-26 cambia los tramos desde 2027; una
+    nómina de 2027 con la de 2026 retendría con tramos derogados. El año sale del texto de la fecha
+    (`new Date('2027-01-01').getFullYear()` da 2026 en UTC−4).
+  · **Un defecto del cálculo, de paso**: el tramo se buscaba con `desde <= renta <= hasta`, y en el
+    centavo entre un `hasta` y el `desde` siguiente (624.329,00 / 624.329,01) no caía en ninguno e iba
+    al tramo del 25 %: 1.589,79 de ISR mensual en vez de 2.601,36. Ahora es el último tramo cuyo
+    `desde` no pasa de la renta (los tramos son contiguos). **La TSS no se tocó.**
+  **Ejemplos a mano** (base = bruto − AFP − SFS, anualizada; retención = anual / 12, y / 2 en la
+  quincena): la nómina medida, quincena de 10.000 → AFP 287, SFS 304, ISR **0** (225.816 al año),
+  neto 9.409 — o sea, el 0 de julio era correcto —; mensual 50.000 → ISR 1.854,00; 70.000 →
+  5.368,45; 100.000 → 12.105,44 (en quincena, 6.052,72); 34.685 → 0 (el «exento de 34.685 al mes» se
+  mide después de la TSS).
+  Dos bancos. `verificar_nomina_guardas_e_isr.ts` (reglas ejecutadas con las fronteras exactas de
+  cada tramo, los ejemplos y el cableado): 38 comprobaciones, contraprueba **38 FALLA** contra
+  `bac5a91`, diecinueve mutantes y diecinueve muertos. `verificar_nomina_guardas_e_isr_db.ts`
+  (**integración**, base desechable): ISR esperado con la escala sembrada, recalcular una aprobada
+  (409 y nada cambia), aprobar sin detalle (409), tabla vacía y año 2027 (409); 9 comprobaciones,
+  contraprueba **9 FALLA**, siete mutantes y siete muertos. «Aprobar una calculada funciona» era cierto antes: va de
+  precondición. `semilla_app.ts` siembra ahora la escala, porque `verificar_f1_03` calcula nóminas.
+  Re-anclado `verificar_p1_24_lote10` (la trampa de la línea literal otra vez): copiaba el cuerpo
+  del `catch` de la ruta de nómina; vigila ahora el tipado (cuatro `catch (error: unknown)` por
+  `respuestaDeError`, ningún `any`), comprobado con un mutante.
+  **Para el dueño**: lanzar
+  `npx tsx --env-file=.env scratch/_to_delete/sembrar_escala_isr.ts` (ensayo) y después con
+  `--aplicar`. **Hasta entonces, desde que se despliegue este lote, no se podrá calcular ninguna
+  nómina** (se niega con el motivo), que es lo que se busca. Y `verificar_nomina_guardas_e_isr_db.ts`
+  a `deuda_bancos.txt` en su carpeta.
+  **Para el contador, sin tocar**: la base de la TSS excluye horas extra y bonos, el salario mínimo
+  de los topes (16.262,50) está fijado en el código, y el Infotep del 0,5 % del empleado no se
+  calcula (D9 y D12 del diseño). Y la escala de 2027 (Ley 30-26) habrá que añadirla a la constante
+  cuando la DGII la publique.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás

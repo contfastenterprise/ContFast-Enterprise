@@ -310,7 +310,6 @@ for (const [ruta, n] of [
   ['src/app/api/v1/hr/departments/route.ts', 4],
   ['src/app/api/v1/hr/entries/route.ts', 3],
   ['src/app/api/v1/hr/payroll/[id]/receipts/route.ts', 1],
-  ['src/app/api/v1/hr/payroll/route.ts', 4],
   ['src/app/api/v1/hr/positions/route.ts', 4],
   ['src/app/api/v1/hr/settlements/[id]/print/route.ts', 1],
   ['src/app/api/v1/hr/settlements/route.ts', 3],
@@ -319,6 +318,22 @@ for (const [ruta, n] of [
   ok(`${ruta}: 0 ': any' (${n} antes)`, sinAny(src) === 0, `quedan ${sinAny(src)}`);
   ok(`${ruta}: ${n} catch(es) unknown + .message inline`,
     (src.match(/\} catch \(error: unknown\) \{\n    return NextResponse\.json\(\{ success: false, error: \{ message: \(error as Error\)\.message \} \}, \{ status: 500 \}\);\n  \}/g) || []).length === n);
+}
+
+// ═══════════════════ hr/payroll/route.ts (4) ═══════════════════
+//  Lote 290: los cuatro catch dejaron de ser el literal: delegan en
+//  `respuestaDeError`, que contesta 409 a un `NominaNoPermitidaError` (la regla
+//  de estados de la nomina) y 500 a lo demas. Lo que vigilaba esto era el
+//  TIPADO (P1-24): los cuatro catch `unknown`, ningun `any`, y el mensaje
+//  leido con `(error as Error).message`. Se fija eso, no la forma.
+{
+  const src = crudo('src/app/api/v1/hr/payroll/route.ts');
+  ok("src/app/api/v1/hr/payroll/route.ts: 0 ': any' (4 antes)", sinAny(src) === 0, `quedan ${sinAny(src)}`);
+  const catches = src.match(/\} catch \(error(?:: (\w+))?\) \{\s*return respuestaDeError\(error\);\s*\}/g) || [];
+  ok('src/app/api/v1/hr/payroll/route.ts: 4 catch(es) unknown, todos por respuestaDeError, que lee (error as Error).message',
+    catches.length === 4 && catches.every((c) => c.includes('(error: unknown)'))
+      && /function respuestaDeError\(error: unknown\) \{[\s\S]*?\{ message: \(error as Error\)\.message \} \}, \{ status: 500 \}\);\s*\}/.test(src)
+      && !/catch \(error: any\)/.test(src));
 }
 
 // ═══════════════════ hr/employees/route.ts (4) ═══════════════════

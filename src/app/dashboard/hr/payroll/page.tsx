@@ -10,6 +10,8 @@ import { Pagination } from '@/components/ui/pagination';
 
 import { Button, IconButton } from '@/components/ui/button';
 import { CabeceraDePagina } from '@/components/ui/cabecera-de-pagina';
+// Lote 290: la pantalla ofrece lo que la API admitiria, con la misma regla.
+import { accionesDeNomina } from '@/services/nomina/estadoDeNomina';
 interface Payroll {
   id: string;
   periodStart: string;
@@ -142,6 +144,9 @@ export default function PayrollPage() {
         });
         const data = await res.json();
         if (!data.success) {
+          // Lote 290: el motivo del 409 (sin detalle, ya aprobada) se dice;
+          // la confirmacion solo enseña su mensaje fijo.
+          if (data.error?.message) toast.error(data.error.message);
           throw new Error(data.error?.message || 'Error');
         }
         fetchPayrolls();
@@ -263,7 +268,7 @@ export default function PayrollPage() {
                       >
                         <Eye className="h-4 w-4" /> Ver
                       </Button>
-                      {(pr.status === 'draft' || pr.status === 'calculated') && (
+                      {accionesDeNomina(pr.status, 0).eliminar && (
                         <IconButton
                           type="button"
                           aria-label="Eliminar nómina"
@@ -321,7 +326,7 @@ export default function PayrollPage() {
                             >
                               <Eye className="h-3.5 w-3.5" /> Ver
                             </Button>
-                            {(pr.status === 'draft' || pr.status === 'calculated') && (
+                            {accionesDeNomina(pr.status, 0).eliminar && (
                               <IconButton
                                 type="button"
                                 aria-label="Eliminar nómina"
@@ -374,22 +379,22 @@ export default function PayrollPage() {
                 >
                   <Printer className="h-4 w-4" /> Imprimir Todos los Volantes
                 </a></Button>
-                {selectedPayroll.status !== 'approved' && (
-                  <>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => handleRecalculate(selectedPayroll.id)}
-                    >
-                      <RefreshCw className="h-4 w-4" /> Recalcular Todo
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => handleApprove(selectedPayroll.id)}
-                    >
-                      <Award className="h-4 w-4" /> Aprobar Nómina
-                    </Button>
-                  </>
+                {accionesDeNomina(selectedPayroll.status, payrollDetailsList.length).recalcular && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => handleRecalculate(selectedPayroll.id)}
+                  >
+                    <RefreshCw className="h-4 w-4" /> Recalcular Todo
+                  </Button>
+                )}
+                {!loadingDetails && accionesDeNomina(selectedPayroll.status, payrollDetailsList.length).aprobar && (
+                  <Button
+                    type="button"
+                    onClick={() => handleApprove(selectedPayroll.id)}
+                  >
+                    <Award className="h-4 w-4" /> Aprobar Nómina
+                  </Button>
                 )}
               </div>
             </div>

@@ -74,26 +74,26 @@ export class PayrollCalculationService {
    * Calculate progresivo ISR (DGII)
    */
   public static calculateIsr(annualNetSalary: number, brackets: IsrBracket[]): number {
-    if (annualNetSalary <= 0 || brackets.length === 0) return 0;
+    // Lote 290: con la escala vacia esto devolvia 0, y en PRODUCCION la tabla
+    // estaba vacia: el ISR salia 0 para cualquier sueldo, sin un aviso. Una
+    // escala vacia no es "exento": es que falta el dato. El repositorio ya se
+    // niega antes con un 409 (`motivoSinEscala`); esto es la segunda barrera.
+    if (brackets.length === 0) throw new Error('Falta la escala del ISR: no se puede calcular la retención sin tramos.');
+    if (annualNetSalary <= 0) return 0;
 
-    // Find the matching bracket
-    // Sorted by fromAmount ascending
-    const sortedBrackets = [...brackets].sort((a, b) => a.fromAmount - b.fromAmount);
-    
+    // Lote 290: el tramo es el ULTIMO cuyo `fromAmount` no pasa de la renta.
+    // Antes se buscaba `from <= renta <= to`, y entre el `to` de un tramo y el
+    // `from` del siguiente hay un centavo (624.329,00 / 624.329,01) en el que no
+    // caia ninguno: la renta iba al "tramo mas alto" (25 % sobre 867.123,01) y
+    // salia MENOS ISR del debido. Con coma flotante (semanal: x 4,3333) una renta
+    // de 624.329,004 es posible. Los tramos de la DGII son contiguos, asi que
+    // basta el `from`.
+    const sortedBrackets = [...brackets].sort((a, b) => Number(a.fromAmount) - Number(b.fromAmount));
     let applicableBracket: IsrBracket | null = null;
     for (const bracket of sortedBrackets) {
-      const from = Number(bracket.fromAmount);
-      const to = bracket.toAmount ? Number(bracket.toAmount) : Infinity;
-      if (annualNetSalary >= from && annualNetSalary <= to) {
-        applicableBracket = bracket;
-        break;
-      }
+      if (annualNetSalary >= Number(bracket.fromAmount)) applicableBracket = bracket;
     }
-
-    if (!applicableBracket) {
-      // Fallback to highest bracket if exceeds all limits
-      applicableBracket = sortedBrackets[sortedBrackets.length - 1];
-    }
+    if (!applicableBracket) return 0;
 
     const from = Number(applicableBracket.fromAmount);
     const fixed = Number(applicableBracket.fixedAmount);
