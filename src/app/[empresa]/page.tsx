@@ -6,6 +6,9 @@ import { categoriasConProductos, contarPorCategoria, ordenarProductos } from '@/
 import { leerPortadaDeLaTienda } from '@/services/storefront/portadaRepositorio';
 import { PortadaTienda } from '@/components/storefront/PortadaTienda';
 import { RejillaDeProductos } from '@/components/storefront/TarjetaProducto';
+import { EnlaceTienda } from '@/components/storefront/BotonTienda';
+import { FOCO_TIENDA } from '@/components/storefront/botonTiendaVariantes';
+import TituloDeSeccion from '@/components/storefront/TituloDeSeccion';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,7 +46,7 @@ export default async function StorefrontHomePage({ params }: { params: Promise<{
 
       {conProductos.length > 0 && (
         <section className="mx-auto max-w-[1400px] px-4 py-20 sm:px-6 lg:px-10">
-          <h2 className="mb-10 text-center text-2xl font-medium uppercase tracking-[0.15em] text-slate-900">Compra por categoría</h2>
+          <TituloDeSeccion nivel={2} titulo="Compra por categoría" className="mb-10 text-center" />
           <ul className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4">
             {conProductos.slice(0, 8).map((c) => (
               <li key={c.id}>
@@ -51,9 +54,9 @@ export default async function StorefrontHomePage({ params }: { params: Promise<{
                     inicial suelta en un cuadrado grande no decia nada (visto al
                     dibujarlo). */}
                 <Link href={`/${empresaSlug}/productos?categoria=${c.id}`}
-                  className="group flex aspect-[4/3] flex-col items-center justify-center gap-2 bg-[#f4f4f3] px-4 text-center transition-colors hover:bg-[#ebebea]">
-                  <span className="text-lg uppercase tracking-[0.15em] text-slate-900 underline-offset-8 group-hover:underline">{c.name}</span>
-                  <span className="text-sm text-slate-500">{c.cantidad} {c.cantidad === 1 ? 'producto' : 'productos'}</span>
+                  className={`group flex aspect-[4/3] flex-col items-center justify-center gap-2 bg-[#f4f4f3] px-4 text-center transition-colors hover:bg-[#ebebea] ${FOCO_TIENDA}`}>
+                  <span className="break-words text-lg uppercase tracking-[0.15em] text-slate-900 underline-offset-8 group-hover:underline">{c.name}</span>
+                  <span className="text-sm text-slate-600">{c.cantidad} {c.cantidad === 1 ? 'producto' : 'productos'}</span>
                 </Link>
               </li>
             ))}
@@ -64,12 +67,8 @@ export default async function StorefrontHomePage({ params }: { params: Promise<{
       {muestra.length > 0 && (
         <section className="border-t border-slate-200">
           <div className="mx-auto max-w-[1400px] px-4 py-20 sm:px-6 lg:px-10">
-            <div className="mb-10 flex items-end justify-between gap-4">
-              <h2 className="text-2xl font-medium uppercase tracking-[0.15em] text-slate-900">Nuestros productos</h2>
-              <Link href={`/${empresaSlug}/productos`} className="text-sm uppercase tracking-[0.15em] text-slate-900 underline underline-offset-8 hover:opacity-70">
-                Ver todos
-              </Link>
-            </div>
+            <TituloDeSeccion nivel={2} titulo="Nuestros productos" className="mb-10"
+              accion={<EnlaceTienda href={`/${empresaSlug}/productos`} variante="enlace">Ver todos</EnlaceTienda>} />
             <RejillaDeProductos productos={muestra} empresaSlug={empresaSlug} />
           </div>
         </section>

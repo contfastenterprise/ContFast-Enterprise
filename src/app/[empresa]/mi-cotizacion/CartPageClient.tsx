@@ -21,6 +21,10 @@ import { armarCotizacion, cambiarCantidad, CLAVE_CARRITO, leerCarrito, type Prod
 import { precioDeTienda, inicialesDe } from '@/services/storefront/catalogo';
 import { formatDateDisplay } from '@/utils/fechasLocales';
 import { FOTO_ENTERA } from '@/utils/fotoEntera';
+import clsx from 'clsx';
+import { BotonTienda, EnlaceTienda } from '@/components/storefront/BotonTienda';
+import { FOCO_TIENDA } from '@/components/storefront/botonTiendaVariantes';
+import EstadoVacio from '@/components/storefront/EstadoVacio';
 
 type Empresa = { name: string; rnc: string; phone: string | null; email: string | null; address: string | null };
 
@@ -60,14 +64,10 @@ export default function CartPageClient({ empresaSlug, catalogo, empresa }: {
 
   if (cot.renglones.length === 0 && cot.noDisponibles.length === 0) {
     return (
-      <div className="mt-8 border-t border-slate-200 py-16 text-center">
-        <p className="text-lg text-slate-900">Tu cotización está vacía</p>
-        <p className="mt-2 text-sm text-slate-500">Añade productos desde el catálogo para ver aquí sus precios y el total.</p>
-        <Link href={`/${empresaSlug}/productos`}
-          className="mt-8 inline-block rounded-full bg-[#001e40] px-8 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-white hover:bg-[#00142a]">
-          Ver productos
-        </Link>
-      </div>
+      <EstadoVacio titulo="Tu cotización está vacía" texto="Añade productos desde el catálogo para ver aquí sus precios y el total."
+        className="mt-8 border-t border-slate-200">
+        <EnlaceTienda href={`/${empresaSlug}/productos`}>Ver productos</EnlaceTienda>
+      </EstadoVacio>
     );
   }
 
@@ -89,8 +89,8 @@ export default function CartPageClient({ empresaSlug, catalogo, empresa }: {
             {cot.noDisponibles.map((r) => (
               <li key={r.productId} className="flex items-center justify-between gap-3">
                 <span>{r.nombre}</span>
-                <button type="button" onClick={() => guardar(cambiarCantidad(carrito, r.productId, 0))}
-                  className="text-xs font-semibold uppercase tracking-wider underline underline-offset-4">Quitar</button>
+                <BotonTienda type="button" variante="enlace" tamano="xs" onClick={() => guardar(cambiarCantidad(carrito, r.productId, 0))}
+                  aria-label={`Quitar ${r.nombre}`}>Quitar</BotonTienda>
               </li>
             ))}
           </ul>
@@ -98,36 +98,38 @@ export default function CartPageClient({ empresaSlug, catalogo, empresa }: {
       )}
 
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_360px] print:block">
+        {/* Lote 282: en el movil la fila no cabia (el nombre quedaba en 50 px, partido, y el precio
+            montado sobre la cantidad). Ahi la foto y el nombre van en una linea y los mandos debajo. */}
         <ul className="divide-y divide-slate-200 border-y border-slate-200">
           {cot.renglones.map((r) => (
-            <li key={r.productId} className="flex items-center gap-4 py-5 sm:gap-6 print:py-2">
+            <li key={r.productId} className="flex flex-wrap items-center gap-x-4 gap-y-3 py-5 sm:flex-nowrap sm:gap-6 print:py-2">
               <div className="flex h-20 w-20 shrink-0 items-center justify-center bg-[#f4f4f3] print:hidden">
                 {r.imageUrl
                   ? <img src={r.imageUrl} alt="" className={FOTO_ENTERA} />
                   : <span className="text-xl font-light tracking-[0.2em] text-slate-300" aria-hidden="true">{inicialesDe(r.nombre)}</span>}
               </div>
-              <div className="min-w-0 flex-1">
-                <Link href={`/${empresaSlug}/productos/${r.slug}`} className="text-[15px] text-slate-900 hover:underline underline-offset-4">{r.nombre}</Link>
+              <div className="min-w-0 flex-1 basis-[calc(100%-6rem)] sm:basis-0">
+                <Link href={`/${empresaSlug}/productos/${r.slug}`} className={clsx('rounded-sm text-[15px] text-slate-900 hover:underline underline-offset-4', FOCO_TIENDA)}>{r.nombre}</Link>
                 <p className="mt-1 text-sm text-slate-500">
                   {precioDeTienda(r.precio)} <span className="text-xs uppercase tracking-wider">c/u + ITBIS</span>
                   <span className="hidden print:inline"> · Cantidad: {r.cantidad}</span>
                 </p>
               </div>
-              <div role="group" aria-label={`Cantidad de ${r.nombre}`} className="flex items-center border border-slate-300 print:hidden">
+              <div role="group" aria-label={`Cantidad de ${r.nombre}`} className="ml-24 flex items-center border border-slate-300 sm:ml-0 print:hidden">
                 <button type="button" onClick={() => guardar(cambiarCantidad(carrito, r.productId, r.cantidad - 1))} aria-label="Una menos"
-                  disabled={r.cantidad <= 1} className="flex h-9 w-9 items-center justify-center text-slate-600 hover:text-slate-900 disabled:opacity-30">
-                  <Minus className="h-3.5 w-3.5" />
+                  disabled={r.cantidad <= 1} className={clsx('flex h-9 w-9 items-center justify-center text-slate-600 hover:text-slate-900 disabled:opacity-30', FOCO_TIENDA)}>
+                  <Minus className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
                 <span className="w-9 text-center text-sm text-slate-900">{r.cantidad}</span>
                 <button type="button" onClick={() => guardar(cambiarCantidad(carrito, r.productId, r.cantidad + 1))} aria-label="Una más"
-                  className="flex h-9 w-9 items-center justify-center text-slate-600 hover:text-slate-900">
-                  <Plus className="h-3.5 w-3.5" />
+                  className={clsx('flex h-9 w-9 items-center justify-center text-slate-600 hover:text-slate-900', FOCO_TIENDA)}>
+                  <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               </div>
-              <p className="w-28 shrink-0 text-right text-[15px] text-slate-900">{precioDeTienda(r.importe)}</p>
+              <p className="ml-auto w-28 shrink-0 text-right text-[15px] text-slate-900 sm:ml-0">{precioDeTienda(r.importe)}</p>
               <button type="button" onClick={() => guardar(cambiarCantidad(carrito, r.productId, 0))} aria-label={`Quitar ${r.nombre} de la cotización`}
-                className="text-slate-400 hover:text-red-600 print:hidden">
-                <Trash2 className="h-4 w-4" />
+                className={clsx('flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:text-red-600 print:hidden', FOCO_TIENDA)}>
+                <Trash2 className="h-4 w-4" aria-hidden="true" />
               </button>
             </li>
           ))}
@@ -145,15 +147,13 @@ export default function CartPageClient({ empresaSlug, catalogo, empresa }: {
             {empresa.phone && ` Para pedir, llámanos al ${empresa.phone}.`}
           </p>
           <div className="mt-6 space-y-3 print:hidden">
-            <button type="button" onClick={() => window.print()} disabled={cot.renglones.length === 0}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#001e40] text-sm font-semibold uppercase tracking-[0.15em] text-white hover:bg-[#00142a] disabled:opacity-40">
+            <BotonTienda type="button" tamano="lg" onClick={() => window.print()} disabled={cot.renglones.length === 0} className="w-full">
               <Printer className="h-4 w-4" aria-hidden="true" />
               Imprimir cotización
-            </button>
-            <Link href={`/${empresaSlug}/productos`}
-              className="flex h-12 w-full items-center justify-center rounded-full border border-slate-900 text-sm font-semibold uppercase tracking-[0.15em] text-slate-900 hover:bg-slate-900 hover:text-white">
+            </BotonTienda>
+            <EnlaceTienda href={`/${empresaSlug}/productos`} variante="contorno" tamano="lg" className="flex w-full">
               Seguir viendo productos
-            </Link>
+            </EnlaceTienda>
           </div>
         </aside>
       </div>

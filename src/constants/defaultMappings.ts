@@ -9,6 +9,18 @@ import { RouteMapping } from '@/types/rbac';
 //  permiso asignado. Ademas la tabla no tiene `company_id`, asi que un borrado afectaria
 //  a las SEIS empresas a la vez -- es exactamente el error que el lote 190 estuvo a punto
 //  de cometer con `antiguedad-saldos`.
+//
+//  LOTE 286: los NOMBRES de esta siembra son los de `route_mappings` en PRODUCCION
+//  (medido el 2026-10-04, solo lectura). Los cuatro renombres del lote 190 ya estaban en la
+//  base y aqui no: "Pagos a Suplidores" (/dashboard/ap), "Ajustes de Inventario",
+//  "Configuración" (/dashboard/settings) y "Cuenta por Cobrar" (/dashboard/receivables-report,
+//  en singular, como en la base). Esta lista es lo que ve el menu antes de que llegue la
+//  respuesta de la base (`rbacContext`) y lo que nace en una base nueva (`seed-routes`), asi
+//  que tiene que decir lo mismo que la base. Lo que NO se toco, a proposito, porque es
+//  permiso y no nombre: el `module` de /dashboard/financial/accounts-receivable y
+//  accounts-payable (aqui `caja`; en la base `cobros` y `proveedores`) y las dos filas de
+//  /dashboard/antiguedad-saldos, que estan en la base y no aqui. Lo vigila
+//  `scratch/verificar_menu_como_la_base.ts`.
 export const DEFAULT_ROUTE_MAPPINGS: RouteMapping[] = [
   // 1. Principal
   { id: '1', routePattern: '/dashboard', module: 'caja', action: 'read', isMenuItem: true, displayName: 'Inicio', groupName: 'Principal', iconName: 'LayoutDashboard', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
@@ -26,7 +38,7 @@ export const DEFAULT_ROUTE_MAPPINGS: RouteMapping[] = [
   { id: '6b', routePattern: '/dashboard/products/barcodes%', module: 'catalogo', action: 'read', isMenuItem: true, displayName: 'Códigos de Barra', groupName: 'Inventario', iconName: 'Printer', orderIndex: 35, createdAt: new Date(), updatedAt: new Date() },
   { id: '7', routePattern: '/dashboard/delivery-notes%', module: 'conduce', action: 'read', isMenuItem: true, displayName: 'Conduces', groupName: 'Inventario', iconName: 'Truck', orderIndex: 40, createdAt: new Date(), updatedAt: new Date() },
   { id: '8', routePattern: '/dashboard/inventory/transfer%', module: 'catalogo', action: 'read', isMenuItem: true, displayName: 'Traslados', groupName: 'Inventario', iconName: 'ArrowRightLeft', orderIndex: 50, createdAt: new Date(), updatedAt: new Date() },
-  { id: '9', routePattern: '/dashboard/inventory/adjustments%', module: 'catalogo', action: 'read', isMenuItem: true, displayName: 'Ajustes', groupName: 'Inventario', iconName: 'PackageMinus', orderIndex: 60, createdAt: new Date(), updatedAt: new Date() },
+  { id: '9', routePattern: '/dashboard/inventory/adjustments%', module: 'catalogo', action: 'read', isMenuItem: true, displayName: 'Ajustes de Inventario', groupName: 'Inventario', iconName: 'PackageMinus', orderIndex: 60, createdAt: new Date(), updatedAt: new Date() },
   { id: '10', routePattern: '/dashboard/inventory/movements%', module: 'catalogo', action: 'read', isMenuItem: true, displayName: 'Movimientos', groupName: 'Inventario', iconName: 'HistoryIcon', orderIndex: 70, createdAt: new Date(), updatedAt: new Date() },
   { id: '10b', routePattern: '/dashboard/inventory/reorder%', module: 'catalogo', action: 'read', isMenuItem: true, displayName: 'Sugerencias de Reorden', groupName: 'Inventario', iconName: 'AlertTriangle', orderIndex: 80, createdAt: new Date(), updatedAt: new Date() },
   
@@ -36,13 +48,13 @@ export const DEFAULT_ROUTE_MAPPINGS: RouteMapping[] = [
   { id: '13', routePattern: '/dashboard/adjustments%', module: 'facturacion', action: 'read', isMenuItem: true, displayName: 'Credito / Debito', groupName: 'Ingresos', iconName: 'FileMinus', orderIndex: 30, createdAt: new Date(), updatedAt: new Date() },
   { id: '14', routePattern: '/dashboard/cash%', module: 'caja', action: 'read', isMenuItem: true, displayName: 'Modulo de Caja', groupName: 'Ingresos', iconName: 'Wallet', orderIndex: 40, createdAt: new Date(), updatedAt: new Date() },
   { id: '15', routePattern: '/dashboard/receivables%', module: 'cobros', action: 'read', isMenuItem: true, displayName: 'Pagos y Abonos', groupName: 'Ingresos', iconName: 'HandCoins', orderIndex: 50, createdAt: new Date(), updatedAt: new Date() },
-  { id: '15b', routePattern: '/dashboard/receivables-report%', module: 'cobros', action: 'read', isMenuItem: true, displayName: 'Cuentas por Cobrar', groupName: 'Ingresos', iconName: 'FileText', orderIndex: 60, createdAt: new Date(), updatedAt: new Date() },
+  { id: '15b', routePattern: '/dashboard/receivables-report%', module: 'cobros', action: 'read', isMenuItem: true, displayName: 'Cuenta por Cobrar', groupName: 'Ingresos', iconName: 'FileText', orderIndex: 60, createdAt: new Date(), updatedAt: new Date() },
   { id: '16', routePattern: '/dashboard/retentions%', module: 'retenciones', action: 'read', isMenuItem: true, displayName: 'Retenciones', groupName: 'Sistema', iconName: 'ShieldAlert', orderIndex: 25, createdAt: new Date(), updatedAt: new Date() },
   
   // 5. Egresos
   { id: '17', routePattern: '/dashboard/purchases%', module: 'proveedores', action: 'read', isMenuItem: true, displayName: 'Compras y Gastos', groupName: 'Egresos', iconName: 'Banknote', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
   { id: '18b', routePattern: '/dashboard/purchases/orders%', module: 'proveedores', action: 'read', isMenuItem: true, displayName: 'Pedidos a Suplidores', groupName: 'Egresos', iconName: 'FileText', orderIndex: 15, createdAt: new Date(), updatedAt: new Date() },
-  { id: '18', routePattern: '/dashboard/ap%', module: 'proveedores', action: 'read', isMenuItem: true, displayName: 'Cuentas por Pagar', groupName: 'Egresos', iconName: 'Receipt', orderIndex: 20, createdAt: new Date(), updatedAt: new Date() },
+  { id: '18', routePattern: '/dashboard/ap%', module: 'proveedores', action: 'read', isMenuItem: true, displayName: 'Pagos a Suplidores', groupName: 'Egresos', iconName: 'Receipt', orderIndex: 20, createdAt: new Date(), updatedAt: new Date() },
 
   
   // 6. Finanzas
@@ -72,7 +84,7 @@ export const DEFAULT_ROUTE_MAPPINGS: RouteMapping[] = [
   { id: '35c', routePattern: '/dashboard/tools/qr-store%', module: 'catalogo', action: 'read', isMenuItem: true, displayName: 'QR Tienda Online', groupName: 'Herramientas', iconName: 'QrCode', orderIndex: 25, createdAt: new Date(), updatedAt: new Date() },
   
   // 9. Sistema
-  { id: '31', routePattern: '/dashboard/settings%', module: 'administracion', action: 'read', isMenuItem: true, displayName: 'Ajustes', groupName: 'Sistema', iconName: 'Settings', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
+  { id: '31', routePattern: '/dashboard/settings%', module: 'administracion', action: 'read', isMenuItem: true, displayName: 'Configuración', groupName: 'Sistema', iconName: 'Settings', orderIndex: 10, createdAt: new Date(), updatedAt: new Date() },
   { id: '32', routePattern: '/dashboard/ecf%', module: 'facturacion', action: 'read', isMenuItem: true, displayName: 'Comprobantes Fiscales', groupName: 'Sistema', iconName: 'ShieldCheck', orderIndex: 20, createdAt: new Date(), updatedAt: new Date() },
   { id: '33', routePattern: '/dashboard/admin/companies%', module: 'administracion', action: 'read', isMenuItem: true, displayName: 'Empresas', groupName: 'Sistema', iconName: 'Building2', orderIndex: 30, createdAt: new Date(), updatedAt: new Date() },
   { id: '34', routePattern: '/dashboard/admin', module: 'administracion', action: 'read', isMenuItem: true, displayName: 'Administracion', groupName: 'Sistema', iconName: 'Shield', orderIndex: 40, createdAt: new Date(), updatedAt: new Date() }

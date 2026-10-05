@@ -1,6 +1,8 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
+import { EnlaceTienda } from '@/components/storefront/BotonTienda';
+import EstadoVacio from '@/components/storefront/EstadoVacio';
+import TituloDeSeccion from '@/components/storefront/TituloDeSeccion';
 import { StorefrontCompanyService } from '@/services/storefront/companyService';
 import { StorefrontProductService } from '@/services/storefront/productService';
 import { ordenarProductos, tieneOferta } from '@/services/storefront/catalogo';
@@ -33,18 +35,12 @@ export default async function PromocionesPage({ params }: { params: Promise<{ em
 
   return (
     <div className="mx-auto max-w-[1400px] px-4 pb-20 pt-12 sm:px-6 lg:px-10">
-      <h1 className="text-3xl font-medium uppercase tracking-[0.12em] text-slate-900">Promociones</h1>
-      <p className="mt-2 text-sm text-slate-500">Productos con precio especial por tiempo limitado.</p>
+      <TituloDeSeccion titulo="Promociones" descripcion="Productos con precio especial por tiempo limitado." />
       <div className="mt-8 border-t border-slate-200 pt-10">
         {ofertas.length === 0 ? (
-          <div className="py-16 text-center">
-            <p className="text-lg text-slate-900">Ahora mismo no hay ofertas</p>
-            <p className="mt-2 text-sm text-slate-500">Vuelve pronto: las promociones aparecerán aquí.</p>
-            <Link href={`/${empresaSlug}/productos`}
-              className="mt-8 inline-block rounded-full bg-[#001e40] px-8 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-white hover:bg-[#00142a]">
-              Ver todo el catálogo
-            </Link>
-          </div>
+          <EstadoVacio titulo="Ahora mismo no hay ofertas" texto="Vuelve pronto: las promociones aparecerán aquí.">
+            <EnlaceTienda href={`/${empresaSlug}/productos`}>Ver todo el catálogo</EnlaceTienda>
+          </EstadoVacio>
         ) : (
           <RejillaDeProductos productos={ofertas} empresaSlug={empresaSlug} />
         )}
