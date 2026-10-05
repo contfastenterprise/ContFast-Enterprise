@@ -3243,6 +3243,13 @@ Además, fuera de la tabla:
   `verificar_selector_en_cabecera` miran propiedades (Escape, capa de fuera, cerrar sesión al final
   y fuera del botón del avatar) y siguen en verde; también los de nómina y del menú lateral. Los
   `_db` de nómina no se corrieron (el lote solo AÑADE una función pura al módulo que comparten).
+- **Lote 298: el manual, al día con el lote 297.** El manual del 296 decía, porque era verdad
+  entonces, que una nómina pagada salía en inglés («PAID») y no explicaba cómo llegar a Soporte. El 297
+  arregló las dos cosas en la aplicación, así que el manual quita el «PAID» y dice que Soporte se abre
+  desde el menú del usuario (su nombre, arriba a la derecha). Comprobado en el PDF: ningún «PAID», la
+  página de Soporte dibujada y mirada. **Regla que deja**: un lote que cambia lo que ve el usuario deja
+  el manual desfasado aunque no lo toque; al cerrar un tramo, se busca en `generate-manual.js` lo que
+  el tramo cambió.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -4432,5 +4439,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 296 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 298 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
