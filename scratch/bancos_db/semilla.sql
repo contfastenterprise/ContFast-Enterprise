@@ -37,6 +37,17 @@ INSERT INTO company_settings (company_id) VALUES
   ('11111111-1111-1111-1111-111111111111'),
   ('22222222-2222-2222-2222-222222222222');
 
+-- Lote 299: las dos empresas con un PLAN vigente y sin limites. Desde ese lote,
+-- sin plan vigente no se emite, ni se calcula nomina, ni se crean asientos
+-- manuales, usuarios o almacenes (es la decision del dueño), asi que una semilla
+-- sin suscripcion dejaria a los bancos de esas rutas en un 403 que no vigilan.
+-- `verificar_limites_del_plan_db.ts` cambia el plan de A a su gusto y lo repone.
+INSERT INTO plans (id, name, price, max_ecf_limit, max_users, max_warehouses) VALUES
+  ('eeeeeeee-0000-0000-0000-000000000299', 'Plan de los bancos', 0, -1, -1, -1);
+INSERT INTO subscriptions (company_id, plan_id, status, current_period_start, current_period_end) VALUES
+  ('11111111-1111-1111-1111-111111111111', 'eeeeeeee-0000-0000-0000-000000000299', 'active', '2026-01-01', '2099-12-31'),
+  ('22222222-2222-2222-2222-222222222222', 'eeeeeeee-0000-0000-0000-000000000299', 'active', '2026-01-01', '2099-12-31');
+
 INSERT INTO roles (id, name, is_fixed) VALUES
   ('aaaaaaaa-0000-0000-0000-000000000001', 'admin', true);
 

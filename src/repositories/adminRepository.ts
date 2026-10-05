@@ -1,5 +1,6 @@
-import { db, users, roles, sessions, auditLogs, subscriptions, plans } from '@/db';
-import { eq, and, desc, count, isNull } from 'drizzle-orm';
+import { db, users, roles, sessions, auditLogs } from '@/db';
+import { eq, and, desc, isNull } from 'drizzle-orm';
+import { exigirAltaDeUsuario } from '@/services/suscripcion/planRepositorio';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 import { esSistemas } from '@/utils/rolMatch';
@@ -44,29 +45,12 @@ export class AdminRepository {
 
   static async createUser(data: CreateUserInput) {
     return await db.transaction(async (tx) => {
-      // 1. Check user limits from active subscription
-      const subscriptionInfo = await tx
-        .select({ maxUsers: plans.maxUsers })
-        .from(subscriptions)
-        .innerJoin(plans, eq(subscriptions.planId, plans.id))
-        .where(and(eq(subscriptions.companyId, data.companyId), eq(subscriptions.status, 'active')))
-        .limit(1);
-
-      if (subscriptionInfo.length > 0) {
-        const maxUsers = subscriptionInfo[0].maxUsers;
-        if (maxUsers !== -1) {
-          // Count active users in the company
-          const [activeUsersCount] = await tx
-            .select({ value: count() })
-            .from(users)
-            .where(and(eq(users.companyId, data.companyId), eq(users.status, 'active')));
-          
-          const currentCount = activeUsersCount?.value || 0;
-          if (currentCount >= maxUsers) {
-            throw new Error(`Límite de usuarios alcanzado (${maxUsers} usuarios permitidos en su plan actual).`);
-          }
-        }
-      }
+      // 1. LOTE 299: el plan, con la regla unica. Antes solo se limitaba si habia
+      //    una suscripcion `active` (sin ella, usuarios sin limite) y dos altas a la
+      //    vez contaban las dos N-1. Ahora: plan vigente (`trialing` incluido) y la
+      //    cuenta bajo un candado por empresa, DENTRO de esta transaccion. Lanza
+      //    `PlanNoPermiteError` (403 sin plan, 409 con el cupo lleno).
+      await exigirAltaDeUsuario(tx, data.companyId);
 
       // 2. Check email exists
       const existing = await tx.select().from(users).where(eq(users.email, data.email));
@@ -210,39 +194,25 @@ export class AdminRepository {
     }
 
     const newStatus = userWithRole.user.status === 'active' ? 'inactive' : 'active';
-    
-    if (newStatus === 'active') {
-      const subscriptionInfo = await db
-        .select({ maxUsers: plans.maxUsers })
-        .from(subscriptions)
-        .innerJoin(plans, eq(subscriptions.planId, plans.id))
-        .where(and(eq(subscriptions.companyId, companyId), eq(subscriptions.status, 'active')))
-        .limit(1);
 
-      if (subscriptionInfo.length > 0) {
-        const maxUsers = subscriptionInfo[0].maxUsers;
-        if (maxUsers !== -1) {
-          const [activeUsersCount] = await db
-            .select({ value: count() })
-            .from(users)
-            .where(and(eq(users.companyId, companyId), eq(users.status, 'active')));
-          
-          const currentCount = activeUsersCount?.value || 0;
-          if (currentCount >= maxUsers) {
-            throw new Error(`Límite de usuarios alcanzado (${maxUsers} usuarios permitidos en su plan actual). Desactive otro usuario antes de activar este.`);
-          }
-        }
+    // LOTE 299: reactivar ocupa cupo igual que dar de alta, y pasa por la misma
+    // guarda. Antes se contaba FUERA de cualquier transaccion: dos reactivaciones
+    // a la vez pasaban las dos. Ahora la cuenta y el cambio van en la misma
+    // transaccion, bajo el candado de la empresa. Desactivar no pide nada.
+    return await db.transaction(async (tx) => {
+      if (newStatus === 'active') {
+        await exigirAltaDeUsuario(tx, companyId);
       }
-    }
 
-    // Auditoria P1-16 (2026-09-03): mismo caso que updateUser -- el SELECT
-    // de arriba ya valida companyId, esto es defensa en profundidad.
-    const [updated] = await db.update(users)
-      .set({ status: newStatus, updatedAt: new Date() })
-      .where(and(eq(users.id, userId), eq(users.companyId, companyId)))
-      .returning();
+      // Auditoria P1-16 (2026-09-03): mismo caso que updateUser -- el SELECT
+      // de arriba ya valida companyId, esto es defensa en profundidad.
+      const [updated] = await tx.update(users)
+        .set({ status: newStatus, updatedAt: new Date() })
+        .where(and(eq(users.id, userId), eq(users.companyId, companyId)))
+        .returning();
 
-    return { id: updated.id, status: updated.status };
+      return { id: updated.id, status: updated.status };
+    });
   }
 
   static async createRole(name: string, description: string) {

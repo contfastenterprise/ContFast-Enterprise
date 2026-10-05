@@ -4,7 +4,8 @@ import { requirePermission } from '@/middleware/permissions';
 import { HRRepository } from '@/repositories/hrRepository';
 import { asientoDeLaNomina } from '@/services/nomina/asentarNomina';
 import { z } from 'zod';
-import { hasActivePlan } from '@/utils/subscriptionHelper';
+import { bloqueoSinPlanVigente } from '@/services/suscripcion/planRepositorio';
+import { cuerpoDelBloqueo } from '@/services/suscripcion/planVigente';
 import { NominaNoPermitidaError } from '@/services/nomina/estadoDeNomina';
 
 /**
@@ -85,13 +86,11 @@ export async function POST(req: NextRequest) {
     const denegado = await requirePermission(session, 'nomina', 'write');
     if (denegado) return denegado;
 
-    // Enforce active plan subscription
-    const active = await hasActivePlan(session.companyId);
-    if (!active) {
-      return NextResponse.json(
-        { success: false, error: { code: 'PLAN_REQUIRED', message: 'Se requiere un plan activo y vigente para generar nóminas.' } },
-        { status: 403 }
-      );
+    // Lote 299: crear una nomina es CALCULARLA. Plan vigente con la regla unica
+    // (`trialing` en su periodo cuenta; antes no), y el mismo `code` que el resto.
+    const bloqueoDelPlan = await bloqueoSinPlanVigente(session.companyId);
+    if (bloqueoDelPlan) {
+      return NextResponse.json(cuerpoDelBloqueo(bloqueoDelPlan), { status: bloqueoDelPlan.status });
     }
 
     const body = await req.json();
@@ -132,6 +131,15 @@ export async function PUT(req: NextRequest) {
 
     const body = await req.json();
     const action = body.action; // 'recalculate' | 'approve'
+
+    // Lote 299: recalcular y aprobar (que asienta el devengo, lote 293) exigen plan
+    // vigente. Eliminar no: no crea nada.
+    if (action === 'recalculate' || action === 'approve') {
+      const bloqueoDelPlan = await bloqueoSinPlanVigente(session.companyId);
+      if (bloqueoDelPlan) {
+        return NextResponse.json(cuerpoDelBloqueo(bloqueoDelPlan), { status: bloqueoDelPlan.status });
+      }
+    }
 
     if (action === 'recalculate') {
       const { avisoIsr } = await HRRepository.recalculatePayroll(id, session.companyId, session.modo);

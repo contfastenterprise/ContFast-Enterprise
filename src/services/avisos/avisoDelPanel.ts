@@ -35,6 +35,11 @@ export function severidadDeAviso(tipo: string): 'error' | 'warning' | 'info' {
   // Lote 176: una diferencia de arqueo es dinero que falta o que sobra y que
   // el mayor no refleja. No es un recordatorio: es un descuadre.
   if (tipo === 'invoice_rejected' || tipo === 'caja_con_diferencia') return 'error';
+  // Lote 299: sin plan vigente, o con el cupo de e-CF del mes agotado, la empresa
+  // NO PUEDE EMITIR: es un bloqueo, no un recordatorio. Va al correo (lotes 200 y 205).
+  if (tipo === 'plan_vencido' || tipo === 'ecf_en_el_limite') return 'error';
+  // Lote 299: el plan vence en 5 dias o menos, o ya se uso el 80 % de los e-CF del mes.
+  if (tipo === 'plan_por_vencer' || tipo === 'ecf_cerca_del_limite') return 'warning';
   // Lote 221: un conduce sin despachar deja inventario y costo de venta sin
   // reflejar la venta. No es un descuadre de dinero, pero tampoco un recordatorio.
   if (tipo === 'check_due' || tipo === 'caja_sin_cerrar' || tipo === 'declaracion_pendiente'

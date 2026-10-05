@@ -3,6 +3,8 @@ import { verifyAuth } from '@/middleware/auth';
 import { checkRateLimit } from '@/middleware/rateLimiter';
 import { AccountingRepository } from '@/repositories/accountingRepository';
 import { enforcePermission } from '@/middleware/permissions';
+import { bloqueoSinPlanVigente } from '@/services/suscripcion/planRepositorio';
+import { cuerpoDelBloqueo } from '@/services/suscripcion/planVigente';
 import { z } from 'zod';
 
 const createJournalSchema = z.object({
@@ -88,6 +90,14 @@ export async function POST(req: NextRequest) {
     }
 
     await enforcePermission(session.userId, session.role, session.roleId, session.companyId, 'contabilidad', 'write');
+
+    // Lote 299: ESTA es la ruta con la que la pantalla de Contabilidad crea un
+    // asiento manual (`accounting/page.tsx`), y no miraba el plan: la guarda solo
+    // estaba en su gemela `accounting/entries`. Con plan vencido se crean igual.
+    const bloqueoDelPlan = await bloqueoSinPlanVigente(session.companyId);
+    if (bloqueoDelPlan) {
+      return NextResponse.json(cuerpoDelBloqueo(bloqueoDelPlan), { status: bloqueoDelPlan.status, headers: resHeaders });
+    }
 
     const body = await req.json();
     const parsed = createJournalSchema.safeParse(body);

@@ -1009,7 +1009,7 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <label className="text-xs font-bold text-slate-700 block mb-1">Límite Almacenes <span className="text-red-500">*</span></label>
-                    <input type="number" required min={1} value={planForm.maxWarehouses} onChange={e => setPlanForm({ ...planForm, maxWarehouses: parseInt(e.target.value) || 1 })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-[#c5a059] outline-none transition-colors" />
+                    <input type="number" required min={-1} aria-label="Límite de almacenes" value={planForm.maxWarehouses} onChange={e => setPlanForm({ ...planForm, maxWarehouses: parseInt(e.target.value) || -1 })} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-[#c5a059] outline-none transition-colors" placeholder="-1 para Ilimitado" />
                   </div>
                 </div>
                 <div className="flex items-center gap-2 pt-2">

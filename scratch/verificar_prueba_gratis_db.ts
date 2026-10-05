@@ -91,8 +91,12 @@ async function main() {
   try { reg = (await import('../src/app/api/v1/auth/register/route')) as unknown as Record<string, Handler>; } catch { reg = null; }
   try { admin = (await import('../src/app/api/v1/admin/companies/route')) as unknown as Record<string, Handler>; } catch { admin = null; }
   if (!reg?.POST || !admin?.POST) throw new Error('Precondicion: faltan las rutas de registro o de Administracion');
-  //  Precondicion de los dos estados: la semilla trae el Plan Basico y Alfa sin suscripcion.
+  //  Precondicion de los dos estados: la semilla trae el Plan Basico.
   if (await cuenta(sql`SELECT count(*)::int n FROM plans WHERE name = 'Plan Básico'`) !== 1) throw new Error('Precondicion: la semilla no trae el Plan Básico');
+  //  Alfa y Beta hacen de "empresas existentes sin plan" (el guion, las dos llamadas a la vez). Desde
+  //  el lote 299 la semilla les da un plan sin limites (sin plan, los bancos de nomina y asientos
+  //  chocarian con SIN_PLAN); aqui se les quita, que la base se resiembra antes de cada banco.
+  await db.execute(sql`DELETE FROM subscriptions WHERE company_id IN (${ALFA}::uuid, ${BETA}::uuid)`);
   if (await cuenta(sql`SELECT count(*)::int n FROM subscriptions WHERE company_id = ${ALFA}::uuid`) !== 0) throw new Error('Precondicion: Alfa ya tiene suscripcion');
 
   for (const r of DEFAULT_COMPANY_ROLES) {

@@ -3320,6 +3320,93 @@ Además, fuera de la tabla:
   nombre); para tener la casilla:
   `npx tsx --env-file=.env scratch/_to_delete/aplicar_migracion.ts drizzle/0022_plan_de_prueba.sql --aplicar`.
   Y `verificar_prueba_gratis_db.ts` a `deuda_bancos.txt` en su carpeta.
+- **Lote 299: los límites de los planes, con UNA regla.** De la auditoría de los límites
+  (2026-10-05) y las decisiones del dueño del mismo día. **Medido antes (PRODUCCIÓN, solo
+  lectura, `medir_299.ts`)**: solo Latin Doors tiene suscripción (Corporativo, `active`, fin
+  `2026-12-31 23:59:59.999`); estados de factura en PRODUCCIÓN: `accepted` 65, `draft` 9,
+  `rejected` 1, `void` 1; 67 e-CF de PRODUCCIÓN salidos en jul–oct; una factura con tres
+  envíos (`E310000000029`). Lo que había: usuarios, almacenes y e-CF **solo limitaban con una
+  suscripción `active`** (sin ella, sin límite); **dos contadores de e-CF** que no coincidían
+  (la ruta, por el modo de la sesión, el mes UTC y todos los estados; `EcfValidator`, por el
+  periodo entero, sin mirar si vencía); **borrador + `submit`/`resubmit` se saltaba todo**;
+  respuestas 400/403/422 según la puerta; altas simultáneas sin bloqueo; `admin/plans` sin -1
+  en almacenes; y `hasActivePlan` sin `trialing`.
+  **La regla**, pura: `services/suscripcion/planVigente.ts`. Vigente es `active` o `trialing`
+  **dentro de su periodo en días de RD** (el último día vale entero: el 31/12 a las 23:00 de RD
+  Latin Doors sigue vigente aunque en UTC ya sea 1/1). Con varias, manda la vigente que más
+  dura. Sin plan vigente (ninguna, `past_due`, `canceled`, vencida o por empezar) se bloquea lo
+  que crea o emite y se dice qué sigue funcionando (consultar, imprimir, borradores). El límite
+  de e-CF cuenta **PRODUCCIÓN** y los estados que **salieron** (`signed`, `submitted`,
+  `accepted`, `rejected` —gastó un envío— y `void` —solo lo pone la baja de un rechazado, lote
+  140—), por **mes calendario de RD**: se compara `created_at` contra los instantes del día 1 a
+  las 04:00 UTC (`mesDeRD`), que usa el índice `(company_id, status, created_at, modo)` y da lo
+  mismo que convertir la columna. Al 80 % avisa, al 100 % bloquea; -1 es ilimitado. Lee la
+  base `planRepositorio.ts`, acotado por empresa.
+  **Las respuestas**: todas `{ success: false, error: { code, message } }`; **403** sin plan
+  (`SIN_PLAN`, `PLAN_VENCIDO`) y **409** con el cupo lleno (`LIMITE_ECF`, `LIMITE_USUARIOS`,
+  `LIMITE_ALMACENES`). Mensajes: «El Plan X venció el dd-mm-aaaa. Mientras tanto no se pueden
+  emitir e-CF, calcular, aprobar ni pagar nóminas, ni crear asientos manuales, usuarios o
+  almacenes. Consultar, imprimir y guardar borradores sigue funcionando…»; «Llegó al límite de
+  e-CF de su plan este mes (100 de 100). No se pueden emitir más hasta el 1 de <mes> o hasta
+  ampliar el plan; los borradores se pueden seguir guardando.»; «Su plan permite N usuario(s)
+  activo(s) y ya tiene N…».
+  **Las puertas**: emitir (`invoices` POST, antes de firmar, sin `console.error`: un bloqueo no
+  es un incidente de Sentry), `invoices/[id]/submit` y `ecf/[id]/resubmit`; `EcfValidator` ya no
+  cuenta: delega en la regla y **lanza** el bloqueo con su código (segunda barrera; quitarla es
+  un mutante equivalente, anotado). **Un reenvío no suma**: se cuenta por FILAS de `invoices`, y
+  un rechazado que se reenvía con su mismo e-NCF es la misma fila, ya contada cuando salió; así
+  que con el cupo lleno se puede corregir un rechazo, y un borrador enviado sí suma uno. Ojo: un
+  borrador enviado por `submit` cuenta en el mes de su `created_at` (el del borrador); la
+  pantalla emite los borradores por el POST, que crea fila nueva. **Usuarios** (alta y
+  reactivación; `toggleUserStatus` contaba fuera de toda transacción) y **almacenes**: la cuenta
+  va DENTRO de la transacción que inserta, tras `pg_advisory_xact_lock` por empresa. Almacenes
+  cuenta todos (como antes): uno desactivado se reactiva por el PUT sin pasar por el alta.
+  **Nómina**: crear (calcula), recalcular, aprobar (asienta, lote 293) y pagar (lote 295);
+  eliminar no. **Asientos manuales**: `accounting/entries` y **`accounting/journals`**, que es
+  la que usa la pantalla de Contabilidad y **no miraba el plan**. `hasActivePlan` delega en la
+  regla y ya no lo usa nadie. `invoices/draft` sigue libre. **Mirado y fuera, a propósito**
+  (la decisión nombra solo emitir, nómina y asientos manuales): compras, cobros, pagos,
+  conduces, cotizaciones, liquidaciones, apertura de períodos y las altas de `altaDeEmpresa` y
+  `setup/confirm` (del lote 300). En PRUEBA no se cuenta nada, pero sin plan vigente tampoco se
+  emite. `admin/plans` y su pantalla admiten -1 en almacenes.
+  **Avisos** (panel → `sincronizarAvisos`, claves estables, se cierran solos): «El plan vence en
+  N días» (`plan_por_vencer`, `warning`, desde 5 días antes, clave `plan-vence-<sub>-<día>`),
+  «El plan venció» / «No hay un plan vigente» (`plan_vencido`, `error`), «Ha usado el 80 % de
+  sus e-CF de este mes (N de M)» (`ecf_cerca_del_limite`, `warning`, `ecf-80-<mes>`) y «Llegó al
+  límite de e-CF del mes» (`ecf_en_el_limite`, `error`, `ecf-limite-<mes>`; sustituye al del
+  80 %). Los cuatro van al correo (lotes 200 y 205). Los del plan salen en los dos modos (una
+  prueba gratis suele estar en PRUEBA), así que si se abren los dos paneles el correo de ese
+  aviso sale una vez por modo; los de e-CF, solo en PRODUCCIÓN.
+  **La pantalla** (Configuración > Plan & Suscripción): estado («Prueba», «Activo», «Vencido»,
+  «Pago pendiente»…), días que quedan, e-CF del mes «N de M (x %)» con la MISMA cuenta,
+  usuarios activos y almacenes contra su límite. Antes leía solo una suscripción `active`.
+  **La semilla de la base desechable** lleva ahora un plan sin límites para A y B: sin él, los
+  bancos de nómina, asientos, usuarios y almacenes chocarían con el `SIN_PLAN` nuevo.
+  Dos bancos. `verificar_limites_del_plan.ts` (la regla ejecutada en todos los casos pedidos,
+  la pantalla dibujada y el cableado de cada puerta, con un barrido de quién lee los límites del
+  plan): 67 comprobaciones y un invariante (el borrador sigue libre), contraprueba **67 FALLA**.
+  `verificar_limites_del_plan_db.ts` (**integración**): las rutas de verdad —nada se emite: la
+  base no tiene secuencias y la emisión se para en la validación previa—; 23 comprobaciones,
+  contraprueba **23 FALLA**. Veinticuatro mutantes y veinticuatro muertos. **Uno sobrevivió
+  primero y enseña algo**: quitar el candado de las altas pasaba la prueba de «dos altas a la
+  vez», porque con una sola conexión abierta postgres.js pone a la segunda transacción a
+  esperar a la primera y la carrera no ocurre. Se abren antes varias conexiones, y se añadió una
+  prueba **determinista**: alguien sostiene el candado 0,8 s y el alta tiene que esperarlo.
+  **El barrido** (código en el worktree, y los 53 de integración en la base desechable) cazó
+  tres bancos, ninguno una regresión, los tres la trampa de la línea literal:
+  `verificar_declaraciones_dgii` (anclaba la coma tras `declaracionesPorPresentar.length`, y el
+  contador ganó un sumando), `verificar_p1_24_lote8` (copiaba la línea siguiente al `catch` de
+  `admin/users`, que ganó la rama del plan) y `verificar_ecf_productos` (miraba la cuenta de
+  PRODUCCIÓN dentro de `ecfValidator.ts`, que ahora delega). Re-anclados a la propiedad, cada uno
+  con su mutante y válidos en los dos estados. Rojos del worktree, conocidos y ajenos:
+  `verificar_gancho_y_compras` (no hay `.git/hooks`) y `verificar_p3_48` (ancla `\n` sobre un
+  esquema en CRLF: falla en cualquier clon nuevo; va aparte). **Y la base desechable la usaba a
+  la vez otra sesión**: dos barridos murieron en la semilla (claves duplicadas, un `deadlock`);
+  se esperó a tenerla libre tres minutos y se repitió.
+  **Para el dueño**: hoy cinco empresas no tienen suscripción y, con este lote, no pueden emitir
+  (ya no podían: `EcfValidator` lo exigía), ni crear usuarios o almacenes, ni calcular nómina o
+  asientos manuales, hasta que el lote 300 (o su guion) les dé la prueba gratis. Y
+  `verificar_limites_del_plan_db.ts` a `deuda_bancos.txt` en su carpeta.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás

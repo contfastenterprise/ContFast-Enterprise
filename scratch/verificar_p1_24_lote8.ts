@@ -275,10 +275,13 @@ console.log('\n=== v1/admin/users/route.ts ===\n');
     (src.match(/const err: Error & \{ status\?: number; code\?: string \} = new Error\(/g) || []).length === 2);
   ok('GET catch (status 500): unknown, cast puntual',
     src.includes('} catch (err: unknown) {\n    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 500 });'));
+  //  Lote 299: los dos catch ganaron una rama antes del molde (el bloqueo del plan sale con
+  //  su `code`). Anclaban la linea siguiente al `catch`; vigilan ahora la PROPIEDAD: el
+  //  catch tipado `unknown` y el molde puntual, con lo que haya entre medias (acotado).
   ok('POST catch: unknown + const e = err as Error&{status,code} (lee .message y .status)',
-    src.includes('} catch (err: unknown) {\n    const e = err as Error & { status?: number; code?: string };\n    return NextResponse.json({ success: false, error: { message: e.message } }, { status: e.status || 400 });'));
+    /\} catch \(err: unknown\) \{(?:[\s\S]{0,400}?\})?\s*const e = err as Error & \{ status\?: number; code\?: string \};\s*return NextResponse\.json\(\{ success: false, error: \{ message: e\.message \} \}, \{ status: e\.status \|\| 400 \}\);/.test(src));
   ok('PATCH catch (status 400): unknown, cast puntual',
-    src.includes('} catch (err: unknown) {\n    return NextResponse.json({ success: false, error: { message: (err as Error).message } }, { status: 400 });'));
+    /\} catch \(err: unknown\) \{(?:[\s\S]{0,400}?\})?\s*return NextResponse\.json\(\{ success: false, error: \{ message: \(err as Error\)\.message \} \}, \{ status: 400 \}\);/.test(src));
 }
 
 // ═══════════════════ v1/agent/proposals/* ═══════════════════

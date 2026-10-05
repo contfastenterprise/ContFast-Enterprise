@@ -5,6 +5,8 @@ import { InvoiceRepository } from '@/repositories/invoiceRepository';
 import { db, auditLogs, dgiiSubmissions } from '@/db';
 import { addJob } from '@/infrastructure/queue';
 import { eq, and } from 'drizzle-orm';
+import { bloqueoDeEmision } from '@/services/suscripcion/planRepositorio';
+import { cuerpoDelBloqueo } from '@/services/suscripcion/planVigente';
 
 /**
  * Lote 219: sin Redis, la emision que se encola aqui corre con `after()` dentro
@@ -54,6 +56,16 @@ export async function POST(
         },
         { status: 400, headers: resHeaders }
       );
+    }
+
+    // LOTE 299: enviar o reenviar es EMITIR, y pasa por la misma regla del plan que
+    // la emision directa. Antes, guardar como borrador y enviar despues se saltaba
+    // el plan y el limite. Un rechazado que se reenvia con su mismo e-NCF YA cuenta
+    // (es la misma fila de `invoices`): no suma otro, asi que corregir un rechazo
+    // con el cupo lleno sigue pudiendose. Un borrador si suma uno.
+    const bloqueoDelPlan = await bloqueoDeEmision(auth.companyId, auth.modo, { modo: auth.modo, status: invoice.status });
+    if (bloqueoDelPlan) {
+      return NextResponse.json(cuerpoDelBloqueo(bloqueoDelPlan), { status: bloqueoDelPlan.status, headers: resHeaders });
     }
 
     // Create a fresh dgii_submissions record for this resubmission

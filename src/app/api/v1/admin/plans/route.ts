@@ -15,7 +15,8 @@ const createPlanSchema = z.object({
   price: z.number().min(0, 'El precio no puede ser negativo'),
   maxEcfLimit: z.number().int('Debe ser entero').min(-1, 'Debe ser -1 (ilimitado) o mayor'),
   maxUsers: z.number().int('Debe ser entero').min(-1, 'Debe ser -1 (ilimitado) o mayor'),
-  maxWarehouses: z.number().int('Debe ser entero').min(1, 'Debe ser al menos 1'),
+  // Lote 299: -1 es ilimitado tambien aqui, como en e-CF y usuarios (la pantalla ya lo enseñaba).
+  maxWarehouses: z.number().int('Debe ser entero').min(-1, 'Debe ser -1 (ilimitado) o mayor'),
   active: z.boolean().optional().default(true),
   // Lote 300: la casilla "Plan de prueba" (columna de la 0022, fuera del esquema de Drizzle).
   esPlanDePrueba: z.boolean().optional(),

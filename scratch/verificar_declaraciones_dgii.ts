@@ -107,7 +107,9 @@ async function main() {
     /declaracionesPendientes\(\{\s*ahora: today,\s*conDatos:/.test(PANEL) && /presentada: \(tipo, periodo\) => presentadas\.has\(`\$\{tipo\}\|\$\{periodo\}`\)/.test(PANEL));
   ok('el aviso lleva a la pantalla de ese formato y periodo, y se cuenta',
     /actionLink: `\/dashboard\/reports\/\$\{d\.tipo\}\?period=\$\{d\.periodo\}`/.test(PANEL)
-    && /\+ declaracionesPorPresentar\.length,/.test(PANEL));
+    //  Lote 299: anclaba la coma de detras (`length,`), y el contador gano un sumando
+    //  (los avisos del plan). Lo que importa es que se SUME, no lo que venga despues.
+    && /\+ declaracionesPorPresentar\.length\b/.test(PANEL));
   //  Negacion: sin el aviso tampoco habria generacion, asi que va unida a la
   //  marca del estado posterior.
   ok('el panel avisa pero NO genera ni guarda el fichero',
