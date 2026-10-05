@@ -12,6 +12,7 @@ import CampanaAvisos from '@/components/ui/campana-avisos';
 import MenuDelUsuario from '@/components/ui/menu-del-usuario';
 import SelectorDeEmpresa from '@/components/ui/selector-de-empresa';
 import InsigniaEntorno from '@/components/ui/insignia-entorno';
+import { clasesDeLaBarra } from './barraSuperior';
 import { RbacProvider, useRbac } from '@/components/providers/rbacContext';
 import { esAdminOSistemas } from '@/utils/rolMatch';
 import { PageLoader } from '@/components/ui/PageLoader';
@@ -367,12 +368,13 @@ export default function ClientLayout({ children, initialUser, initialSettings }:
           </div>
         )}
   
-        {/* TopNavBar */}
+        {/* TopNavBar
+            LOTE 301: el mismo color en PRUEBA que en PRODUCCION (pedido del dueño).
+            El entorno ya lo dicen la franja de arriba y el punto junto a la campana;
+            de PRUEBA solo queda la posicion, debajo de la franja. Ver barraSuperior.ts. */}
         <nav className={clsx(
           "backdrop-blur-md flex justify-between items-center w-full px-4 md:px-6 h-14 fixed left-0 z-50 border-b transition duration-300",
-          activeEnvironment === 'PRUEBA'
-            ? 'top-11 bg-zinc-950 text-white border-red-500/20 shadow-md'
-            : 'top-0 bg-gradient-to-r from-sky-50 via-blue-50 to-indigo-100 text-slate-900 border-indigo-200/50 shadow-sm'
+          clasesDeLaBarra(activeEnvironment === 'PRUEBA')
         )}>
           <div className="flex items-center gap-3 min-w-0">
             {/* Mobile hamburger */}

@@ -3407,6 +3407,37 @@ Además, fuera de la tabla:
   (ya no podían: `EcfValidator` lo exigía), ni crear usuarios o almacenes, ni calcular nómina o
   asientos manuales, hasta que el lote 300 (o su guion) les dé la prueba gratis. Y
   `verificar_limites_del_plan_db.ts` a `deuda_bancos.txt` en su carpeta.
+- **Lote 301: en PRUEBA, la barra de arriba no cambia de color.** Pedido del dueño
+  (2026-10-05): *"cuando esta en modo prueba el header no debe cambiar el color"*. La barra era
+  **negra** en PRUEBA (`bg-zinc-950 text-white border-red-500/20 shadow-md`) y el degradado
+  celeste en PRODUCCIÓN; ahora lleva el de PRODUCCIÓN en los dos. El entorno ya lo dicen la
+  **franja rayada** (advertencia legal, lote 192: se queda) y el **punto junto a la campana**
+  (`InsigniaEntorno`, se queda); un tercer aviso obligaba a que todo lo de dentro se leyera sobre
+  dos fondos. **De PRUEBA solo queda la posición**: con la franja, la barra baja a `top-11` y el
+  contenido conserva su `pt-24`.
+  La regla vive en `src/app/dashboard/barraSuperior.ts` (pura): `clasesDeLaBarra(conFranja)`
+  recibe si hay franja, no el entorno, porque el color ya no depende de nada. **Medido antes**: la
+  única rama de color por entorno era la del `<nav>`. Lo de dentro —el selector de empresa (193),
+  la campana, el avatar, los dos botones del menú— ya usaba `text-inherit` y hovers neutros
+  (`hover:bg-slate-200/50`, `hover:bg-black/5`) y no conoce el entorno, así que con el fondo claro
+  se lee como en PRODUCCIÓN (texto slate-900 sobre el degradado: más de 15:1). En PRUEBA, la barra se
+  veía con el texto heredado en blanco y los hovers pensados para fondo claro.
+  **Se miró en el navegador** con una página temporal que monta `ClientLayout` con la red
+  sustituida y el entorno forzado por la cookie (borrada antes de commitear): a 1.280 px las
+  clases del `<nav>` son las mismas en los dos entornos salvo `top-11`/`top-0`, los únicos textos
+  blancos de la barra son la inicial de la empresa (sobre su círculo azul), el número de la campana
+  (sobre rojo) y el globo del entorno (sobre negro); el desplegable de empresas se lee; a 375 px,
+  sin desborde.
+  Banco `verificar_cabecera_sin_color_de_prueba.ts` (regla ejecutada, barra dibujada con
+  `react-dom/server` en los dos entornos, contraste AA calculado, y el cableado: dentro del
+  `<nav>` solo la regla y el punto miran el entorno, y las piezas de la barra no lo conocen): 12
+  comprobaciones y 4 invariantes (la franja, el `pt-24`, el punto junto a la campana y que
+  distingue los dos entornos), contraprueba **12 FALLA**, nueve mutantes y nueve muertos. La
+  paleta se compara con la de PRODUCCIÓN de `0203b76` (un commit, no una rama). **Ningún banco
+  fijaba el negro**: los que leen la cabecera (`entorno_y_sesion`, `selector_en_cabecera`,
+  `pagada_y_soporte`, `modo_certificacion` —su trinquete de `=== 'PRUEBA'` no sube: la
+  comparación sigue siendo una—, `gating_ui`, `ui_rrhh_admin`, `menu_activo_centrado`) siguen en
+  verde sin tocarlos.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
