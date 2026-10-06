@@ -91,6 +91,32 @@ export function escaparHtml(texto: string): string {
  */
 export const CORREO_DE_SOPORTE = 'contfastenterprise@gmail.com';
 
+/** La direccion de un remitente escrito como '"Nombre" <dir>' o solo 'dir'. */
+export function direccionDelRemitente(remitente: string): string {
+  const m = remitente.match(/<([^<>]+)>\s*$/);
+  return (m ? m[1] : remitente).trim();
+}
+
+//  Lo que no puede ir en el nombre visible de una cabecera From: comillas, barras, angulos
+//  y saltos (estos ultimos serian inyeccion de cabeceras). Se cambian por un espacio.
+const NO_VA_EN_EL_NOMBRE = /["\\<>\r\n\t]/g;
+
+/**
+ * El remitente del ticket (lote 309, decision del dueño, 2026-10-06): en la bandeja de soporte
+ * el "De" dice QUIEN escribe -- su nombre y su correo -- "via ContFast".
+ *
+ * La DIRECCION sigue siendo la del sistema, a proposito: el correo sale por la cuenta de Gmail
+ * del SMTP, que no deja enviar como otra direccion, y un From con el dominio del usuario sin
+ * firmar acabaria en spam o rechazado (DMARC). El nombre lleva el dato; responder va al usuario
+ * por el Reply-To. Se devuelve como objeto para que nodemailer codifique tildes y eñes.
+ */
+export function remitenteDelTicket(quien: QuienEscribe, remitenteDelSistema: string): { name: string; address: string } {
+  const nombre = quien.nombre.replace(NO_VA_EN_EL_NOMBRE, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+  const correo = correoValido(quien.correo);
+  const quienEs = nombre && correo ? `${nombre} (${correo})` : nombre || correo || 'Usuario sin nombre';
+  return { name: `${quienEs} vía ContFast`, address: direccionDelRemitente(remitenteDelSistema) };
+}
+
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sin 0/O ni 1/I: se dicta por telefono
 
 /**
