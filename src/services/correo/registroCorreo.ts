@@ -25,7 +25,7 @@ export const CONTEXTOS_CORREO = {
   factura: 'factura',
   ordenSuplidor: 'orden_suplidor',
   sistema: 'sistema',
-  //  Lote 288: el ticket de la pantalla de Soporte, que sale al correo de la empresa.
+  //  Lote 288: el ticket de la pantalla de Soporte (desde el 308, al buzon de soporte de ContFast).
   soporte: 'soporte',
 } as const;
 

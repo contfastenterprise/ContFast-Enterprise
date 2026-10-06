@@ -3667,6 +3667,19 @@ Además, fuera de la tabla:
   — «saldoDe('medio') sale una sola vez» era cierta antes (en «En observación») y se ató a la suma de
   «Acción inmediata» —, nueve mutantes y nueve muertos. `verificar_riesgo_desde_un_dia` (306) exigía la
   versión 3.5 exacta; ahora «3.5 o posterior».
+- **Lote 308: los tickets de Soporte van a `contfastenterprise@gmail.com`.** Decisión del dueño
+  (2026-10-05). Desde el 288 iban al correo de la empresa de la sesión (`companies.email`) y, sin él, no
+  salían (409 «Tu empresa no tiene un correo configurado…»): la empresa se escribía a sí misma. Ahora el
+  destino es una **constante**, `CORREO_DE_SOPORTE` en `services/soporte/ticketDeSoporte.ts` — no una
+  variable de entorno, por lo mismo que en el 288: cambiarlo es un lote, no algo perdido en Vercel —. Se
+  van el 409, `MENSAJE_SIN_CORREO`, `destinoDeSoporte` y la lectura de `companies.email`. **No cambia**:
+  el Reply-To (la respuesta llega al usuario), el `SOP-XXXXXX`, el registro en `system_email_logs`, el
+  límite por usuario ni el 502 con el SMTP caído. Manual 3.7 (página 26, mirada en el PDF): sin la nota
+  de la empresa sin correo ni la frase de Configuración que decía que ahí llegaban los tickets.
+  Banco `verificar_soporte_a_contfast.ts` (el envío EJECUTADO con correo de empresa, sin él y mal escrito;
+  la ruta; el manual): 11 comprobaciones, contraprueba **11 FALLA**, nueve mutantes y nueve muertos. En
+  `verificar_soporte_por_correo.ts` (288) las comprobaciones del destino se **reescriben, no se borran**:
+  «sin correo de empresa no sale» pasa a «sale igual, a soporte»; contra `HEAD` caen las siete tocadas.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -4856,5 +4869,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 307 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 308 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
