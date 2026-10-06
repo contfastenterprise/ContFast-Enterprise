@@ -44,6 +44,7 @@
  * LOTE 305 (version 3.4): Antiguedad de Saldos tal como quedo en el lote 304 (que cuenta como
  * deuda, el vencimiento pactado, los tramos, los niveles y sus colores, dona contra tarjetas,
  * la tabla y el CSV), y la nota de que una factura rechazada deja de contar como deuda.
+ * LOTE 306 (version 3.5): «Cartera en Riesgo» cuenta desde el primer dia de atraso.
  *
  * INDICE: los numeros de pagina se CALCULAN. Cada seccion empieza en pagina nueva, asi que
  * se dibuja cada una por separado con los mismos margenes, se cuentan sus paginas, y con eso
@@ -56,7 +57,7 @@ const path = require('path');
 
 const RAIZ = path.join(__dirname, '..');
 const FECHA = 'Octubre 2026';
-const VERSION = '3.4';
+const VERSION = '3.5';
 
 // El logo del sistema, el mismo de la pantalla de acceso (`public/Logo.svg`), incrustado en el
 // HTML: Chromium no tiene que salir a buscarlo. La portada es blanca, asi que va directo:
@@ -493,7 +494,7 @@ seccion('cobros', 'Cobros y cuentas por cobrar', `
   <p>Cada factura vence en la <strong>fecha límite de pago pactada</strong> en ella (la que sale impresa y se declara a la DGII); si no la tiene, en la de su cuenta por cobrar, a un mes de la emisión. Los días de atraso se cuentan desde ese vencimiento, no desde la emisión, y con el día de <strong>República Dominicana</strong>. <strong>Lo que vence hoy todavía no está vencido</strong>: se atrasa a partir de mañana. Por eso quien debe mucho sin haber llegado a su vencimiento sale como riesgo bajo, y es correcto (lo recuerda el aviso azul de la pantalla).</p>
   <h4 class="mini">Lo que se ve, de arriba abajo</h4>
   <ul>
-    <li><strong>Tarjetas:</strong> «Cartera por Cobrar» (o «Cuentas por Pagar»), el total; «Total clientes» y cuántos están al día; <strong>«Cartera en Riesgo»</strong>, la suma de las facturas con <strong>más de 15 días de atraso</strong> (entre paréntesis, cuántos clientes están en Alto Riesgo o Crítico); y «Facturación Prom.» (variación del último mes).</li>
+    <li><strong>Tarjetas:</strong> «Cartera por Cobrar» (o «Cuentas por Pagar»), el total; «Total clientes» y cuántos están al día; <strong>«Cartera en Riesgo»</strong>, la suma de las facturas con <strong>1 día de atraso o más</strong> (entre paréntesis, cuántos clientes no están al día); y «Facturación Prom.» (variación del último mes).</li>
     <li><strong>«Saldo por antigüedad»:</strong> el saldo repartido en «Por vencer», «1 a 30 días», «31 a 60 días», «61 a 90 días» y «Más de 90 días» de atraso, cada uno con su porcentaje, y el «Total». Son los mismos tramos de Cuentas por Cobrar y por Pagar, así que las cifras se pueden comparar.</li>
     <li><strong>«Distribución de Riesgo»</strong> (la dona) y la leyenda <strong>«Niveles de Riesgo»</strong>: cuántos clientes hay en cada nivel, con su porcentaje y su saldo. Pulsar un nivel filtra la tabla; ${b('Restablecer')} o ${b('Ver todos')} quita el filtro.</li>
     <li><strong>«Balance Operativo»:</strong> tres cifras, «Por vencer» (facturas que aún no vencen), «En observación» (facturas con 1 a 15 días de atraso) y «Acción inmediata» (facturas con más de 15 días de atraso).</li>

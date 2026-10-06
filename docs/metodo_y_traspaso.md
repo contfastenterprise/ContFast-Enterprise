@@ -3643,6 +3643,17 @@ Además, fuera de la tabla:
   **Lo que no se pudo comprobar en el código**: que el total de la CxC sea exactamente «total menos
   retenciones» en todas las facturas antiguas (la CxC se crea con `totalNet`, que es total − retenciones, y
   el manual lo dice así); y la pantalla no se abrió en el navegador (exige la cuenta del dueño).
+- **Lote 306: «Cartera en Riesgo» cuenta desde el PRIMER día de atraso.** Decisión del dueño
+  (2026-10-05): *"la Cartera en Riesgo debe de ser a partir del 1 día de atraso"*. La tarjeta de
+  Antigüedad de Saldos sumaba solo riesgo alto y crítico (más de 15 días) y el paréntesis contaba solo esos
+  clientes. Ahora suma medio + alto + crítico de `saldoPorNivel` y cuenta todo cliente que no está al día;
+  el rótulo dice «Desde 1 día de atraso». **Sigue documento a documento** (lote 304): lo que aún no vence
+  de un cliente atrasado no entra. **No cambia**: los niveles de riesgo, sus colores, la dona ni el
+  «Balance Operativo», cuya «Acción inmediata» sigue siendo más de 15 días (es otra cifra). Manual 3.5
+  (la línea de la tarjeta), mirado en el PDF (página 17).
+  Banco `verificar_riesgo_desde_un_dia.ts` (la tarjeta dibujada y el manual): 8 comprobaciones y dos
+  invariantes (un cliente al día no suma ni cuenta, cierto antes y después), contraprueba **8 FALLA** contra
+  `git show HEAD:`, ocho mutantes y ocho muertos.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -4832,5 +4843,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 305 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 306 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
