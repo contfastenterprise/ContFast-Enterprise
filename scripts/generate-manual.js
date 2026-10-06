@@ -47,6 +47,7 @@
  * LOTE 306 (version 3.5): «Cartera en Riesgo» cuenta desde el primer dia de atraso.
  * LOTE 307 (version 3.6): «Accion inmediata» tambien, y «En observacion» se retira.
  * LOTE 308 (version 3.7): los tickets de Soporte van al equipo de soporte de ContFast.
+ * LOTE 309 (version 3.8): en el correo del ticket, el remitente dice quien lo envia.
  *
  * INDICE: los numeros de pagina se CALCULAN. Cada seccion empieza en pagina nueva, asi que
  * se dibuja cada una por separado con los mismos margenes, se cuentan sus paginas, y con eso
@@ -59,7 +60,7 @@ const path = require('path');
 
 const RAIZ = path.join(__dirname, '..');
 const FECHA = 'Octubre 2026';
-const VERSION = '3.7';
+const VERSION = '3.8';
 
 // El logo del sistema, el mismo de la pantalla de acceso (`public/Logo.svg`), incrustado en el
 // HTML: Chromium no tiene que salir a buscarlo. La portada es blanca, asi que va directo:
@@ -697,7 +698,7 @@ seccion('herramientas', 'Herramientas y soporte', `
   <p>Se abre desde el menú de su usuario (su nombre, arriba a la derecha) › ${b('Soporte')}. La pantalla tiene preguntas frecuentes y el formulario «Enviar Ticket de Soporte»:</p>
   ${pasos([
     `Elija la ${b('Categoría del Problema')} (Facturación e-CF, Módulo de Caja, Bancos y Cuentas o Configuración / Empresa), escriba el ${b('Asunto')} (una línea) y la ${b('Descripción del Problema')}.`,
-    `Pulse ${b('Enviar Mensaje')}. El ticket sale por correo <strong>al equipo de soporte de ContFast</strong> (contfastenterprise@gmail.com), con un número del tipo <strong>SOP-XXXXXX</strong>, su nombre y su correo. La respuesta le llega a su correo.`,
+    `Pulse ${b('Enviar Mensaje')}. El ticket sale por correo <strong>al equipo de soporte de ContFast</strong> (contfastenterprise@gmail.com), con un número del tipo <strong>SOP-XXXXXX</strong>, su nombre y su correo; en la bandeja de soporte, el remitente dice su nombre y su correo («… vía ContFast»). La respuesta le llega a su correo: el de su usuario, así que conviene que sea el suyo.`,
     `Si salió: «Ticket SOP-… enviado», y debajo del formulario queda «Último ticket enviado: SOP-…». Lo escrito se borra solo cuando el ticket salió; si falla, la pantalla dice el motivo y conserva lo escrito para reintentar.`,
   ])}
 `);

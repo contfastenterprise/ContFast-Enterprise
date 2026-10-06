@@ -3680,6 +3680,22 @@ Además, fuera de la tabla:
   la ruta; el manual): 11 comprobaciones, contraprueba **11 FALLA**, nueve mutantes y nueve muertos. En
   `verificar_soporte_por_correo.ts` (288) las comprobaciones del destino se **reescriben, no se borran**:
   «sin correo de empresa no sale» pasa a «sale igual, a soporte»; contra `HEAD` caen las siete tocadas.
+- **Lote 309: el correo del ticket de Soporte dice en el remitente QUIÉN lo envía.** Pedido del dueño
+  (2026-10-06): *"en usuario debe aparecer el correo del usuario, no de ContFast"*. **Medido antes**
+  (PRODUCCIÓN, solo lectura, `medir_soporte_309.ts`): el código ya ponía el correo del usuario en la fila
+  «Usuario»; el ticket de prueba `SOP-3HEUZP` lo mandó *Gerson González M*, cuya cuenta tiene el correo
+  **`contfastenterprise@gmail.com`**, y el «De» era «ContFast Soporte <contfastenterprise@gmail.com>» — el
+  mismo buzón que lo recibe. Preguntado, el dueño eligió que el remitente lleve al usuario.
+  `remitenteDelTicket` (`ticketDeSoporte.ts`, pura): nombre visible «<nombre> (<correo>) vía ContFast»,
+  **la dirección sigue siendo la del sistema** — Gmail no deja enviar como otra y un From ajeno sin firmar
+  acaba en spam (DMARC) —; va como objeto `{ name, address }` para que nodemailer codifique tildes. Comillas,
+  ángulos y saltos de línea fuera del nombre (inyección de cabeceras). Reply-To sin cambios. **Para el
+  dueño**: mientras su usuario tenga `contfastenterprise@gmail.com`, sus tickets dirán ese correo — es el
+  dato de la cuenta (Administración › Usuarios). Manual 3.8 (página 26).
+  Banco `verificar_remitente_del_ticket.ts` (envío ejecutado): 8 comprobaciones y dos invariantes (dirección
+  y Reply-To, ciertas antes), contraprueba **8 FALLA**, once mutantes y once muertos.
+  `verificar_soporte_por_correo` (288) miraba que el From no contuviera el correo del usuario: ahora mira que
+  la DIRECCIÓN sea la del sistema.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -4869,5 +4885,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 308 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 309 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

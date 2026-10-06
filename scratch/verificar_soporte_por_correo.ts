@@ -104,7 +104,9 @@ async function main() {
     const r = await S.enviarTicketDeSoporte(TICKET, SESION, bien.deps);
     const m = bien.mandados[0] ?? {};
     await intenta(E1[0], () => r.enviado === true && bien.mandados.length === 1 && m.to === SOPORTE && m.to !== CORREO_EMPRESA);
-    await intenta(E1[1], () => m.replyTo === 'ana@latindoors.test' && !String(m.from).includes('ana@'));
+    //  Lote 309: el NOMBRE del remitente lleva el correo del usuario a proposito; lo que no puede
+    //  ser suyo es la DIRECCION, que es la del sistema.
+    await intenta(E1[1], () => m.replyTo === 'ana@latindoors.test' && m.from?.address === 'no-reply@contfast.test');
     await intenta(E1[2], () => /^SOP-[A-HJ-NP-Z2-9]{6}$/.test(r.id)
       && m.text.includes(r.id) && m.text.includes('Latin Doors & Co') && m.text.includes('ana@latindoors.test')
       && m.text.includes('04-10-2026 21:30') && m.html.includes('04-10-2026 21:30') && m.text.includes('Facturación e-CF'));

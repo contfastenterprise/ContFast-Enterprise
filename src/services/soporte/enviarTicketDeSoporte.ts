@@ -32,12 +32,14 @@ import {
   CORREO_DE_SOPORTE,
   correoDelTicket,
   identificadorDeTicket,
+  remitenteDelTicket,
   type QuienEscribe,
   type TicketDeSoporte,
 } from '@/services/soporte/ticketDeSoporte';
 
 export interface MensajeSaliente {
-  from: string;
+  /** Nombre visible de quien escribe y direccion del sistema (lote 309). */
+  from: { name: string; address: string };
   to: string;
   replyTo?: string;
   subject: string;
@@ -52,6 +54,7 @@ export interface DependenciasDelTicket {
   registrar: (fila: FilaDeRegistro) => Promise<void>;
   /** Nombre y correo de quien escribe, y el nombre de su empresa. */
   quienEscribe: (userId: string, companyId: string) => Promise<QuienEscribe>;
+  /** El remitente del sistema; de el solo se toma la DIRECCION (lote 309). */
   remitente: () => string;
   ahora: () => Date;
   bytes: () => Uint8Array;
@@ -111,7 +114,7 @@ export async function enviarTicketDeSoporte(
   let mensajeAlUsuario = '';
   try {
     const info = await d.mandar({
-      from: d.remitente(),
+      from: remitenteDelTicket(quien, d.remitente()),
       to: destino,
       ...(correo.replyTo ? { replyTo: correo.replyTo } : {}),
       subject: correo.subject,
