@@ -3654,6 +3654,19 @@ Además, fuera de la tabla:
   Banco `verificar_riesgo_desde_un_dia.ts` (la tarjeta dibujada y el manual): 8 comprobaciones y dos
   invariantes (un cliente al día no suma ni cuenta, cierto antes y después), contraprueba **8 FALLA** contra
   `git show HEAD:`, ocho mutantes y ocho muertos.
+- **Lote 307: «Acción inmediata» también empieza en el primer día de atraso, y «En observación» se
+  retira.** Decisión del dueño (2026-10-05), tras el 306. «Acción inmediata» del «Balance Operativo» suma
+  ahora medio + alto + crítico («Facturas con 1 día de atraso o más»). «En observación» (1 a 15 días)
+  quedaba entera dentro de ella; preguntado, el dueño eligió **quitarla**: el bloque son dos cifras, «Por
+  vencer» y «Acción inmediata», que suman el total. **No cambia** el COLOR del texto del atraso
+  (`clasesDeAtraso`: ámbar de 1 a 15, rojo desde 16) ni los niveles de riesgo; solo se corrige el
+  comentario que lo explicaba con el nombre de la cifra. Manual 3.6, mirado en el PDF (página 17).
+  Banco `verificar_accion_inmediata_desde_un_dia.ts` (el bloque del Balance Operativo acotado, porque la
+  pantalla pide sus datos por red y no se dibuja sin DOM de pruebas; y el manual): 10 comprobaciones y un
+  invariante («Por vencer» sigue siendo el nivel bajo), contraprueba **10 FALLA** contra `git show HEAD:`
+  — «saldoDe('medio') sale una sola vez» era cierta antes (en «En observación») y se ató a la suma de
+  «Acción inmediata» —, nueve mutantes y nueve muertos. `verificar_riesgo_desde_un_dia` (306) exigía la
+  versión 3.5 exacta; ahora «3.5 o posterior».
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -4843,5 +4856,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 306 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 307 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*

@@ -88,7 +88,9 @@ async function main() {
     const linea = (m.match(/<strong>«Cartera en Riesgo»<\/strong>[^\n]*/) ?? [''])[0];
     ok('el manual dice que la cartera en riesgo suma desde 1 dia de atraso', /1 día de atraso o más/.test(linea), linea.slice(0, 160));
     ok('y ya no dice "más de 15 días" en esa linea', /1 día de atraso o más/.test(linea) && !/más de 15 días/.test(linea));
-    ok('la version del manual sube a 3.5', /const VERSION = '3\.5';/.test(m));
+    // Lote 307: la version sigue subiendo; lo que vigila este banco es que no baje de la 3.5.
+    const ver = Number((m.match(/const VERSION = '(\d+\.\d+)';/) ?? [])[1]);
+    ok('la version del manual es la 3.5 o posterior', ver >= 3.5, ver);
   }
 
   console.log(`\n${fallos === 0 ? 'TODO CORRECTO' : `${fallos} FALLA(S)`} — ${oks} OK\n`);

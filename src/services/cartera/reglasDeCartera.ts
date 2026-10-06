@@ -168,8 +168,9 @@ export function sumarPorNivel(lista: readonly { saldoPorNivel: SaldoPorNivel }[]
 }
 
 /**
- * Las clases del texto de atraso. ROJO solo para lo que la pantalla llama "accion inmediata" (alto y
- * critico, mas de 15 dias); un atraso de 1 a 15 dias es riesgo MEDIO y va en ambar, como su icono.
+ * Las clases del texto de atraso. ROJO solo para lo que lleva mas de 15 dias (alto y critico); un
+ * atraso de 1 a 15 dias es riesgo MEDIO y va en ambar, como su icono. (Desde el lote 307 la cifra
+ * "Accion inmediata" de la pantalla empieza en 1 dia; el color del texto no cambio.)
  * Antes todo atraso salia en rojo, y una factura vencida hace dos dias se leia como la de 90.
  */
 export function clasesDeAtraso(diasAtraso: number): string {
