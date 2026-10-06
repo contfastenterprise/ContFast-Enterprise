@@ -13,12 +13,13 @@ export function TarjetasResumen({ filas, tipo }: { filas: FilaCartera[]; tipo: T
   const cupoTotal = filas.reduce((a, f) => a + (f.cupoCredito ?? 0), 0);
   const hayCupo = filas.some((f) => f.cupoCredito !== null);
 
-  const enRiesgo = filas.filter((f) => f.nivelRiesgo === 'alto' || f.nivelRiesgo === 'critico');
-  // Lote 304: lo que lleva MAS DE 15 DIAS de atraso, documento a documento. Antes se sumaba el
-  // saldo ENTERO de cada cliente en riesgo alto o critico, incluidas sus facturas aun por vencer:
-  // la tarjeta dice "mas de 15 dias de atraso" y metia dinero que no estaba atrasado ni un dia.
+  // Lote 306 (decision del dueño, 2026-10-05): la cartera en riesgo empieza en el PRIMER dia de
+  // atraso, no a los 16. Entra todo lo que no es "bajo" (al dia): medio (1-15), alto y critico.
+  // Lo que cambia es el umbral; la forma de sumar sigue siendo la del lote 304, documento a
+  // documento: las facturas aun por vencer de un cliente atrasado no entran.
+  const enRiesgo = filas.filter((f) => f.nivelRiesgo !== 'bajo');
   const porNivel = sumarPorNivel(filas);
-  const saldoEnRiesgo = porNivel.alto + porNivel.critico;
+  const saldoEnRiesgo = porNivel.medio + porNivel.alto + porNivel.critico;
   const alDia = filas.filter((f) => f.nivelRiesgo === 'bajo');
 
   // LA MEDIA SOLO DE LOS QUE TIENEN VARIACION.
@@ -86,7 +87,7 @@ export function TarjetasResumen({ filas, tipo }: { filas: FilaCartera[]; tipo: T
           </span>
           <span className="text-xs font-semibold text-rose-600">({enRiesgo.length})</span>
         </div>
-        <div className="mt-1 text-[11px] text-neutral-500">Más de 15 días de atraso</div>
+        <div className="mt-1 text-[11px] text-neutral-500">Desde 1 día de atraso</div>
       </div>
 
       <div className="bg-white p-4 rounded-xl border border-neutral-200/90 shadow-xs">
