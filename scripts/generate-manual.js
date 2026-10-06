@@ -45,6 +45,7 @@
  * deuda, el vencimiento pactado, los tramos, los niveles y sus colores, dona contra tarjetas,
  * la tabla y el CSV), y la nota de que una factura rechazada deja de contar como deuda.
  * LOTE 306 (version 3.5): «Cartera en Riesgo» cuenta desde el primer dia de atraso.
+ * LOTE 307 (version 3.6): «Accion inmediata» tambien, y «En observacion» se retira.
  *
  * INDICE: los numeros de pagina se CALCULAN. Cada seccion empieza en pagina nueva, asi que
  * se dibuja cada una por separado con los mismos margenes, se cuentan sus paginas, y con eso
@@ -57,7 +58,7 @@ const path = require('path');
 
 const RAIZ = path.join(__dirname, '..');
 const FECHA = 'Octubre 2026';
-const VERSION = '3.5';
+const VERSION = '3.6';
 
 // El logo del sistema, el mismo de la pantalla de acceso (`public/Logo.svg`), incrustado en el
 // HTML: Chromium no tiene que salir a buscarlo. La portada es blanca, asi que va directo:
@@ -497,7 +498,7 @@ seccion('cobros', 'Cobros y cuentas por cobrar', `
     <li><strong>Tarjetas:</strong> «Cartera por Cobrar» (o «Cuentas por Pagar»), el total; «Total clientes» y cuántos están al día; <strong>«Cartera en Riesgo»</strong>, la suma de las facturas con <strong>1 día de atraso o más</strong> (entre paréntesis, cuántos clientes no están al día); y «Facturación Prom.» (variación del último mes).</li>
     <li><strong>«Saldo por antigüedad»:</strong> el saldo repartido en «Por vencer», «1 a 30 días», «31 a 60 días», «61 a 90 días» y «Más de 90 días» de atraso, cada uno con su porcentaje, y el «Total». Son los mismos tramos de Cuentas por Cobrar y por Pagar, así que las cifras se pueden comparar.</li>
     <li><strong>«Distribución de Riesgo»</strong> (la dona) y la leyenda <strong>«Niveles de Riesgo»</strong>: cuántos clientes hay en cada nivel, con su porcentaje y su saldo. Pulsar un nivel filtra la tabla; ${b('Restablecer')} o ${b('Ver todos')} quita el filtro.</li>
-    <li><strong>«Balance Operativo»:</strong> tres cifras, «Por vencer» (facturas que aún no vencen), «En observación» (facturas con 1 a 15 días de atraso) y «Acción inmediata» (facturas con más de 15 días de atraso).</li>
+    <li><strong>«Balance Operativo»:</strong> dos cifras, «Por vencer» (facturas que aún no vencen) y «Acción inmediata» (facturas con 1 día de atraso o más). Entre las dos suman el total.</li>
   </ul>
   ${tabla(['Nivel', 'Días de atraso', 'Color'], [
     ['Bajo Riesgo — «Al día / Solvente»', 'Ninguno: todo dentro de su plazo', 'Verde'],
@@ -505,7 +506,7 @@ seccion('cobros', 'Cobros y cuentas por cobrar', `
     ['Alto Riesgo — «Atraso de 16 a 45 días»', '16 a 45', 'Naranja (el texto del atraso, en rojo)'],
     ['Crítico — «Atraso de más de 45 días»', 'Más de 45', 'Rojo'],
   ])}
-  <p><strong>Dos formas de sumar, a propósito.</strong> La dona y la leyenda clasifican <strong>clientes</strong>: el nivel de un cliente lo marca su factura <strong>más atrasada</strong> que siga con saldo, y su saldo entero va a ese nivel. «Cartera en Riesgo» y el «Balance Operativo» suman <strong>factura por factura</strong>: un cliente con una factura de 10 días de atraso y otras cuatro por vencer está en Riesgo Medio, pero en «En observación» solo cuenta esa factura.</p>
+  <p><strong>Dos formas de sumar, a propósito.</strong> La dona y la leyenda clasifican <strong>clientes</strong>: el nivel de un cliente lo marca su factura <strong>más atrasada</strong> que siga con saldo, y su saldo entero va a ese nivel. «Cartera en Riesgo» y el «Balance Operativo» suman <strong>factura por factura</strong>: un cliente con una factura de 10 días de atraso y otras cuatro por vencer está en Riesgo Medio, pero en «Acción inmediata» solo cuenta esa factura.</p>
   <h4 class="mini">La tabla y el estado de cuenta</h4>
   <ul>
     <li>Una fila por cliente o suplidor: nombre y cuántas facturas tiene sin saldar, RNC/cédula, teléfono, correo, la facturación de los últimos meses, el «Saldo Pendiente» y su icono de riesgo con los días de atraso. Bajo el saldo, la línea <strong>«Vencido»</strong> dice cuánto está vencido. El atraso sale en <strong>ámbar de 1 a 15 días</strong> y en <strong>rojo desde 16 días</strong>. Se busca por nombre, RNC/cédula, teléfono o correo, y se ordena pulsando «Nombre», «Saldo Pendiente» o «Riesgo».</li>

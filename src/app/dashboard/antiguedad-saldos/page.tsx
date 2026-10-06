@@ -159,7 +159,10 @@ export default function CarteraPage() {
   }, [filas]);
 
   const saldoTotal = useMemo(() => filas.reduce((a, f) => a + f.saldo, 0), [filas]);
-  // Lote 304: las tres cifras del "Balance Operativo" son de DOCUMENTOS, no de clientes. Antes
+  // Lote 307 (decision del dueño, 2026-10-05): "Accion inmediata" empieza en el PRIMER dia de atraso,
+  // como "Cartera en Riesgo" desde el 306, y "En observacion" (1 a 15 dias) se retira: quedaba
+  // entera dentro de "Accion inmediata" y las cifras ya no habrian sumado el total.
+  // Lote 304: las cifras del "Balance Operativo" son de DOCUMENTOS, no de clientes. Antes
   // `saldoDe` sumaba el saldo ENTERO de cada cliente bajo su nivel: un cliente con una factura de
   // 10 dias de atraso y cuatro por vencer ponia las cinco en "Atraso <= 15 dias".
   const porNivel = useMemo(() => sumarPorNivel(filas), [filas]);
@@ -333,23 +336,18 @@ export default function CarteraPage() {
                     {AVISO_CREDITO}
                   </p>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-3">
+                  <div className="grid grid-cols-2 gap-2.5 mb-3">
                     <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl">
                       <span className="text-[11px] text-emerald-800 font-semibold block">Por vencer</span>
                       <span className="text-base font-bold text-emerald-950 tabular-nums">{dineroCorto(saldoDe('bajo'))}</span>
                       <span className="text-[10px] text-emerald-700 block mt-0.5">Facturas que aún no vencen</span>
                     </div>
-                    <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl">
-                      <span className="text-[11px] text-amber-800 font-semibold block">En observación</span>
-                      <span className="text-base font-bold text-amber-950 tabular-nums">{dineroCorto(saldoDe('medio'))}</span>
-                      <span className="text-[10px] text-amber-700 block mt-0.5">Facturas con 1 a 15 días de atraso</span>
-                    </div>
-                    <div className="p-3 bg-rose-50/70 border border-rose-200/80 rounded-xl col-span-2 sm:col-span-1">
+                    <div className="p-3 bg-rose-50/70 border border-rose-200/80 rounded-xl">
                       <span className="text-[11px] text-rose-800 font-semibold block">Acción inmediata</span>
                       <span className="text-base font-bold text-rose-950 tabular-nums">
-                        {dineroCorto(saldoDe('alto') + saldoDe('critico'))}
+                        {dineroCorto(saldoDe('medio') + saldoDe('alto') + saldoDe('critico'))}
                       </span>
-                      <span className="text-[10px] text-rose-700 block mt-0.5">Facturas con más de 15 días de atraso</span>
+                      <span className="text-[10px] text-rose-700 block mt-0.5">Facturas con 1 día de atraso o más</span>
                     </div>
                   </div>
                 </div>
