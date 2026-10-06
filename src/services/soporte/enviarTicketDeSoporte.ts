@@ -10,14 +10,14 @@
  * con otro mecanismo. Un correo tarda un segundo; el usuario espera con el boton en
  * "Enviando".
  *
- * EL DESTINO ES EL CORREO DE LA EMPRESA de la sesion (`companies.email`, el de
- * Configuracion > Empresa). Sin el, no se intenta nada y se dice.
+ * EL DESTINO ES EL BUZON DE SOPORTE DE CONTFAST (`CORREO_DE_SOPORTE`, lote 308). Hasta
+ * el 308 era el correo de la empresa de la sesion, y sin el no se intentaba nada.
  *
  * EL MISMO TRANSPORTE QUE TODO LO DEMAS: `getTransporter`/`getFromEmail` de
  * `utils/mailer.ts`, los que usan las facturas (`sendEmailJob`) y los avisos. Y el MISMO
  * REGISTRO: `system_email_logs` con la fila que decide `filaDeRegistro` (lote 157), con
  * contexto `soporte` y el identificador del ticket como referencia. Se registra salga o
- * falle; sin correo de empresa no se intenta nada y no hay nada que registrar.
+ * falle.
  *
  * Las dependencias se inyectan para que el banco lo ejecute sin SMTP ni base: por defecto
  * se importan al usarse, asi que este modulo no arrastra `@/db` al cargarse (la leccion
@@ -29,10 +29,9 @@ import { getTransporter, getFromEmail } from '@/utils/mailer';
 import { motivoDelError, motivoParaLaPantalla } from '@/utils/motivoDelError';
 import { CONTEXTOS_CORREO, filaDeRegistro, type FilaDeRegistro } from '@/services/correo/registroCorreo';
 import {
+  CORREO_DE_SOPORTE,
   correoDelTicket,
-  destinoDeSoporte,
   identificadorDeTicket,
-  MENSAJE_SIN_CORREO,
   type QuienEscribe,
   type TicketDeSoporte,
 } from '@/services/soporte/ticketDeSoporte';
@@ -51,7 +50,7 @@ export interface DependenciasDelTicket {
   mandar: (m: MensajeSaliente) => Promise<{ messageId?: string }>;
   /** Escribe la fila en `system_email_logs`. */
   registrar: (fila: FilaDeRegistro) => Promise<void>;
-  /** Nombre y correo de quien escribe, y el nombre y el correo de su empresa. */
+  /** Nombre y correo de quien escribe, y el nombre de su empresa. */
   quienEscribe: (userId: string, companyId: string) => Promise<QuienEscribe>;
   remitente: () => string;
   ahora: () => Date;
@@ -66,7 +65,7 @@ export interface SesionDelTicket {
 
 export type ResultadoDelTicket =
   | { enviado: true; id: string }
-  | { enviado: false; codigo: 'SIN_CORREO_DE_EMPRESA' | 'ERROR_DE_ENVIO'; mensaje: string; id?: string };
+  | { enviado: false; codigo: 'ERROR_DE_ENVIO'; mensaje: string; id?: string };
 
 const porDefecto: DependenciasDelTicket = {
   mandar: async (m) => {
@@ -83,9 +82,9 @@ const porDefecto: DependenciasDelTicket = {
     const [{ db, users, companies }, { eq }] = await Promise.all([import('@/db'), import('drizzle-orm')]);
     const [[u], [c]] = await Promise.all([
       db.select({ nombre: users.name, correo: users.email }).from(users).where(eq(users.id, userId)).limit(1),
-      db.select({ empresa: companies.name, correoEmpresa: companies.email }).from(companies).where(eq(companies.id, companyId)).limit(1),
+      db.select({ empresa: companies.name }).from(companies).where(eq(companies.id, companyId)).limit(1),
     ]);
-    return { nombre: u?.nombre ?? '', correo: u?.correo ?? '', empresa: c?.empresa ?? '', correoEmpresa: c?.correoEmpresa ?? null };
+    return { nombre: u?.nombre ?? '', correo: u?.correo ?? '', empresa: c?.empresa ?? '' };
   },
   remitente: () => getFromEmail('ContFast Soporte'),
   ahora: () => new Date(),
@@ -101,12 +100,7 @@ export async function enviarTicketDeSoporte(
 
   const quien = await d.quienEscribe(sesion.userId, sesion.companyId);
 
-  //  SIN DESTINO NO SE FINGE NADA: ni se intenta mandar ni se dice "creado".
-  const destino = destinoDeSoporte(quien.correoEmpresa);
-  if (!destino) {
-    console.warn('[soporte] no se manda el ticket: la empresa no tiene un correo válido', { companyId: sesion.companyId });
-    return { enviado: false, codigo: 'SIN_CORREO_DE_EMPRESA', mensaje: MENSAJE_SIN_CORREO };
-  }
+  const destino = CORREO_DE_SOPORTE;
 
   const id = identificadorDeTicket(d.bytes());
   const correo = correoDelTicket(ticket, id, quien, d.ahora());

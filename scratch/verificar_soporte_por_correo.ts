@@ -8,6 +8,10 @@
  * (lote 157). Primero el destino era una variable de entorno, `SOPORTE_CORREO`; el dueño
  * lo cambio el mismo dia al correo de la empresa.
  *
+ * LOTE 308: el destino pasa al buzon de soporte de ContFast (`CORREO_DE_SOPORTE`,
+ * contfastenterprise@gmail.com). Las comprobaciones del destino se REESCRIBEN, no se borran:
+ * las que decian "sin correo de empresa no sale" dicen ahora que sale igual, a soporte.
+ *
  * Lo que se EJECUTA, sin mandar un solo correo de verdad ni tocar ninguna base:
  *  · `enviarTicketDeSoporte` con el transporte, el registro y los datos del usuario
  *    SUSTITUIDOS (son dependencias inyectadas);
@@ -36,7 +40,8 @@ type AnyRec = Record<string, any>; // eslint-disable-line @typescript-eslint/no-
 
 const RUTA_API = 'src/app/api/v1/support/tickets/route.ts';
 const PAGINA = 'src/app/dashboard/support/page.tsx';
-const SOPORTE = 'ventas@latindoors.test'; // el correo de Configuracion > Empresa
+const SOPORTE = 'contfastenterprise@gmail.com'; // el buzon de soporte de ContFast (lote 308)
+const CORREO_EMPRESA = 'ventas@latindoors.test'; // el de Configuracion > Empresa: ya NO es el destino
 
 const TICKET = {
   subject: 'No sale la <b>factura</b>',
@@ -54,9 +59,10 @@ function falsas(opc: { correoEmpresa?: string | null; smtpFalla?: Error; registr
   const deps = {
     mandar: async (m: AnyRec) => { mandados.push(m); if (opc.smtpFalla) throw opc.smtpFalla; return { messageId: '<abc@smtp>' }; },
     registrar: async (f: AnyRec) => { registrados.push(f); if (opc.registroFalla) throw new Error('la base no contesta'); },
-    //  El correo de la empresa con espacios alrededor: sale LIMPIO, como lo deja la regla del lote 201.
+    //  Lote 308: aunque quien escribe traiga el correo de su empresa (como hasta el 288), el
+    //  destino no lo mira. Se sigue pasando para que un mutante que vuelva a usarlo se vea.
     quienEscribe: async () => ({ nombre: 'Ana <Pérez>', correo: 'ana@latindoors.test', empresa: 'Latin Doors & Co',
-      correoEmpresa: opc.correoEmpresa === undefined ? `  ${SOPORTE} ` : opc.correoEmpresa }),
+      correoEmpresa: opc.correoEmpresa === undefined ? CORREO_EMPRESA : opc.correoEmpresa }),
     remitente: () => '"ContFast Soporte" <no-reply@contfast.test>',
     ahora: () => AHORA,
     bytes: () => new Uint8Array([0, 1, 2, 3, 4, 31]),
@@ -80,13 +86,13 @@ async function main() {
   // ───────────────────────────────────────────────────────────────────────────
   console.log('\n1) El envio (ejecutado, con el transporte sustituido)\n');
   const E1 = [
-    'el destino es el correo de la EMPRESA (limpio), y el correo sale UNA vez',
+    'el destino es el buzon de soporte de ContFast (no el de la empresa), y el correo sale UNA vez',
     'el Reply-To es el correo del usuario (no el remitente del sistema)',
     'el correo lleva el identificador, la empresa, el usuario y la fecha en hora de RD',
     'lo que escribe el usuario va ESCAPADO en el HTML (ni <img> ni <b> vivos)',
     'el asunto lleva el identificador y la empresa',
-    'empresa SIN correo: error que dice donde ponerlo, y NI se manda NI se registra',
-    'con el correo de la empresa mal escrito, igual: no se manda nada',
+    'empresa SIN correo: el ticket sale igual, a soporte, y queda registrado',
+    'con el correo de la empresa mal escrito, igual: sale a soporte',
     'el correo enviado queda REGISTRADO: contexto soporte, referencia el ticket, enviado, con modo y usuario',
     'SMTP caido: dice que NO salio, con el motivo, y no da el ticket por enviado',
     '  y el fallo tambien queda registrado, sin fecha de envio',
@@ -97,7 +103,7 @@ async function main() {
     const bien = falsas();
     const r = await S.enviarTicketDeSoporte(TICKET, SESION, bien.deps);
     const m = bien.mandados[0] ?? {};
-    await intenta(E1[0], () => r.enviado === true && bien.mandados.length === 1 && m.to === SOPORTE);
+    await intenta(E1[0], () => r.enviado === true && bien.mandados.length === 1 && m.to === SOPORTE && m.to !== CORREO_EMPRESA);
     await intenta(E1[1], () => m.replyTo === 'ana@latindoors.test' && !String(m.from).includes('ana@'));
     await intenta(E1[2], () => /^SOP-[A-HJ-NP-Z2-9]{6}$/.test(r.id)
       && m.text.includes(r.id) && m.text.includes('Latin Doors & Co') && m.text.includes('ana@latindoors.test')
@@ -109,9 +115,8 @@ async function main() {
 
     const sinVar = falsas({ correoEmpresa: null });
     const r2 = await S.enviarTicketDeSoporte(TICKET, SESION, sinVar.deps);
-    await intenta(E1[5], () => r2.enviado === false && r2.codigo === 'SIN_CORREO_DE_EMPRESA'
-      && r2.mensaje === 'Tu empresa no tiene un correo configurado en Configuración > Empresa.'
-      && sinVar.mandados.length === 0 && sinVar.registrados.length === 0);
+    await intenta(E1[5], () => r2.enviado === true && sinVar.mandados.length === 1
+      && sinVar.mandados[0].to === SOPORTE && sinVar.registrados.length === 1);
     //  Cuatro formas de "mal escrito" que la regla del lote 201 rechaza.
     const malos = ['ventas arroba latindoors', 'ventas@latindoors', 'a@b.com c@d.com', '   '];
     let mandadosMalos = 0;
@@ -119,10 +124,11 @@ async function main() {
     for (const correoEmpresa of malos) {
       const mala = falsas({ correoEmpresa });
       const r3 = await S.enviarTicketDeSoporte(TICKET, SESION, mala.deps);
-      mandadosMalos += mala.mandados.length;
-      todosRechazados = todosRechazados && r3.enviado === false && r3.codigo === 'SIN_CORREO_DE_EMPRESA';
+      mandadosMalos += mala.mandados.filter((x) => x.to === SOPORTE).length;
+      todosRechazados = todosRechazados && r3.enviado === true;
     }
-    await intenta(E1[6], () => todosRechazados && mandadosMalos === 0);
+    //  (`todosRechazados` conserva el nombre de antes: ahora significa "todos salieron".)
+    await intenta(E1[6], () => todosRechazados && mandadosMalos === malos.length);
 
     const f = bien.registrados[0] ?? {};
     await intenta(E1[7], () => bien.registrados.length === 1 && f.context === 'soporte' && f.referenceId === r.id
@@ -175,19 +181,19 @@ async function main() {
   ok('empresa, usuario y modo salen de la SESION (nunca del cuerpo)',
     /enviarTicketDeSoporte\(valido\.ticket, \{\s*userId: session\.userId,\s*companyId: session\.companyId,\s*modo: session\.modo,/.test(ruta)
     && !/(body|cuerpo|valido\.ticket)\.(companyId|userId)/.test(ruta));
-  ok('solo un ticket enviado da 201; sin correo de empresa 409, el SMTP 502',
+  ok('solo un ticket enviado da 201; un fallo del SMTP 502, y ya no hay 409 por falta de correo de empresa',
     /if \(r\.enviado\) \{\s*return NextResponse\.json\(\{ success: true, data: \{ id: r\.id \} \}, \{ status: 201 \}\);/.test(ruta)
-    && /status: r\.codigo === 'SIN_CORREO_DE_EMPRESA' \? 409 : 502/.test(ruta));
+    && /\{ status: 502 \}/.test(ruta) && !/SIN_CORREO_DE_EMPRESA|409/.test(ruta));
   ok('va en ABIERTAS_A_PROPOSITO (sin permiso de modulo a proposito), no en PENDIENTES',
     /^\s*'v1\/support\/tickets\/route\.ts': '[^']+',/m.test(permisos.slice(permisos.indexOf('ABIERTAS_A_PROPOSITO')))
     && !/new Set\(\[[\s\S]*'v1\/support\/tickets\/route\.ts'[\s\S]*\]\)/.test(permisos.slice(0, permisos.indexOf('ABIERTAS_A_PROPOSITO'))));
   const envio = leer('src/services/soporte/enviarTicketDeSoporte.ts');
   const reglas = leer('src/services/soporte/ticketDeSoporte.ts');
-  ok('el destino es companies.email de la empresa de la SESION, leido al enviar',
-    /db\.select\(\{ empresa: companies\.name, correoEmpresa: companies\.email \}\)\.from\(companies\)\.where\(eq\(companies\.id, companyId\)\)/.test(envio)
-    && /const destino = destinoDeSoporte\(quien\.correoEmpresa\);/.test(envio));
-  ok('  con la MISMA regla que Configuracion usa para ese campo (correoDeLaEmpresaParaAvisos, lote 201)',
-    /return correoDeLaEmpresaParaAvisos\(correoDeLaEmpresa\);/.test(reglas));
+  ok('el destino es CORREO_DE_SOPORTE = contfastenterprise@gmail.com (lote 308)',
+    /export const CORREO_DE_SOPORTE = 'contfastenterprise@gmail\.com';/.test(reglas)
+    && /const destino = CORREO_DE_SOPORTE;/.test(envio));
+  ok('  y ya no se lee companies.email para el ticket',
+    /const destino = CORREO_DE_SOPORTE;/.test(envio) && !/companies\.email/.test(envio) && !/correoEmpresa/.test(envio + reglas));
   ok('  y ninguna variable de entorno decide el destino (SOPORTE_CORREO, descartada)',
     reglas !== '' && !/env\.SOPORTE_CORREO|env\[['"]SOPORTE_CORREO/.test(reglas + envio + ruta));
 

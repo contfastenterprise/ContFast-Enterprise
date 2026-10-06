@@ -6,8 +6,8 @@ import { enviarTicketDeSoporte } from '@/services/soporte/enviarTicketDeSoporte'
 import { motivoDelError } from '@/utils/motivoDelError';
 
 /**
- * Lote 288: el ticket de la pantalla de Soporte sale por correo al correo de la empresa
- * de la sesion (Configuracion > Empresa).
+ * Lote 288: el ticket de la pantalla de Soporte sale por correo. Desde el lote 308, al
+ * buzon de soporte de ContFast (`CORREO_DE_SOPORTE`), no al correo de la empresa.
  *
  * SIN PERMISO DE MODULO, A PROPOSITO (va en `ABIERTAS_A_PROPOSITO` de
  * `permisosRutas.vitest.ts`): pedir ayuda lo puede cualquier usuario autenticado,
@@ -15,9 +15,8 @@ import { motivoDelError } from '@/utils/motivoDelError';
  * y el usuario salen de la SESION, nunca del cuerpo: quien escribe no elige en nombre de
  * quien escribe.
  *
- * Responde "enviado" SOLO si el SMTP acepto el correo. Sin correo de empresa, 409 con el
- * motivo (es la configuracion de la empresa, no un fallo del servidor); con el SMTP caido,
- * 502. Nunca un "creado" que no salio.
+ * Responde "enviado" SOLO si el SMTP acepto el correo; con el SMTP caido, 502. Nunca un
+ * "creado" que no salio.
  */
 export const maxDuration = 30;
 
@@ -54,7 +53,7 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json(
       { success: false, error: { code: r.codigo, message: r.mensaje } },
-      { status: r.codigo === 'SIN_CORREO_DE_EMPRESA' ? 409 : 502 },
+      { status: 502 },
     );
   } catch (error: unknown) {
     console.error('[soporte] error al recibir el ticket:', motivoDelError(error));

@@ -46,6 +46,7 @@
  * la tabla y el CSV), y la nota de que una factura rechazada deja de contar como deuda.
  * LOTE 306 (version 3.5): «Cartera en Riesgo» cuenta desde el primer dia de atraso.
  * LOTE 307 (version 3.6): «Accion inmediata» tambien, y «En observacion» se retira.
+ * LOTE 308 (version 3.7): los tickets de Soporte van al equipo de soporte de ContFast.
  *
  * INDICE: los numeros de pagina se CALCULAN. Cada seccion empieza en pagina nueva, asi que
  * se dibuja cada una por separado con los mismos margenes, se cuentan sus paginas, y con eso
@@ -58,7 +59,7 @@ const path = require('path');
 
 const RAIZ = path.join(__dirname, '..');
 const FECHA = 'Octubre 2026';
-const VERSION = '3.6';
+const VERSION = '3.7';
 
 // El logo del sistema, el mismo de la pantalla de acceso (`public/Logo.svg`), incrustado en el
 // HTML: Chromium no tiene que salir a buscarlo. La portada es blanca, asi que va directo:
@@ -696,10 +697,9 @@ seccion('herramientas', 'Herramientas y soporte', `
   <p>Se abre desde el menú de su usuario (su nombre, arriba a la derecha) › ${b('Soporte')}. La pantalla tiene preguntas frecuentes y el formulario «Enviar Ticket de Soporte»:</p>
   ${pasos([
     `Elija la ${b('Categoría del Problema')} (Facturación e-CF, Módulo de Caja, Bancos y Cuentas o Configuración / Empresa), escriba el ${b('Asunto')} (una línea) y la ${b('Descripción del Problema')}.`,
-    `Pulse ${b('Enviar Mensaje')}. El ticket sale por correo <strong>al correo de la empresa</strong>, el que está en ${ruta('Sistema', 'Configuración')} › ${b('Configuración Empresa')}, con un número del tipo <strong>SOP-XXXXXX</strong>, su nombre y su correo. La respuesta le llega a su correo.`,
+    `Pulse ${b('Enviar Mensaje')}. El ticket sale por correo <strong>al equipo de soporte de ContFast</strong> (contfastenterprise@gmail.com), con un número del tipo <strong>SOP-XXXXXX</strong>, su nombre y su correo. La respuesta le llega a su correo.`,
     `Si salió: «Ticket SOP-… enviado», y debajo del formulario queda «Último ticket enviado: SOP-…». Lo escrito se borra solo cuando el ticket salió; si falla, la pantalla dice el motivo y conserva lo escrito para reintentar.`,
   ])}
-  ${nota('Si la empresa no tiene un correo configurado, el ticket no sale y la pantalla lo dice: «Tu empresa no tiene un correo configurado en Configuración &gt; Empresa.»', 'warn')}
 `);
 
 seccion('configuracion', 'Configuración y administración', `
@@ -707,7 +707,7 @@ seccion('configuracion', 'Configuración y administración', `
   <p>Pestañas: ${b('Mi Perfil')} (su foto y sus datos), ${b('Configuración Empresa')}, ${b('Tienda')}, ${b('Cuentas Puente')}, ${b('Plan & Suscripción')} y ${b('Tipos de Gastos')}. Todas menos Mi Perfil son de Administración.</p>
   <h4 class="mini">Configuración Empresa</h4>
   <ul>
-    <li><strong>Identidad Fiscal:</strong> nombre comercial, RNC, dirección, teléfono, correo y logo (sale en facturas y reportes). Una vez guardados, el nombre y el RNC no se cambian desde aquí: consulte con el administrador del sistema. <strong>El correo de la empresa</strong> es también al que llegan los tickets de Soporte.</li>
+    <li><strong>Identidad Fiscal:</strong> nombre comercial, RNC, dirección, teléfono, correo y logo (sale en facturas y reportes). Una vez guardados, el nombre y el RNC no se cambian desde aquí: consulte con el administrador del sistema.</li>
     <li><strong>Avisos del sistema:</strong> el correo de destino de los avisos, o la casilla ${b('Usar el correo de la empresa')}. Vacío = sin avisos por correo.</li>
     <li><strong>Integración mSeller API:</strong> la conexión con la facturación electrónica. Aquí solo se consulta; para cualquier cambio, consulte con el administrador del sistema.</li>
     <li><strong>Parámetros Operativos:</strong> formato de impresión predeterminado (Carta, Ticket 80 mm o 58 mm) y copias, conduces automáticos, límites y códigos de barra (tipo, prefijo y longitud). Se ve también el ${b('Modo del sistema')} (Pruebas o Producción), que no cambia el usuario.</li>

@@ -10,6 +10,10 @@
  * (el campo de Configuracion > Empresa, `companies.email`). Primero se penso en una variable
  * de entorno (`SOPORTE_CORREO`); el dueño la descarto el mismo dia: el buzon es de cada
  * empresa y lo cambia ella misma, sin tocar Vercel.
+ * LOTE 308 (decision del dueño, 2026-10-05): el ticket va al buzon de soporte de ContFast,
+ * `contfastenterprise@gmail.com`, y no al de la empresa. Pedir ayuda es pedirsela a quien
+ * mantiene el sistema; mandarlo al correo de la propia empresa era escribirse a si misma.
+ * Ya no depende de que la empresa tenga su correo puesto.
  *
  * ESTE FICHERO ES PURO: ni base de datos ni SMTP, para que el banco lo ejecute. Quien lo
  * manda de verdad es `enviarTicketDeSoporte.ts`.
@@ -27,7 +31,7 @@
  */
 import { z } from 'zod';
 import { DESFASE_RD_MS } from '@/utils/fechasLocales';
-import { correoValido, correoDeLaEmpresaParaAvisos } from '@/services/avisos/avisoPorCorreo';
+import { correoValido } from '@/services/avisos/avisoPorCorreo';
 
 /** Las categorias que ofrece la pantalla, con el texto que se lee en el correo. */
 export const CATEGORIAS_DE_SOPORTE = {
@@ -80,19 +84,12 @@ export function escaparHtml(texto: string): string {
     .replace(/'/g, '&#39;');
 }
 
-/** Lo que se contesta cuando la empresa no tiene a donde recibir el ticket. */
-export const MENSAJE_SIN_CORREO = 'Tu empresa no tiene un correo configurado en Configuración > Empresa.';
-
 /**
- * A donde va el ticket: el correo de la empresa, limpio, o `null` si no esta o no vale.
- *
- * Con la MISMA regla con la que la pantalla de Configuracion decide si ese campo se puede
- * ofrecer como correo de avisos (lote 201): un correo que alli no vale para avisos tampoco
- * vale aqui, y al reves.
+ * A donde va el ticket: el buzon de soporte de ContFast (lote 308). Una constante y no una
+ * variable de entorno, como se decidio en el 288: cambiarlo es un cambio de codigo, con su
+ * lote, y no algo que se pierde en la configuracion de Vercel.
  */
-export function destinoDeSoporte(correoDeLaEmpresa: string | null | undefined): string | null {
-  return correoDeLaEmpresaParaAvisos(correoDeLaEmpresa);
-}
+export const CORREO_DE_SOPORTE = 'contfastenterprise@gmail.com';
 
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sin 0/O ni 1/I: se dicta por telefono
 
@@ -119,8 +116,6 @@ export interface QuienEscribe {
   nombre: string;
   correo: string;
   empresa: string;
-  /** El correo de Configuracion > Empresa: el destino del ticket. */
-  correoEmpresa: string | null;
 }
 
 export interface CorreoDelTicket {
