@@ -11,7 +11,7 @@ import { PASOS, campoDelPaso, primerPasoConFallo } from './pasos';
 import { FotoYDescripcion } from './components/FotoYDescripcion';
 import { PreciosEnDolares } from './components/PreciosEnDolares';
 import { usePreciosEnDolares } from './hooks/usePreciosEnDolares';
-import { preciosDesdeCosto } from '@/services/precios/margen';
+import { alCambiarElCosto, conPreciosDelCosto } from './preciosDelFormulario';
 import { PestanasDeRegistro, PanelDeRegistro } from '@/components/ui/pestanas-de-registro';
 
 /**
@@ -186,36 +186,10 @@ export default function ProductsPage() {
     imageUrl: ''
   });
 
-  // Autocálculo de precios cuando cambia el costo (si no están manuales)
-  useEffect(() => {
-    if (!manualPricesEnabled && formData.cost) {
-      const costNum = Number(formData.cost);
-      if (!isNaN(costNum) && costNum >= 0) {
-        //  Lote 265: margen sobre la VENTA (`costo / (1 - margen)`), no recargo sobre el costo
-        //  (`costo x 1,25`). Decision del dueño: con costo 100 y 25 %, 133,33. La regla vive en
-        //  `services/precios/margen.ts`, la misma que usa "Precios en dolares".
-        const p = preciosDesdeCosto(costNum);
-        const pBase = p.price.toFixed(2);
-        const pConsumidor = p.priceConsumidor.toFixed(2);
-        const pMayorista = p.priceMayorista.toFixed(2);
-        const pProveedor = p.priceProveedor.toFixed(2);
-
-        // Evitamos actualización infinita verificando si hay cambios reales
-        if (formData.priceConsumidor !== pConsumidor ||
-          formData.priceMayorista !== pMayorista ||
-          formData.priceProveedor !== pProveedor ||
-          formData.price !== pBase) {
-          setFormData(prev => ({
-            ...prev,
-            price: pBase,
-            priceConsumidor: pConsumidor,
-            priceMayorista: pMayorista,
-            priceProveedor: pProveedor
-          }));
-        }
-      }
-    }
-  }, [formData.cost, manualPricesEnabled]);
+  //  Lote 310: el autocálculo (margen sobre la venta del lote 265, `preciosDelFormulario.ts`) ya
+  //  no es un efecto sobre `formData.cost`: ese efecto corría también al ABRIR un producto y enseñaba
+  //  precios que no eran los guardados (los que cobra la factura). Ahora solo recalculan escribir el
+  //  costo con el autocálculo puesto y encender el autocálculo.
 
   const fetchProducts = async (searchQuery = search, catId = selectedCategory, pageNum = 1) => {
     // Solo la ULTIMA peticion escribe en la tabla. Al teclear salian varias
@@ -1035,7 +1009,7 @@ export default function ProductsPage() {
               type="number"
               step="0.01"
               value={formData.cost}
-              onChange={(e) => { setFormData({ ...formData, cost: e.target.value }); quitarError('cost'); }}
+              onChange={(e) => { setFormData(alCambiarElCosto(formData, e.target.value, !manualPricesEnabled)); quitarError('cost'); }}
               className={"w-full bg-slate-50 border border-slate-200 rounded-lg pl-12 pr-3 py-1.5 text-xs text-slate-800 focus:border-[#c5a059] focus:ring-1 focus:ring-[#c5a059]/20 outline-none transition-colors" + conError('cost')}
               placeholder="0.00"
             />
@@ -1057,7 +1031,11 @@ export default function ProductsPage() {
                 <input
                   type="checkbox"
                   checked={!manualPricesEnabled}
-                  onChange={(e) => setManualPricesEnabled(!e.target.checked)}
+                  onChange={(e) => {
+                    setManualPricesEnabled(!e.target.checked);
+                    //  Encender el autocálculo es pedir los precios del costo (lote 310).
+                    if (e.target.checked) setFormData(conPreciosDelCosto(formData));
+                  }}
                   className="rounded border-slate-300 text-primary focus:ring-primary h-3.5 w-3.5"
                 />
                 Autocalcular

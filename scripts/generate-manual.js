@@ -48,6 +48,7 @@
  * LOTE 307 (version 3.6): «Accion inmediata» tambien, y «En observacion» se retira.
  * LOTE 308 (version 3.7): los tickets de Soporte van al equipo de soporte de ContFast.
  * LOTE 309 (version 3.8): en el correo del ticket, el remitente dice quien lo envia.
+ * LOTE 310 (version 3.9): al abrir un producto se ven sus precios guardados (los que se cobran).
  *
  * INDICE: los numeros de pagina se CALCULAN. Cada seccion empieza en pagina nueva, asi que
  * se dibuja cada una por separado con los mismos margenes, se cuentan sus paginas, y con eso
@@ -60,7 +61,7 @@ const path = require('path');
 
 const RAIZ = path.join(__dirname, '..');
 const FECHA = 'Octubre 2026';
-const VERSION = '3.8';
+const VERSION = '3.9';
 
 // El logo del sistema, el mismo de la pantalla de acceso (`public/Logo.svg`), incrustado en el
 // HTML: Chromium no tiene que salir a buscarlo. La portada es blanca, asi que va directo:
@@ -278,7 +279,7 @@ seccion('inventario', 'Inventario: productos, precios y existencias', `
   <p>Pulse ${b('Registrar')}. El formulario va por pasos — 1 <em>Qué es</em>, 2 <em>Precios y existencia</em>, 3 <em>Códigos de barra</em> — con ${b('Atrás')} y ${b('Siguiente')}. Si prefiere ver todo junto, ${b('Ver todo de una vez')} lo pone en dos columnas (y ${b('Ver por pasos')} lo devuelve). Se puede guardar desde cualquier paso con ${b('Registrar Producto')} (al editar, ${b('Guardar Cambios')}); si falta algo, el formulario salta al primer paso con error y dice «Revisa los campos marcados».</p>
   ${pasos([
     `<strong>Qué es:</strong> nombre, categoría, unidad de medida (Unidad, Pie, Metro o Servicio), estado y código SKU opcional. Aquí van también la <strong>imagen</strong> y la <strong>descripción</strong> que se ven en la tienda en línea (ver más abajo).`,
-    `<strong>Precios y existencia:</strong> escriba el ${b('Costo de Compra *')}. Con ${b('Autocalcular')} marcado, el sistema propone los cuatro precios de venta (sin ITBIS). Con ${b('Ajustar Manual')} los escribe usted y el cálculo automático se desactiva para no pisar sus precios. El interruptor ${b('Lleva control de existencia')} se apaga para servicios o mercancía por encargo: entonces no se comprueba ni se descuenta existencia. ${b('Activar Oferta (Tienda en Línea)')} fija un precio promocional para la tienda.`,
+    `<strong>Precios y existencia:</strong> escriba el ${b('Costo de Compra *')}. Con ${b('Autocalcular')} marcado, el sistema propone los cuatro precios de venta (sin ITBIS) cada vez que usted cambia el costo, o al marcar ${b('Autocalcular')}. Al abrir un producto ya guardado se ven <strong>sus precios guardados</strong>, que son los que se cobran al facturar y cotizar. Con ${b('Ajustar Manual')} los escribe usted y el cálculo automático se desactiva para no pisar sus precios. El interruptor ${b('Lleva control de existencia')} se apaga para servicios o mercancía por encargo: entonces no se comprueba ni se descuenta existencia. ${b('Activar Oferta (Tienda en Línea)')} fija un precio promocional para la tienda.`,
     `<strong>Códigos de barra:</strong> escriba el código principal o pulse ${b('Generar Automático')} (Code 128, EAN-13, EAN-8, UPC-A o código QR, con vista previa). Puede añadir códigos secundarios (de fábrica, de otra presentación) con ${b('Añadir')}.`,
   ])}
   <h4 class="mini">Los cuatro precios: margen sobre el precio de venta</h4>
@@ -289,7 +290,7 @@ seccion('inventario', 'Inventario: productos, precios y existencias', `
     ['P. Mayorista', '15 %', 'RD$ 117.65'],
     ['P. Proveedor', '10 %', 'RD$ 111.11'],
   ])}
-  ${nota('Cambiar la fórmula no recalculó los precios ya guardados: cada producto conserva los suyos hasta que se edite su costo con el autocálculo puesto o se le aplique una tasa del dólar.')}
+  ${nota('La factura y la cotización cobran el precio guardado del nivel del cliente (base, consumidor, mayorista o proveedor) y le suman el ITBIS. Si cambia el costo de un producto, guarde el producto para que sus precios cambien.')}
   <h4 class="mini">Imagen y descripción para la tienda</h4>
   <ul>
     <li>${b('Imagen (tienda)')} → ${b('Subir imagen')}; con imagen puesta, ${b('Cambiar')} y ${b('Quitar')}. Se admiten JPG, PNG o WebP de hasta 25 MB: el navegador la reduce sola antes de subirla (mejor cuadrada). La imagen queda guardada al pulsar Guardar el producto.</li>

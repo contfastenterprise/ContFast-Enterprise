@@ -60,9 +60,14 @@ async function main() {
   ok('  con la regla de `margen.ts`, no factores escritos a mano',
     /import \{[^}]*\bprecioConMargen\b[^}]*\} from '\.\/margen'/.test(dolares) && /precioConMargen\(cost, MARGENES_SOBRE_VENTA\[clave\]\)/.test(dolares)
     && !/\b1\.25\b|\b1\.15\b/.test(dolares));
+  //  Lote 310: el calculo salio de la pagina a `products/preciosDelFormulario.ts` (ya no corre en un
+  //  efecto al abrir el producto). La propiedad es la misma: el formulario calcula con `margen.ts`.
+  const delFormulario = sinComentarios(leer('src/app/dashboard/products/preciosDelFormulario.ts'));
+  const enLaPagina = /import \{ preciosDesdeCosto \} from '@\/services\/precios\/margen'/.test(productos) && /preciosDesdeCosto\(costNum\)/.test(productos);
+  const enElModulo = /from '\.\/preciosDelFormulario'/.test(productos)
+    && /import \{ preciosDesdeCosto \} from '@\/services\/precios\/margen'/.test(delFormulario) && /preciosDesdeCosto\(costo\)/.test(delFormulario);
   ok('el formulario de productos calcula con la misma regla',
-    /import \{ preciosDesdeCosto \} from '@\/services\/precios\/margen'/.test(productos) && /preciosDesdeCosto\(costNum\)/.test(productos)
-    && !/costNum \* 1\.\d+/.test(productos));
+    (enLaPagina || enElModulo) && !/costNum \* 1\.\d+/.test(productos) && !/\* 1\.\d+/.test(delFormulario));
   ok('  y las etiquetas dicen "margen", no "+25%"',
     ['P. Base (margen 25%)', 'P. Consumidor (margen 20%)', 'P. Mayorista (margen 15%)', 'P. Proveedor (margen 10%)'].every((t) => productos.includes(t))
     && !/\(\+\d+%\)/.test(productos));

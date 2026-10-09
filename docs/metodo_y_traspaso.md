@@ -3696,6 +3696,45 @@ Además, fuera de la tabla:
   y Reply-To, ciertas antes), contraprueba **8 FALLA**, once mutantes y once muertos.
   `verificar_soporte_por_correo` (288) miraba que el From no contuviera el correo del usuario: ahora mira que
   la DIRECCIÓN sea la del sistema.
+- **Lote 310: al abrir un producto se ven sus precios GUARDADOS — y un guion para pasar los viejos a la
+  fórmula nueva.** Reportado por el dueño (2026-10-08): *"al facturar o cotizar ... el precio no cuadra,
+  aunque en producto sí está correcto"*. La factura y la cotización eligen bien el precio del nivel; lo que
+  engañaba era Productos. **Medido en PRODUCCIÓN, solo lectura** (`medir_precios_nivel_310.ts`): de 86
+  productos con costo, **78** tienen guardados precios distintos de la fórmula del lote 265 y **76** siguen
+  con el recargo viejo (costo × 1,25 / 1,20 / 1,15 / 1,10). El formulario los **recalculaba al abrirse** (un
+  efecto sobre `formData.cost`, y `handleEdit` deja el autocálculo puesto) y enseñaba la fórmula nueva
+  mientras se cobraba lo guardado: Canaleta Cajón Roble, costo 700, proveedor 777,78 en Productos y 770 al
+  facturar. Y abrir un producto y pulsar Guardar le cambiaba los precios sin que nadie lo decidiera.
+  · **El formulario** (decisión del dueño): el efecto se va; recalculan solo dos gestos — escribir el costo
+    con el autocálculo puesto y encender el autocálculo — con la regla pura
+    `products/preciosDelFormulario.ts` (`conPreciosDelCosto`, `alCambiarElCosto`), que usa `preciosDesdeCosto`.
+  · **Los datos**: `scratch/_to_delete/recalcular_precios_310.ts` (no versionado; ensayo por defecto,
+    `--aplicar`, LO LANZA EL DUEÑO). Solo toca los productos cuyos cuatro precios están a **1 centavo o
+    menos** del recargo viejo exacto (aritmética entera, sin redondear); los puestos a mano y los ya al día se
+    listan y no se tocan. **El centavo, decidido por el dueño tras el ensayo**: con 0,005 salían 69, y los 7 de
+    diferencia eran productos ATADOS AL DÓLAR — al aplicar una tasa cada precio conserva su PROPORCIÓN con el
+    costo (lote 247), así que arrastran el recargo viejo de tasa en tasa con un centavo de desvío por redondeo
+    (costo 450,12: 562,64 frente a 562,650). Pasados a la fórmula nueva, las tasas siguientes conservan la
+    proporción nueva. **Ensayo contra PRODUCCIÓN (solo lectura): Latin Doors, 76 se recalculan y 10 se dejan**
+    (Corredera P-65 y Tubo 1 3/4 con precios a mano; 8 ya con la fórmula nueva). Solo los cuatro precios y `updated_at` (ni
+    costo ni oferta), en una transacción con `for update` y releyendo la condición en el `update`;
+    idempotente; con `--aplicar` deja un JSON con antes y después para deshacerlo a mano. Lo escribió un
+    agente en paralelo, con su banco.
+  Manual 3.9 (página 7): al abrir un producto se ven sus precios guardados, que son los que se cobran.
+  Dos bancos. `verificar_precios_guardados_al_abrir.ts` (la regla ejecutada, el cableado de la página y el
+  manual): 10 comprobaciones y un invariante (`handleEdit` llena lo guardado), contraprueba **10 FALLA**,
+  diez mutantes y diez muertos. `verificar_recalcular_precios_310_db.ts` (**integración**, base desechable:
+  recargo exacto, medio centavo, a mano, ya nuevo, un centavo desviado (entra), dos centavos (no), uno atado
+  al dólar con el desvío real, borrado, sin costo, oferta, otra empresa y una carrera con otra conexión que
+  cambia el precio a medias): 28, contraprueba **28 FALLA**, diecisiete mutantes (cuatro de la tolerancia:
+  0,005, `<`, 0,02 y 0,15), quince muertos y dos equivalentes anotados (quitar solo el `for update` o solo la guarda del
+  `update`: cada barrera basta sola). **Re-anclado**: `verificar_margen_sobre_venta` (265) anclaba
+  `preciosDesdeCosto(costNum)` en la página; ahora acepta la regla en el módulo, y vale en los dos estados.
+  **Ojo**: `alcanceStorefront.vitest.ts` volvió a agotar su `beforeAll` de 10 s con la máquina cargada
+  (lote 195); con `--hookTimeout=120000` pasa 27/27. No es del lote.
+  **Para el dueño**: lanzar `npx tsx --env-file=.env scratch/_to_delete/recalcular_precios_310.ts` (ensayo:
+  lista los 76 y deja los 10 con su motivo) y, si cuadra, con `--aplicar`. Y
+  `verificar_recalcular_precios_310_db.ts` va ya en `deuda_bancos.txt` de su carpeta.
 - **Lote 205: el aviso por correo pasa a ser un INFORME en PDF, con los datos de la
   empresa y un gráfico.** Pedido del dueño (2026-09-26): *"el correo lo quiero como un
   reporte, en un pdf con los datos de la empresa y el formato que tenemos en los demás
@@ -4885,5 +4924,5 @@ Además, fuera de la tabla:
 
 ---
 
-*Última actualización: lote 309 (el pie decía "lote 119" y llevaba cien lotes sin
+*Última actualización: lote 310 (el pie decía "lote 119" y llevaba cien lotes sin
 tocarse; el registro vivo son las entradas de la sección 8).*
